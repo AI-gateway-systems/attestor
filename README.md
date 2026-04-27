@@ -1,13 +1,19 @@
 # Attestor
 
-AI can propose actions.
+AI is already taking actions.
 
-Attestor makes sure those actions do not become real without policy, authority, and evidence.
+Attestor makes sure those actions don't become real without control.
+
+## TL;DR
+
+Attestor is a control layer for AI actions.
+
+AI proposes -> Attestor decides -> only safe actions execute.
 
 It sits between AI-assisted systems and real-world consequences, then blocks, narrows, reviews, or admits critical actions before downstream systems write, send, file, or execute.
 
 Without Attestor, AI actions can become real by default.
-With Attestor, nothing becomes real without control.
+With Attestor, nothing becomes real unless it is allowed.
 
 Attestor does not replace your system. It sits in front of it, controlling what is allowed to become real.
 
@@ -21,14 +27,15 @@ Attestor does not replace your system. It sits in front of it, controlling what 
 
 ## Why it matters
 
-An AI agent, automation, or workflow may try to:
+Without a control layer, AI actions rely on trust.
 
-- write a controlled financial record
-- send customer-facing output
-- approve a high-risk business action
-- trigger programmable-money execution
+That breaks the moment something high-risk happens:
 
-Without a control point, the action may rely on informal trust. When routed through Attestor, every proposed consequence is checked, policy is enforced, proof material is produced for allowed paths, and unsafe actions fail closed.
+- money moves
+- records are written
+- irreversible actions are triggered
+
+Attestor turns that into a controlled decision: nothing happens unless it is allowed.
 
 ## Example
 
@@ -73,6 +80,19 @@ Example decision payload:
 ```
 
 Allowed paths can also carry proof refs such as `certificate:...` and `verification-kit:...` for later verification.
+
+## Proof
+
+Every allowed or blocked action can produce verifiable decision output.
+
+This includes:
+
+- decision outcome
+- policy context
+- reason codes
+- verification references when available
+
+Proof can be stored, audited, and independently verified later.
 
 ## What you can do with Attestor
 

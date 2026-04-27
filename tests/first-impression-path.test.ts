@@ -25,11 +25,15 @@ function excludes(content: string, unexpected: RegExp, message: string): void {
 function testReadmeHasAFirstImpressionPath(): void {
   const readme = readProjectFile('README.md');
 
-  includes(readme, 'AI can propose actions.', 'README: opens with a plain outside-reader hook');
+  includes(readme, 'AI is already taking actions.', 'README: opens with a sharper outside-reader hook');
+  includes(readme, '## TL;DR', 'README: exposes a short top-level summary');
+  includes(readme, 'AI proposes -> Attestor decides -> only safe actions execute.', 'README: explains the control flow in one line');
   includes(readme, 'Attestor does not replace your system.', 'README: explains placement before architecture');
   includes(readme, '## Why it matters', 'README: explains urgency before architecture');
   includes(readme, '## Example', 'README: gives a concrete blocked-action example');
   includes(readme, '## Decisions', 'README: makes the decision vocabulary prominent');
+  includes(readme, '## Proof', 'README: surfaces proof as a first-class concept near the top');
+  includes(readme, 'Proof can be stored, audited, and independently verified later.', 'README: explains why proof matters');
   includes(readme, '## What you can do with Attestor', 'README: surfaces concrete use cases before architecture');
   includes(readme, '## Try it in 60 seconds', 'README: exposes a fast first run near the top');
   includes(readme, 'npm run example:admission', 'README: shows the first runnable command');
