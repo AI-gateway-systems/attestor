@@ -1,6 +1,6 @@
 # Artifact Attestation Plan
 
-Attestor `v0.1.1-evaluation` already has a reviewer-runnable packet, a GitHub-visible smoke gate, and a full verification workflow. The first provenance step is now implemented through [release-provenance.yml](../../.github/workflows/release-provenance.yml): a separate release-only attestation path that proves where selected review artifacts came from without widening the push or PR reviewer workflows.
+Attestor `v0.1.2-evaluation` has a reviewer-runnable packet, a GitHub-visible smoke gate, a full verification workflow, and a release-only provenance workflow. The first provenance step is implemented through [release-provenance.yml](../../.github/workflows/release-provenance.yml): a separate release-only attestation path that proves where selected review artifacts came from without widening the push or PR reviewer workflows.
 
 ## Current Baseline
 

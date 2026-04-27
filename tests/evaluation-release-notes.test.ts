@@ -55,7 +55,7 @@ function testEvaluationVersionTruth(): void {
   const pkg = readPackageJson();
   const lock = readPackageLock();
 
-  assert.match(pkg.version, /^0\.1\.1-evaluation$/u, 'Evaluation release: package version is an evaluation pre-release');
+  assert.match(pkg.version, /^0\.1\.2-evaluation$/u, 'Evaluation release: package version is an evaluation pre-release');
   passed += 1;
   assert.equal(lock.version, pkg.version, 'Evaluation release: package-lock top-level version matches package.json');
   passed += 1;
@@ -68,24 +68,28 @@ function testEvaluationVersionTruth(): void {
 function testReleaseNotesAreLinkedAndBounded(): void {
   const readme = readProjectFile('README.md');
   const packet = readProjectFile('docs', '00-evaluation', 'v0.1-evaluation-packet.md');
-  const notes = readProjectFile('docs', '00-evaluation', 'v0.1.1-evaluation-release-notes.md');
+  const notes = readProjectFile('docs', '00-evaluation', 'v0.1.2-evaluation-release-notes.md');
 
-  includes(readme, 'docs/00-evaluation/v0.1.1-evaluation-release-notes.md', 'Evaluation release: README links release notes');
-  includes(packet, 'v0.1.1-evaluation-release-notes.md', 'Evaluation release: packet links release notes');
-  includes(notes, '# Attestor v0.1.1-evaluation Release Notes', 'Evaluation release: release note title is stable');
-  includes(notes, '**Release type:** GitHub pre-release / CI-backed evaluation baseline', 'Evaluation release: release type is explicit');
-  includes(notes, '**Tag:** `v0.1.1-evaluation`', 'Evaluation release: tag name is explicit');
-  includes(notes, '**Package version:** `0.1.1-evaluation`', 'Evaluation release: package version is explicit');
-  includes(notes, 'CI-backed evaluation baseline', 'Evaluation release: purpose stays evaluation-focused');
+  includes(readme, 'docs/00-evaluation/v0.1.2-evaluation-release-notes.md', 'Evaluation release: README links release notes');
+  includes(packet, 'v0.1.2-evaluation-release-notes.md', 'Evaluation release: packet links release notes');
+  includes(notes, '# Attestor v0.1.2-evaluation Release Notes', 'Evaluation release: release note title is stable');
+  includes(notes, '**Release type:** GitHub pre-release / attested evaluation baseline', 'Evaluation release: release type is explicit');
+  includes(notes, '**Tag:** `v0.1.2-evaluation`', 'Evaluation release: tag name is explicit');
+  includes(notes, '**Package version:** `0.1.2-evaluation`', 'Evaluation release: package version is explicit');
+  includes(notes, 'attested evaluation baseline', 'Evaluation release: purpose stays evaluation-focused');
   includes(notes, 'PROOF_DEGRADED', 'Evaluation release: release notes are explicit about degraded local proof verification');
   includes(notes, 'Evaluation Smoke', 'Evaluation release: CI smoke gate is documented');
   includes(notes, 'proof-surface', 'Evaluation release: proof-surface artifact is documented');
-  includes(notes, 'idle-client shutdown errors', 'Evaluation release: shared authority pool lifecycle hardening is documented');
   includes(notes, 'GitHub Actions `Full Verify`', 'Evaluation release: full verify workflow evidence is documented');
+  includes(notes, 'Security Policy', 'Evaluation release: security policy is documented');
+  includes(notes, 'Release Provenance', 'Evaluation release: release provenance workflow is documented');
+  includes(notes, 'actions/attest@v4', 'Evaluation release: artifact attestation action is documented');
+  includes(notes, 'gh attestation verify evaluation-artifacts.tar.gz', 'Evaluation release: reviewer attestation verification command is documented');
+  includes(notes, 'Not full production supply-chain provenance.', 'Evaluation release: provenance non-claim is explicit');
 }
 
 function testReleaseNotesCommandsExist(): void {
-  const notes = readProjectFile('docs', '00-evaluation', 'v0.1.1-evaluation-release-notes.md');
+  const notes = readProjectFile('docs', '00-evaluation', 'v0.1.2-evaluation-release-notes.md');
   const pkg = readPackageJson();
   const commandNames = new Set(
     [...notes.matchAll(/\bnpm run ([a-z0-9:_-]+)/giu)].map((match) => match[1]),
@@ -104,16 +108,18 @@ function testReleaseNotesCommandsExist(): void {
 }
 
 function testReleaseNotesDoNotOverclaim(): void {
-  const notes = readProjectFile('docs', '00-evaluation', 'v0.1.1-evaluation-release-notes.md');
+  const notes = readProjectFile('docs', '00-evaluation', 'v0.1.2-evaluation-release-notes.md');
 
   includes(notes, 'Not a hosted public SaaS launch.', 'Evaluation release: no hosted SaaS overclaim');
   includes(notes, 'Not a public npm package release.', 'Evaluation release: no public npm overclaim');
   includes(notes, 'Not a completed customer-operated production deployment.', 'Evaluation release: no production deployment overclaim');
   includes(notes, 'Not market validation or paid customer adoption.', 'Evaluation release: no market validation overclaim');
   includes(notes, 'Not a security audit.', 'Evaluation release: no audit overclaim');
+  includes(notes, 'Not full production supply-chain provenance.', 'Evaluation release: no provenance overclaim');
   excludes(notes, /\bgeneral availability\b/iu, 'Evaluation release: must not imply GA');
   excludes(notes, /\bproduction-ready\b/iu, 'Evaluation release: must not imply production ready');
   excludes(notes, /\bis a public npm package\b/iu, 'Evaluation release: must not imply public npm availability');
+  excludes(notes, /\bfull production supply-chain provenance is complete\b/iu, 'Evaluation release: must not imply full production provenance');
 }
 
 function testPackageRunnerIncludesReleaseNotesGuard(): void {
