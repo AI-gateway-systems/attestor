@@ -6,6 +6,9 @@ Attestor makes sure those actions do not become real without policy, authority, 
 
 It sits between AI-assisted systems and real-world consequences, then blocks, narrows, reviews, or admits critical actions before downstream systems write, send, file, or execute.
 
+Without Attestor, AI actions can become real by default.
+With Attestor, nothing becomes real without control.
+
 Attestor does not replace your system. It sits in front of it, controlling what is allowed to become real.
 
 ![Attestor platform flow: proof before consequence](docs/assets/attestor-platform-flow.png)
@@ -29,17 +32,17 @@ Without a control point, the action may rely on informal trust. When routed thro
 
 ## Example
 
-An AI-assisted workflow tries to approve a high-risk financial action.
+An AI agent tries to send `$50,000`.
 
-Attestor intercepts before the downstream system acts:
+Attestor intercepts before the transaction is executed:
 
-- policy requires stronger approval
-- required authority or evidence is missing
+- policy requires approval
+- no valid authority is present
 
 Result:
 
 - `block`
-- downstream does not proceed
+- no money leaves the system
 - the path fails closed instead of becoming a real action
 
 When policy, authority, and evidence pass, Attestor can return `admit` with proof references for later review.
@@ -52,6 +55,24 @@ Attestor always returns one of four bounded outcomes:
 - `narrow` - allow only a safer bounded version
 - `review` - require human or external review
 - `block` - reject fail-closed
+
+Example decision payload:
+
+```json
+{
+  "decision": "block",
+  "allowed": false,
+  "failClosed": true,
+  "reason": "Customer gate held the consequence because Attestor returned block.",
+  "reasonCodes": [
+    "finance-policy-fail",
+    "customer-gate-hold"
+  ],
+  "proofRefs": []
+}
+```
+
+Allowed paths can also carry proof refs such as `certificate:...` and `verification-kit:...` for later verification.
 
 ## What you can do with Attestor
 
