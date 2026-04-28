@@ -55,6 +55,7 @@ The template composes existing commands before adding new machinery:
 - `npm run rehearse:production-consequence`
 - `npm run rehearse:production-async-recovery`
 - `npm run rehearse:production-backup-restore-dr`
+- `npm run rehearse:production-observability-alerting`
 - `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`
 
 The manifest is ready for Step 03 when a planner can read it, reject unsafe placeholders, and produce the exact operator command order without silently treating placeholder evidence as production proof.
@@ -198,3 +199,31 @@ It writes:
 - `.attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/control-plane-backup/manifest.json`
 
 This is target-bound backup/restore/DR evidence. It is not automated cross-region failover, not a managed PostgreSQL retention policy, and not exactly-once queue processing after disaster recovery.
+
+## Observability / Alerting / Runbook Rehearsal
+
+Step 09 adds the observability, alerting, and operator runbook rehearsal:
+
+```bash
+npm run rehearse:production-observability-alerting
+```
+
+The command consumes the Step 05 substrate readiness summary, the Step 06 consequence behavior summary, the Step 07 async recovery summary, and the Step 08 backup/restore/DR summary. It refuses to proceed unless the same target remains `production-shared`, observability endpoints are explicit, API health/readiness URLs are explicit, the dashboard URL is explicit, and the operator runbook exists.
+
+When prerequisites pass, the rehearsal:
+
+- emits OTLP logs, traces, and metrics and verifies the flush
+- checks Prometheus and Alertmanager API reachability
+- runs the existing Alertmanager routing probe for warning, critical, default, security, billing, and watchdog scenarios
+- verifies API health/readiness expose `runtimeProfile=production-shared`, `releaseRuntime.durability.ready=true`, `async-shared-authority-stores`, and `usesSharedAuthorityStores=true`
+- verifies the operational dashboard exposes the `attestor_runtime_profile_info` metric
+- verifies the operator runbook names stop conditions for runtime, shared authority, observability, alerting, and DR prerequisites
+
+It writes:
+
+- `.attestor/rehearsal/gke-production-rehearsal/observability-alerting/summary.json`
+- `.attestor/rehearsal/gke-production-rehearsal/observability-alerting/README.md`
+- `.attestor/rehearsal/gke-production-rehearsal/observability-alerting/observability-receivers/summary.json`
+- `.attestor/rehearsal/gke-production-rehearsal/observability-alerting/alert-routing/summary.json`
+
+This is target-bound observability and runbook evidence. It is not a managed observability service, not a guarantee for every customer paging policy, and not the final promotion verdict; Step 10 owns the signed/attested go/no-go evidence bundle.

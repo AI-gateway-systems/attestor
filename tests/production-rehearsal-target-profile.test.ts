@@ -215,8 +215,8 @@ function testManifestPatchAndDocsKeepTruthBoundary(): void {
 function testTrackerMarksStep04CompleteWithoutRenumbering(): void {
   const tracker = readProjectFile('docs', '02-architecture', 'production-rehearsal-buildout.md');
 
-  includes(tracker, '| Completed | 8 |', 'Production rehearsal target: tracker marks eight steps complete');
-  includes(tracker, '| Not started | 2 |', 'Production rehearsal target: tracker leaves two steps not started');
+  includes(tracker, '| Completed | 9 |', 'Production rehearsal target: tracker marks nine steps complete');
+  includes(tracker, '| Not started | 1 |', 'Production rehearsal target: tracker leaves one step not started');
   includes(
     tracker,
     '| 04 | complete | Bind rehearsal to a concrete target environment profile |',
@@ -229,8 +229,8 @@ function testTrackerMarksStep04CompleteWithoutRenumbering(): void {
   );
   includes(
     tracker,
-    'Implement Step 09: rehearse observability, alerting, and operator runbooks.',
-    'Production rehearsal target: immediate next step advances to observability, alerting, and operator runbooks',
+    'Implement Step 10: package the v0.2 production-promotion candidate evidence bundle.',
+    'Production rehearsal target: immediate next step advances to the production-promotion evidence bundle',
   );
 }
 

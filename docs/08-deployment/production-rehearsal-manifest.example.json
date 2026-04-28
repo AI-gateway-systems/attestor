@@ -162,6 +162,22 @@
       ]
     },
     {
+      "id": "rehearse-production-observability-alerting",
+      "phase": "observability",
+      "command": "npm run rehearse:production-observability-alerting",
+      "required": true,
+      "stopOnFailure": true,
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/observability-alerting/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/observability-alerting/README.md",
+        ".attestor/rehearsal/gke-production-rehearsal/observability-alerting/observability-receivers/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/observability-alerting/alert-routing/summary.json"
+      ],
+      "evidenceIds": [
+        "production-rehearsal-observability-alerting"
+      ]
+    },
+    {
       "id": "verify-release-provenance",
       "phase": "provenance",
       "command": "gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml",
@@ -267,6 +283,16 @@
       "status": "pending"
     },
     {
+      "id": "production-rehearsal-observability-alerting",
+      "phase": "observability",
+      "kind": "json",
+      "required": true,
+      "producer": "npm run rehearse:production-observability-alerting",
+      "artifactPath": ".attestor/rehearsal/gke-production-rehearsal/observability-alerting/summary.json",
+      "verification": "Observability rehearsal state is passed-observability-alerting-runbook-rehearsal and records OTLP flush, Prometheus and Alertmanager receiver reachability, Alertmanager delivery routing, runtime/shared-authority truth from health/readiness, dashboard truth visibility, and operator runbook stop conditions.",
+      "status": "pending"
+    },
+    {
       "id": "release-provenance-verification",
       "phase": "provenance",
       "kind": "attestation",
@@ -285,7 +311,8 @@
     "Any required evidence item remains pending, failed, blocked, or missing.",
     "Any required artifact lacks a digest before packaging the final evidence bundle.",
     "Any probe silently falls back to local/process memory for a production-shared target.",
-    "Any manifest contains plaintext secrets instead of redacted secret references."
+    "Any manifest contains plaintext secrets instead of redacted secret references.",
+    "Any observability dashboard or operator runbook fails to expose runtime/shared-authority truth and stop conditions."
   ],
   "nonClaims": [
     "This manifest is not a hosted public SaaS launch.",

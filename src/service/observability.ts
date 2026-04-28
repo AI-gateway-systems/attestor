@@ -174,6 +174,13 @@ export interface TelemetryStatus {
   metrics: TelemetryMetricsStatus;
 }
 
+export interface RuntimeTruthMetrics {
+  runtimeProfile: string | null;
+  releaseRuntimeReady: boolean | null;
+  requestPathContract: string | null;
+  requestPathUsesSharedStores: boolean | null;
+}
+
 const httpRequestCounts = new Map<string, number>();
 const httpRequestDuration = new Map<string, DurationHistogramState>();
 const traceContextCounts = new Map<TraceContextStatus, number>();
@@ -796,12 +803,23 @@ export function appendStructuredRequestLog(record: StructuredRequestLogRecord): 
   appendFileSync(path, `${JSON.stringify(record)}\n`, 'utf8');
 }
 
-export function renderPrometheusMetrics(version: string): string {
+export function renderPrometheusMetrics(version: string, runtimeTruth?: RuntimeTruthMetrics): string {
   const lines: string[] = [];
 
   lines.push('# HELP attestor_build_info Static build info for the running Attestor service.');
   lines.push('# TYPE attestor_build_info gauge');
   lines.push(`attestor_build_info${labels({ version })} 1`);
+
+  if (runtimeTruth) {
+    lines.push('# HELP attestor_runtime_profile_info Runtime profile and shared-authority request-path truth for the running Attestor service.');
+    lines.push('# TYPE attestor_runtime_profile_info gauge');
+    lines.push(`attestor_runtime_profile_info${labels({
+      runtime_profile: runtimeTruth.runtimeProfile ?? 'unknown',
+      release_runtime_ready: runtimeTruth.releaseRuntimeReady === true ? 'true' : 'false',
+      request_path_contract: runtimeTruth.requestPathContract ?? 'unknown',
+      request_path_uses_shared_stores: runtimeTruth.requestPathUsesSharedStores === true ? 'true' : 'false',
+    })} 1`);
+  }
 
   lines.push('# HELP attestor_http_in_flight_requests Current in-flight HTTP API requests.');
   lines.push('# TYPE attestor_http_in_flight_requests gauge');

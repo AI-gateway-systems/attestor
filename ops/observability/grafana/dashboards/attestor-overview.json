@@ -134,6 +134,39 @@
       ],
       "title": "Billing Webhook Outcomes",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Runtime profile and shared-authority request-path truth exposed by the Attestor metrics endpoint.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "attestor_runtime_profile_info",
+          "legendFormat": "{{runtime_profile}} / {{request_path_contract}} / shared={{request_path_uses_shared_stores}} / ready={{release_runtime_ready}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Runtime / Shared Authority Truth",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
@@ -141,7 +174,9 @@
   "style": "dark",
   "tags": [
     "attestor",
-    "overview"
+    "overview",
+    "runtime",
+    "shared-authority"
   ],
   "templating": {
     "list": []

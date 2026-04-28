@@ -569,7 +569,13 @@ export async function createApiHttpRouteRuntime(
     isBillingEventLedgerConfigured,
     listBillingEvents,
     billingEventView,
-    renderPrometheusMetrics,
+    renderPrometheusMetrics: (version) => renderPrometheusMetrics(version, {
+      runtimeProfile: runtimeProfileDiagnostics.profile.id,
+      releaseRuntimeReady: runtimeProfileDiagnostics.durability.ready,
+      requestPathContract: releaseRuntimeRequestPathDiagnostics.contract,
+      requestPathUsesSharedStores:
+        releaseRuntimeRequestPathDiagnostics.usesSharedAuthorityStores,
+    }),
     currentMetricsAuthorized,
     getTelemetryStatus,
     getHostedEmailDeliveryStatus,
