@@ -39,6 +39,25 @@ function testAttestationHmacVerification(): void {
   );
   assert.equal(verifyAttestation({ ...pack, signature: 'not-hex' }, signingKey).signatureVerified, false);
   assert.equal(verifyAttestation({ ...pack, signature: pack.signature!.slice(2) }, signingKey).signatureVerified, false);
+  assert.equal(
+    verifyAttestation({
+      ...pack,
+      artifactHashes: { ...pack.artifactHashes, evidenceChainTerminal: 'tampered-terminal' },
+    }, signingKey).signatureVerified,
+    false,
+  );
+  assert.equal(
+    verifyAttestation({ ...pack, liveProof: { ...pack.liveProof, consistent: !pack.liveProof.consistent } }, signingKey)
+      .signatureVerified,
+    false,
+  );
+  assert.equal(
+    verifyAttestation({
+      ...pack,
+      verification: { ...pack.verification, chainLinkage: !pack.verification.chainLinkage },
+    }, signingKey).signatureVerified,
+    false,
+  );
 }
 
 function testReceiptHmacVerification(): void {
@@ -53,6 +72,23 @@ function testReceiptHmacVerification(): void {
   );
   assert.equal(verifyReceipt({ ...receipt, signature: 'not-hex' }, signingKey).signatureValid, false);
   assert.equal(verifyReceipt({ ...receipt, signature: receipt.signature!.slice(2) }, signingKey).signatureValid, false);
+  assert.equal(
+    verifyReceipt({
+      ...receipt,
+      evidenceBindings: { ...receipt.evidenceBindings, evidenceChainTerminal: 'tampered-terminal' },
+    }, signingKey).signatureValid,
+    false,
+  );
+  assert.equal(
+    verifyReceipt({
+      ...receipt,
+      verificationSummary: {
+        ...receipt.verificationSummary,
+        evidenceChainIntact: !receipt.verificationSummary.evidenceChainIntact,
+      },
+    }, signingKey).signatureValid,
+    false,
+  );
 }
 
 testAttestationHmacVerification();

@@ -13,6 +13,7 @@
 
 import { createHash, createHmac } from 'node:crypto';
 import type { FinancialRunReport, FinancialDecision } from './types.js';
+import { canonicalizeForSignature } from './signature-canonical.js';
 import { timingSafeEqualHex } from './timing-safe.js';
 
 function h(text: string): string {
@@ -112,7 +113,7 @@ export function issueReceipt(report: FinancialRunReport, signingKey?: string): W
   };
 
   if (signingKey && status === 'issued') {
-    const canonical = JSON.stringify(body, Object.keys(body).sort());
+    const canonical = canonicalizeForSignature(body);
     const signature = createHmac('sha256', signingKey).update(canonical).digest('hex');
     return { ...body, signatureMode: 'hmac_sha256', signature };
   }
@@ -145,7 +146,7 @@ export function verifyReceipt(
       signatureValid = false;
     } else {
       const { signature: _sig, signatureMode: _mode, ...rest } = receipt;
-      const canonical = JSON.stringify(rest, Object.keys(rest).sort());
+      const canonical = canonicalizeForSignature(rest);
       const expected = createHmac('sha256', signingKey).update(canonical).digest('hex');
       signatureValid = timingSafeEqualHex(expected, receipt.signature);
     }

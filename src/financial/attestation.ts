@@ -19,6 +19,7 @@ import type { FinancialRunReport, VerificationSubResults } from './types.js';
 import { verifyLiveProof } from './types.js';
 import { canonicalOutputPackHash, canonicalDossierHash } from './canonical.js';
 import { verifyEvidenceChain } from './evidence-chain.js';
+import { canonicalizeForSignature } from './signature-canonical.js';
 import { timingSafeEqualHex } from './timing-safe.js';
 
 export interface AttestationPack {
@@ -124,7 +125,7 @@ export function buildAttestationPack(
   };
 
   if (signingKey) {
-    const canonical = JSON.stringify(body, Object.keys(body).sort());
+    const canonical = canonicalizeForSignature(body);
     const signature = createHmac('sha256', signingKey).update(canonical).digest('hex');
     return { ...body, signatureMode: 'hmac_sha256', signature, verification: { ...verification, signatureVerified: true } };
   }
@@ -148,7 +149,7 @@ export function verifyAttestation(pack: AttestationPack, signingKey?: string): V
       // So we reconstruct with signatureVerified: null.
       const { signature: _sig, signatureMode: _mode, ...rest } = pack;
       const body = { ...rest, verification: { ...rest.verification, signatureVerified: null } };
-      const canonical = JSON.stringify(body, Object.keys(body).sort());
+      const canonical = canonicalizeForSignature(body);
       const expected = createHmac('sha256', signingKey).update(canonical).digest('hex');
       signatureVerified = timingSafeEqualHex(expected, pack.signature);
     }
