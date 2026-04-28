@@ -1,0 +1,40 @@
+# Production Rehearsal Target Profiles
+
+Target profiles bind the generic production rehearsal manifest to a concrete environment shape. They do not deploy Attestor and they do not prove production readiness by themselves.
+
+The first profile is:
+
+- [gke-production-rehearsal.json](gke-production-rehearsal.json) - a production-like GKE profile using `production-shared`, External Secrets, Gateway API, cert-manager TLS, Grafana Alloy observability, shared PostgreSQL, and shared Redis.
+
+## GKE Production Rehearsal Profile
+
+`gke-production-rehearsal` pins the rehearsal to the existing Attestor render and probe paths instead of introducing a new runtime story:
+
+| Concern | Bound path |
+|---|---|
+| HA/Kubernetes profile | `npm run render:ha-profile` with `ops/kubernetes/ha/profiles/gke-production.json` |
+| DNS/TLS/Gateway | `npm run render:gke-domain-cutover` |
+| Observability profile | `npm run render:observability-profile` with `ops/observability/profiles/regulated-production.json` |
+| Readiness packet | `npm run render:production-readiness-packet` with `production-shared`, `gke`, `grafana-alloy`, and `external-secret` |
+| Runtime probes | `npm run probe:ha-runtime-connectivity`, `npm run probe:ha-release-inputs`, and `npm run probe:observability-receivers` |
+
+The profile requires operator-supplied values for the real region, cluster, hostname, static address, DNS target, issuer, TLS secret, secret store, Workload Identity service account, PostgreSQL URLs, Redis URL, and observability receiver endpoints.
+
+## How To Use It
+
+1. Fill `docs/08-deployment/production-rehearsal-manifest.example.json` for the named target environment.
+2. Apply the profile's `manifestPatch` posture: `production-shared`, no local fallback, external-secret references, GKE provider, and `attestor` namespace.
+3. Run the planner:
+
+```bash
+npm run plan:production-rehearsal -- --manifest path/to/filled-production-rehearsal-manifest.json
+```
+
+The planner remains read-only. Step 05 owns live substrate probes; until those pass, the profile is only a target binding, not production proof.
+
+## Non-Claims
+
+- This profile is not a hosted public SaaS launch.
+- This profile is not customer-operated production readiness.
+- This profile does not prove external PostgreSQL, Redis, secret, TLS, DNS, or observability readiness.
+- This profile does not add a hosted crypto route or split Attestor into a second product.

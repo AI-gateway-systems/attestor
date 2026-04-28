@@ -10,6 +10,7 @@ It does not deploy Attestor and it does not claim production readiness. It defin
 |---|---|
 | [production-rehearsal-manifest.schema.json](production-rehearsal-manifest.schema.json) | Machine-readable JSON Schema for a rehearsal manifest. |
 | [production-rehearsal-manifest.example.json](production-rehearsal-manifest.example.json) | Fill-in template for a future target environment run. |
+| [production-rehearsal-targets/gke-production-rehearsal.json](production-rehearsal-targets/gke-production-rehearsal.json) | First explicit target profile binding the manifest to a production-like GKE rehearsal shape. |
 | [Production rehearsal buildout](../02-architecture/production-rehearsal-buildout.md) | Tracker that owns the 10-step production rehearsal path. |
 
 ## What The Manifest Records
@@ -72,3 +73,19 @@ The planner:
 - exits non-zero when the manifest is unsafe to hand to an operator
 
 The planner does not run the rehearsal commands. It does not produce proof. It only turns a filled manifest into a fail-closed operator plan.
+
+## Target Profile Binding
+
+Step 04 adds the first explicit target profile: [`gke-production-rehearsal`](production-rehearsal-targets/gke-production-rehearsal.json).
+
+The profile binds the generic manifest to:
+
+- `production-shared` runtime with no local fallback
+- GKE as the production-like provider
+- External Secrets and Workload Identity as the secret posture
+- Gateway API and cert-manager for DNS/TLS cutover rendering
+- Grafana Alloy as the observability posture
+- shared PostgreSQL and Redis as required external substrates
+- the existing HA, domain cutover, observability, readiness packet, and probe commands
+
+This is still not a live deployment or a production-readiness claim. Step 05 owns the live external substrate probes.

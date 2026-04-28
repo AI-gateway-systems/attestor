@@ -1,0 +1,206 @@
+{
+  "profileVersion": "attestor.production-rehearsal.target-profile.v1",
+  "profileId": "gke-production-rehearsal",
+  "purpose": "Bind the production rehearsal manifest and planner to the first concrete production-like GKE target profile without claiming a live environment is ready.",
+  "targetEnvironment": {
+    "type": "production-like",
+    "provider": "gke",
+    "namespace": "attestor",
+    "regionRef": "operator:ATTESTOR_GKE_REGION",
+    "clusterRef": "operator:ATTESTOR_GKE_CLUSTER",
+    "publicHostnameRef": "operator:ATTESTOR_PUBLIC_HOSTNAME",
+    "ownerRef": "operator:ATTESTOR_REHEARSAL_OWNER"
+  },
+  "runtime": {
+    "profile": "production-shared",
+    "requireSharedAuthority": true,
+    "noLocalFallback": true,
+    "sharedAuthorityContract": "async-shared-authority-stores"
+  },
+  "secretPosture": {
+    "mode": "external-secret",
+    "plaintextSecretsAllowed": false,
+    "secretStore": "external-secrets-operator",
+    "workloadIdentityRequired": true
+  },
+  "substrates": [
+    {
+      "id": "release-authority-postgres",
+      "kind": "postgres",
+      "requiredEnv": [
+        "ATTESTOR_RELEASE_AUTHORITY_PG_URL"
+      ],
+      "evidence": "Step 05 must prove connection, migrations/readiness, and no local fallback for the release authority request path."
+    },
+    {
+      "id": "control-plane-postgres",
+      "kind": "postgres",
+      "requiredEnv": [
+        "ATTESTOR_CONTROL_PLANE_PG_URL"
+      ],
+      "evidence": "Step 05 must prove shared control-plane persistence before promotion evidence can be packaged."
+    },
+    {
+      "id": "billing-ledger-postgres",
+      "kind": "postgres",
+      "requiredEnv": [
+        "ATTESTOR_BILLING_LEDGER_PG_URL"
+      ],
+      "evidence": "Step 05 must prove billing ledger persistence when hosted billing paths are in scope for the rehearsal."
+    },
+    {
+      "id": "queue-redis",
+      "kind": "redis",
+      "requiredEnv": [
+        "REDIS_URL"
+      ],
+      "evidence": "Step 05 and Step 07 must prove queue connectivity and recovery posture without process-memory substitution."
+    },
+    {
+      "id": "external-secret-store",
+      "kind": "secrets",
+      "requiredEnv": [
+        "ATTESTOR_EXTERNAL_SECRET_STORE",
+        "ATTESTOR_GKE_WORKLOAD_IDENTITY_SERVICE_ACCOUNT"
+      ],
+      "evidence": "Step 05 must prove secrets are referenced through external secret material, not copied into the manifest."
+    },
+    {
+      "id": "gateway-tls-dns",
+      "kind": "tls-dns",
+      "requiredEnv": [
+        "ATTESTOR_PUBLIC_HOSTNAME",
+        "ATTESTOR_GKE_STATIC_ADDRESS_NAME",
+        "ATTESTOR_DNS_TARGET_IP",
+        "ATTESTOR_TLS_CLUSTER_ISSUER",
+        "ATTESTOR_TLS_SECRET_NAME",
+        "ATTESTOR_ACME_EMAIL"
+      ],
+      "evidence": "Step 05 must prove DNS, Gateway API routing, and cert-manager TLS inputs for the named hostname."
+    },
+    {
+      "id": "grafana-alloy-observability",
+      "kind": "observability",
+      "requiredEnv": [
+        "ATTESTOR_OBSERVABILITY_PROVIDER",
+        "ATTESTOR_OBSERVABILITY_PROMETHEUS_URL",
+        "ATTESTOR_OBSERVABILITY_ALERTMANAGER_URL"
+      ],
+      "evidence": "Step 05 and Step 09 must prove receiver reachability and alert routing for the selected backend."
+    }
+  ],
+  "renderBindings": [
+    {
+      "id": "ha-profile-render",
+      "script": "render:ha-profile",
+      "command": "npm run render:ha-profile -- --input=.attestor/rehearsal/gke-production-rehearsal/benchmarks/ha.json --profile=ops/kubernetes/ha/profiles/gke-production.json --output-dir=.attestor/rehearsal/gke-production-rehearsal/ha-profile",
+      "requiredInputs": [
+        ".attestor/rehearsal/gke-production-rehearsal/benchmarks/ha.json",
+        "ops/kubernetes/ha/profiles/gke-production.json"
+      ],
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/ha-profile/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/ha-profile/kustomization.yaml"
+      ]
+    },
+    {
+      "id": "gke-domain-cutover-render",
+      "script": "render:gke-domain-cutover",
+      "command": "npm run render:gke-domain-cutover -- --hostname=$ATTESTOR_PUBLIC_HOSTNAME --static-address-name=$ATTESTOR_GKE_STATIC_ADDRESS_NAME --dns-target-ip=$ATTESTOR_DNS_TARGET_IP --cluster-issuer=$ATTESTOR_TLS_CLUSTER_ISSUER --tls-secret-name=$ATTESTOR_TLS_SECRET_NAME --acme-email=$ATTESTOR_ACME_EMAIL --output-dir=.attestor/rehearsal/gke-production-rehearsal/domain-cutover",
+      "requiredInputs": [
+        "ATTESTOR_PUBLIC_HOSTNAME",
+        "ATTESTOR_GKE_STATIC_ADDRESS_NAME",
+        "ATTESTOR_DNS_TARGET_IP",
+        "ATTESTOR_TLS_CLUSTER_ISSUER",
+        "ATTESTOR_TLS_SECRET_NAME",
+        "ATTESTOR_ACME_EMAIL"
+      ],
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/domain-cutover/gateway.yaml",
+        ".attestor/rehearsal/gke-production-rehearsal/domain-cutover/httproute.yaml",
+        ".attestor/rehearsal/gke-production-rehearsal/domain-cutover/certificate.yaml"
+      ]
+    },
+    {
+      "id": "observability-profile-render",
+      "script": "render:observability-profile",
+      "command": "npm run render:observability-profile -- --input=.attestor/rehearsal/gke-production-rehearsal/benchmarks/observability.json --profile=ops/observability/profiles/regulated-production.json --output-dir=.attestor/rehearsal/gke-production-rehearsal/observability-profile",
+      "requiredInputs": [
+        ".attestor/rehearsal/gke-production-rehearsal/benchmarks/observability.json",
+        "ops/observability/profiles/regulated-production.json"
+      ],
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/observability-profile/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/observability-profile/alerts.yaml"
+      ]
+    },
+    {
+      "id": "production-readiness-packet-render",
+      "script": "render:production-readiness-packet",
+      "command": "npm run render:production-readiness-packet -- --runtime-profile=production-shared --ha-provider=gke --observability-provider=grafana-alloy --observability-secret-mode=external-secret --ha-benchmark=.attestor/rehearsal/gke-production-rehearsal/benchmarks/ha.json --observability-benchmark=.attestor/rehearsal/gke-production-rehearsal/benchmarks/observability.json --output-dir=.attestor/rehearsal/gke-production-rehearsal/production-readiness",
+      "requiredInputs": [
+        ".attestor/rehearsal/gke-production-rehearsal/benchmarks/ha.json",
+        ".attestor/rehearsal/gke-production-rehearsal/benchmarks/observability.json",
+        "ATTESTOR_RUNTIME_PROFILE=production-shared",
+        "ATTESTOR_RELEASE_AUTHORITY_PG_URL"
+      ],
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/production-readiness/README.md",
+        ".attestor/rehearsal/gke-production-rehearsal/production-readiness/summary.json"
+      ]
+    }
+  ],
+  "probeBindings": [
+    {
+      "id": "ha-runtime-connectivity",
+      "script": "probe:ha-runtime-connectivity",
+      "command": "npm run probe:ha-runtime-connectivity",
+      "required": true
+    },
+    {
+      "id": "ha-release-inputs",
+      "script": "probe:ha-release-inputs",
+      "command": "npm run probe:ha-release-inputs",
+      "required": true
+    },
+    {
+      "id": "observability-receivers",
+      "script": "probe:observability-receivers",
+      "command": "npm run probe:observability-receivers",
+      "required": true
+    }
+  ],
+  "manifestPatch": {
+    "targetEnvironment": {
+      "type": "production-like",
+      "provider": "gke",
+      "namespace": "attestor"
+    },
+    "runtime": {
+      "profile": "production-shared",
+      "requireSharedAuthority": true,
+      "noLocalFallback": true,
+      "releaseAuthorityPgUrlRef": "external-secret:ATTESTOR_RELEASE_AUTHORITY_PG_URL",
+      "redisUrlRef": "external-secret:REDIS_URL"
+    },
+    "secretPosture": {
+      "mode": "external-secret",
+      "plaintextSecretsAllowed": false
+    }
+  },
+  "stopConditions": [
+    "The manifest target environment does not resolve to the gke-production-rehearsal profile.",
+    "The runtime profile is not production-shared.",
+    "A required shared PostgreSQL, Redis, secret, TLS, DNS, or observability input is missing.",
+    "Any render or probe command uses local-dev or single-node-durable fallback for a production-like target.",
+    "The production-readiness packet reports blocked-on-environment-inputs.",
+    "Any required evidence remains pending before a promotion bundle is packaged."
+  ],
+  "nonClaims": [
+    "This target profile is not a live deployment.",
+    "This target profile is not customer-operated production readiness.",
+    "This target profile does not prove external substrate reachability until Step 05 probes pass.",
+    "This target profile does not add a hosted crypto route or a new product line.",
+    "This target profile does not replace independent security review, load testing, or operator approval."
+  ]
+}

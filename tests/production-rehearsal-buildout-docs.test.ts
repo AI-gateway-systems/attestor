@@ -82,12 +82,12 @@ function testTrackerFreezesTheProductionRehearsalScope(): void {
   );
   includes(
     tracker,
-    '| Completed | 3 |',
-    'Production rehearsal docs: tracker marks Steps 01 through 03 complete',
+    '| Completed | 4 |',
+    'Production rehearsal docs: tracker marks Steps 01 through 04 complete',
   );
   includes(
     tracker,
-    '| Not started | 7 |',
+    '| Not started | 6 |',
     'Production rehearsal docs: tracker keeps the remaining steps pending',
   );
 }
@@ -103,7 +103,7 @@ function testFrozenStepsStayOrderedAndHonest(): void {
     '| 01 | complete | Define the production rehearsal scope, success rubric, and non-claims |',
     '| 02 | complete | Define the rehearsal manifest and evidence schema |',
     '| 03 | complete | Add the one-command rehearsal planner |',
-    '| 04 | pending | Bind rehearsal to a concrete target environment profile |',
+    '| 04 | complete | Bind rehearsal to a concrete target environment profile |',
     '| 05 | pending | Prove external substrate readiness |',
     '| 06 | pending | Rehearse core fail-closed consequence behavior |',
     '| 07 | pending | Rehearse queue, worker, and async recovery |',
@@ -122,8 +122,8 @@ function testFrozenStepsStayOrderedAndHonest(): void {
 
   includes(
     tracker,
-    'Implement Step 04: bind rehearsal to a concrete target environment profile.',
-    'Production rehearsal docs: immediate next step moves to the target environment profile',
+    'Implement Step 05: prove external substrate readiness.',
+    'Production rehearsal docs: immediate next step moves to external substrate readiness',
   );
   excludes(
     tracker,
