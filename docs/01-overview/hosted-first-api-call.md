@@ -117,7 +117,7 @@ curl -sS -X POST "$ATTESTOR_BASE_URL/api/v1/pipeline/run" \
       }
     }
   ],
-  "sign": false
+  "sign": true
 }
 JSON
 ```
@@ -167,17 +167,16 @@ const admission = createConsequenceAdmissionFacadeResponse({
 assertConsequenceAdmissionGateAllows({
   admission,
   downstreamAction: 'customer_reporting_store.write',
-  requireProof: false,
 });
 
 // Only now may the customer system write, send, file, execute, or route onward.
 ```
 
-Use `requireProof: true` when the downstream system must see certificate, verification kit, release token, or evidence-pack references before consequence.
+By default, the customer gate requires proof for `admit` and `narrow` decisions. Keep that default for first integrations unless you are deliberately testing a non-consequential local path.
 
 ## 5. Optional Signed Proof
 
-When the customer needs portable verification material, set `sign` to `true` on the pipeline call. The response can include `certificate`, `publicKeyPem`, `trustChain`, and `caPublicKeyPem`.
+The first hosted call above sets `sign` to `true` so the response can include `certificate`, `publicKeyPem`, `trustChain`, and `caPublicKeyPem`.
 
 Verify that material with:
 

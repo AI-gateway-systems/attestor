@@ -143,7 +143,14 @@ function testNativePipelinePassWithMissingAuthorityOrProofFailsRequiredChecks():
     decidedAt: '2026-04-23T12:00:01.000Z',
   });
 
-  equal(response.decision, 'admit', 'Finance admission: native pass remains visible in the canonical mapping');
+  equal(response.nativeDecision?.value, 'pass', 'Finance admission: native pass remains visible');
+  equal(response.decision, 'review', 'Finance admission: failed required checks hold native pass at canonical review');
+  equal(response.allowed, false, 'Finance admission: failed required checks prevent allowed=true');
+  equal(response.failClosed, true, 'Finance admission: failed required checks fail closed');
+  ok(
+    response.reasonCodes.includes('finance-required-check-failed'),
+    'Finance admission: required check failure is visible in reason codes',
+  );
   equal(check(response, 'authority').outcome, 'fail', 'Finance admission: missing authority statuses fail required authority');
   equal(check(response, 'evidence').outcome, 'fail', 'Finance admission: missing evidence status fails required evidence');
   equal(response.proof.length, 0, 'Finance admission: missing proof status does not create proof refs');

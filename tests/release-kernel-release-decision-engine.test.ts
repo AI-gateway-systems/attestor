@@ -252,6 +252,55 @@ async function main(): Promise<void> {
     'Release decision engine: dry-run policies resolve to shadow evaluation mode',
   );
 
+  const tenantCanaryPolicy = createReleasePolicyDefinition({
+    ...createFirstHardGatewayReleasePolicy(),
+    id: 'finance.structured-record-release.tenant-canary',
+    rollout: {
+      mode: 'canary',
+      canaryPercentage: 100,
+      cohortKey: 'tenant-id',
+      cohortSalt: 'attestor.test.tenant-canary',
+      activatedAt: '2026-04-17T20:18:00.000Z',
+    },
+  });
+  const tenantCanaryResult = evaluateReleaseDecisionSkeleton(
+    {
+      ...request,
+      id: 'rd_eval_tenant_canary_001',
+      context: {
+        tenantId: 'tenant_finance_demo',
+      },
+    },
+    [tenantCanaryPolicy],
+  );
+  const missingTenantContextResult = evaluateReleaseDecisionSkeleton(
+    {
+      ...request,
+      id: 'rd_eval_tenant_canary_missing_context',
+    },
+    [tenantCanaryPolicy],
+  );
+  equal(
+    tenantCanaryResult.plan.rolloutEvaluationMode,
+    'enforce',
+    'Release decision engine: tenant-id canary policies use request context when present',
+  );
+  equal(
+    tenantCanaryResult.plan.rolloutReason,
+    'canary-enforce',
+    'Release decision engine: tenant-id canary request does not look like missing context',
+  );
+  equal(
+    missingTenantContextResult.plan.rolloutEvaluationMode,
+    'shadow',
+    'Release decision engine: tenant-id canary policies shadow when request context is absent',
+  );
+  equal(
+    missingTenantContextResult.plan.rolloutReason,
+    'canary-missing-context',
+    'Release decision engine: missing tenant context remains explicit',
+  );
+
   const rollbackFallbackPolicy = createReleasePolicyDefinition({
     id: 'finance.structured-record-release.rollback',
     name: 'Finance structured record fallback policy',

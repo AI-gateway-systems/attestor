@@ -50,6 +50,7 @@ export interface ShadowReleaseEvaluationResult {
   readonly wouldDecisionStatus: ReleaseDecisionStatus;
   readonly wouldPhase: ReleaseEvaluationPhase;
   readonly wouldBlockIfEnforced: boolean;
+  readonly policyWouldBlock: boolean;
   readonly wouldRequireReview: boolean;
   readonly wouldRequireToken: boolean;
   readonly evaluation: ReleaseDeterministicEvaluationResult;
@@ -87,6 +88,10 @@ function wouldBlockIfEnforced(status: ReleaseDecisionStatus, readiness: ShadowEn
     return false;
   }
 
+  return policyWouldBlock(status);
+}
+
+function policyWouldBlock(status: ReleaseDecisionStatus): boolean {
   return status === 'denied' || status === 'hold' || status === 'review-required';
 }
 
@@ -166,11 +171,11 @@ function buildSignals(
     });
   }
 
-  if (wouldBlockIfEnforced(result.decision.status, readiness)) {
+  if (policyWouldBlock(result.decision.status)) {
     signals.push({
       code: 'shadow_would_block',
       severity: result.decision.status === 'denied' ? 'critical' : 'warn',
-      message: `Hard enforcement would not pass this release through immediately because the computed status is ${result.decision.status}.`,
+      message: `The computed policy outcome would not pass this release through immediately because the status is ${result.decision.status}.`,
     });
   }
 
@@ -202,6 +207,7 @@ function buildAuditAnnotations(
     'attestor.io/would-block-if-enforced': String(
       wouldBlockIfEnforced(result.decision.status, readiness),
     ),
+    'attestor.io/policy-would-block': String(policyWouldBlock(result.decision.status)),
     'attestor.io/would-require-review': String(requireReview),
     'attestor.io/would-require-token': String(requireToken),
     'attestor.io/enforcement-readiness': readiness,
@@ -240,6 +246,7 @@ export function createShadowModeReleaseEvaluator(
         wouldDecisionStatus: evaluation.decision.status,
         wouldPhase: evaluation.plan.phase,
         wouldBlockIfEnforced: wouldBlockIfEnforced(evaluation.decision.status, readiness),
+        policyWouldBlock: policyWouldBlock(evaluation.decision.status),
         wouldRequireReview: requireReview,
         wouldRequireToken: requireToken,
         evaluation,

@@ -88,6 +88,16 @@ function checkFixture(kind: ConsequenceAdmissionCheck['kind']): ConsequenceAdmis
   });
 }
 
+function proofFixture() {
+  return {
+    kind: 'verification-kit' as const,
+    id: 'kit:finance:counterparty',
+    digest: 'sha256:kit',
+    uri: '.attestor/showcase/latest/evidence/kit.json',
+    verifyHint: 'Run npm run verify:cert with the generated kit.',
+  };
+}
+
 function testDescriptorAndDecisionHelpers(): void {
   const descriptor = consequenceAdmissionDescriptor();
 
@@ -146,15 +156,7 @@ function testRequestAndResponseAreCanonicalAndProofBearing(): void {
       checkFixture('enforcement'),
     ],
     nativeDecision,
-    proof: [
-      {
-        kind: 'verification-kit',
-        id: 'kit:finance:counterparty',
-        digest: 'sha256:kit',
-        uri: '.attestor/showcase/latest/evidence/kit.json',
-        verifyHint: 'Run npm run verify:cert with the generated kit.',
-      },
-    ],
+    proof: [proofFixture()],
     operationalContext: {
       tenantId: 'tenant_demo',
       planId: 'community',
@@ -173,6 +175,41 @@ function testRequestAndResponseAreCanonicalAndProofBearing(): void {
   equal(JSON.parse(response.canonical).decision, 'admit', 'Admission contract: canonical JSON is parseable');
 }
 
+function testAllowedDecisionsFailClosedWithoutProofOrRequiredChecks(): void {
+  const request = requestFixture();
+  const missingProof = createConsequenceAdmissionResponse({
+    request,
+    decidedAt: '2026-04-23T10:00:01.500Z',
+    decision: 'admit',
+    reason: 'Native surface admitted without portable proof.',
+    checks: [checkFixture('policy')],
+  });
+  const failedRequiredCheck = createConsequenceAdmissionResponse({
+    request,
+    decidedAt: '2026-04-23T10:00:01.600Z',
+    decision: 'admit',
+    reason: 'Native surface admitted with a failed required check.',
+    checks: [
+      createConsequenceAdmissionCheck({
+        kind: 'authority',
+        label: 'authority check',
+        outcome: 'fail',
+        required: true,
+        summary: 'Authority material is missing.',
+        reasonCodes: ['authority-missing'],
+        evidenceRefs: [],
+      }),
+    ],
+    proof: [proofFixture()],
+  });
+
+  equal(missingProof.allowed, false, 'Admission contract: admit without proof is not allowed');
+  equal(missingProof.failClosed, true, 'Admission contract: admit without proof fails closed');
+  equal(JSON.parse(missingProof.canonical).allowed, false, 'Admission contract: canonical JSON records proofless admit as not allowed');
+  equal(failedRequiredCheck.allowed, false, 'Admission contract: failed required checks prevent allowed=true');
+  equal(failedRequiredCheck.failClosed, true, 'Admission contract: failed required checks fail closed');
+}
+
 function testReviewAndBlockPosturesFailClosed(): void {
   const request = requestFixture();
   const reviewDecision = mapCryptoAdmissionOutcomeToAdmission('needs-evidence');
@@ -186,6 +223,7 @@ function testReviewAndBlockPosturesFailClosed(): void {
     reason: 'Crypto admission needs more evidence before execution.',
     reasonCodes: ['crypto-needs-evidence'],
     nativeDecision: reviewDecision,
+    failClosed: false,
   });
   const blockDecision = mapCryptoAdmissionOutcomeToAdmission('deny');
   const block = createConsequenceAdmissionResponse({
@@ -201,7 +239,7 @@ function testReviewAndBlockPosturesFailClosed(): void {
   });
 
   equal(review.allowed, false, 'Admission contract: review does not allow automatic consequence');
-  equal(review.failClosed, true, 'Admission contract: review fails closed by default');
+  equal(review.failClosed, true, 'Admission contract: review fails closed even if callers try to override it');
   equal(block.allowed, false, 'Admission contract: block does not allow consequence');
   equal(block.failClosed, true, 'Admission contract: block fails closed');
 }
@@ -233,6 +271,7 @@ function testNarrowRequiresExplicitConstraints(): void {
         enforcedBy: 'customer payment service',
       },
     ],
+    proof: [proofFixture()],
   });
 
   equal(narrow.allowed, true, 'Admission contract: narrow allows only constrained consequence');
@@ -257,6 +296,7 @@ function testProblemShapeIsFailClosed(): void {
 testDescriptorAndDecisionHelpers();
 testNativeDecisionMappingsFailClosed();
 testRequestAndResponseAreCanonicalAndProofBearing();
+testAllowedDecisionsFailClosedWithoutProofOrRequiredChecks();
 testReviewAndBlockPosturesFailClosed();
 testNarrowRequiresExplicitConstraints();
 testProblemShapeIsFailClosed();

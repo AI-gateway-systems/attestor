@@ -100,7 +100,7 @@ function pipelineBody() {
     fixtures: [COUNTERPARTY_FIXTURE],
     generatedReport: COUNTERPARTY_REPORT,
     reportContract: COUNTERPARTY_REPORT_CONTRACT,
-    sign: false,
+    sign: true,
   };
 }
 
@@ -263,7 +263,6 @@ async function main(): Promise<void> {
     const gate = evaluateConsequenceAdmissionGate({
       admission,
       downstreamAction: 'customer_reporting_store.write',
-      requireProof: false,
     });
     equal(gate.outcome, 'proceed', 'Hosted consequence call: customer gate proceeds after admitted response');
     equal(gate.downstreamAction, 'customer_reporting_store.write', 'Hosted consequence call: customer gate preserves downstream action label');

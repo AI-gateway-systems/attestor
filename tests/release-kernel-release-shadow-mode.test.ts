@@ -105,6 +105,10 @@ async function main(): Promise<void> {
     defaultResult.wouldBlockIfEnforced,
     'Release shadow mode: review-required outcomes are marked as would-block under hard enforcement',
   );
+  ok(
+    defaultResult.policyWouldBlock,
+    'Release shadow mode: policy would-block state is visible independently from rollout readiness',
+  );
   equal(
     defaultResult.outcome,
     'pass-through-with-warning',
@@ -208,12 +212,115 @@ async function main(): Promise<void> {
     'Release shadow mode: accepted low-risk paths are not treated as would-block under hard enforcement',
   );
   ok(
+    !lowRiskResult.policyWouldBlock,
+    'Release shadow mode: accepted low-risk paths do not report policy would-block',
+  );
+  ok(
     !lowRiskResult.wouldRequireReview,
     'Release shadow mode: auto-release paths do not claim human review is required',
   );
   ok(
     !lowRiskResult.wouldRequireToken,
     'Release shadow mode: low-risk auto-release paths do not overstate token requirements when the active control profile keeps tokens optional',
+  );
+
+  const advisoryPolicy = createReleasePolicyDefinition({
+    id: 'support.decision-advisory.v1',
+    name: 'Decision support advisory policy',
+    scope: {
+      wedgeId: 'support-decision-advisory',
+      consequenceType: 'decision-support',
+      riskClass: 'R2',
+      targetKinds: ['queue'],
+      dataDomains: ['support'],
+    },
+    outputContract: {
+      allowedArtifactTypes: ['support.advisory'],
+      expectedShape: 'advisory memo',
+      consequenceType: 'decision-support',
+      riskClass: 'R2',
+    },
+    capabilityBoundary: {
+      allowedTools: ['assist'],
+      allowedTargets: ['support.review.queue'],
+      allowedDataDomains: ['support'],
+      requiresSingleTargetBinding: true,
+    },
+    acceptance: {
+      strategy: 'all-required',
+      requiredChecks: ['contract-shape'],
+      requiredEvidenceKinds: ['trace'],
+      maxWarnings: 0,
+      failureDisposition: 'deny',
+    },
+    release: {
+      reviewMode: 'auto',
+      minimumReviewerCount: 0,
+      tokenEnforcement: 'optional',
+      requireSignedEnvelope: false,
+      requireDurableEvidencePack: false,
+      requireDownstreamReceipt: false,
+      retentionClass: 'standard',
+    },
+  });
+  const advisoryEvaluator = createShadowModeReleaseEvaluator({
+    engine: createReleaseDecisionEngine({ policies: [advisoryPolicy] }),
+  });
+  const advisoryResult = advisoryEvaluator.evaluate(
+    {
+      id: 'shadow_advisory_denied_001',
+      createdAt: '2026-04-17T19:07:00.000Z',
+      outputHash: 'sha256:advisory-output',
+      consequenceHash: 'sha256:advisory-consequence',
+      outputContract: {
+        artifactType: 'support.advisory',
+        expectedShape: 'advisory memo',
+        consequenceType: 'decision-support',
+        riskClass: 'R2',
+      },
+      capabilityBoundary: {
+        allowedTools: ['assist'],
+        allowedTargets: ['support.review.queue'],
+        allowedDataDomains: ['support'],
+      },
+      requester: {
+        id: 'svc.support-bot',
+        type: 'service',
+      },
+      target: {
+        kind: 'queue',
+        id: 'support.review.queue',
+      },
+    },
+    {
+      actualArtifactType: 'support.freeform-note',
+      actualShape: 'free-form note',
+      observedTargetId: 'support.review.queue',
+      usedTools: ['assist'],
+      usedDataDomains: ['support'],
+      observedOutputHash: 'sha256:advisory-output',
+      observedConsequenceHash: 'sha256:advisory-consequence',
+      policyRulesSatisfied: true,
+      evidenceKinds: ['trace'],
+    },
+  );
+  equal(
+    advisoryResult.enforcementReadiness,
+    'advisory-only',
+    'Release shadow mode: decision-support remains advisory-only without a downstream release boundary',
+  );
+  ok(
+    !advisoryResult.wouldBlockIfEnforced,
+    'Release shadow mode: advisory-only readiness does not claim current hard enforcement',
+  );
+  ok(
+    advisoryResult.policyWouldBlock,
+    'Release shadow mode: advisory-only readiness still preserves computed policy would-block risk',
+  );
+  equal(
+    advisoryResult.auditAnnotations['attestor.io/policy-would-block'],
+    'true',
+    'Release shadow mode: audit annotations preserve policy would-block separately',
   );
 
   const dryRunPolicy = createReleasePolicyDefinition({

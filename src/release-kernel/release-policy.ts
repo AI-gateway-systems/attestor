@@ -144,6 +144,12 @@ export function matchesReleasePolicyScope(
     policy.scope.targetKinds.includes(targetKind) &&
     policy.outputContract.allowedArtifactTypes.includes(outputContract.artifactType) &&
     policy.outputContract.expectedShape === outputContract.expectedShape &&
+    capabilityBoundary.allowedTools.every((tool) =>
+      policy.capabilityBoundary.allowedTools.includes(tool),
+    ) &&
+    capabilityBoundary.allowedTargets.every((target) =>
+      policy.capabilityBoundary.allowedTargets.includes(target),
+    ) &&
     capabilityBoundary.allowedDataDomains.every((domain) =>
       policy.capabilityBoundary.allowedDataDomains.includes(domain),
     )

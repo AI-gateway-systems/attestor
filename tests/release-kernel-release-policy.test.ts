@@ -97,6 +97,31 @@ async function main(): Promise<void> {
     'Release policy: matching structured-record payloads fall inside the first policy scope',
   );
 
+  ok(
+    !matchesReleasePolicyScope(
+      firstPolicy,
+      matchingOutputContract,
+      {
+        ...matchingCapabilityBoundary,
+        allowedTools: ['xbrl-export', 'wire-transfer'],
+      },
+      'record-store',
+    ),
+    'Release policy: request-declared tools must stay inside the policy capability boundary',
+  );
+  ok(
+    !matchesReleasePolicyScope(
+      firstPolicy,
+      matchingOutputContract,
+      {
+        ...matchingCapabilityBoundary,
+        allowedTargets: ['sec.edgar.filing.prepare', 'external.payment.rail'],
+      },
+      'record-store',
+    ),
+    'Release policy: request-declared targets must stay inside the policy capability boundary',
+  );
+
   const nonMatchingOutputContract: OutputContractDescriptor = {
     artifactType: 'financial-reporting.analyst-note',
     expectedShape: 'free-form note',

@@ -733,8 +733,12 @@ app.post('/api/v1/pipeline/run', async (c) => {
               issuedPackage: pkg.issuedPackage,
             },
           };
-        } catch {
-          return { filingExport: null, filingPackage: null };
+        } catch (error) {
+          return {
+            filingExport: null,
+            filingPackage: null,
+            filingPackageError: error instanceof Error ? error.message : String(error),
+          };
         }
       })()),
     });

@@ -485,9 +485,22 @@ export function createConsequenceAdmissionResponse(
     );
   }
 
-  const failClosed =
-    input.failClosed ?? (input.decision === 'review' || input.decision === 'block');
+  const checks = readonlyCopy(input.checks);
   const proof = readonlyCopy(input.proof);
+  const decisionAllows = consequenceAdmissionAllowsConsequence(input.decision);
+  const requiredChecksSatisfied = !checks.some(
+    (check) => check.required && check.outcome === 'fail',
+  );
+  const proofSatisfied = !decisionAllows || proof.length > 0;
+  const decisionFailClosed = input.decision === 'review' || input.decision === 'block';
+  const requestedFailClosed = input.failClosed ?? false;
+  const allowed =
+    decisionAllows &&
+    proofSatisfied &&
+    requiredChecksSatisfied &&
+    !requestedFailClosed &&
+    !decisionFailClosed;
+  const failClosed = decisionFailClosed || requestedFailClosed || (decisionAllows && !allowed);
   const admissionId = admissionIdFor({
     decidedAt,
     requestId: input.request.requestId,
@@ -501,11 +514,11 @@ export function createConsequenceAdmissionResponse(
     decidedAt,
     request: input.request,
     decision: input.decision,
-    allowed: consequenceAdmissionAllowsConsequence(input.decision),
+    allowed,
     failClosed,
     reason,
     reasonCodes,
-    checks: readonlyCopy(input.checks),
+    checks,
     constraints,
     nativeDecision: input.nativeDecision ?? null,
     proof,

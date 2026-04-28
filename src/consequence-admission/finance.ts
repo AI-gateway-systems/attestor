@@ -6,7 +6,9 @@ import {
   type ConsequenceAdmissionCheck,
   type ConsequenceAdmissionCheckOutcome,
   type ConsequenceAdmissionConstraint,
+  type ConsequenceAdmissionDecision,
   type ConsequenceAdmissionEvidenceRef,
+  type ConsequenceAdmissionNativeDecision,
   type ConsequenceAdmissionProofRef,
   type ConsequenceAdmissionProposedConsequence,
   type ConsequenceAdmissionRequest,
@@ -437,6 +439,47 @@ function buildFinanceChecks(input: {
   ]);
 }
 
+function failedRequiredChecks(
+  checks: readonly ConsequenceAdmissionCheck[],
+): readonly ConsequenceAdmissionCheck[] {
+  return Object.freeze(
+    checks.filter((check) => check.required && check.outcome === 'fail'),
+  );
+}
+
+function effectiveFinanceDecision(
+  nativeDecision: ConsequenceAdmissionNativeDecision,
+  failedChecks: readonly ConsequenceAdmissionCheck[],
+): ConsequenceAdmissionDecision {
+  if (
+    failedChecks.length > 0 &&
+    (nativeDecision.mappedDecision === 'admit' || nativeDecision.mappedDecision === 'narrow')
+  ) {
+    return 'review';
+  }
+
+  return nativeDecision.mappedDecision;
+}
+
+function nativeDecisionForEffectiveDecision(input: {
+  readonly nativeDecision: ConsequenceAdmissionNativeDecision;
+  readonly decision: ConsequenceAdmissionDecision;
+  readonly failedChecks: readonly ConsequenceAdmissionCheck[];
+}): ConsequenceAdmissionNativeDecision {
+  const { nativeDecision, decision, failedChecks } = input;
+  if (nativeDecision.mappedDecision === decision) {
+    return nativeDecision;
+  }
+
+  const failedKinds = failedChecks.map((check) => check.kind).join(', ');
+  return Object.freeze({
+    ...nativeDecision,
+    mappedDecision: decision,
+    mappingReason:
+      `${nativeDecision.mappingReason} Effective canonical admission is held at review because required checks failed: ${failedKinds}.`,
+  });
+}
+
 function defaultNarrowConstraints(): readonly ConsequenceAdmissionConstraint[] {
   return Object.freeze([
     {
@@ -508,36 +551,50 @@ export function createFinancePipelineAdmissionResponse(
   const native = normalizeReleaseStatus(input.run);
   const nativeDecision = mapFinancePipelineDecisionToAdmission(native.value);
   const proof = buildProofRefs(input.run);
-  const decision = nativeDecision.mappedDecision;
+  const checks = buildFinanceChecks({
+    run: input.run,
+    request,
+    decidedAt: input.decidedAt,
+    proof,
+    nativeDecisionSource: native.source,
+    filingRelease: native.filingRelease,
+  });
+  const requiredFailures = failedRequiredChecks(checks);
+  const decision = effectiveFinanceDecision(nativeDecision, requiredFailures);
+  const effectiveNativeDecision = nativeDecisionForEffectiveDecision({
+    nativeDecision,
+    decision,
+    failedChecks: requiredFailures,
+  });
   const constraints =
     decision === 'narrow'
       ? input.constraints?.length
         ? input.constraints
         : defaultNarrowConstraints()
       : input.constraints ?? [];
+  const nativeDecisionPhrase =
+    native.source === 'release.filingExport.decisionStatus'
+      ? `Finance filing release status ${native.value}`
+      : `Finance pipeline decision ${native.value}`;
+  const reason =
+    requiredFailures.length > 0 && decision !== nativeDecision.mappedDecision
+      ? `${nativeDecisionPhrase} maps to native ${nativeDecision.mappedDecision}, but required checks failed so canonical admission is review.`
+      : `${nativeDecisionPhrase} maps to canonical ${decision}.`;
+  const reasonCodes = [
+    `finance-${native.source === 'decision' ? 'pipeline' : 'release'}-${decision}`,
+    `finance-native-${native.value.toLowerCase()}`,
+    ...(requiredFailures.length > 0 ? ['finance-required-check-failed'] : []),
+  ];
 
   return createConsequenceAdmissionResponse({
     request,
     decidedAt: input.decidedAt,
     decision,
-    reason:
-      native.source === 'release.filingExport.decisionStatus'
-        ? `Finance filing release status ${native.value} maps to canonical ${decision}.`
-        : `Finance pipeline decision ${native.value} maps to canonical ${decision}.`,
-    reasonCodes: [
-      `finance-${native.source === 'decision' ? 'pipeline' : 'release'}-${decision}`,
-      `finance-native-${native.value.toLowerCase()}`,
-    ],
-    checks: buildFinanceChecks({
-      run: input.run,
-      request,
-      decidedAt: input.decidedAt,
-      proof,
-      nativeDecisionSource: native.source,
-      filingRelease: native.filingRelease,
-    }),
+    reason,
+    reasonCodes,
+    checks,
     constraints,
-    nativeDecision,
+    nativeDecision: effectiveNativeDecision,
     proof,
     operationalContext: contextWithoutUndefined({
       tenantId: input.run.tenantContext?.tenantId ?? null,

@@ -93,7 +93,19 @@ export function analyzePlan(explainResult: unknown): PredictiveGuardrailResult {
     // PostgreSQL EXPLAIN (FORMAT JSON) returns [{ "Plan": { ... } }]
     const plans = explainResult as Array<{ Plan: PlanNode }>;
     if (!plans?.[0]?.Plan) {
-      return { performed: false, riskLevel: 'low', signals: [], recommendation: 'proceed', plannerEvidence: null };
+      return {
+        performed: false,
+        riskLevel: 'critical',
+        signals: [{
+          signal: 'explain_plan_missing',
+          severity: 'critical',
+          detail: 'PostgreSQL EXPLAIN did not return a readable JSON plan.',
+          threshold: 'valid EXPLAIN JSON plan',
+          observed: 'missing',
+        }],
+        recommendation: 'deny',
+        plannerEvidence: null,
+      };
     }
 
     const rootPlan = plans[0].Plan;
@@ -143,8 +155,20 @@ export function analyzePlan(explainResult: unknown): PredictiveGuardrailResult {
         nestedLoops: metrics.nestedLoops,
       },
     };
-  } catch {
-    return { performed: false, riskLevel: 'low', signals: [], recommendation: 'proceed', plannerEvidence: null };
+  } catch (error) {
+    return {
+      performed: false,
+      riskLevel: 'critical',
+      signals: [{
+        signal: 'explain_plan_malformed',
+        severity: 'critical',
+        detail: error instanceof Error ? error.message : String(error),
+        threshold: 'valid EXPLAIN JSON plan',
+        observed: 'malformed',
+      }],
+      recommendation: 'deny',
+      plannerEvidence: null,
+    };
   }
 }
 
@@ -161,7 +185,19 @@ export async function runPredictivePreflight(
     const pg = await (Function('return import("pg")')() as Promise<any>);
     Client = pg.default?.Client ?? pg.Client;
   } catch {
-    return { performed: false, riskLevel: 'low', signals: [{ signal: 'driver_missing', severity: 'info', detail: 'pg driver not installed', threshold: 'n/a', observed: 'missing' }], recommendation: 'proceed', plannerEvidence: null };
+    return {
+      performed: false,
+      riskLevel: 'critical',
+      signals: [{
+        signal: 'driver_missing',
+        severity: 'critical',
+        detail: 'pg driver not installed',
+        threshold: 'pg driver available',
+        observed: 'missing',
+      }],
+      recommendation: 'deny',
+      plannerEvidence: null,
+    };
   }
 
   const client = new Client({ connectionString: connectionUrl });
@@ -173,6 +209,18 @@ export async function runPredictivePreflight(
     return analyzePlan(explainJson);
   } catch (err) {
     try { await client.end(); } catch { /* ignore */ }
-    return { performed: false, riskLevel: 'low', signals: [{ signal: 'explain_failed', severity: 'info', detail: err instanceof Error ? err.message : String(err), threshold: 'n/a', observed: 'error' }], recommendation: 'proceed', plannerEvidence: null };
+    return {
+      performed: false,
+      riskLevel: 'critical',
+      signals: [{
+        signal: 'explain_failed',
+        severity: 'critical',
+        detail: err instanceof Error ? err.message : String(err),
+        threshold: 'successful EXPLAIN preflight',
+        observed: 'error',
+      }],
+      recommendation: 'deny',
+      plannerEvidence: null,
+    };
   }
 }

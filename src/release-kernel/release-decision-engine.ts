@@ -132,6 +132,10 @@ function buildRolloutContext(
     outputHash: input.outputHash,
     requesterId: input.requester.id,
     targetId: input.target.id,
+    tenantId: input.context?.tenantId ?? null,
+    accountId: input.context?.accountId ?? null,
+    planId: input.context?.planId ?? null,
+    cohortId: input.context?.cohortId ?? null,
   };
 }
 

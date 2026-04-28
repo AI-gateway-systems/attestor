@@ -126,10 +126,8 @@ function testRequiredProofHoldsEvenWhenNativeDecisionPassed(): void {
 function testDefaultProofRequirementHoldsAdmittedResponseWithoutProof(): void {
   const gate = evaluateConsequenceAdmissionGate({
     admission: admissionFor(financeRunFixture({
-      proofMode: null,
       certificate: null,
       verification: null,
-      auditChainIntact: false,
     })),
     downstreamAction: 'customer_reporting_store.write',
   });
