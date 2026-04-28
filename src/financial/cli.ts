@@ -725,27 +725,34 @@ async function runProductProof(scenarioId: string, keyDir?: string, reviewerKeyD
 
     const connector = connectorRegistry.get(connectorId);
     if (!connector) {
-      console.log(`  Connector '${connectorId}' not found. Available: ${connectorRegistry.listIds().join(', ')}`);
+      throw new Error(
+        `Connector '${connectorId}' not found. Available: ${connectorRegistry.listIds().join(', ')}`,
+      );
     } else {
       const connConfig = connector.loadConfig();
       if (!connConfig) {
-        console.log(`  Connector '${connectorId}': not configured (env vars missing)`);
+        throw new Error(`Connector '${connectorId}' not configured (env vars missing)`);
       } else {
         console.log(`  Connector: ${connector.displayName} — attempting execution...`);
+        let result;
         try {
-          const result = await connector.execute(scenario.input.candidateSql, connConfig);
-          if (result.success) {
-            connectorExecution = result;
-            connectorProvider = result.provider;
-            console.log(`  Execution: ✓ ${result.provider} — ${result.rowCount} rows in ${result.durationMs}ms`);
-            if (result.executionContextHash) {
-              console.log(`  Context:   ${result.executionContextHash}`);
-            }
-          } else {
-            console.log(`  Execution: ✗ ${result.error}`);
-          }
+          result = await connector.execute(scenario.input.candidateSql, connConfig);
         } catch (err: any) {
-          console.log(`  Execution: ✗ ${err.message}`);
+          throw new Error(
+            `Connector '${connectorId}' execution failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+        if (result.success) {
+          connectorExecution = result;
+          connectorProvider = result.provider;
+          console.log(`  Execution: ✓ ${result.provider} — ${result.rowCount} rows in ${result.durationMs}ms`);
+          if (result.executionContextHash) {
+            console.log(`  Context:   ${result.executionContextHash}`);
+          }
+        } else {
+          throw new Error(
+            `Connector '${connectorId}' execution failed: ${result.error ?? 'unknown error'}`,
+          );
         }
         console.log('');
       }
