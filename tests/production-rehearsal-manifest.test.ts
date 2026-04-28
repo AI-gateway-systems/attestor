@@ -177,8 +177,6 @@ function testEvidenceAndStopConditionsAreFailClosed(): void {
 function testTrackerMarksStep02CompleteWithoutRenumbering(): void {
   const tracker = readProjectFile('docs', '02-architecture', 'production-rehearsal-buildout.md');
 
-  includes(tracker, '| Completed | 2 |', 'Production rehearsal manifest: tracker marks two steps complete');
-  includes(tracker, '| Not started | 8 |', 'Production rehearsal manifest: tracker leaves eight steps not started');
   includes(
     tracker,
     '| 02 | complete | Define the rehearsal manifest and evidence schema |',
@@ -186,8 +184,13 @@ function testTrackerMarksStep02CompleteWithoutRenumbering(): void {
   );
   includes(
     tracker,
-    '| 03 | pending | Add the one-command rehearsal planner |',
-    'Production rehearsal manifest: Step 03 remains the next pending step',
+    '`docs/08-deployment/production-rehearsal-manifest.schema.json`',
+    'Production rehearsal manifest: Step 02 evidence names the schema',
+  );
+  includes(
+    tracker,
+    '`docs/08-deployment/production-rehearsal-manifest.example.json`',
+    'Production rehearsal manifest: Step 02 evidence names the example manifest',
   );
 }
 

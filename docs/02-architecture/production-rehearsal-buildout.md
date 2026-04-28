@@ -67,10 +67,10 @@ A production rehearsal is a bounded run against a named target environment. It m
 | Metric | Value |
 |---|---|
 | Total frozen steps | 10 |
-| Completed | 2 |
+| Completed | 3 |
 | In progress | 0 |
-| Not started | 8 |
-| Current posture | Step 02 is complete: the production rehearsal manifest contract, JSON schema, example template, and truth guard now define what evidence a named environment must collect. The next work is Step 03: add a one-command rehearsal planner that reads the manifest, rejects unsafe placeholders, and prints the operator run order without treating pending evidence as production proof. |
+| Not started | 7 |
+| Current posture | Step 03 is complete: the rehearsal planner reads a filled manifest, rejects unsafe placeholders and missing scripts, and prints the operator command order without running commands or treating pending evidence as production proof. The next work is Step 04: bind the manifest and planner to a concrete target environment profile. |
 
 ## Frozen Step List
 
@@ -78,7 +78,7 @@ A production rehearsal is a bounded run against a named target environment. It m
 |---|---|---|---|---|
 | 01 | complete | Define the production rehearsal scope, success rubric, and non-claims | `docs/02-architecture/production-rehearsal-buildout.md`, `README.md`, `docs/02-architecture/system-overview.md`, `docs/08-deployment/production-readiness.md`, `tests/production-rehearsal-buildout-docs.test.ts`, `package.json` | This step opens the real-environment proof track without reopening completed runtime/shared-authority trackers. It freezes the step list, preserves one-product framing, blocks hosted-crypto/API-story widening, and states that repo-proven embedded PostgreSQL behavior is not the same as external customer-operated production readiness. |
 | 02 | complete | Define the rehearsal manifest and evidence schema | `docs/08-deployment/production-rehearsal-manifest.md`, `docs/08-deployment/production-rehearsal-manifest.schema.json`, `docs/08-deployment/production-rehearsal-manifest.example.json`, `tests/production-rehearsal-manifest.test.ts`, `package.json` | The manifest contract records target environment identity, runtime profile, command plan, expected artifacts, redacted secret posture, source commit/tag, workflow run ids, evidence pointers, stop conditions, non-claims, and pending go/no-go state. It composes existing render/probe/backup/provenance commands and keeps all evidence pending until a named target run proves it. |
-| 03 | pending | Add the one-command rehearsal planner |  | Build a planner that reads the manifest and tells an operator which existing commands to run first: benchmarks, renderers, probes, readiness packet, backup/restore drill, and provenance checks. It should fail closed on missing target identity or unsafe defaults. |
+| 03 | complete | Add the one-command rehearsal planner | `scripts/plan-production-rehearsal.ts`, `tests/production-rehearsal-planner.test.ts`, `docs/08-deployment/production-rehearsal-manifest.md`, `package.json` | The planner reads a Step 02 manifest, rejects placeholder target identity, placeholder source commit, placeholder workflow run ids, unsafe local fallback, plaintext secret posture, missing npm scripts, and premature `go` verdicts. It prints the operator run order and required evidence ids, exits non-zero when blocked, and does not execute rehearsal commands or create production proof. |
 | 04 | pending | Bind rehearsal to a concrete target environment profile |  | Add the first explicit target profile, likely `gke-production-rehearsal`, using existing GKE, External Secrets, Gateway, cert-manager, Grafana Alloy, shared PostgreSQL, and shared Redis render paths. Keep local/evaluation paths separate. |
 | 05 | pending | Prove external substrate readiness |  | Run live probes for release-authority PostgreSQL, control-plane PostgreSQL, billing PostgreSQL, Redis, secrets, TLS/DNS, API readiness, worker readiness, and observability receivers. No silent fallback to local/process memory is allowed. |
 | 06 | pending | Rehearse core fail-closed consequence behavior |  | Exercise admitted, blocked, review/hold, token issuance, token introspection, revocation, replay/use-count exhaustion, evidence-pack export, reviewer queue claim, and downstream gate behavior against the target environment. |
@@ -103,4 +103,4 @@ This track is complete only when a named target environment can produce a rehear
 
 ## Immediate Next Step
 
-Implement Step 03: add the one-command rehearsal planner. It should read the Step 02 manifest, reject unsafe placeholders or missing target identity, verify referenced npm scripts exist, and print the operator run order without running ahead to GKE rollout or treating pending evidence as proof.
+Implement Step 04: bind rehearsal to a concrete target environment profile. Add the first explicit target profile, likely `gke-production-rehearsal`, using existing GKE, External Secrets, Gateway, cert-manager, Grafana Alloy, shared PostgreSQL, and shared Redis render paths while keeping local/evaluation paths separate.

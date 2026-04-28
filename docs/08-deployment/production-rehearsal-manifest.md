@@ -55,3 +55,20 @@ The template composes existing commands before adding new machinery:
 - `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`
 
 The manifest is ready for Step 03 when a planner can read it, reject unsafe placeholders, and produce the exact operator command order without silently treating placeholder evidence as production proof.
+
+## Planner
+
+Step 03 adds the read-only planner:
+
+```bash
+npm run plan:production-rehearsal -- --manifest path/to/filled-production-rehearsal-manifest.json
+```
+
+The planner:
+
+- reads the manifest
+- rejects placeholder target identity, placeholder source commit, placeholder workflow runs, unsafe runtime fallback, plaintext secret posture, missing npm scripts, and premature `go` verdicts
+- prints the ordered command plan and required evidence ids
+- exits non-zero when the manifest is unsafe to hand to an operator
+
+The planner does not run the rehearsal commands. It does not produce proof. It only turns a filled manifest into a fail-closed operator plan.

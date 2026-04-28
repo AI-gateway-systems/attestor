@@ -82,12 +82,12 @@ function testTrackerFreezesTheProductionRehearsalScope(): void {
   );
   includes(
     tracker,
-    '| Completed | 2 |',
-    'Production rehearsal docs: tracker marks Steps 01 and 02 complete',
+    '| Completed | 3 |',
+    'Production rehearsal docs: tracker marks Steps 01 through 03 complete',
   );
   includes(
     tracker,
-    '| Not started | 8 |',
+    '| Not started | 7 |',
     'Production rehearsal docs: tracker keeps the remaining steps pending',
   );
 }
@@ -102,7 +102,7 @@ function testFrozenStepsStayOrderedAndHonest(): void {
   const steps = [
     '| 01 | complete | Define the production rehearsal scope, success rubric, and non-claims |',
     '| 02 | complete | Define the rehearsal manifest and evidence schema |',
-    '| 03 | pending | Add the one-command rehearsal planner |',
+    '| 03 | complete | Add the one-command rehearsal planner |',
     '| 04 | pending | Bind rehearsal to a concrete target environment profile |',
     '| 05 | pending | Prove external substrate readiness |',
     '| 06 | pending | Rehearse core fail-closed consequence behavior |',
@@ -122,8 +122,8 @@ function testFrozenStepsStayOrderedAndHonest(): void {
 
   includes(
     tracker,
-    'It should read the Step 02 manifest, reject unsafe placeholders or missing target identity, verify referenced npm scripts exist, and print the operator run order',
-    'Production rehearsal docs: immediate next step keeps Step 03 focused on planner behavior',
+    'Implement Step 04: bind rehearsal to a concrete target environment profile.',
+    'Production rehearsal docs: immediate next step moves to the target environment profile',
   );
   excludes(
     tracker,
