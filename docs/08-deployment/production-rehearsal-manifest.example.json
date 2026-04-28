@@ -147,27 +147,18 @@
       ]
     },
     {
-      "id": "backup-control-plane",
+      "id": "rehearse-production-backup-restore-dr",
       "phase": "recovery",
-      "command": "npm run backup:control-plane",
+      "command": "npm run rehearse:production-backup-restore-dr",
       "required": true,
       "stopOnFailure": true,
       "expectedArtifacts": [
-        ".attestor/backups/control-plane/latest"
+        ".attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/README.md",
+        ".attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/control-plane-backup/manifest.json"
       ],
       "evidenceIds": [
-        "control-plane-backup"
-      ]
-    },
-    {
-      "id": "restore-control-plane",
-      "phase": "recovery",
-      "command": "npm run restore:control-plane",
-      "required": true,
-      "stopOnFailure": true,
-      "expectedArtifacts": [],
-      "evidenceIds": [
-        "control-plane-restore-output"
+        "production-rehearsal-backup-restore-dr"
       ]
     },
     {
@@ -266,23 +257,13 @@
       "status": "pending"
     },
     {
-      "id": "control-plane-backup",
+      "id": "production-rehearsal-backup-restore-dr",
       "phase": "recovery",
-      "kind": "tarball",
+      "kind": "json",
       "required": true,
-      "producer": "npm run backup:control-plane",
-      "artifactPath": ".attestor/backups/control-plane/latest",
-      "verification": "Backup artifact exists and has a recorded digest before restore rehearsal.",
-      "status": "pending"
-    },
-    {
-      "id": "control-plane-restore-output",
-      "phase": "recovery",
-      "kind": "terminal-output",
-      "required": true,
-      "producer": "npm run restore:control-plane",
-      "artifactPath": ".attestor/rehearsal/latest/control-plane-restore.txt",
-      "verification": "Restore completes and the restored control-plane state passes readiness checks.",
+      "producer": "npm run rehearse:production-backup-restore-dr",
+      "artifactPath": ".attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/summary.json",
+      "verification": "Backup/restore/DR rehearsal state is passed-backup-restore-dr-rehearsal and records control-plane snapshot/restore, PostgreSQL PITR evidence, Redis durability posture, replacement readiness endpoints, and post-restore admission semantics.",
       "status": "pending"
     },
     {

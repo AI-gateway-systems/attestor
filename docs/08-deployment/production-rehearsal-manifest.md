@@ -54,8 +54,7 @@ The template composes existing commands before adding new machinery:
 - `npm run probe:production-rehearsal-substrates`
 - `npm run rehearse:production-consequence`
 - `npm run rehearse:production-async-recovery`
-- `npm run backup:control-plane`
-- `npm run restore:control-plane`
+- `npm run rehearse:production-backup-restore-dr`
 - `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`
 
 The manifest is ready for Step 03 when a planner can read it, reject unsafe placeholders, and produce the exact operator command order without silently treating placeholder evidence as production proof.
@@ -163,3 +162,39 @@ It writes:
 - `.attestor/rehearsal/gke-production-rehearsal/async-recovery/async-dead-letter.json`
 
 This is target-bound queue and worker recovery evidence. It does not prove backup, restore, or DR; Step 08 owns that scope.
+
+## Backup / Restore / DR Rehearsal
+
+Step 08 adds the backup, restore, and disaster-recovery rehearsal:
+
+```bash
+npm run rehearse:production-backup-restore-dr
+```
+
+The command consumes the Step 05 substrate readiness summary, the Step 06 consequence behavior summary, the Step 07 async recovery summary, and an operator-produced PostgreSQL PITR evidence file referenced by `ATTESTOR_DR_PITR_EVIDENCE_PATH`. It refuses to proceed unless the target remains `production-shared`, the source PostgreSQL/Redis inputs are present, and separate replacement inputs are configured:
+
+- `ATTESTOR_DR_REPLACEMENT_CONTROL_PLANE_PG_URL`
+- `ATTESTOR_DR_REPLACEMENT_BILLING_LEDGER_PG_URL`
+- `ATTESTOR_DR_REPLACEMENT_RELEASE_AUTHORITY_PG_URL`
+- `ATTESTOR_DR_REPLACEMENT_REDIS_URL`
+- `ATTESTOR_DR_REPLACEMENT_API_READY_URL`
+- `ATTESTOR_DR_REPLACEMENT_WORKER_READY_URL`
+
+The source and replacement URLs must differ. This prevents a restore rehearsal from silently writing back into the source target.
+
+When prerequisites pass, the rehearsal:
+
+- runs the existing control-plane backup command against the source target
+- restores the snapshot into the replacement control-plane and billing PostgreSQL targets
+- validates replacement release-authority, control-plane, and billing PostgreSQL state
+- checks source and replacement Redis durability posture, including `noeviction` plus AOF or RDB persistence
+- checks replacement API and worker readiness endpoints
+- runs a post-restore consequence-admission allow/block probe to verify fail-closed semantics remain intact
+
+It writes:
+
+- `.attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/summary.json`
+- `.attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/README.md`
+- `.attestor/rehearsal/gke-production-rehearsal/backup-restore-dr/control-plane-backup/manifest.json`
+
+This is target-bound backup/restore/DR evidence. It is not automated cross-region failover, not a managed PostgreSQL retention policy, and not exactly-once queue processing after disaster recovery.
