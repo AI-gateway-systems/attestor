@@ -105,10 +105,12 @@ function categoryOutcome(
       };
     }
     case 'capability-boundary': {
-      const toolsAllowed = observation.usedTools.every((tool) =>
+      const toolsObserved = observation.usedTools.length > 0;
+      const dataDomainsObserved = observation.usedDataDomains.length > 0;
+      const toolsAllowed = toolsObserved && observation.usedTools.every((tool) =>
         policy.capabilityBoundary.allowedTools.includes(tool),
       );
-      const domainsAllowed = observation.usedDataDomains.every((domain) =>
+      const domainsAllowed = dataDomainsObserved && observation.usedDataDomains.every((domain) =>
         policy.capabilityBoundary.allowedDataDomains.includes(domain),
       );
       const passed = toolsAllowed && domainsAllowed;
@@ -120,7 +122,9 @@ function categoryOutcome(
           passed,
           passed
             ? 'Observed tools and data domains remain inside the declared capability boundary.'
-            : 'Observed tools or data domains exceeded the declared capability boundary.',
+            : !toolsObserved || !dataDomainsObserved
+              ? 'Observed tools or data domains were missing from the capability boundary observation.'
+              : 'Observed tools or data domains exceeded the declared capability boundary.',
         ),
       };
     }

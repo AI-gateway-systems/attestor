@@ -32,6 +32,7 @@ import { resetBillingEventLedgerForTests } from '../src/service/billing-event-le
 import { resetHostedBillingEntitlementStoreForTests } from '../src/service/billing-entitlement-store.js';
 import { resetHostedEmailDeliveryEventStoreForTests } from '../src/service/email-delivery-event-store.js';
 import { resetObservabilityForTests } from '../src/service/observability.js';
+import { ATTESTOR_SERVICE_VERSION } from '../src/service/version.js';
 import { generateCurrentTotpCode } from '../src/service/account-mfa.js';
 import {
   COUNTERPARTY_SQL, COUNTERPARTY_INTENT, COUNTERPARTY_FIXTURE,
@@ -182,7 +183,7 @@ process.env.ATTESTOR_RATE_LIMIT_WINDOW_SECONDS = '5';
       ok(Boolean(res.headers.get('traceparent')), 'Health: traceparent header present');
       const body = await res.json() as any;
       ok(body.status === 'healthy', 'Health: status=healthy');
-      ok(body.version === '1.0.0', 'Health: version correct');
+      ok(body.version === ATTESTOR_SERVICE_VERSION, 'Health: version correct');
       ok(Array.isArray(body.domains), 'Health: domains is array');
       ok(body.domains.includes('finance'), 'Health: finance domain registered');
       ok(body.domains.includes('healthcare'), 'Health: healthcare domain registered');

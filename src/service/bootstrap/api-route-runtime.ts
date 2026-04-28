@@ -22,6 +22,7 @@ import {
   parsePasskeyRegistrationChallenge,
 } from '../account-route-support.js';
 import { sessionCookieName } from '../account-session-store.js';
+import { ATTESTOR_SERVICE_VERSION } from '../version.js';
 import {
   buildTotpOtpAuthUrl,
   decryptTotpSecret,
@@ -380,6 +381,7 @@ export async function createApiHttpRouteRuntime(
     asyncBackendMode,
     isSharedControlPlaneConfigured,
     serviceInstanceId,
+    serviceVersion: ATTESTOR_SERVICE_VERSION,
     startTime,
     domainRegistry,
     connectorRegistry,

@@ -123,6 +123,40 @@ function testRequiredProofHoldsEvenWhenNativeDecisionPassed(): void {
   ok(gate.reasonCodes.includes('customer-gate-proof-required'), 'Customer gate: reason codes include proof requirement');
 }
 
+function testDefaultProofRequirementHoldsAdmittedResponseWithoutProof(): void {
+  const gate = evaluateConsequenceAdmissionGate({
+    admission: admissionFor(financeRunFixture({
+      proofMode: null,
+      certificate: null,
+      verification: null,
+      auditChainIntact: false,
+    })),
+    downstreamAction: 'customer_reporting_store.write',
+  });
+
+  equal(gate.decision, 'admit', 'Customer gate: native allow is still visible');
+  equal(gate.proofRequired, true, 'Customer gate: admit decisions require proof by default');
+  equal(gate.outcome, 'hold', 'Customer gate: admitted response without proof holds by default');
+  ok(gate.reasonCodes.includes('customer-gate-proof-required'), 'Customer gate: default proof requirement is explicit');
+}
+
+function testRequiredCheckFailureHoldsEvenWithProof(): void {
+  const gate = evaluateConsequenceAdmissionGate({
+    admission: admissionFor(financeRunFixture({
+      warrant: 'missing',
+      escrow: 'held',
+      receipt: 'missing',
+      capsule: 'open',
+    })),
+    downstreamAction: 'customer_reporting_store.write',
+  });
+
+  equal(gate.proofSatisfied, true, 'Customer gate: proof can be satisfied independently');
+  equal(gate.outcome, 'hold', 'Customer gate: failed required admission checks hold the consequence');
+  ok(gate.reasonCodes.includes('customer-gate-required-check-failed'), 'Customer gate: required check failure is explicit');
+  ok(gate.reasonCodes.includes('customer-gate-required-authority-failed'), 'Customer gate: failed authority check is named');
+}
+
 function testAssertGateThrowsWhenHeld(): void {
   assert.throws(
     () =>
@@ -170,6 +204,8 @@ function testExampleAndDocs(): void {
 testProceedGate();
 testHoldGate();
 testRequiredProofHoldsEvenWhenNativeDecisionPassed();
+testDefaultProofRequirementHoldsAdmittedResponseWithoutProof();
+testRequiredCheckFailureHoldsEvenWithProof();
 testAssertGateThrowsWhenHeld();
 testExampleAndDocs();
 

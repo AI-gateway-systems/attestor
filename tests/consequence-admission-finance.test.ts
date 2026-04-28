@@ -127,6 +127,43 @@ function testNativePipelinePassMapsToAdmitWithProof(): void {
   equal(response.operationalContext.tenantId, 'tenant_demo', 'Finance admission: tenant context is preserved');
 }
 
+function testNativePipelinePassWithMissingAuthorityOrProofFailsRequiredChecks(): void {
+  const response = createFinancePipelineAdmissionResponse({
+    request: requestFixture(),
+    run: baseRun({
+      proofMode: 'missing_evidence',
+      warrant: 'missing',
+      escrow: 'held',
+      receipt: 'missing',
+      capsule: 'open',
+      auditChainIntact: false,
+      certificate: null,
+      verification: null,
+    }),
+    decidedAt: '2026-04-23T12:00:01.000Z',
+  });
+
+  equal(response.decision, 'admit', 'Finance admission: native pass remains visible in the canonical mapping');
+  equal(check(response, 'authority').outcome, 'fail', 'Finance admission: missing authority statuses fail required authority');
+  equal(check(response, 'evidence').outcome, 'fail', 'Finance admission: missing evidence status fails required evidence');
+  equal(response.proof.length, 0, 'Finance admission: missing proof status does not create proof refs');
+}
+
+function testNativePipelinePassAcceptsClosedRuntimeAuthorityStatuses(): void {
+  const response = createFinancePipelineAdmissionResponse({
+    request: requestFixture(),
+    run: baseRun({
+      warrant: 'fulfilled',
+      escrow: 'released',
+      receipt: 'issued',
+      capsule: 'authorized',
+    }),
+    decidedAt: '2026-04-23T12:00:01.000Z',
+  });
+
+  equal(check(response, 'authority').outcome, 'pass', 'Finance admission: runtime authority statuses satisfy authority');
+}
+
 function testAcceptedFilingReleaseMapsToAdmitWithTokenAndEvidencePack(): void {
   const response = createFinancePipelineAdmissionResponse({
     request: requestFixture(),
@@ -228,6 +265,8 @@ function testDeniedOrUnknownFinanceValuesBlock(): void {
 
 testDescriptorAndRequestStayOnTheExistingFinanceRoute();
 testNativePipelinePassMapsToAdmitWithProof();
+testNativePipelinePassWithMissingAuthorityOrProofFailsRequiredChecks();
+testNativePipelinePassAcceptsClosedRuntimeAuthorityStatuses();
 testAcceptedFilingReleaseMapsToAdmitWithTokenAndEvidencePack();
 testReviewRequiredFilingReleaseFailsClosed();
 testDeniedOrUnknownFinanceValuesBlock();

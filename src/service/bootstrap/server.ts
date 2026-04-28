@@ -14,6 +14,7 @@ import {
   redisMode,
   shutdownTenantRuntimeBackends,
 } from '../runtime/tenant-runtime.js';
+import { ATTESTOR_SERVICE_VERSION } from '../version.js';
 
 export interface HttpServerHandle {
   port: number;
@@ -84,7 +85,7 @@ export function startHttpServer(
   port: number = 3700,
   options: StartHttpServerOptions = {},
 ): HttpServerHandle {
-  const telemetry = initializeTelemetry('1.0.0');
+  const telemetry = initializeTelemetry(ATTESTOR_SERVICE_VERSION);
   configureTenantRuntimeBackends();
 
   const highAvailability = evaluateApiHighAvailabilityState({

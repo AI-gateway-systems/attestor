@@ -90,6 +90,7 @@ export interface CoreRouteDeps {
   asyncBackendMode: 'bullmq' | 'in_process' | 'none';
   isSharedControlPlaneConfigured(): boolean;
   serviceInstanceId: string;
+  serviceVersion: string;
   startTime: number;
   domainRegistry: DomainRegistryLike;
   connectorRegistry: ConnectorRegistryLike;
@@ -121,6 +122,7 @@ export function registerCoreRoutes(app: Hono, deps: CoreRouteDeps): void {
     asyncBackendMode,
     isSharedControlPlaneConfigured,
     serviceInstanceId,
+    serviceVersion,
     startTime,
     domainRegistry,
     connectorRegistry,
@@ -142,7 +144,7 @@ export function registerCoreRoutes(app: Hono, deps: CoreRouteDeps): void {
     });
     return c.json({
       status: 'healthy',
-      version: '1.0.0',
+      version: serviceVersion,
       instanceId: serviceInstanceId,
       uptime: Math.floor((Date.now() - startTime) / 1000),
       domains: domainRegistry.listIds(),

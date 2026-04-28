@@ -148,6 +148,31 @@ function textOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function statusOrNull(value: string | null | undefined): string | null {
+  return textOrNull(value)?.toLowerCase() ?? null;
+}
+
+function hasClosedAuthorityChain(run: FinancePipelineAdmissionRun): boolean {
+  const warrantStatus = statusOrNull(run.warrant);
+  const escrowStatus = statusOrNull(run.escrow);
+  const receiptStatus = statusOrNull(run.receipt);
+  const capsuleStatus = statusOrNull(run.capsule);
+  return (
+    (warrantStatus === 'issued' || warrantStatus === 'fulfilled') &&
+    escrowStatus === 'released' &&
+    receiptStatus === 'issued' &&
+    (capsuleStatus === 'closed' || capsuleStatus === 'authorized')
+  );
+}
+
+function hasValidProofMode(run: FinancePipelineAdmissionRun): boolean {
+  const proofMode = statusOrNull(run.proofMode);
+  return (
+    proofMode !== null &&
+    !['missing', 'missing-evidence', 'missing_evidence', 'none', 'unavailable', 'unknown'].includes(proofMode)
+  );
+}
+
 function recordOrNull(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -302,8 +327,8 @@ function buildFinanceChecks(input: {
   const status = textOrNull(filingRelease?.decisionStatus)?.toLowerCase() ?? run.decision.toLowerCase();
   const hasHardReleaseToken = Boolean(textOrNull(filingRelease?.tokenId));
   const hasReviewQueue = Boolean(textOrNull(filingRelease?.reviewQueueId));
-  const hasAuthorityMaterial = Boolean(run.warrant || run.escrow || run.receipt || run.capsule);
-  const hasProofMaterial = proof.length > 0 || run.auditChainIntact === true || Boolean(run.proofMode);
+  const hasAuthorityMaterial = hasClosedAuthorityChain(run);
+  const hasProofMaterial = proof.length > 0 || run.auditChainIntact === true || hasValidProofMode(run);
   const allowStatuses = ['pass', 'accepted', 'allow', 'allowed', 'narrow', 'constrained', 'scope-reduced', 'limited'];
   const reviewStatuses = ['hold', 'review', 'review-required', 'needs-review', 'pending-review'];
   const denyStatuses = ['denied', 'fail', 'block', 'blocked', 'deny', 'revoked', 'expired'];
@@ -320,9 +345,15 @@ function buildFinanceChecks(input: {
       ? 'fail'
       : hasAuthorityMaterial || hasHardReleaseToken
         ? 'pass'
-        : 'warn';
+        : policyOutcome === 'pass'
+          ? 'fail'
+          : 'warn';
   const evidenceOutcome: ConsequenceAdmissionCheckOutcome =
-    hasProofMaterial ? 'pass' : policyOutcome === 'fail' ? 'fail' : 'warn';
+    hasProofMaterial
+      ? 'pass'
+      : policyOutcome === 'fail' || policyOutcome === 'pass'
+        ? 'fail'
+        : 'warn';
   const freshnessOutcome = tokenFreshnessOutcome(filingRelease, decidedAt);
   const enforcementOutcome: ConsequenceAdmissionCheckOutcome =
     hasHardReleaseToken
@@ -351,9 +382,11 @@ function buildFinanceChecks(input: {
       label: 'Finance authority closure',
       outcome: authorityOutcome,
       required: true,
-      summary: hasAuthorityMaterial || hasHardReleaseToken
-        ? 'Finance warrant, escrow, receipt, capsule, or release token material is present.'
-        : 'Finance authority material is not fully represented in the native response.',
+      summary: hasAuthorityMaterial
+        ? 'Finance warrant, escrow, receipt, and capsule are closed in valid authority states.'
+        : hasHardReleaseToken
+          ? 'A finance release token is present for downstream authority closure.'
+          : 'Finance authority material is missing or not in closed valid states.',
       reasonCodes: [`finance-authority-${authorityOutcome}`],
       evidenceRefs: proofEvidenceRefs,
     }),

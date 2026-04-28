@@ -60,23 +60,33 @@ export function evaluateConsequenceAdmissionGate(
   input: EvaluateConsequenceAdmissionGateInput,
 ): ConsequenceAdmissionCustomerGateDecision {
   const downstreamAction = normalizeDownstreamAction(input.downstreamAction);
-  const proofRequired = input.requireProof ?? false;
+  const proofRequired =
+    input.requireProof ?? (input.admission.decision === 'admit' || input.admission.decision === 'narrow');
   const proofRefs = readonlyCopy(input.admission.proof);
   const proofSatisfied = !proofRequired || proofRefs.length > 0;
+  const failedRequiredChecks = input.admission.checks.filter((check) =>
+    check.required && check.outcome === 'fail',
+  );
+  const requiredChecksSatisfied = failedRequiredChecks.length === 0;
   const allowedByAdmission =
     input.admission.allowed &&
     (input.admission.decision === 'admit' || input.admission.decision === 'narrow') &&
     !input.admission.failClosed;
   const outcome: ConsequenceAdmissionCustomerGateOutcome =
-    allowedByAdmission && proofSatisfied ? 'proceed' : 'hold';
+    allowedByAdmission && proofSatisfied && requiredChecksSatisfied ? 'proceed' : 'hold';
   const missingRequiredProof = proofRequired && !proofSatisfied;
+  const failedRequiredCheckCodes = failedRequiredChecks.map((check) => check.kind);
   const reasonCodes = Object.freeze([
     ...input.admission.reasonCodes,
     missingRequiredProof ? 'customer-gate-proof-required' : 'customer-gate-proof-satisfied',
+    requiredChecksSatisfied ? 'customer-gate-required-checks-satisfied' : 'customer-gate-required-check-failed',
+    ...failedRequiredCheckCodes.map((kind) => `customer-gate-required-${kind}-failed`),
     `customer-gate-${outcome}`,
   ]);
   const reason = missingRequiredProof
     ? 'Customer gate held the consequence because required proof references were missing.'
+    : !requiredChecksSatisfied
+      ? `Customer gate held the consequence because required Attestor checks failed: ${failedRequiredCheckCodes.join(', ')}.`
     : outcome === 'proceed'
       ? 'Customer gate may run the downstream action because Attestor admitted the consequence.'
       : `Customer gate held the consequence because Attestor returned ${input.admission.decision}.`;

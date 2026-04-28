@@ -356,18 +356,31 @@ app.post('/api/v1/pipeline/run', async (c) => {
       try {
         const { isPostgresConfigured } = await import('../../../connectors/postgres.js');
         const { runPostgresProve } = await import('../../../connectors/postgres-prove.js');
-        if (isPostgresConfigured()) {
-          const pgResult = await runPostgresProve(candidateSql);
-          if (pgResult.execution?.success) {
-            connectorExecution = {
-              ...pgResult.execution,
-              schemaAttestation: pgResult.schemaAttestation,
-            };
-            connectorProvider = 'postgres';
-            fullSchemaAttestation = pgResult.schemaAttestation;
-          }
+        if (!isPostgresConfigured()) {
+          return c.json({ error: "Connector 'postgres-prove' not configured (env vars missing)" }, 400);
         }
-      } catch { /* non-fatal */ }
+        const pgResult = await runPostgresProve(candidateSql);
+        if (!pgResult.execution?.success) {
+          return c.json({
+            error: "Connector 'postgres-prove' execution failed.",
+            connector: 'postgres-prove',
+            proofMode: 'unavailable',
+          }, 502);
+        }
+        connectorExecution = {
+          ...pgResult.execution,
+          schemaAttestation: pgResult.schemaAttestation,
+        };
+        connectorProvider = 'postgres';
+        fullSchemaAttestation = pgResult.schemaAttestation;
+      } catch (error) {
+        return c.json({
+          error: "Connector 'postgres-prove' execution failed.",
+          connector: 'postgres-prove',
+          detail: error instanceof Error ? error.message : 'Unknown connector failure.',
+          proofMode: 'unavailable',
+        }, 502);
+      }
     } else if (body.connector) {
       const connector = connectorRegistry.get(body.connector);
       if (!connector) {
@@ -379,13 +392,23 @@ app.post('/api/v1/pipeline/run', async (c) => {
       }
       try {
         const result = await connector.execute(candidateSql, connConfig);
-        if (result.success) {
-          connectorExecution = connectorExecutionEvidenceFromResult(result);
-          connectorProvider = result.provider;
+        if (!result.success) {
+          return c.json({
+            error: `Connector '${body.connector}' execution failed.`,
+            connector: body.connector,
+            detail: result.error ?? 'Connector returned an unsuccessful execution result.',
+            proofMode: 'unavailable',
+          }, 502);
         }
-      } catch {
-        // Connector execution failure is not fatal; fall back to fixture.
-        connectorExecution = null;
+        connectorExecution = connectorExecutionEvidenceFromResult(result);
+        connectorProvider = result.provider;
+      } catch (error) {
+        return c.json({
+          error: `Connector '${body.connector}' execution failed.`,
+          connector: body.connector,
+          detail: error instanceof Error ? error.message : 'Unknown connector failure.',
+          proofMode: 'unavailable',
+        }, 502);
       }
     }
 

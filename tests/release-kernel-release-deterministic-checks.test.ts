@@ -128,6 +128,25 @@ async function main(): Promise<void> {
     'Deterministic checks: failed findings name the specific deterministic control that broke',
   );
 
+  const missingCapabilityObservationReport = runDeterministicReleaseChecks(firstPolicy, decision, {
+    ...passingObservation,
+    usedTools: [],
+    usedDataDomains: [],
+  });
+
+  ok(
+    !missingCapabilityObservationReport.allPassed,
+    'Deterministic checks: missing capability observations do not pass by empty-array vacuity',
+  );
+  ok(
+    missingCapabilityObservationReport.findings.some((finding) =>
+      finding.code === 'capability-boundary' &&
+      finding.result === 'fail' &&
+      finding.message.includes('missing'),
+    ),
+    'Deterministic checks: missing capability observation is named as the failure',
+  );
+
   const communicationPolicy = createReleasePolicyDefinition({
     id: 'custom.communication.policy',
     name: 'Custom communication policy',

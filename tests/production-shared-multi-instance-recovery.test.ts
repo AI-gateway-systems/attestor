@@ -363,11 +363,14 @@ async function run(): Promise<void> {
       queueB.claimNextPending({ claimedBy: 'runtime-b', claimedAt: claimTime, leaseMs: 120_000 }),
       queueA.claimNextPending({ claimedBy: 'runtime-c', claimedAt: claimTime, leaseMs: 120_000 }),
     ]);
-    ok(claimA, 'Step 08: first reviewer-queue consumer claims an item');
-    ok(claimB, 'Step 08: second reviewer-queue consumer claims an item');
-    equal(claimC, null, 'Step 08: third reviewer-queue consumer gets no duplicate claim');
+    const successfulClaims = [claimA, claimB, claimC].filter((claim) => claim !== null);
+    equal(
+      successfulClaims.length,
+      2,
+      'Step 08: exactly two reviewer-queue consumers claim the two pending items',
+    );
     ok(
-      claimA!.record.detail.id !== claimB!.record.detail.id,
+      successfulClaims[0]!.record.detail.id !== successfulClaims[1]!.record.detail.id,
       'Step 08: concurrent reviewer-queue claims select distinct records',
     );
     equal(

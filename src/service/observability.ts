@@ -36,6 +36,7 @@ import {
   ATTR_URL_PATH,
   ATTR_USER_AGENT_ORIGINAL,
 } from '@opentelemetry/semantic-conventions';
+import { ATTESTOR_SERVICE_VERSION } from './version.js';
 
 const HTTP_DURATION_BUCKETS = [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10] as const;
 
@@ -199,7 +200,7 @@ let telemetryInFlightGauge: ObservableGauge | null = null;
 let telemetryStatus: TelemetryStatus = {
   enabled: false,
   serviceName: process.env.OTEL_SERVICE_NAME?.trim() || 'attestor-api',
-  serviceVersion: process.env.ATTESTOR_SERVICE_VERSION?.trim() || '1.0.0',
+  serviceVersion: process.env.ATTESTOR_SERVICE_VERSION?.trim() || ATTESTOR_SERVICE_VERSION,
   serviceInstanceId: process.env.OTEL_SERVICE_INSTANCE_ID?.trim() || process.env.HOSTNAME?.trim() || process.env.COMPUTERNAME?.trim() || os.hostname(),
   disabledReason: 'Telemetry not initialized.',
   logs: {
@@ -431,7 +432,7 @@ function resolveMetricsExporterConfig(): TelemetryConfig['metrics'] {
   };
 }
 
-function resolveTelemetryConfig(serviceVersion = '1.0.0'): TelemetryConfig {
+function resolveTelemetryConfig(serviceVersion = ATTESTOR_SERVICE_VERSION): TelemetryConfig {
   return {
     serviceName: process.env.OTEL_SERVICE_NAME?.trim() || 'attestor-api',
     serviceVersion,
@@ -442,7 +443,7 @@ function resolveTelemetryConfig(serviceVersion = '1.0.0'): TelemetryConfig {
   };
 }
 
-export function initializeTelemetry(serviceVersion = '1.0.0'): TelemetryStatus {
+export function initializeTelemetry(serviceVersion = ATTESTOR_SERVICE_VERSION): TelemetryStatus {
   if (telemetryInitialized) return telemetryStatus;
   telemetryInitialized = true;
   const config = resolveTelemetryConfig(serviceVersion);
@@ -589,7 +590,7 @@ export async function shutdownTelemetry(): Promise<void> {
   telemetryStatus = {
     enabled: false,
     serviceName: process.env.OTEL_SERVICE_NAME?.trim() || 'attestor-api',
-    serviceVersion: process.env.ATTESTOR_SERVICE_VERSION?.trim() || '1.0.0',
+    serviceVersion: process.env.ATTESTOR_SERVICE_VERSION?.trim() || ATTESTOR_SERVICE_VERSION,
     serviceInstanceId: process.env.OTEL_SERVICE_INSTANCE_ID?.trim() || process.env.HOSTNAME?.trim() || process.env.COMPUTERNAME?.trim() || os.hostname(),
     disabledReason: 'Telemetry not initialized.',
     logs: {
