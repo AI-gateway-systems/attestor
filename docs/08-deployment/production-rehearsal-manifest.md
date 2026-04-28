@@ -53,6 +53,7 @@ The template composes existing commands before adding new machinery:
 - `npm run probe:observability-receivers`
 - `npm run probe:production-rehearsal-substrates`
 - `npm run rehearse:production-consequence`
+- `npm run rehearse:production-async-recovery`
 - `npm run backup:control-plane`
 - `npm run restore:control-plane`
 - `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`
@@ -134,3 +135,31 @@ It writes:
 - `.attestor/rehearsal/gke-production-rehearsal/consequence-behavior/README.md`
 
 This is target-bound technical evidence, not customer adoption proof or a blanket production guarantee.
+
+## Async Recovery Rehearsal
+
+Step 07 adds the queue, worker, and async recovery rehearsal:
+
+```bash
+npm run rehearse:production-async-recovery
+```
+
+The command consumes the Step 05 substrate readiness summary and the Step 06 consequence behavior summary. It refuses to exercise async recovery unless the target remains `production-shared`, `REDIS_URL` is present, the target profile requires the `queue-redis` substrate, and previous rehearsal evidence has passed.
+
+When prerequisites pass, the rehearsal exercises the existing BullMQ-backed async path:
+
+- Redis reachability and `maxmemory-policy=noeviction` posture
+- BullMQ retry/backoff and stalled-job guardrail configuration
+- worker drain on close and restart processing of the next job
+- transient worker failure retry to completion
+- terminal worker failure visibility through BullMQ failed jobs and the persistent async DLQ store
+- fail-quick submission behavior when Redis coordination is unavailable
+- queue summary visibility for Redis-backed tenant active-execution and weighted-dispatch coordination
+
+It writes:
+
+- `.attestor/rehearsal/gke-production-rehearsal/async-recovery/summary.json`
+- `.attestor/rehearsal/gke-production-rehearsal/async-recovery/README.md`
+- `.attestor/rehearsal/gke-production-rehearsal/async-recovery/async-dead-letter.json`
+
+This is target-bound queue and worker recovery evidence. It does not prove backup, restore, or DR; Step 08 owns that scope.

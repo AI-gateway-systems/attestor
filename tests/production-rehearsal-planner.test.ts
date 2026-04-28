@@ -163,8 +163,8 @@ function testPlannerRejectsPrematureGoVerdict(): void {
 function testTrackerMarksStep03CompleteWithoutRenumbering(): void {
   const tracker = readProjectFile('docs', '02-architecture', 'production-rehearsal-buildout.md');
 
-  includes(tracker, '| Completed | 6 |', 'Production rehearsal planner: tracker marks six steps complete');
-  includes(tracker, '| Not started | 4 |', 'Production rehearsal planner: tracker leaves four steps not started');
+  includes(tracker, '| Completed | 7 |', 'Production rehearsal planner: tracker marks seven steps complete');
+  includes(tracker, '| Not started | 3 |', 'Production rehearsal planner: tracker leaves three steps not started');
   includes(
     tracker,
     '| 03 | complete | Add the one-command rehearsal planner |',

@@ -49,6 +49,7 @@ let configuredRedisMode: string | null = null;
 let configuredBackend: 'memory' | 'redis' = 'memory';
 let redisClient: IORedis | null = null;
 let redisConnectPromise: Promise<IORedis | null> | null = null;
+let lastRedisConnectionError: string | null = null;
 
 function nowMs(): number {
   return Date.now();
@@ -94,11 +95,13 @@ async function connectRedisClient(): Promise<IORedis | null> {
       await nextClient.ping();
       redisClient = nextClient;
       configuredBackend = 'redis';
+      lastRedisConnectionError = null;
       return nextClient;
-    } catch {
+    } catch (error) {
       try { nextClient?.disconnect(); } catch {}
       redisClient = null;
       configuredBackend = 'memory';
+      lastRedisConnectionError = error instanceof Error ? error.message : String(error);
       return null;
     } finally {
       redisConnectPromise = null;
@@ -106,6 +109,24 @@ async function connectRedisClient(): Promise<IORedis | null> {
   })();
 
   return redisConnectPromise;
+}
+
+function requiresSharedRedisCoordination(): boolean {
+  return (
+    configuredDispatchRedisUrl() !== null &&
+    (process.env.ATTESTOR_RUNTIME_PROFILE === 'production-shared' ||
+      process.env.ATTESTOR_ASYNC_REQUIRE_SHARED_COORDINATION === 'true')
+  );
+}
+
+async function redisClientOrFallback(): Promise<IORedis | null> {
+  const client = await connectRedisClient();
+  if (!client && requiresSharedRedisCoordination()) {
+    throw new Error(
+      `Tenant async weighted dispatch coordinator requires Redis but could not connect: ${lastRedisConnectionError ?? 'unknown error'}`,
+    );
+  }
+  return client;
 }
 
 function isoAt(value: number): string {
@@ -177,7 +198,7 @@ export async function getTenantAsyncWeightedDispatchState(
 
   const tenantStateKey = tenantKey(queueName, tenantId);
   const planStateKey = planKey(queueName, spec.planId);
-  const client = await connectRedisClient();
+  const client = await redisClientOrFallback();
   if (!client) {
     const tenantNext = TENANT_NEXT_MEMORY.get(tenantStateKey) ?? null;
     const planNext = PLAN_NEXT_MEMORY.get(planStateKey) ?? null;
@@ -214,7 +235,7 @@ export async function acquireTenantAsyncWeightedDispatchPermit(options: {
   const tenantStateKey = tenantKey(options.queueName, options.tenantId);
   const planStateKey = planKey(options.queueName, spec.planId);
   const currentNow = nowMs();
-  const client = await connectRedisClient();
+  const client = await redisClientOrFallback();
   if (!client) {
     const tenantNext = TENANT_NEXT_MEMORY.get(tenantStateKey) ?? 0;
     const planNext = PLAN_NEXT_MEMORY.get(planStateKey) ?? 0;

@@ -122,6 +122,8 @@ export interface AsyncPipelineConfig {
   redisUrl?: string;
   queueName?: string;
   jobTtlSeconds?: number;
+  workerLockDurationMs?: number;
+  workerStalledIntervalMs?: number;
   processJob?: (job: Job<PipelineJobData, PipelineJobResult>) => Promise<PipelineJobResult>;
 }
 
@@ -134,19 +136,68 @@ const DEFAULT_MAX_STALLED_COUNT = 1;
 const DEFAULT_WORKER_CONCURRENCY = 1;
 const DEFAULT_TENANT_SCAN_LIMIT = 200;
 
-function parseRedisOpts(url?: string): { host: string; port: number; enableOfflineQueue: false } {
-  if (!url) return { host: 'localhost', port: 6379, enableOfflineQueue: false };
+interface ParsedRedisEndpoint {
+  host: string;
+  port: number;
+  password?: string;
+}
+
+interface QueueRedisOptions extends ParsedRedisEndpoint {
+  enableOfflineQueue: false;
+  maxRetriesPerRequest: number;
+  connectTimeout: number;
+  retryStrategy: () => null;
+}
+
+interface WorkerRedisOptions extends ParsedRedisEndpoint {
+  enableOfflineQueue: false;
+  maxRetriesPerRequest: null;
+  connectTimeout: number;
+  retryStrategy: (times: number) => number;
+}
+
+function parseRedisEndpoint(url?: string): ParsedRedisEndpoint {
+  if (!url) return { host: 'localhost', port: 6379 };
   try {
     const u = new URL(url);
-    return { host: u.hostname, port: Number.parseInt(u.port || '6379', 10), enableOfflineQueue: false };
+    return {
+      host: u.hostname,
+      port: Number.parseInt(u.port || '6379', 10),
+      password: u.password || undefined,
+    };
   } catch {
-    return { host: 'localhost', port: 6379, enableOfflineQueue: false };
+    return { host: 'localhost', port: 6379 };
   }
 }
 
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   const parsed = raw ? Number.parseInt(raw, 10) : fallback;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseOptionalPositiveInt(raw: string | undefined): number | undefined {
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseQueueRedisOpts(url?: string): QueueRedisOptions {
+  return {
+    ...parseRedisEndpoint(url),
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: parsePositiveInt(process.env.ATTESTOR_ASYNC_QUEUE_MAX_RETRIES_PER_REQUEST, 1),
+    connectTimeout: parsePositiveInt(process.env.ATTESTOR_ASYNC_QUEUE_CONNECT_TIMEOUT_MS, 1000),
+    retryStrategy: () => null,
+  };
+}
+
+function parseWorkerRedisOpts(url?: string): WorkerRedisOptions {
+  return {
+    ...parseRedisEndpoint(url),
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: null,
+    connectTimeout: parsePositiveInt(process.env.ATTESTOR_ASYNC_WORKER_CONNECT_TIMEOUT_MS, 5000),
+    retryStrategy: (times: number) => Math.min(times * 200, 5000),
+  };
 }
 
 function normalizeTenantScanLimit(): number {
@@ -321,7 +372,7 @@ export function getAsyncRetryPolicy(config?: AsyncPipelineConfig): AsyncRetryPol
 }
 
 export function createPipelineQueue(config?: AsyncPipelineConfig): Queue<PipelineJobData, PipelineJobResult> {
-  const redis = parseRedisOpts(config?.redisUrl ?? process.env.REDIS_URL);
+  const redis = parseQueueRedisOpts(config?.redisUrl ?? process.env.REDIS_URL);
   const policy = resolveRetryPolicy(config);
   return new Queue(currentQueueName(config), {
     connection: redis,
@@ -593,9 +644,13 @@ export async function retryFailedPipelineJob(
 }
 
 export function createPipelineWorker(config?: AsyncPipelineConfig): Worker<PipelineJobData, PipelineJobResult> {
-  const redis = parseRedisOpts(config?.redisUrl ?? process.env.REDIS_URL);
+  const redis = parseWorkerRedisOpts(config?.redisUrl ?? process.env.REDIS_URL);
   const policy = resolveRetryPolicy(config);
   const queueName = currentQueueName(config);
+  const workerLockDurationMs =
+    config?.workerLockDurationMs ?? parseOptionalPositiveInt(process.env.ATTESTOR_ASYNC_WORKER_LOCK_DURATION_MS);
+  const workerStalledIntervalMs =
+    config?.workerStalledIntervalMs ?? parseOptionalPositiveInt(process.env.ATTESTOR_ASYNC_WORKER_STALLED_INTERVAL_MS);
 
   const worker = new Worker<PipelineJobData, PipelineJobResult>(
     queueName,
@@ -684,6 +739,8 @@ export function createPipelineWorker(config?: AsyncPipelineConfig): Worker<Pipel
       connection: redis,
       concurrency: policy.workerConcurrency,
       maxStalledCount: policy.maxStalledCount,
+      ...(workerLockDurationMs ? { lockDuration: workerLockDurationMs } : {}),
+      ...(workerStalledIntervalMs ? { stalledInterval: workerStalledIntervalMs } : {}),
     },
   );
 
@@ -708,7 +765,7 @@ export async function checkRedisHealth(config?: AsyncPipelineConfig): Promise<{
   let client: any = null;
   try {
     const IORedis = (await import('ioredis')).default;
-    const redis = parseRedisOpts(config?.redisUrl ?? process.env.REDIS_URL);
+    const redis = parseQueueRedisOpts(config?.redisUrl ?? process.env.REDIS_URL);
     client = new IORedis({
       ...redis,
       lazyConnect: true,

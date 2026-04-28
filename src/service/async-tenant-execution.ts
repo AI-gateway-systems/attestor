@@ -78,6 +78,7 @@ let configuredRedisMode: string | null = null;
 let configuredBackend: 'memory' | 'redis' = 'memory';
 let redisClient: IORedis | null = null;
 let redisConnectPromise: Promise<IORedis | null> | null = null;
+let lastRedisConnectionError: string | null = null;
 
 function nowMs(): number {
   return Date.now();
@@ -154,11 +155,13 @@ async function connectRedisClient(): Promise<IORedis | null> {
       await nextClient.ping();
       redisClient = nextClient;
       configuredBackend = 'redis';
+      lastRedisConnectionError = null;
       return nextClient;
-    } catch {
+    } catch (error) {
       try { nextClient?.disconnect(); } catch {}
       redisClient = null;
       configuredBackend = 'memory';
+      lastRedisConnectionError = error instanceof Error ? error.message : String(error);
       return null;
     } finally {
       redisConnectPromise = null;
@@ -166,6 +169,24 @@ async function connectRedisClient(): Promise<IORedis | null> {
   })();
 
   return redisConnectPromise;
+}
+
+function requiresSharedRedisCoordination(): boolean {
+  return (
+    configuredAsyncExecutionRedisUrl() !== null &&
+    (process.env.ATTESTOR_RUNTIME_PROFILE === 'production-shared' ||
+      process.env.ATTESTOR_ASYNC_REQUIRE_SHARED_COORDINATION === 'true')
+  );
+}
+
+async function redisClientOrFallback(): Promise<IORedis | null> {
+  const client = await connectRedisClient();
+  if (!client && requiresSharedRedisCoordination()) {
+    throw new Error(
+      `Tenant async execution coordinator requires Redis but could not connect: ${lastRedisConnectionError ?? 'unknown error'}`,
+    );
+  }
+  return client;
 }
 
 function buildState(
@@ -225,7 +246,7 @@ export async function getTenantAsyncExecutionState(
     return buildState(tenantId, planId, 0, configuredBackend);
   }
 
-  const client = await connectRedisClient();
+  const client = await redisClientOrFallback();
   if (!client) {
     const bucket = ensureMemoryBucket(queueName, tenantId);
     cleanupMemoryBucket(bucket, nowMs());
@@ -258,7 +279,7 @@ export async function acquireTenantAsyncExecutionLease(options: {
 
   const currentNow = nowMs();
   const expiresAt = currentNow + leaseMs();
-  const client = await connectRedisClient();
+  const client = await redisClientOrFallback();
   if (!client) {
     const bucket = ensureMemoryBucket(options.queueName, options.tenantId);
     cleanupMemoryBucket(bucket, currentNow);
@@ -307,7 +328,7 @@ export async function heartbeatTenantAsyncExecutionLease(options: {
 
   const currentNow = nowMs();
   const expiresAt = currentNow + leaseMs();
-  const client = await connectRedisClient();
+  const client = await redisClientOrFallback();
   if (!client) {
     const bucket = ensureMemoryBucket(options.queueName, options.tenantId);
     cleanupMemoryBucket(bucket, currentNow);
@@ -339,7 +360,7 @@ export async function releaseTenantAsyncExecutionLease(options: {
   if (!spec.enforced || spec.activeJobsPerTenant === null) return;
 
   const currentNow = nowMs();
-  const client = await connectRedisClient();
+  const client = await redisClientOrFallback();
   if (!client) {
     const bucket = ensureMemoryBucket(options.queueName, options.tenantId);
     cleanupMemoryBucket(bucket, currentNow);

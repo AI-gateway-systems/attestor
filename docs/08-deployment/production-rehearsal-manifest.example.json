@@ -132,6 +132,21 @@
       ]
     },
     {
+      "id": "rehearse-production-async-recovery",
+      "phase": "rehearsal",
+      "command": "npm run rehearse:production-async-recovery",
+      "required": true,
+      "stopOnFailure": true,
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/async-recovery/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/async-recovery/README.md",
+        ".attestor/rehearsal/gke-production-rehearsal/async-recovery/async-dead-letter.json"
+      ],
+      "evidenceIds": [
+        "production-rehearsal-async-recovery"
+      ]
+    },
+    {
       "id": "backup-control-plane",
       "phase": "recovery",
       "command": "npm run backup:control-plane",
@@ -238,6 +253,16 @@
       "producer": "npm run rehearse:production-consequence",
       "artifactPath": ".attestor/rehearsal/gke-production-rehearsal/consequence-behavior/summary.json",
       "verification": "Consequence rehearsal state is passed-core-consequence-rehearsal and records admitted/proceed, blocked/hold, review/hold, token active/revoked/consumed, evidence-pack, reviewer-queue-claim, and downstream gate behavior.",
+      "status": "pending"
+    },
+    {
+      "id": "production-rehearsal-async-recovery",
+      "phase": "rehearsal",
+      "kind": "json",
+      "required": true,
+      "producer": "npm run rehearse:production-async-recovery",
+      "artifactPath": ".attestor/rehearsal/gke-production-rehearsal/async-recovery/summary.json",
+      "verification": "Async recovery rehearsal state is passed-async-recovery-rehearsal and records Redis noeviction posture, BullMQ retry/stalled policy, worker drain/restart, retry recovery, DLQ visibility, fail-quick unavailable-Redis submission, and Redis-backed tenant coordination.",
       "status": "pending"
     },
     {
