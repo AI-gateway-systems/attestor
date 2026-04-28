@@ -17,6 +17,7 @@ The first profile is:
 | Observability profile | `npm run render:observability-profile` with `ops/observability/profiles/regulated-production.json` |
 | Readiness packet | `npm run render:production-readiness-packet` with `production-shared`, `gke`, `grafana-alloy`, and `external-secret` |
 | Runtime probes | `npm run probe:ha-runtime-connectivity`, `npm run probe:ha-release-inputs`, and `npm run probe:observability-receivers` |
+| Substrate readiness | `npm run probe:production-rehearsal-substrates` |
 
 The profile requires operator-supplied values for the real region, cluster, hostname, static address, DNS target, issuer, TLS secret, secret store, Workload Identity service account, PostgreSQL URLs, Redis URL, and observability receiver endpoints.
 
@@ -30,7 +31,7 @@ The profile requires operator-supplied values for the real region, cluster, host
 npm run plan:production-rehearsal -- --manifest path/to/filled-production-rehearsal-manifest.json
 ```
 
-The planner remains read-only. Step 05 owns live substrate probes; until those pass, the profile is only a target binding, not production proof.
+The planner remains read-only. Step 05 adds the live substrate probe; until `npm run probe:production-rehearsal-substrates` passes for the named target, the profile is only a target binding, not production proof.
 
 ## Non-Claims
 

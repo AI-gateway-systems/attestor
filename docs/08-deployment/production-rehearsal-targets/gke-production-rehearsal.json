@@ -168,6 +168,12 @@
       "script": "probe:observability-receivers",
       "command": "npm run probe:observability-receivers",
       "required": true
+    },
+    {
+      "id": "production-rehearsal-substrates",
+      "script": "probe:production-rehearsal-substrates",
+      "command": "npm run probe:production-rehearsal-substrates",
+      "required": true
     }
   ],
   "manifestPatch": {

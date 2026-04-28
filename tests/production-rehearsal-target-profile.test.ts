@@ -207,7 +207,7 @@ function testManifestPatchAndDocsKeepTruthBoundary(): void {
   ok(target.nonClaims.some((claim) => claim.includes('not customer-operated production readiness')), 'Production rehearsal target: production readiness non-claim is explicit');
   ok(target.nonClaims.some((claim) => claim.includes('does not add a hosted crypto route')), 'Production rehearsal target: hosted crypto route non-claim is explicit');
 
-  includes(targetDocs, 'Step 05 owns live substrate probes', 'Production rehearsal target: target docs defer live proof to Step 05');
+  includes(targetDocs, 'until `npm run probe:production-rehearsal-substrates` passes for the named target', 'Production rehearsal target: target docs require the substrate probe before production proof');
   includes(manifestDocs, 'production-rehearsal-targets/gke-production-rehearsal.json', 'Production rehearsal target: manifest docs link the target profile');
   includes(manifestDocs, 'This is still not a live deployment or a production-readiness claim.', 'Production rehearsal target: manifest docs keep non-claim boundary');
 }
@@ -215,8 +215,8 @@ function testManifestPatchAndDocsKeepTruthBoundary(): void {
 function testTrackerMarksStep04CompleteWithoutRenumbering(): void {
   const tracker = readProjectFile('docs', '02-architecture', 'production-rehearsal-buildout.md');
 
-  includes(tracker, '| Completed | 4 |', 'Production rehearsal target: tracker marks four steps complete');
-  includes(tracker, '| Not started | 6 |', 'Production rehearsal target: tracker leaves six steps not started');
+  includes(tracker, '| Completed | 5 |', 'Production rehearsal target: tracker marks five steps complete');
+  includes(tracker, '| Not started | 5 |', 'Production rehearsal target: tracker leaves five steps not started');
   includes(
     tracker,
     '| 04 | complete | Bind rehearsal to a concrete target environment profile |',
@@ -224,13 +224,13 @@ function testTrackerMarksStep04CompleteWithoutRenumbering(): void {
   );
   includes(
     tracker,
-    '| 05 | pending | Prove external substrate readiness |',
-    'Production rehearsal target: Step 05 remains the next pending step',
+    '| 05 | complete | Prove external substrate readiness |',
+    'Production rehearsal target: Step 05 is complete after substrate probe wiring',
   );
   includes(
     tracker,
-    'Implement Step 05: prove external substrate readiness.',
-    'Production rehearsal target: immediate next step advances to external substrate readiness',
+    'Implement Step 06: rehearse core fail-closed consequence behavior.',
+    'Production rehearsal target: immediate next step advances to core consequence behavior',
   );
 }
 

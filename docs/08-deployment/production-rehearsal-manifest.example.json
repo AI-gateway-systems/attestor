@@ -104,6 +104,20 @@
       ]
     },
     {
+      "id": "probe-production-rehearsal-substrates",
+      "phase": "probe",
+      "command": "npm run probe:production-rehearsal-substrates",
+      "required": true,
+      "stopOnFailure": true,
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/substrate-readiness/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/substrate-readiness/README.md"
+      ],
+      "evidenceIds": [
+        "production-rehearsal-substrate-readiness"
+      ]
+    },
+    {
       "id": "backup-control-plane",
       "phase": "recovery",
       "command": "npm run backup:control-plane",
@@ -190,6 +204,16 @@
       "producer": "npm run probe:observability-receivers",
       "artifactPath": ".attestor/rehearsal/latest/observability-receivers.txt",
       "verification": "Telemetry receivers accept logs, traces, and metrics for this target.",
+      "status": "pending"
+    },
+    {
+      "id": "production-rehearsal-substrate-readiness",
+      "phase": "probe",
+      "kind": "json",
+      "required": true,
+      "producer": "npm run probe:production-rehearsal-substrates",
+      "artifactPath": ".attestor/rehearsal/gke-production-rehearsal/substrate-readiness/summary.json",
+      "verification": "Substrate readiness state is ready-for-rehearsal and records shared PostgreSQL, Redis, External Secrets, Gateway, HTTPRoute, Certificate, API, worker, DNS, and observability probe truth.",
       "status": "pending"
     },
     {

@@ -51,6 +51,7 @@ The template composes existing commands before adding new machinery:
 - `npm run probe:ha-runtime-connectivity`
 - `npm run probe:ha-release-inputs`
 - `npm run probe:observability-receivers`
+- `npm run probe:production-rehearsal-substrates`
 - `npm run backup:control-plane`
 - `npm run restore:control-plane`
 - `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`
@@ -89,3 +90,20 @@ The profile binds the generic manifest to:
 - the existing HA, domain cutover, observability, readiness packet, and probe commands
 
 This is still not a live deployment or a production-readiness claim. Step 05 owns the live external substrate probes.
+
+## External Substrate Probe
+
+Step 05 adds the fail-closed substrate probe:
+
+```bash
+npm run probe:production-rehearsal-substrates
+```
+
+The probe reads the `gke-production-rehearsal` profile, checks required environment inputs, reuses the existing HA and observability probes, checks API and worker readiness URLs, verifies DNS target resolution, and validates Kubernetes readiness conditions for External Secrets, Gateway, HTTPRoute, and cert-manager Certificate resources.
+
+The command exits non-zero unless every required substrate check passes. It writes:
+
+- `.attestor/rehearsal/gke-production-rehearsal/substrate-readiness/summary.json`
+- `.attestor/rehearsal/gke-production-rehearsal/substrate-readiness/README.md`
+
+This probe still does not claim customer-operated production readiness by itself. It creates the Step 05 evidence item that later rehearsal steps can consume.
