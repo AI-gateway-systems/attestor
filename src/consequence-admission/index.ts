@@ -3,14 +3,17 @@ import {
   canonicalizeReleaseJson,
   type CanonicalReleaseJsonValue,
 } from '../release-kernel/release-canonicalization.js';
-import type {
+import {
+  CONSEQUENCE_TYPES,
+  RISK_CLASSES,
   ConsequenceType,
   RiskClass,
 } from '../release-kernel/types.js';
 import type {
   CryptoExecutionAdmissionOutcome,
 } from '../crypto-execution-admission/index.js';
-import type {
+import {
+  CRYPTO_AUTHORIZATION_CONSEQUENCE_KINDS,
   CryptoAuthorizationConsequenceKind,
 } from '../crypto-authorization-core/types.js';
 
@@ -100,6 +103,24 @@ export type ConsequenceAdmissionConsequenceKind =
   | 'custody-withdrawal'
   | 'intent-settlement'
   | 'custom';
+
+const CONSEQUENCE_ADMISSION_EXTRA_CONSEQUENCE_KINDS = [
+  'wallet-call',
+  'token-approval',
+  'intent-settlement',
+  'custom',
+] as const;
+
+const CONSEQUENCE_ADMISSION_CONSEQUENCE_KINDS = Object.freeze([
+  ...CONSEQUENCE_TYPES,
+  ...CRYPTO_AUTHORIZATION_CONSEQUENCE_KINDS,
+  ...CONSEQUENCE_ADMISSION_EXTRA_CONSEQUENCE_KINDS,
+] as const);
+
+const CONSEQUENCE_ADMISSION_RISK_CLASSES = Object.freeze([
+  ...RISK_CLASSES,
+  'custom',
+] as const);
 
 export interface ConsequenceAdmissionEntryPoint {
   readonly kind: ConsequenceAdmissionEntryPointKind;
@@ -252,7 +273,10 @@ export interface CreateConsequenceAdmissionResponseInput {
 }
 
 function normalizeIdentifier(value: string | null | undefined, fieldName: string): string {
-  const normalized = value?.trim() ?? '';
+  if (typeof value !== 'string') {
+    throw new Error(`Consequence admission ${fieldName} requires a non-empty string value.`);
+  }
+  const normalized = value.trim();
   if (!normalized) {
     throw new Error(`Consequence admission ${fieldName} requires a non-empty value.`);
   }
@@ -265,6 +289,61 @@ function normalizeOptionalIdentifier(
 ): string | null {
   if (value === undefined || value === null) return null;
   return normalizeIdentifier(value, fieldName);
+}
+
+function normalizeEnumValue<T extends string>(
+  value: string,
+  allowedValues: readonly T[],
+  fieldName: string,
+): T {
+  const normalized = normalizeIdentifier(value, fieldName);
+  if (!allowedValues.includes(normalized as T)) {
+    throw new Error(
+      `Consequence admission ${fieldName} must be one of: ${allowedValues.join(', ')}.`,
+    );
+  }
+  return normalized as T;
+}
+
+function normalizeEvidenceRef(
+  input: ConsequenceAdmissionEvidenceRef,
+): ConsequenceAdmissionEvidenceRef {
+  return Object.freeze({
+    id: normalizeIdentifier(input.id, 'evidence.id'),
+    kind: normalizeIdentifier(input.kind, 'evidence.kind'),
+    digest: normalizeOptionalIdentifier(input.digest, 'evidence.digest'),
+    uri: normalizeOptionalIdentifier(input.uri, 'evidence.uri'),
+  });
+}
+
+function normalizeProofRef(input: ConsequenceAdmissionProofRef): ConsequenceAdmissionProofRef {
+  return Object.freeze({
+    kind: normalizeEnumValue(input.kind, CONSEQUENCE_ADMISSION_PROOF_KINDS, 'proof.kind'),
+    id: normalizeIdentifier(input.id, 'proof.id'),
+    digest: normalizeOptionalIdentifier(input.digest, 'proof.digest'),
+    uri: normalizeOptionalIdentifier(input.uri, 'proof.uri'),
+    verifyHint: normalizeIdentifier(input.verifyHint, 'proof.verifyHint'),
+  });
+}
+
+function normalizeNativeDecision(
+  input: ConsequenceAdmissionNativeDecision | null | undefined,
+): ConsequenceAdmissionNativeDecision | null {
+  if (!input) return null;
+  return Object.freeze({
+    surface: normalizeEnumValue(
+      input.surface,
+      CONSEQUENCE_ADMISSION_NATIVE_SURFACES,
+      'nativeDecision.surface',
+    ),
+    value: normalizeIdentifier(input.value, 'nativeDecision.value'),
+    mappedDecision: normalizeEnumValue(
+      input.mappedDecision,
+      CONSEQUENCE_ADMISSION_DECISIONS,
+      'nativeDecision.mappedDecision',
+    ),
+    mappingReason: normalizeIdentifier(input.mappingReason, 'nativeDecision.mappingReason'),
+  });
 }
 
 function normalizeIsoTimestamp(value: string, fieldName: string): string {
@@ -400,9 +479,13 @@ export function createConsequenceAdmissionCheck(
   input: ConsequenceAdmissionCheck,
 ): ConsequenceAdmissionCheck {
   return Object.freeze({
-    kind: input.kind,
+    kind: normalizeEnumValue(input.kind, CONSEQUENCE_ADMISSION_CHECK_KINDS, 'check.kind'),
     label: normalizeIdentifier(input.label, 'check.label'),
-    outcome: input.outcome,
+    outcome: normalizeEnumValue(
+      input.outcome,
+      CONSEQUENCE_ADMISSION_CHECK_OUTCOMES,
+      'check.outcome',
+    ),
     required: input.required,
     summary: normalizeIdentifier(input.summary, 'check.summary'),
     reasonCodes: readonlyCopy(input.reasonCodes),
@@ -417,9 +500,17 @@ export function createConsequenceAdmissionRequest(
   const base = Object.freeze({
     version: CONSEQUENCE_ADMISSION_CONTRACT_VERSION,
     requestedAt,
-    packFamily: input.packFamily,
+    packFamily: normalizeEnumValue(
+      input.packFamily,
+      CONSEQUENCE_ADMISSION_PACK_FAMILIES,
+      'packFamily',
+    ),
     entryPoint: Object.freeze({
-      kind: input.entryPoint.kind,
+      kind: normalizeEnumValue(
+        input.entryPoint.kind,
+        CONSEQUENCE_ADMISSION_ENTRY_POINT_KINDS,
+        'entryPoint.kind',
+      ),
       id: normalizeIdentifier(input.entryPoint.id, 'entryPoint.id'),
       route: normalizeOptionalIdentifier(input.entryPoint.route, 'entryPoint.route'),
       packageSubpath: normalizeOptionalIdentifier(
@@ -435,8 +526,16 @@ export function createConsequenceAdmissionRequest(
         input.proposedConsequence.downstreamSystem,
         'proposedConsequence.downstreamSystem',
       ),
-      consequenceKind: input.proposedConsequence.consequenceKind,
-      riskClass: input.proposedConsequence.riskClass,
+      consequenceKind: normalizeEnumValue(
+        input.proposedConsequence.consequenceKind,
+        CONSEQUENCE_ADMISSION_CONSEQUENCE_KINDS,
+        'proposedConsequence.consequenceKind',
+      ),
+      riskClass: normalizeEnumValue(
+        input.proposedConsequence.riskClass,
+        CONSEQUENCE_ADMISSION_RISK_CLASSES,
+        'proposedConsequence.riskClass',
+      ),
       summary: normalizeIdentifier(
         input.proposedConsequence.summary,
         'proposedConsequence.summary',
@@ -455,8 +554,12 @@ export function createConsequenceAdmissionRequest(
       delegationRef: input.authority?.delegationRef ?? null,
       authorityMode: input.authority?.authorityMode ?? null,
     }),
-    evidence: readonlyCopy(input.evidence),
-    nativeInputRefs: readonlyCopy(input.nativeInputRefs),
+    evidence: Object.freeze((input.evidence ?? []).map(normalizeEvidenceRef)),
+    nativeInputRefs: Object.freeze(
+      (input.nativeInputRefs ?? []).map((entry) =>
+        normalizeIdentifier(entry, 'nativeInputRefs[]'),
+      ),
+    ),
   } satisfies Omit<ConsequenceAdmissionRequest, 'requestId'>);
 
   return Object.freeze({
@@ -469,30 +572,32 @@ export function createConsequenceAdmissionResponse(
   input: CreateConsequenceAdmissionResponseInput,
 ): ConsequenceAdmissionResponse {
   const decidedAt = normalizeIsoTimestamp(input.decidedAt, 'decidedAt');
+  const decision = normalizeEnumValue(input.decision, CONSEQUENCE_ADMISSION_DECISIONS, 'decision');
   const reason = normalizeIdentifier(input.reason, 'reason');
   const reasonCodes = readonlyCopy(input.reasonCodes);
   const constraints = readonlyCopy(input.constraints);
 
-  if (input.decision === 'narrow' && constraints.length === 0) {
+  if (decision === 'narrow' && constraints.length === 0) {
     throw new Error(
       'Consequence admission narrow decisions require at least one explicit constraint.',
     );
   }
 
-  if (input.nativeDecision && input.nativeDecision.mappedDecision !== input.decision) {
+  const nativeDecision = normalizeNativeDecision(input.nativeDecision);
+  if (nativeDecision && nativeDecision.mappedDecision !== decision) {
     throw new Error(
       'Consequence admission native decision mapping must match the canonical decision.',
     );
   }
 
-  const checks = readonlyCopy(input.checks);
-  const proof = readonlyCopy(input.proof);
-  const decisionAllows = consequenceAdmissionAllowsConsequence(input.decision);
+  const checks = Object.freeze((input.checks ?? []).map(createConsequenceAdmissionCheck));
+  const proof = Object.freeze((input.proof ?? []).map(normalizeProofRef));
+  const decisionAllows = consequenceAdmissionAllowsConsequence(decision);
   const requiredChecksSatisfied = !checks.some(
     (check) => check.required && check.outcome === 'fail',
   );
   const proofSatisfied = !decisionAllows || proof.length > 0;
-  const decisionFailClosed = input.decision === 'review' || input.decision === 'block';
+  const decisionFailClosed = decision === 'review' || decision === 'block';
   const requestedFailClosed = input.failClosed ?? false;
   const allowed =
     decisionAllows &&
@@ -504,7 +609,7 @@ export function createConsequenceAdmissionResponse(
   const admissionId = admissionIdFor({
     decidedAt,
     requestId: input.request.requestId,
-    decision: input.decision,
+    decision,
     reasonCodes,
     proofDigests: proof.map((entry) => entry.digest ?? entry.id),
   });
@@ -513,14 +618,14 @@ export function createConsequenceAdmissionResponse(
     admissionId,
     decidedAt,
     request: input.request,
-    decision: input.decision,
+    decision,
     allowed,
     failClosed,
     reason,
     reasonCodes,
     checks,
     constraints,
-    nativeDecision: input.nativeDecision ?? null,
+    nativeDecision,
     proof,
     operationalContext: Object.freeze(input.operationalContext ?? {}),
   } as const;

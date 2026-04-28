@@ -31,6 +31,11 @@ function deepEqual<T>(actual: T, expected: T, message: string): void {
   passed += 1;
 }
 
+function throws(fn: () => unknown, pattern: RegExp, message: string): void {
+  assert.throws(fn, pattern, message);
+  passed += 1;
+}
+
 function requestFixture(): ConsequenceAdmissionRequest {
   return createConsequenceAdmissionRequest({
     requestedAt: '2026-04-23T10:00:00.000Z',
@@ -247,7 +252,7 @@ function testReviewAndBlockPosturesFailClosed(): void {
 function testNarrowRequiresExplicitConstraints(): void {
   const request = requestFixture();
 
-  assert.throws(
+  throws(
     () =>
       createConsequenceAdmissionResponse({
         request,
@@ -256,8 +261,8 @@ function testNarrowRequiresExplicitConstraints(): void {
         reason: 'Narrow needs constraints.',
       }),
     /narrow decisions require at least one explicit constraint/u,
+    'Admission contract: narrow without constraints is rejected',
   );
-  passed += 1;
 
   const narrow = createConsequenceAdmissionResponse({
     request,
@@ -276,6 +281,115 @@ function testNarrowRequiresExplicitConstraints(): void {
 
   equal(narrow.allowed, true, 'Admission contract: narrow allows only constrained consequence');
   equal(narrow.constraints.length, 1, 'Admission contract: narrow carries explicit constraints');
+}
+
+function testRuntimeValidationRejectsInvalidEnumLikeFields(): void {
+  const request = requestFixture();
+
+  throws(
+    () =>
+      createConsequenceAdmissionRequest({
+        ...request,
+        packFamily: 'finance-but-not-really',
+        requestId: null,
+      } as unknown as Parameters<typeof createConsequenceAdmissionRequest>[0]),
+    /packFamily must be one of/u,
+    'Admission contract: invalid pack families fail closed at runtime',
+  );
+  throws(
+    () =>
+      createConsequenceAdmissionRequest({
+        ...request,
+        requestId: null,
+        entryPoint: {
+          ...request.entryPoint,
+          kind: 'magic-auto-detect',
+        },
+      } as unknown as Parameters<typeof createConsequenceAdmissionRequest>[0]),
+    /entryPoint.kind must be one of/u,
+    'Admission contract: invalid entry point kinds fail closed at runtime',
+  );
+  throws(
+    () =>
+      createConsequenceAdmissionRequest({
+        ...request,
+        requestId: null,
+        proposedConsequence: {
+          ...request.proposedConsequence,
+          consequenceKind: 'wire-money-to-anyone',
+        },
+      } as unknown as Parameters<typeof createConsequenceAdmissionRequest>[0]),
+    /proposedConsequence.consequenceKind must be one of/u,
+    'Admission contract: invalid consequence kinds fail closed at runtime',
+  );
+  throws(
+    () =>
+      createConsequenceAdmissionRequest({
+        ...request,
+        requestId: null,
+        proposedConsequence: {
+          ...request.proposedConsequence,
+          riskClass: 'R9000',
+        },
+      } as unknown as Parameters<typeof createConsequenceAdmissionRequest>[0]),
+    /proposedConsequence.riskClass must be one of/u,
+    'Admission contract: invalid risk classes fail closed at runtime',
+  );
+  throws(
+    () =>
+      createConsequenceAdmissionCheck({
+        ...checkFixture('policy'),
+        outcome: 'maybe',
+      } as unknown as Parameters<typeof createConsequenceAdmissionCheck>[0]),
+    /check.outcome must be one of/u,
+    'Admission contract: invalid check outcomes fail closed at runtime',
+  );
+  throws(
+    () =>
+      createConsequenceAdmissionResponse({
+        request,
+        decidedAt: '2026-04-23T10:00:06.000Z',
+        decision: 'approve',
+        reason: 'Invalid external decision value.',
+      } as unknown as Parameters<typeof createConsequenceAdmissionResponse>[0]),
+    /decision must be one of/u,
+    'Admission contract: invalid canonical decisions fail closed at runtime',
+  );
+  throws(
+    () =>
+      createConsequenceAdmissionResponse({
+        request,
+        decidedAt: '2026-04-23T10:00:06.100Z',
+        decision: 'admit',
+        reason: 'Invalid proof kind.',
+        proof: [
+          {
+            ...proofFixture(),
+            kind: 'receiptish',
+          },
+        ],
+      } as unknown as Parameters<typeof createConsequenceAdmissionResponse>[0]),
+    /proof.kind must be one of/u,
+    'Admission contract: invalid proof kinds fail closed at runtime',
+  );
+  throws(
+    () =>
+      createConsequenceAdmissionResponse({
+        request,
+        decidedAt: '2026-04-23T10:00:06.200Z',
+        decision: 'admit',
+        reason: 'Invalid native surface.',
+        nativeDecision: {
+          surface: 'random-native-surface',
+          value: 'pass',
+          mappedDecision: 'admit',
+          mappingReason: 'Bad native surface should not be accepted.',
+        },
+        proof: [proofFixture()],
+      } as unknown as Parameters<typeof createConsequenceAdmissionResponse>[0]),
+    /nativeDecision.surface must be one of/u,
+    'Admission contract: invalid native surfaces fail closed at runtime',
+  );
 }
 
 function testProblemShapeIsFailClosed(): void {
@@ -299,6 +413,7 @@ testRequestAndResponseAreCanonicalAndProofBearing();
 testAllowedDecisionsFailClosedWithoutProofOrRequiredChecks();
 testReviewAndBlockPosturesFailClosed();
 testNarrowRequiresExplicitConstraints();
+testRuntimeValidationRejectsInvalidEnumLikeFields();
 testProblemShapeIsFailClosed();
 
 console.log(`Consequence admission contract tests: ${passed} passed, 0 failed`);

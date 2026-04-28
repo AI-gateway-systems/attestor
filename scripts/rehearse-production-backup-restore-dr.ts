@@ -647,18 +647,18 @@ function buildAdmissionProbe(): {
     requestedAt,
     packFamily: 'finance',
     entryPoint: {
-      kind: 'api',
+      kind: 'hosted-route',
       id: 'post-restore-dr-probe',
       route: '/api/v1/pipeline/run',
-      packageSubpath: 'attestor/consequence-admission',
+      packageSubpath: null,
       sourceRef: 'production-rehearsal-step-08',
     },
     proposedConsequence: {
       actor: 'dr-rehearsal',
       action: 'write restored financial record',
       downstreamSystem: 'replacement-target',
-      consequenceKind: 'financial-record-release',
-      riskClass: 'high',
+      consequenceKind: 'record',
+      riskClass: 'R4',
       summary: 'Post-restore admission probe',
     },
     policyScope: {
@@ -685,10 +685,11 @@ function buildAdmissionProbe(): {
     reason: 'Post-restore admission probe is allowed.',
     reasonCodes: ['DR_RESTORE_PROBE_ALLOWED'],
     proof: [{
-      kind: 'evidence-pack',
+      kind: 'release-evidence-pack',
       id: 'dr-restore-proof-ref',
       digest: 'sha256:dr-restore-proof-ref',
       uri: null,
+      verifyHint: 'Verify the restored rehearsal evidence pack against the promotion bundle.',
     }],
   });
   const blocked = createConsequenceAdmissionResponse({
