@@ -234,9 +234,9 @@ function testDocsAndPackageWireTheProbe(): void {
 
   equal(packageJson.scripts['probe:production-rehearsal-substrates'], 'tsx scripts/probe-production-rehearsal-substrates.ts', 'Production rehearsal substrate probe: package exposes the live substrate probe');
   equal(packageJson.scripts['test:production-rehearsal-substrate-probe'], 'tsx tests/production-rehearsal-substrate-probe.test.ts', 'Production rehearsal substrate probe: package exposes the probe test');
-  includes(tracker, '| Completed | 9 |', 'Production rehearsal substrate probe: tracker marks nine steps complete');
+  includes(tracker, '| Completed | 10 |', 'Production rehearsal substrate probe: tracker marks ten steps complete');
   includes(tracker, '| 05 | complete | Prove external substrate readiness |', 'Production rehearsal substrate probe: Step 05 is complete without renumbering');
-  includes(tracker, 'Implement Step 10: package the v0.2 production-promotion candidate evidence bundle.', 'Production rehearsal substrate probe: immediate next step advances beyond Step 09');
+  includes(tracker, 'The production rehearsal buildout is complete at the repository level.', 'Production rehearsal substrate probe: immediate next step advances beyond Step 10');
   includes(manifest, 'npm run probe:production-rehearsal-substrates', 'Production rehearsal substrate probe: manifest command plan includes the substrate probe');
 }
 

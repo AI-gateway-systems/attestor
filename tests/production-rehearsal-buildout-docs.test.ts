@@ -82,13 +82,13 @@ function testTrackerFreezesTheProductionRehearsalScope(): void {
   );
   includes(
     tracker,
-    '| Completed | 9 |',
-    'Production rehearsal docs: tracker marks Steps 01 through 09 complete',
+    '| Completed | 10 |',
+    'Production rehearsal docs: tracker marks Steps 01 through 10 complete',
   );
   includes(
     tracker,
-    '| Not started | 1 |',
-    'Production rehearsal docs: tracker keeps the remaining steps pending',
+    '| Not started | 0 |',
+    'Production rehearsal docs: tracker has no remaining frozen steps',
   );
 }
 
@@ -109,7 +109,7 @@ function testFrozenStepsStayOrderedAndHonest(): void {
     '| 07 | complete | Rehearse queue, worker, and async recovery |',
     '| 08 | complete | Rehearse backup, restore, and DR |',
     '| 09 | complete | Rehearse observability, alerting, and operator runbooks |',
-    '| 10 | pending | Package the v0.2 production-promotion candidate evidence bundle |',
+    '| 10 | complete | Package the v0.2 production-promotion candidate evidence bundle |',
   ];
 
   for (const step of steps) {
@@ -122,8 +122,8 @@ function testFrozenStepsStayOrderedAndHonest(): void {
 
   includes(
     tracker,
-    'Implement Step 10: package the v0.2 production-promotion candidate evidence bundle.',
-    'Production rehearsal docs: immediate next step moves to the production-promotion evidence bundle',
+    'The production rehearsal buildout is complete at the repository level.',
+    'Production rehearsal docs: immediate next step moves to target-run execution',
   );
   excludes(
     tracker,

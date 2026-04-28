@@ -56,9 +56,10 @@ The template composes existing commands before adding new machinery:
 - `npm run rehearse:production-async-recovery`
 - `npm run rehearse:production-backup-restore-dr`
 - `npm run rehearse:production-observability-alerting`
+- `npm run package:production-promotion-candidate`
 - `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`
 
-The manifest is ready for Step 03 when a planner can read it, reject unsafe placeholders, and produce the exact operator command order without silently treating placeholder evidence as production proof.
+The manifest now covers the full production rehearsal chain through Step 10. A filled manifest must still be bound to a real target environment before its evidence can be packaged as a production-promotion candidate.
 
 ## Planner
 
@@ -227,3 +228,32 @@ It writes:
 - `.attestor/rehearsal/gke-production-rehearsal/observability-alerting/alert-routing/summary.json`
 
 This is target-bound observability and runbook evidence. It is not a managed observability service, not a guarantee for every customer paging policy, and not the final promotion verdict; Step 10 owns the signed/attested go/no-go evidence bundle.
+
+## Production-Promotion Candidate Evidence Bundle
+
+Step 10 adds the final packaging command:
+
+```bash
+npm run package:production-promotion-candidate -- --manifest path/to/filled-production-rehearsal-manifest.json
+```
+
+The command consumes the filled manifest and the evidence artifacts produced by the earlier command plan. It refuses to turn placeholders, pending evidence, missing workflow run ids, missing artifacts, a blocked production-readiness packet, or a missing signing key into a `go` verdict.
+
+When prerequisites pass, the packager:
+
+- copies the required evidence artifacts into a bundle directory
+- computes SHA-256 digests for every included artifact
+- records the command plan, workflow run ids, environment packet state, limitations, and explicit go/no-go verdict
+- writes a local Ed25519 attestation over the final archive digest
+- writes reviewer verification instructions for the archive digest, local signature, and optional GitHub artifact attestation
+
+It writes:
+
+- `.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/summary.json`
+- `.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/README.md`
+- `.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-candidate.tar.gz`
+- `.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-candidate.tar.gz.sha256`
+- `.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-attestation.json`
+- `.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-public-key.pem`
+
+This is a target-bound production-promotion candidate evidence bundle. It is not market validation, not a hosted public SaaS launch, not a blanket production guarantee, and not a substitute for independent security/compliance approval.

@@ -441,10 +441,10 @@ function testDocsPackageDashboardAndMetricsWireTheRehearsal(): void {
 
   equal(packageJson.scripts['rehearse:production-observability-alerting'], 'tsx scripts/rehearse-production-observability-alerting.ts', 'Production observability/alerting: package exposes the rehearsal command');
   equal(packageJson.scripts['test:production-rehearsal-observability-alerting'], 'tsx tests/production-rehearsal-observability-alerting.test.ts', 'Production observability/alerting: package exposes the rehearsal test');
-  includes(tracker, '| Completed | 9 |', 'Production observability/alerting: tracker marks nine steps complete');
-  includes(tracker, '| Not started | 1 |', 'Production observability/alerting: tracker leaves one step pending');
+  includes(tracker, '| Completed | 10 |', 'Production observability/alerting: tracker marks ten steps complete');
+  includes(tracker, '| Not started | 0 |', 'Production observability/alerting: tracker leaves no frozen steps pending');
   includes(tracker, '| 09 | complete | Rehearse observability, alerting, and operator runbooks |', 'Production observability/alerting: Step 09 is complete without renumbering');
-  includes(tracker, 'Implement Step 10: package the v0.2 production-promotion candidate evidence bundle.', 'Production observability/alerting: immediate next step advances to Step 10');
+  includes(tracker, 'The production rehearsal buildout is complete at the repository level.', 'Production observability/alerting: immediate next step advances beyond Step 10');
   includes(manifest, 'npm run rehearse:production-observability-alerting', 'Production observability/alerting: manifest command plan includes the rehearsal command');
   includes(manifest, 'production-rehearsal-observability-alerting', 'Production observability/alerting: manifest evidence includes the Step 09 summary');
   includes(manifestDoc, 'Observability / Alerting / Runbook Rehearsal', 'Production observability/alerting: manifest docs explain the Step 09 rehearsal');

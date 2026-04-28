@@ -677,10 +677,10 @@ function testDocsAndPackageWireTheRehearsal(): void {
 
   equal(packageJson.scripts['rehearse:production-backup-restore-dr'], 'tsx scripts/rehearse-production-backup-restore-dr.ts', 'Production backup/restore/DR: package exposes the rehearsal command');
   equal(packageJson.scripts['test:production-rehearsal-backup-restore-dr'], 'tsx tests/production-rehearsal-backup-restore-dr.test.ts', 'Production backup/restore/DR: package exposes the rehearsal test');
-  includes(tracker, '| Completed | 9 |', 'Production backup/restore/DR: tracker now reflects Step 09 completion after Step 08');
-  includes(tracker, '| Not started | 1 |', 'Production backup/restore/DR: tracker leaves one step pending after Step 09');
+  includes(tracker, '| Completed | 10 |', 'Production backup/restore/DR: tracker now reflects Step 10 completion after Step 08');
+  includes(tracker, '| Not started | 0 |', 'Production backup/restore/DR: tracker leaves no frozen steps pending after Step 10');
   includes(tracker, '| 08 | complete | Rehearse backup, restore, and DR |', 'Production backup/restore/DR: Step 08 is complete without renumbering');
-  includes(tracker, 'Implement Step 10: package the v0.2 production-promotion candidate evidence bundle.', 'Production backup/restore/DR: immediate next step now advances to Step 10');
+  includes(tracker, 'The production rehearsal buildout is complete at the repository level.', 'Production backup/restore/DR: immediate next step now advances beyond Step 10');
   includes(manifest, 'npm run rehearse:production-backup-restore-dr', 'Production backup/restore/DR: manifest command plan includes the rehearsal command');
   includes(manifest, 'production-rehearsal-backup-restore-dr', 'Production backup/restore/DR: manifest evidence includes the backup/restore/DR summary');
   includes(manifestDoc, 'Backup / Restore / DR Rehearsal', 'Production backup/restore/DR: manifest docs explain the Step 08 rehearsal');

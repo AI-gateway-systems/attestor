@@ -208,10 +208,10 @@ function testDocsAndPackageWireTheRehearsal(): void {
 
   equal(packageJson.scripts['rehearse:production-async-recovery'], 'tsx scripts/rehearse-production-async-recovery.ts', 'Production async recovery: package exposes the rehearsal command');
   equal(packageJson.scripts['test:production-rehearsal-async-recovery'], 'tsx tests/production-rehearsal-async-recovery.test.ts', 'Production async recovery: package exposes the rehearsal test');
-  includes(tracker, '| Completed | 9 |', 'Production async recovery: tracker now reflects Step 09 completion');
-  includes(tracker, '| Not started | 1 |', 'Production async recovery: tracker leaves one step pending');
+  includes(tracker, '| Completed | 10 |', 'Production async recovery: tracker now reflects Step 10 completion');
+  includes(tracker, '| Not started | 0 |', 'Production async recovery: tracker leaves no frozen steps pending');
   includes(tracker, '| 07 | complete | Rehearse queue, worker, and async recovery |', 'Production async recovery: Step 07 is complete without renumbering');
-  includes(tracker, 'Implement Step 10: package the v0.2 production-promotion candidate evidence bundle.', 'Production async recovery: immediate next step now advances beyond Step 09');
+  includes(tracker, 'The production rehearsal buildout is complete at the repository level.', 'Production async recovery: immediate next step now advances beyond Step 10');
   includes(manifest, 'npm run rehearse:production-async-recovery', 'Production async recovery: manifest command plan includes the rehearsal command');
   includes(manifest, 'production-rehearsal-async-recovery', 'Production async recovery: manifest evidence includes the async recovery summary');
 }

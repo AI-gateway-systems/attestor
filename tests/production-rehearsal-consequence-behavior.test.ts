@@ -243,10 +243,10 @@ function testDocsAndPackageWireTheRehearsal(): void {
 
   equal(packageJson.scripts['rehearse:production-consequence'], 'tsx scripts/rehearse-production-consequence-behavior.ts', 'Production consequence rehearsal: package exposes the rehearsal command');
   equal(packageJson.scripts['test:production-rehearsal-consequence-behavior'], 'tsx tests/production-rehearsal-consequence-behavior.test.ts', 'Production consequence rehearsal: package exposes the rehearsal test');
-  includes(tracker, '| Completed | 9 |', 'Production consequence rehearsal: tracker now reflects Step 09 completion');
-  includes(tracker, '| Not started | 1 |', 'Production consequence rehearsal: tracker leaves one step pending');
+  includes(tracker, '| Completed | 10 |', 'Production consequence rehearsal: tracker now reflects Step 10 completion');
+  includes(tracker, '| Not started | 0 |', 'Production consequence rehearsal: tracker leaves no frozen steps pending');
   includes(tracker, '| 06 | complete | Rehearse core fail-closed consequence behavior |', 'Production consequence rehearsal: Step 06 is complete without renumbering');
-  includes(tracker, 'Implement Step 10: package the v0.2 production-promotion candidate evidence bundle.', 'Production consequence rehearsal: immediate next step now advances beyond Step 09');
+  includes(tracker, 'The production rehearsal buildout is complete at the repository level.', 'Production consequence rehearsal: immediate next step now advances beyond Step 10');
   includes(manifest, 'npm run rehearse:production-consequence', 'Production consequence rehearsal: manifest command plan includes the rehearsal command');
   includes(manifest, 'production-rehearsal-consequence-behavior', 'Production consequence rehearsal: manifest evidence includes the behavior summary');
 }

@@ -189,6 +189,24 @@
       "evidenceIds": [
         "release-provenance-verification"
       ]
+    },
+    {
+      "id": "package-production-promotion-candidate",
+      "phase": "decision",
+      "command": "npm run package:production-promotion-candidate",
+      "required": true,
+      "stopOnFailure": true,
+      "expectedArtifacts": [
+        ".attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/summary.json",
+        ".attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/README.md",
+        ".attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-candidate.tar.gz",
+        ".attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-candidate.tar.gz.sha256",
+        ".attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-attestation.json"
+      ],
+      "evidenceIds": [
+        "production-promotion-candidate-bundle",
+        "production-promotion-candidate-attestation"
+      ]
     }
   ],
   "evidenceItems": [
@@ -301,6 +319,26 @@
       "artifactPath": "evaluation-artifacts.tar.gz",
       "verification": "GitHub attestation verifies repository and signer workflow for the release artifact.",
       "status": "pending"
+    },
+    {
+      "id": "production-promotion-candidate-bundle",
+      "phase": "decision",
+      "kind": "tarball",
+      "required": true,
+      "producer": "npm run package:production-promotion-candidate",
+      "artifactPath": ".attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-candidate.tar.gz",
+      "verification": "Archive digest is recorded and the candidate summary binds commands, artifacts, workflow ids, environment packet status, limitations, and go/no-go verdict.",
+      "status": "pending"
+    },
+    {
+      "id": "production-promotion-candidate-attestation",
+      "phase": "decision",
+      "kind": "attestation",
+      "required": true,
+      "producer": "npm run package:production-promotion-candidate",
+      "artifactPath": ".attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/production-promotion-attestation.json",
+      "verification": "Local Ed25519 attestation signs the production-promotion archive digest; GitHub artifact attestation is only claimed after a matching GitHub Actions attestation verifies this exact archive.",
+      "status": "pending"
     }
   ],
   "stopConditions": [
@@ -312,7 +350,8 @@
     "Any required artifact lacks a digest before packaging the final evidence bundle.",
     "Any probe silently falls back to local/process memory for a production-shared target.",
     "Any manifest contains plaintext secrets instead of redacted secret references.",
-    "Any observability dashboard or operator runbook fails to expose runtime/shared-authority truth and stop conditions."
+    "Any observability dashboard or operator runbook fails to expose runtime/shared-authority truth and stop conditions.",
+    "The production-promotion signing key is missing or the local Ed25519 attestation cannot be verified."
   ],
   "nonClaims": [
     "This manifest is not a hosted public SaaS launch.",
