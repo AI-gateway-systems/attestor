@@ -31,6 +31,7 @@ import {
   hasTenantKeyRecordsState,
   revokeAccountSessionState,
 } from './control-plane-store.js';
+import { isProductionLikeRuntimeEnv } from './deployment-safety.js';
 import { DEFAULT_HOSTED_PLAN_ID, SELF_HOST_PLAN_ID, resolvePlanSpec } from './plan-catalog.js';
 import type { AccountUserRole } from './account-user-store.js';
 
@@ -140,8 +141,9 @@ export async function extractTenantContext(authHeader: string | undefined): Prom
 
 /**
  * Hono middleware for tenant isolation.
- * When ATTESTOR_TENANT_KEYS is set, requests must carry a valid tenant key.
- * When not set, all requests run as 'anonymous' with tenantId='default'.
+ * When tenant keys exist, requests must carry a valid tenant key.
+ * Local-dev without tenant keys can use an anonymous default tenant.
+ * Production-like runtimes disable that fallback for non-public routes.
  */
 export function tenantMiddleware() {
   return async (c: Context, next: Next) => {
@@ -166,8 +168,16 @@ export function tenantMiddleware() {
     const session = await resolveAccountSessionContext(c);
     const tenant = session?.tenant ?? await extractTenantContext(c.req.header('authorization'));
 
-    if (enforced && !tenant && !isAuthRoute && !isPublicInviteAcceptRoute) {
-      return c.json({ error: 'Valid tenant API key required in Authorization header' }, 401);
+    if (!tenant && !isAuthRoute && !isPublicInviteAcceptRoute) {
+      if (enforced) {
+        return c.json({ error: 'Valid tenant API key required in Authorization header' }, 401);
+      }
+      if (isProductionLikeRuntimeEnv()) {
+        return c.json({
+          error:
+            'Anonymous tenant fallback is disabled for production-like runtimes. Configure tenant API keys, hosted account sessions, or remove production/public/HA deployment flags.',
+        }, 401);
+      }
     }
 
     // Propagate tenant context via internal headers (Hono-safe approach)

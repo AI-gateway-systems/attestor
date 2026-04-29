@@ -30,11 +30,18 @@ export interface SnowflakeConfig extends ConnectorConfig {
   schema?: string;
 }
 
+const SNOWFLAKE_TABLE_REF_PATTERN =
+  /\b(?:FROM|JOIN|TABLE)\s+((?:"[^"]+"|[A-Za-z_][\w$]*)(?:\s*\.\s*(?:"[^"]+"|[A-Za-z_][\w$]*)){0,2})/gi;
+
 export function loadSnowflakeConfig(): SnowflakeConfig | null {
   const account = process.env.SNOWFLAKE_ACCOUNT;
   const username = process.env.SNOWFLAKE_USERNAME;
   const password = process.env.SNOWFLAKE_PASSWORD;
   if (!account || !username || !password) return null;
+  const allowedSchemas = (process.env.SNOWFLAKE_ALLOWED_SCHEMAS ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
   return {
     provider: 'snowflake',
     connectionUrl: `https://${account}.snowflakecomputing.com`,
@@ -46,6 +53,7 @@ export function loadSnowflakeConfig(): SnowflakeConfig | null {
     schema: process.env.SNOWFLAKE_SCHEMA,
     timeoutMs: parseInt(process.env.SNOWFLAKE_TIMEOUT_MS ?? '30000', 10),
     maxRows: parseInt(process.env.SNOWFLAKE_MAX_ROWS ?? '10000', 10),
+    allowedSchemas: allowedSchemas.length > 0 ? allowedSchemas : undefined,
   };
 }
 
@@ -60,16 +68,98 @@ async function getSnowflakeSDK() {
   }
 }
 
-function execSql(conn: any, sql: string): Promise<any[]> {
+function boundedSnowflakeTimeoutMs(timeoutMs: number | undefined): number {
+  return Number.isFinite(timeoutMs) && timeoutMs !== undefined && timeoutMs > 0 ? timeoutMs : 30000;
+}
+
+function execSql(conn: any, sql: string, timeoutMs?: number): Promise<any[]> {
+  const boundedTimeoutMs = boundedSnowflakeTimeoutMs(timeoutMs);
   return new Promise((resolve, reject) => {
-    conn.execute({
-      sqlText: sql,
-      complete: (err: any, _stmt: any, rows: any[]) => {
-        if (err) reject(err);
-        else resolve(rows ?? []);
-      },
-    });
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = (err: unknown, rows?: any[]) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(rows ?? []);
+    };
+
+    timer = setTimeout(() => {
+      finish(new Error(`Snowflake query timed out after ${boundedTimeoutMs}ms`));
+    }, boundedTimeoutMs);
+
+    try {
+      conn.execute({
+        sqlText: sql,
+        complete: (err: any, _stmt: any, rows: any[]) => finish(err, rows),
+      });
+    } catch (err) {
+      finish(err);
+    }
   });
+}
+
+function normalizeSnowflakeIdentifier(identifier: string): string {
+  const trimmed = identifier.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1).replace(/""/g, '"').toLowerCase();
+  }
+  return trimmed.toLowerCase();
+}
+
+function splitSnowflakeObjectRef(ref: string): string[] {
+  return ref
+    .split('.')
+    .map((part) => normalizeSnowflakeIdentifier(part))
+    .filter(Boolean);
+}
+
+export function enforceSnowflakeAllowedSchemas(
+  sql: string,
+  allowedSchemas: readonly string[] = [],
+  allowedDatabase?: string,
+): void {
+  if (allowedSchemas.length === 0) return;
+
+  const allowed = new Set(allowedSchemas.map((schema) => normalizeSnowflakeIdentifier(schema)));
+  const allowedDb = allowedDatabase ? normalizeSnowflakeIdentifier(allowedDatabase) : null;
+  const refs: Array<{ database: string | null; schema: string | null; table: string }> = [];
+  let match: RegExpExecArray | null;
+  const pattern = new RegExp(SNOWFLAKE_TABLE_REF_PATTERN.source, SNOWFLAKE_TABLE_REF_PATTERN.flags);
+
+  while ((match = pattern.exec(sql)) !== null) {
+    const parts = splitSnowflakeObjectRef(match[1]);
+    if (parts.length === 1) {
+      refs.push({ database: null, schema: null, table: parts[0] });
+      continue;
+    }
+    if (parts.length === 2) {
+      refs.push({ database: null, schema: parts[0], table: parts[1] });
+      continue;
+    }
+    refs.push({ database: parts[0], schema: parts[1], table: parts[2] });
+  }
+
+  for (const ref of refs) {
+    if (ref.schema === null) {
+      throw new Error(
+        `Unqualified Snowflake table reference "${ref.table}" is not allowed when schema allowlist is active. Use fully qualified "schema.table" or "database.schema.table" syntax. Allowed schemas: [${allowedSchemas.join(', ')}].`,
+      );
+    }
+    if (allowedDb && ref.database !== null && ref.database !== allowedDb) {
+      throw new Error(
+        `Snowflake database "${ref.database}" is not the configured database "${allowedDb}" for an allowlisted connector query.`,
+      );
+    }
+    if (!allowed.has(ref.schema)) {
+      throw new Error(`Snowflake schema "${ref.schema}" is not in allowedSchemas [${allowedSchemas.join(', ')}].`);
+    }
+  }
 }
 
 function injectLimit(sql: string, maxRows: number): string {
@@ -119,6 +209,7 @@ export const snowflakeConnector: DatabaseConnector = {
 
     try {
       validateReadOnlySql(sql);
+      enforceSnowflakeAllowedSchemas(sql, sfConfig.allowedSchemas ?? [], sfConfig.database);
     } catch (err) {
       return {
         success: false,
@@ -147,7 +238,7 @@ export const snowflakeConnector: DatabaseConnector = {
       const ctxRows = await execSql(conn, `
         SELECT CURRENT_VERSION() AS ver, CURRENT_ACCOUNT() AS acct,
                CURRENT_DATABASE() AS db, CURRENT_SCHEMA() AS sch
-      `);
+      `, sfConfig.timeoutMs);
       const ctx = ctxRows[0] as any;
       const executionContextHash = createHash('sha256')
         .update(`${ctx.VER}|${ctx.ACCT}|${ctx.DB}|${ctx.SCH}|snowflake`)
@@ -160,7 +251,7 @@ export const snowflakeConnector: DatabaseConnector = {
         const tableRefs = [...sql.matchAll(/\b(\w+)\.(\w+)\.(\w+)\b/g)].map(m => m[3]);
         if (tableRefs.length > 0 && ctx.DB && ctx.SCH) {
           const attestation = await captureSnowflakeSchemaAttestation(
-            (s: string) => execSql(conn, s), ctx.DB, ctx.SCH, tableRefs,
+            (s: string) => execSql(conn, s, sfConfig.timeoutMs), ctx.DB, ctx.SCH, tableRefs,
           );
           schemaAttestationResult = {
             schemaFingerprint: attestation.schemaFingerprint,
@@ -173,7 +264,7 @@ export const snowflakeConnector: DatabaseConnector = {
       } catch { /* schema attestation is best-effort */ }
 
       // Execute governed query
-      const rows = await execSql(conn, injectLimit(sql, sfConfig.maxRows));
+      const rows = await execSql(conn, injectLimit(sql, sfConfig.maxRows), sfConfig.timeoutMs);
       const durationMs = Date.now() - start;
 
       // Extract columns from first row
@@ -208,6 +299,7 @@ export const snowflakeConnector: DatabaseConnector = {
     const sfConfig = config as SnowflakeConfig;
     try {
       validateReadOnlySql(sql);
+      enforceSnowflakeAllowedSchemas(sql, sfConfig.allowedSchemas ?? [], sfConfig.database);
     } catch (err) {
       return {
         performed: false,
@@ -240,7 +332,7 @@ export const snowflakeConnector: DatabaseConnector = {
     let conn: any;
     try {
       conn = await connectSnowflake(sdk, sfConfig);
-      const rows = await execSql(conn, `EXPLAIN USING JSON ${sql}`);
+      const rows = await execSql(conn, `EXPLAIN USING JSON ${sql}`, sfConfig.timeoutMs);
       const planStr = JSON.stringify(rows);
 
       // Basic risk analysis from plan size
@@ -283,11 +375,11 @@ export const snowflakeConnector: DatabaseConnector = {
       conn = await connectSnowflake(sdk, sfConfig);
       steps.push({ step: 'connect', passed: true, detail: `Connected to ${sfConfig.account}` });
 
-      const vRows = await execSql(conn, 'SELECT CURRENT_VERSION() AS version');
+      const vRows = await execSql(conn, 'SELECT CURRENT_VERSION() AS version', sfConfig.timeoutMs);
       serverVersion = (vRows[0] as any)?.VERSION ?? null;
       steps.push({ step: 'version', passed: !!serverVersion, detail: serverVersion ? `Snowflake ${serverVersion}` : 'Version unknown' });
 
-      const whRows = await execSql(conn, 'SELECT CURRENT_WAREHOUSE() AS wh');
+      const whRows = await execSql(conn, 'SELECT CURRENT_WAREHOUSE() AS wh', sfConfig.timeoutMs);
       const wh = (whRows[0] as any)?.WH;
       steps.push({ step: 'warehouse', passed: !!wh, detail: wh ? `Warehouse: ${wh}` : 'No warehouse' });
 

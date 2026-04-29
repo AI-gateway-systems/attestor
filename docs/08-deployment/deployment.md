@@ -68,7 +68,9 @@ docker run \
 | `PORT` | No | `3700` | API listen port |
 | `REDIS_URL` | No | Auto-resolved | Redis connection URL (Tier 1 of 3-tier resolution) |
 | `ATTESTOR_PG_URL` | No | None | PostgreSQL for RLS tenant isolation |
-| `ATTESTOR_TENANT_KEYS` | No | `""` | API key to tenant-id mapping (`key:id:name[:plan][:quota],...`) |
+| `SNOWFLAKE_ALLOWED_SCHEMAS` | No | None | Optional comma-separated Snowflake schema allowlist. When set, Snowflake connector queries must use schema-qualified or database.schema-qualified table references in the allowlist |
+| `SNOWFLAKE_TIMEOUT_MS` | No | `30000` | Snowflake connector client-side query timeout in milliseconds |
+| `ATTESTOR_TENANT_KEYS` | No | `""` | API key to tenant-id mapping (`key:id:name[:plan][:quota],...`). Empty keys allow anonymous `default` tenant only in local development; production-like runtimes (`NODE_ENV=production`, `ATTESTOR_HA_MODE`, public hostname/base URL) reject anonymous tenant fallback on non-public routes |
 | `ATTESTOR_ACCOUNT_STORE_PATH` | No | `.attestor/accounts.json` | File-backed hosted account registry used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
 | `ATTESTOR_ACCOUNT_USER_STORE_PATH` | No | `.attestor/account-users.json` | File-backed hosted account user registry used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
 | `ATTESTOR_ACCOUNT_SESSION_STORE_PATH` | No | `.attestor/account-sessions.json` | File-backed hosted customer session store used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |

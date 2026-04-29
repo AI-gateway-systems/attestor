@@ -47,7 +47,11 @@ async function run() {
   // ═══ SNOWFLAKE CONNECTOR STRUCTURE ═══
   console.log('\n  [Snowflake Connector]');
   {
-    const { snowflakeConnector } = await import('../src/connectors/snowflake-connector.js');
+    const {
+      enforceSnowflakeAllowedSchemas,
+      loadSnowflakeConfig,
+      snowflakeConnector,
+    } = await import('../src/connectors/snowflake-connector.js');
 
     ok(snowflakeConnector.id === 'snowflake', 'Snowflake: id correct');
     ok(snowflakeConnector.displayName === 'Snowflake Data Cloud', 'Snowflake: displayName');
@@ -67,6 +71,72 @@ async function run() {
     }
 
     console.log(`    id=${snowflakeConnector.id}, env=${hasEnv ? 'configured' : 'not set'}`);
+
+    const savedSnowflakeEnv = {
+      account: process.env.SNOWFLAKE_ACCOUNT,
+      username: process.env.SNOWFLAKE_USERNAME,
+      password: process.env.SNOWFLAKE_PASSWORD,
+      allowedSchemas: process.env.SNOWFLAKE_ALLOWED_SCHEMAS,
+      database: process.env.SNOWFLAKE_DATABASE,
+    };
+    try {
+      process.env.SNOWFLAKE_ACCOUNT = 'example-account';
+      process.env.SNOWFLAKE_USERNAME = 'example-user';
+      process.env.SNOWFLAKE_PASSWORD = 'example-password';
+      process.env.SNOWFLAKE_DATABASE = 'finance_db';
+      process.env.SNOWFLAKE_ALLOWED_SCHEMAS = 'finance, controls';
+      const loaded = loadSnowflakeConfig();
+      ok(loaded !== null, 'Snowflake: test config loads with required env vars');
+      ok(loaded!.allowedSchemas?.join(',') === 'finance,controls', 'Snowflake: allowed schemas parsed from env');
+
+      enforceSnowflakeAllowedSchemas(
+        'SELECT * FROM finance.exposures JOIN finance.counterparties ON exposures.id = counterparties.id',
+        ['finance'],
+        'finance_db',
+      );
+      ok(true, 'Snowflake: allowlisted schema-qualified references pass');
+
+      try {
+        enforceSnowflakeAllowedSchemas('SELECT * FROM exposures', ['finance'], 'finance_db');
+        assert.fail('Expected unqualified Snowflake table reference to fail closed');
+      } catch (err) {
+        ok(
+          err instanceof Error && err.message.includes('Unqualified Snowflake table reference'),
+          'Snowflake: unqualified table references fail closed when allowlist is active',
+        );
+      }
+
+      try {
+        enforceSnowflakeAllowedSchemas('SELECT * FROM public.exposures', ['finance'], 'finance_db');
+        assert.fail('Expected non-allowlisted Snowflake schema to fail closed');
+      } catch (err) {
+        ok(
+          err instanceof Error && err.message.includes('not in allowedSchemas'),
+          'Snowflake: non-allowlisted schema fails closed',
+        );
+      }
+
+      try {
+        enforceSnowflakeAllowedSchemas('SELECT * FROM other_db.finance.exposures', ['finance'], 'finance_db');
+        assert.fail('Expected non-configured Snowflake database to fail closed');
+      } catch (err) {
+        ok(
+          err instanceof Error && err.message.includes('not the configured database'),
+          'Snowflake: non-configured database fails closed',
+        );
+      }
+    } finally {
+      if (savedSnowflakeEnv.account === undefined) delete process.env.SNOWFLAKE_ACCOUNT;
+      else process.env.SNOWFLAKE_ACCOUNT = savedSnowflakeEnv.account;
+      if (savedSnowflakeEnv.username === undefined) delete process.env.SNOWFLAKE_USERNAME;
+      else process.env.SNOWFLAKE_USERNAME = savedSnowflakeEnv.username;
+      if (savedSnowflakeEnv.password === undefined) delete process.env.SNOWFLAKE_PASSWORD;
+      else process.env.SNOWFLAKE_PASSWORD = savedSnowflakeEnv.password;
+      if (savedSnowflakeEnv.allowedSchemas === undefined) delete process.env.SNOWFLAKE_ALLOWED_SCHEMAS;
+      else process.env.SNOWFLAKE_ALLOWED_SCHEMAS = savedSnowflakeEnv.allowedSchemas;
+      if (savedSnowflakeEnv.database === undefined) delete process.env.SNOWFLAKE_DATABASE;
+      else process.env.SNOWFLAKE_DATABASE = savedSnowflakeEnv.database;
+    }
   }
 
   // ═══ XBRL ADAPTER ═══

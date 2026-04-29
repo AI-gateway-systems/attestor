@@ -1,3 +1,5 @@
+import { isProductionLikeRuntimeEnv } from '../deployment-safety.js';
+
 export const ATTESTOR_RUNTIME_PROFILE_ENV = 'ATTESTOR_RUNTIME_PROFILE';
 
 export type AttestorRuntimeProfileId =
@@ -151,21 +153,6 @@ export class RuntimeProfileConfigurationError extends Error {
     super(message);
     this.name = 'RuntimeProfileConfigurationError';
   }
-}
-
-function envTruthy(raw: string | undefined): boolean {
-  const value = raw?.trim().toLowerCase();
-  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
-}
-
-function isProductionLikeRuntimeEnv(
-  env: Readonly<Record<string, string | undefined>>,
-): boolean {
-  const nodeEnv = env.NODE_ENV?.trim().toLowerCase();
-  return nodeEnv === 'production'
-    || envTruthy(env.ATTESTOR_HA_MODE)
-    || Boolean(env.ATTESTOR_PUBLIC_HOSTNAME?.trim())
-    || Boolean(env.ATTESTOR_PUBLIC_BASE_URL?.trim());
 }
 
 export class RuntimeProfileDurabilityError extends Error {
