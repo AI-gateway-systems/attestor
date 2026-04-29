@@ -48,9 +48,21 @@ The current repository trust baseline keeps reviewer-facing CI workflows read-on
 
 - [evaluation-smoke.yml](.github/workflows/evaluation-smoke.yml) uses `permissions: contents: read`
 - [full-verify.yml](.github/workflows/full-verify.yml) uses `permissions: contents: read`
+- [security-scan.yml](.github/workflows/security-scan.yml) uses `permissions: contents: read` for npm high/critical audit and pull-request dependency review
 - [release-provenance.yml](.github/workflows/release-provenance.yml) is the only workflow that carries `attestations: write` and `id-token: write`, and it is limited to tagged evaluation releases or explicit manual dispatch
 
 That matches GitHub's least-privilege guidance for `GITHUB_TOKEN`. Elevated permissions for provenance publication stay isolated to the release-only workflow and do not expand the push or PR reviewer path.
+
+## Supply Chain Scanning
+
+The evaluation baseline now includes a dedicated `Security Scan` workflow:
+
+- `npm run security:audit-high` blocks high and critical npm advisories in CI
+- `actions/dependency-review-action@v4` blocks pull requests that introduce high or critical dependency vulnerabilities
+- [codeql.yml](.github/workflows/codeql.yml) runs CodeQL JavaScript/TypeScript analysis on `master`, schedule, and manual dispatch with `security-events: write` scoped to code scanning upload
+- [dependabot.yml](.github/dependabot.yml) asks Dependabot to keep npm and GitHub Actions dependencies reviewed weekly
+
+Current known limitation: npm still reports moderate `uuid` advisories in the Snowflake/Azure transitive chain where the automatic fix path is breaking. Those are tracked as non-blocking evaluation risk until the upstream dependency chain can be upgraded without downgrading Snowflake.
 
 ## Evaluation Boundary
 

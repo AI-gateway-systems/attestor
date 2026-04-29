@@ -52,13 +52,48 @@ function testReadmePinsReviewerAndSecurityEntry(): void {
 function testCurrentReviewerWorkflowsStayReadOnly(): void {
   const smoke = readProjectFile('.github', 'workflows', 'evaluation-smoke.yml');
   const verify = readProjectFile('.github', 'workflows', 'full-verify.yml');
+  const securityScan = readProjectFile('.github', 'workflows', 'security-scan.yml');
 
   includes(smoke, 'permissions:\n  contents: read', 'Security baseline: evaluation smoke stays read-only');
   includes(verify, 'permissions:\n  contents: read', 'Security baseline: full verify stays read-only');
+  includes(securityScan, 'permissions:\n  contents: read', 'Security baseline: security scan stays read-only');
   excludes(smoke, /attestations:\s*write/iu, 'Security baseline: evaluation smoke must not yet request attestation write');
   excludes(smoke, /id-token:\s*write/iu, 'Security baseline: evaluation smoke must not yet request id-token write');
   excludes(verify, /attestations:\s*write/iu, 'Security baseline: full verify must not yet request attestation write');
   excludes(verify, /id-token:\s*write/iu, 'Security baseline: full verify must not yet request id-token write');
+  excludes(securityScan, /attestations:\s*write/iu, 'Security baseline: security scan must not request attestation write');
+  excludes(securityScan, /id-token:\s*write/iu, 'Security baseline: security scan must not request id-token write');
+  excludes(securityScan, /pull-requests:\s*write/iu, 'Security baseline: dependency review must not write PR comments');
+}
+
+function testSupplyChainSecurityGatesStayPresent(): void {
+  const security = readProjectFile('SECURITY.md');
+  const securityScan = readProjectFile('.github', 'workflows', 'security-scan.yml');
+  const codeql = readProjectFile('.github', 'workflows', 'codeql.yml');
+  const dependabot = readProjectFile('.github', 'dependabot.yml');
+
+  includes(security, 'Supply Chain Scanning', 'Security baseline: supply-chain scanning is documented');
+  includes(security, 'npm run security:audit-high', 'Security baseline: npm high/critical audit is documented');
+  includes(security, 'actions/dependency-review-action@v4', 'Security baseline: dependency review action is documented');
+  includes(security, 'CodeQL JavaScript/TypeScript analysis', 'Security baseline: CodeQL coverage is documented');
+  includes(security, 'moderate `uuid` advisories', 'Security baseline: remaining moderate advisory is documented honestly');
+
+  includes(securityScan, 'name: Security Scan', 'Security baseline: security scan workflow title is stable');
+  includes(securityScan, 'npm run security:audit-high', 'Security baseline: security scan runs npm audit gate');
+  includes(securityScan, 'uses: actions/dependency-review-action@v4', 'Security baseline: dependency review action is pinned by major version');
+  includes(securityScan, 'fail-on-severity: high', 'Security baseline: dependency review blocks high and critical advisories');
+  includes(securityScan, 'comment-summary-in-pr: never', 'Security baseline: dependency review avoids PR write permission');
+
+  includes(codeql, 'name: CodeQL', 'Security baseline: CodeQL workflow title is stable');
+  includes(codeql, 'security-events: write', 'Security baseline: CodeQL upload permission is explicit');
+  includes(codeql, 'uses: github/codeql-action/init@v4', 'Security baseline: CodeQL init action is present');
+  includes(codeql, 'languages: javascript-typescript', 'Security baseline: CodeQL scans JavaScript and TypeScript');
+  includes(codeql, 'queries: security-extended', 'Security baseline: CodeQL uses security-extended queries');
+
+  includes(dependabot, 'version: 2', 'Security baseline: Dependabot config uses current syntax');
+  includes(dependabot, 'package-ecosystem: "npm"', 'Security baseline: Dependabot tracks npm dependencies');
+  includes(dependabot, 'package-ecosystem: "github-actions"', 'Security baseline: Dependabot tracks GitHub Actions dependencies');
+  includes(dependabot, 'timezone: "Europe/Budapest"', 'Security baseline: Dependabot schedule has explicit timezone');
 }
 
 function testReleaseProvenanceWorkflowKeepsElevatedPermissionsScoped(): void {
@@ -99,6 +134,13 @@ function testPackageExposesSecurityDocsGuard(): void {
   };
 
   assert.equal(
+    packageJson.scripts['security:audit-high'],
+    'npm audit --audit-level=high',
+    'Security baseline: package.json exposes the high/critical npm audit gate',
+  );
+  passed += 1;
+
+  assert.equal(
     packageJson.scripts['test:security-baseline-docs'],
     'tsx tests/security-baseline-docs.test.ts',
     'Security baseline: package.json exposes the security docs guard',
@@ -110,6 +152,7 @@ testSecurityPolicyExplainsEvaluationBoundary();
 testSecurityPolicyKeepsReportingPathHonest();
 testReadmePinsReviewerAndSecurityEntry();
 testCurrentReviewerWorkflowsStayReadOnly();
+testSupplyChainSecurityGatesStayPresent();
 testReleaseProvenanceWorkflowKeepsElevatedPermissionsScoped();
 testAttestationPlanKeepsPermissionsAndClaimsScoped();
 testPackageExposesSecurityDocsGuard();
