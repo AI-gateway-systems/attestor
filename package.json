@@ -263,7 +263,7 @@
     "jszip": "^3.10.1",
     "node-forge": "^1.4.0",
     "nodemailer": "^8.0.7",
-    "openai": "^4.77.3",
+    "openai": "^6.35.0",
     "openid-client": "^6.8.4",
     "pg": "^8.20.0",
     "redis-memory-server": "^0.16.1",
