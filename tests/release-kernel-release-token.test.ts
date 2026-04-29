@@ -235,6 +235,28 @@ async function main(): Promise<void> {
     'Release token: audience mismatch fails verification instead of allowing token reuse on another target',
   );
 
+  const wrongKidIssuer = createReleaseTokenIssuer({
+    issuer: 'attestor.release.local',
+    privateKeyPem: keyPair.privateKeyPem,
+    publicKeyPem: keyPair.publicKeyPem,
+    keyId: 'attacker-controlled-kid',
+  });
+  const wrongKidToken = await wrongKidIssuer.issue({
+    decision: acceptedDecision,
+    issuedAt: '2026-04-17T20:00:00.000Z',
+  });
+  await throwsAsync(
+    () =>
+      verifyIssuedReleaseToken({
+        token: wrongKidToken.token,
+        verificationKey,
+        audience: 'finance.reporting.record-store',
+        currentDate: '2026-04-17T20:01:00.000Z',
+      }),
+    /protected header kid does not match/,
+    'Release token: verifier rejects a valid signature when the token kid is not bound to the verification key',
+  );
+
   console.log(`\nRelease kernel release-token tests: ${passed} passed, 0 failed`);
 }
 

@@ -315,6 +315,20 @@ export async function verifyIssuedReleaseToken(
     throw new ReleaseTokenVerificationFailure('invalid', message);
   }
 
+  if (verified.protectedHeader.alg !== input.verificationKey.algorithm) {
+    throw new ReleaseTokenVerificationFailure(
+      'invalid',
+      'Release token protected header algorithm does not match the verification key.',
+    );
+  }
+
+  if (verified.protectedHeader.kid !== input.verificationKey.keyId) {
+    throw new ReleaseTokenVerificationFailure(
+      'invalid',
+      'Release token protected header kid does not match the verification key.',
+    );
+  }
+
   return {
     version: RELEASE_TOKEN_VERIFICATION_SPEC_VERSION,
     valid: true,
