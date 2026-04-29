@@ -20,12 +20,16 @@ import {
 import {
   createDegradedModeGrant,
 } from '../src/release-enforcement-plane/degraded-mode.js';
+import { verifyIssuedReleaseToken } from '../src/release-kernel/release-token.js';
 import {
   recordPolicyActivationApprovalDecision,
   requestPolicyActivationApproval,
 } from '../src/release-policy-control-plane/activation-approvals.js';
 import { createPolicyControlPlaneMetadata } from '../src/release-policy-control-plane/object-model.js';
-import { createReleaseRuntimeBootstrap } from '../src/service/bootstrap/release-runtime.js';
+import {
+  ATTESTOR_RELEASE_RUNTIME_PKI_PATH_ENV,
+  createReleaseRuntimeBootstrap,
+} from '../src/service/bootstrap/release-runtime.js';
 import {
   ATTESTOR_RUNTIME_PROFILE_ENV,
   resolveRuntimeProfile,
@@ -128,6 +132,7 @@ const STORE_PATH_ENV = [
   'ATTESTOR_POLICY_CONTROL_PLANE_STORE_PATH',
   'ATTESTOR_POLICY_ACTIVATION_APPROVAL_STORE_PATH',
   'ATTESTOR_POLICY_MUTATION_AUDIT_LOG_PATH',
+  ATTESTOR_RELEASE_RUNTIME_PKI_PATH_ENV,
   'ATTESTOR_RELEASE_POLICY_ENVIRONMENT',
 ] as const;
 
@@ -141,6 +146,7 @@ function configureDurableRuntimePaths(root: string): void {
   process.env.ATTESTOR_POLICY_CONTROL_PLANE_STORE_PATH = join(root, 'policy-control-plane.json');
   process.env.ATTESTOR_POLICY_ACTIVATION_APPROVAL_STORE_PATH = join(root, 'policy-activation-approvals.json');
   process.env.ATTESTOR_POLICY_MUTATION_AUDIT_LOG_PATH = join(root, 'policy-mutation-audit.json');
+  process.env[ATTESTOR_RELEASE_RUNTIME_PKI_PATH_ENV] = join(root, 'release-runtime-pki.json');
   process.env.ATTESTOR_RELEASE_POLICY_ENVIRONMENT = 'runtime-recovery';
 }
 
@@ -167,6 +173,8 @@ async function main(): Promise<void> {
     const first = await createReleaseRuntimeBootstrap({ runtimeProfile: profile });
 
     equal(first.runtimeProfile.id, 'single-node-durable', 'Runtime recovery: durable runtime profile is selected');
+    equal(first.pkiPersistence.mode, 'file', 'Runtime recovery: release issuer PKI is file-backed for durable profile');
+    equal(first.pkiPersistence.generated, true, 'Runtime recovery: first boot creates the release issuer PKI store');
     equal(first.runtimeProfileDiagnostics.durability.ready, true, 'Runtime recovery: durable profile passes startup durability checks');
     ok(
       first.runtimeProfileDiagnostics.releaseStores.every((store) => store.satisfiesSelectedProfile),
@@ -387,6 +395,26 @@ async function main(): Promise<void> {
 
     const second = await createReleaseRuntimeBootstrap({ runtimeProfile: profile });
     equal(second.runtimeProfileDiagnostics.durability.ready, true, 'Runtime recovery: restarted runtime passes durable diagnostics');
+    equal(second.pkiPersistence.mode, 'file', 'Runtime recovery: restarted release issuer PKI is file-backed');
+    equal(second.pkiPersistence.generated, false, 'Runtime recovery: restarted runtime loads existing release issuer PKI');
+    equal(
+      second.pki.signer.keyPair.fingerprint,
+      first.pki.signer.keyPair.fingerprint,
+      'Runtime recovery: release issuer signing key survives restart',
+    );
+    const restartedVerificationKey = await second.apiReleaseVerificationKeyPromise;
+    equal(
+      restartedVerificationKey.keyId,
+      issuedToken.keyId,
+      'Runtime recovery: restarted verification key keeps the original release token kid',
+    );
+    await verifyIssuedReleaseToken({
+      token: issuedToken.token,
+      verificationKey: restartedVerificationKey,
+      audience: recordWithToken.releaseDecision.target.id,
+      currentDate: '2026-04-23T10:02:45.000Z',
+    });
+    passed += 1;
     equal(
       second.financeReleaseDecisionLog.verify().valid,
       true,

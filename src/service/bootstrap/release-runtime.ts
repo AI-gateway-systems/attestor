@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, chmodSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { generatePkiHierarchy } from '../../signing/pki-chain.js';
 import {
   decisionLog,
@@ -79,6 +81,7 @@ import type {
   RequestPathReleaseShadowEvaluator,
   RequestPathReleaseTokenIntrospectionStore,
 } from '../release-authority-request-path.js';
+import { withFileLock, writeTextFileAtomic } from '../file-store.js';
 
 const {
   createFileBackedReleaseDecisionLogWriter,
@@ -113,6 +116,8 @@ const RELEASE_ISSUER = 'attestor.api.release.local';
 const API_CA_SUBJECT = 'Attestor Keyless CA';
 const API_SIGNER_SUBJECT = 'API Runtime Signer';
 const API_REVIEWER_SUBJECT = 'API Reviewer';
+export const ATTESTOR_RELEASE_RUNTIME_PKI_PATH_ENV = 'ATTESTOR_RELEASE_RUNTIME_PKI_PATH';
+export const RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION = 'attestor.release-runtime-pki-store.v1';
 export const RELEASE_RUNTIME_REQUEST_PATH_DIAGNOSTICS_SPEC_VERSION =
   'attestor.release-runtime-request-path-diagnostics.v1';
 export const RELEASE_RUNTIME_REQUEST_PATH_CONTRACTS = Object.freeze([
@@ -122,6 +127,21 @@ export const RELEASE_RUNTIME_REQUEST_PATH_CONTRACTS = Object.freeze([
 
 export type ReleaseRuntimeRequestPathContract =
   typeof RELEASE_RUNTIME_REQUEST_PATH_CONTRACTS[number];
+
+type ReleaseRuntimePki = ReturnType<typeof generatePkiHierarchy>;
+
+export interface ReleaseRuntimePkiPersistence {
+  readonly mode: 'ephemeral' | 'file';
+  readonly path: string | null;
+  readonly generated: boolean;
+}
+
+interface StoredReleaseRuntimePki {
+  readonly version: typeof RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION;
+  readonly issuer: typeof RELEASE_ISSUER;
+  readonly createdAt: string;
+  readonly pki: ReleaseRuntimePki;
+}
 
 export interface ReleaseRuntimeRequestPathDiagnostics {
   readonly version: typeof RELEASE_RUNTIME_REQUEST_PATH_DIAGNOSTICS_SPEC_VERSION;
@@ -174,6 +194,110 @@ function releaseRuntimeStoreModesForProfile(
         ? 'memory'
         : CURRENT_RELEASE_RUNTIME_STORE_MODES['release-evidence-pack-store'],
   });
+}
+
+function releaseRuntimePkiPath(): string {
+  const configured = process.env[ATTESTOR_RELEASE_RUNTIME_PKI_PATH_ENV]?.trim();
+  return configured && configured.length > 0
+    ? configured
+    : join(process.cwd(), '.attestor', 'release-runtime-pki.json');
+}
+
+function assertPem(value: unknown, fieldName: string): asserts value is string {
+  if (typeof value !== 'string' || !value.includes('-----BEGIN') || !value.includes('-----END')) {
+    throw new Error(`Release runtime PKI store has invalid ${fieldName}.`);
+  }
+}
+
+function parseStoredReleaseRuntimePki(content: string): ReleaseRuntimePki {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error('Release runtime PKI store is not valid JSON.');
+  }
+
+  const record = parsed as Partial<StoredReleaseRuntimePki>;
+  if (record.version !== RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION) {
+    throw new Error('Release runtime PKI store has an unsupported version.');
+  }
+  if (record.issuer !== RELEASE_ISSUER) {
+    throw new Error('Release runtime PKI store issuer does not match this runtime.');
+  }
+
+  const pki = record.pki as ReleaseRuntimePki | undefined;
+  assertPem(pki?.ca?.keyPair?.privateKeyPem, 'ca.keyPair.privateKeyPem');
+  assertPem(pki?.ca?.keyPair?.publicKeyPem, 'ca.keyPair.publicKeyPem');
+  assertPem(pki?.signer?.keyPair?.privateKeyPem, 'signer.keyPair.privateKeyPem');
+  assertPem(pki?.signer?.keyPair?.publicKeyPem, 'signer.keyPair.publicKeyPem');
+  assertPem(pki?.reviewer?.keyPair?.privateKeyPem, 'reviewer.keyPair.privateKeyPem');
+  assertPem(pki?.reviewer?.keyPair?.publicKeyPem, 'reviewer.keyPair.publicKeyPem');
+
+  return pki;
+}
+
+function loadOrCreateFileBackedReleaseRuntimePki(path: string): {
+  pki: ReleaseRuntimePki;
+  persistence: ReleaseRuntimePkiPersistence;
+} {
+  mkdirSync(dirname(path), { recursive: true });
+  return withFileLock(path, () => {
+    if (existsSync(path)) {
+      return {
+        pki: parseStoredReleaseRuntimePki(readFileSync(path, 'utf8')),
+        persistence: {
+          mode: 'file',
+          path,
+          generated: false,
+        },
+      };
+    }
+
+    const pki = generatePkiHierarchy(API_CA_SUBJECT, API_SIGNER_SUBJECT, API_REVIEWER_SUBJECT);
+    const stored: StoredReleaseRuntimePki = {
+      version: RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION,
+      issuer: RELEASE_ISSUER,
+      createdAt: new Date().toISOString(),
+      pki,
+    };
+    writeTextFileAtomic(path, `${JSON.stringify(stored, null, 2)}\n`);
+    try {
+      chmodSync(path, 0o600);
+    } catch {
+      // chmod is best-effort on some Windows filesystems; the file remains
+      // local to the selected runtime store path and is never committed.
+    }
+
+    return {
+      pki,
+      persistence: {
+        mode: 'file',
+        path,
+        generated: true,
+      },
+    };
+  });
+}
+
+function resolveReleaseRuntimePki(runtimeProfile: AttestorRuntimeProfile): {
+  pki: ReleaseRuntimePki;
+  persistence: ReleaseRuntimePkiPersistence;
+} {
+  if (
+    runtimeProfile.id === 'local-dev' &&
+    !(process.env[ATTESTOR_RELEASE_RUNTIME_PKI_PATH_ENV]?.trim())
+  ) {
+    return {
+      pki: generatePkiHierarchy(API_CA_SUBJECT, API_SIGNER_SUBJECT, API_REVIEWER_SUBJECT),
+      persistence: {
+        mode: 'ephemeral',
+        path: null,
+        generated: true,
+      },
+    };
+  }
+
+  return loadOrCreateFileBackedReleaseRuntimePki(releaseRuntimePkiPath());
 }
 
 function createReleaseDecisionLogWriterForProfile(
@@ -711,6 +835,7 @@ export interface ReleaseRuntimeBootstrap {
     configured: boolean;
   };
   pki: ReturnType<typeof generatePkiHierarchy>;
+  pkiPersistence: ReleaseRuntimePkiPersistence;
   pkiReady: boolean;
   financeReleaseDecisionLog: RequestPathReleaseDecisionLogWriter;
   apiReleaseReviewerQueueStore: RequestPathReleaseReviewerQueueStore;
@@ -773,7 +898,7 @@ export async function createReleaseRuntimeBootstrap(
     mode: releaseAuthorityStoreMode(),
     configured: isReleaseAuthorityStoreConfigured(),
   });
-  const pki = generatePkiHierarchy(API_CA_SUBJECT, API_SIGNER_SUBJECT, API_REVIEWER_SUBJECT);
+  const { pki, persistence: pkiPersistence } = resolveReleaseRuntimePki(runtimeProfile);
   const pkiReady = true;
   const financeReleaseDecisionLog =
     sharedAuthorityRequestPath?.financeReleaseDecisionLog ??
@@ -875,6 +1000,7 @@ export async function createReleaseRuntimeBootstrap(
     runtimeProfileDiagnostics,
     releaseAuthorityStore,
     pki,
+    pkiPersistence,
     pkiReady,
     financeReleaseDecisionLog,
     apiReleaseReviewerQueueStore,
