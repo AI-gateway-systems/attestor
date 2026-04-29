@@ -355,11 +355,11 @@ function testCoreRouteExposesReleaseTokenJwksFromRuntimeKey(): void {
     'api-route-runtime.ts',
   );
 
-  assert.match(coreRoute, /apiReleaseVerificationKeyPromise: Promise<ReleaseTokenVerificationKey>/u);
+  assert.match(coreRoute, /apiReleaseVerificationKeysPromise: Promise<readonly ReleaseTokenVerificationKey\[\]>/u);
   assert.match(coreRoute, /app\.get\('\/api\/v1\/release-token\/jwks'/u);
-  assert.match(coreRoute, /releaseTokenVerificationKeyToJwks\(verificationKey\)/u);
+  assert.match(coreRoute, /releaseTokenVerificationKeysToJwks\(verificationKeys\)/u);
   assert.match(coreRoute, /cache-control', 'no-store'/u);
-  assert.match(apiRouteRuntime, /apiReleaseVerificationKeyPromise,/u);
+  assert.match(apiRouteRuntime, /apiReleaseVerificationKeysPromise,/u);
 }
 
 function testAccountRouteDelegatesUserManagementUseCases(): void {

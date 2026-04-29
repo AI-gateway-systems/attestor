@@ -335,6 +335,7 @@ export async function createApiHttpRouteRuntime(
     apiReleaseEvidencePackStore,
     apiReleaseEvidencePackIssuer,
     apiReleaseVerificationKeyPromise,
+    apiReleaseVerificationKeysPromise,
     apiReleaseDegradedModeGrantStore,
     policyControlPlaneStore,
     policyActivationApprovalStore,
@@ -388,7 +389,7 @@ export async function createApiHttpRouteRuntime(
     filingRegistry,
     pkiReady,
     pki,
-    apiReleaseVerificationKeyPromise,
+    apiReleaseVerificationKeysPromise,
     runtimeProfileDiagnostics,
     releaseRuntimeRequestPathDiagnostics,
     evaluateSharedAuthorityRuntimeReadiness: ({ runtimeProfileId }) =>

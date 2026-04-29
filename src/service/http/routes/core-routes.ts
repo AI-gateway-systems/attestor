@@ -1,6 +1,6 @@
 import type { Hono } from 'hono';
 import {
-  releaseTokenVerificationKeyToJwks,
+  releaseTokenVerificationKeysToJwks,
   type ReleaseTokenVerificationKey,
 } from '../../../release-layer/index.js';
 
@@ -105,7 +105,7 @@ export interface CoreRouteDeps {
     signer: { certificate: { subject: string } };
     reviewer: { certificate: { subject: string } };
   };
-  apiReleaseVerificationKeyPromise: Promise<ReleaseTokenVerificationKey>;
+  apiReleaseVerificationKeysPromise: Promise<readonly ReleaseTokenVerificationKey[]>;
   runtimeProfileDiagnostics: RuntimeProfileDiagnostics;
   releaseRuntimeRequestPathDiagnostics: ReleaseRuntimeRequestPathDiagnostics;
   evaluateSharedAuthorityRuntimeReadiness(input: {
@@ -134,7 +134,7 @@ export function registerCoreRoutes(app: Hono, deps: CoreRouteDeps): void {
     filingRegistry,
     pkiReady,
     pki,
-    apiReleaseVerificationKeyPromise,
+    apiReleaseVerificationKeysPromise,
     runtimeProfileDiagnostics,
     releaseRuntimeRequestPathDiagnostics,
     evaluateSharedAuthorityRuntimeReadiness,
@@ -217,9 +217,9 @@ export function registerCoreRoutes(app: Hono, deps: CoreRouteDeps): void {
   });
 
   app.get('/api/v1/release-token/jwks', async (c) => {
-    const verificationKey = await apiReleaseVerificationKeyPromise;
+    const verificationKeys = await apiReleaseVerificationKeysPromise;
     c.header('cache-control', 'no-store');
-    return c.json(releaseTokenVerificationKeyToJwks(verificationKey));
+    return c.json(releaseTokenVerificationKeysToJwks(verificationKeys));
   });
 
   app.get('/api/v1/ready', async (c) => {

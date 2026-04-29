@@ -76,6 +76,7 @@ docker run \
 | `ATTESTOR_AUTH_RATE_LIMIT_MAX_FAILURES_PER_SOURCE` | No | `20` | Failed password-login attempts per client source before temporary lockout |
 | `ATTESTOR_AUTH_RATE_LIMIT_LOCKOUT_SECONDS` | No | `300` | Temporary login lockout duration after auth abuse guard threshold is reached |
 | `ATTESTOR_RELEASE_RUNTIME_PKI_PATH` | No | `.attestor/release-runtime-pki.json` for non-local profiles | File-backed release issuer PKI store. `single-node-durable` and `production-shared` load or create this store so release-token verification keys survive runtime restart |
+| `ATTESTOR_RELEASE_RUNTIME_PKI_ROTATION_ID` | No | None | Explicit release issuer rotation marker. Changing this value in a file-backed runtime creates a new active signer and retains the previous public verification key in the JWKS rollover set; this is local/file-backed key lifecycle support, not a KMS/HSM rotation service |
 | `ATTESTOR_ACCOUNT_STORE_PATH` | No | `.attestor/accounts.json` | File-backed hosted account registry used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
 | `ATTESTOR_ACCOUNT_USER_STORE_PATH` | No | `.attestor/account-users.json` | File-backed hosted account user registry used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
 | `ATTESTOR_ACCOUNT_SESSION_STORE_PATH` | No | `.attestor/account-sessions.json` | File-backed hosted customer session store used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
@@ -232,7 +233,7 @@ docker run \
 |---|---|---|
 | `GET /api/v1/health` | Detailed system state | Always 200, includes PKI/RLS/async status |
 | `GET /api/v1/ready` | Orchestrator readiness probe | 200 when ready, 503 when not |
-| `GET /api/v1/release-token/jwks` | Public release-token verification key set | JWKS with the active public verification key, `kid`, `alg`, `use=sig`, and `key_ops=["verify"]`; private issuer material is never returned |
+| `GET /api/v1/release-token/jwks` | Public release-token verification key set | JWKS with the active public verification key plus retained rollover verification keys, each with `kid`, `alg`, `use=sig`, and `key_ops=["verify"]`; private issuer material is never returned |
 
 The readiness probe checks:
 - Async backend initialized (BullMQ or in-process)

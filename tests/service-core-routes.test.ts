@@ -22,6 +22,13 @@ async function testReleaseTokenJwksRouteExposesPublicVerificationKeyOnly(): Prom
     publicKeyPem: keyPair.publicKeyPem,
   });
   const verificationKey = await issuer.exportVerificationKey();
+  const retiredKeyPair = generateKeyPair();
+  const retiredIssuer = createReleaseTokenIssuer({
+    issuer: 'attestor.release.local',
+    privateKeyPem: retiredKeyPair.privateKeyPem,
+    publicKeyPem: retiredKeyPair.publicKeyPem,
+  });
+  const retiredVerificationKey = await retiredIssuer.exportVerificationKey();
   const app = new Hono();
   const deps: CoreRouteDeps = {
     evaluateApiHighAvailabilityState: () => ({
@@ -52,7 +59,7 @@ async function testReleaseTokenJwksRouteExposesPublicVerificationKeyOnly(): Prom
       signer: { certificate: { subject: 'API Runtime Signer' } },
       reviewer: { certificate: { subject: 'API Reviewer' } },
     },
-    apiReleaseVerificationKeyPromise: Promise.resolve(verificationKey),
+    apiReleaseVerificationKeysPromise: Promise.resolve([verificationKey, retiredVerificationKey]),
     runtimeProfileDiagnostics: {
       version: 'test',
       profile: {
@@ -108,7 +115,7 @@ async function testReleaseTokenJwksRouteExposesPublicVerificationKeyOnly(): Prom
   );
 
   const body = await response.json() as { keys: Array<Record<string, unknown>> };
-  equal(body.keys.length, 1, 'Core routes: release-token JWKS route exposes one active key');
+  equal(body.keys.length, 2, 'Core routes: release-token JWKS route exposes active and rollover keys');
   equal(
     body.keys[0]?.kid,
     verificationKey.keyId,
@@ -133,6 +140,16 @@ async function testReleaseTokenJwksRouteExposesPublicVerificationKeyOnly(): Prom
     'd' in (body.keys[0] ?? {}),
     false,
     'Core routes: release-token JWKS route does not expose private Ed25519 key material',
+  );
+  equal(
+    body.keys[1]?.kid,
+    retiredVerificationKey.keyId,
+    'Core routes: release-token JWKS route keeps rollover verification keys addressable by kid',
+  );
+  equal(
+    'd' in (body.keys[1] ?? {}),
+    false,
+    'Core routes: release-token JWKS route does not expose retired private key material',
   );
 }
 

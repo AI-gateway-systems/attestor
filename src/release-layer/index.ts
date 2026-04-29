@@ -178,6 +178,8 @@ export type ReleaseDecisionEngine = decision.ReleaseDecisionEngine;
 export type ShadowModeReleaseEvaluator = shadow.ShadowModeReleaseEvaluator;
 
 export const releaseTokenVerificationKeyToJwks = token.releaseTokenVerificationKeyToJwks;
+export const releaseTokenVerificationKeysToJwks = token.releaseTokenVerificationKeysToJwks;
+export const createReleaseTokenVerificationKey = token.createReleaseTokenVerificationKey;
 
 export function releaseLayerPublicSurface(): ReleaseLayerPublicSurfaceDescriptor {
   return Object.freeze({

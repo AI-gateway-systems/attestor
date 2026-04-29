@@ -117,6 +117,8 @@ const API_CA_SUBJECT = 'Attestor Keyless CA';
 const API_SIGNER_SUBJECT = 'API Runtime Signer';
 const API_REVIEWER_SUBJECT = 'API Reviewer';
 export const ATTESTOR_RELEASE_RUNTIME_PKI_PATH_ENV = 'ATTESTOR_RELEASE_RUNTIME_PKI_PATH';
+export const ATTESTOR_RELEASE_RUNTIME_PKI_ROTATION_ID_ENV =
+  'ATTESTOR_RELEASE_RUNTIME_PKI_ROTATION_ID';
 export const RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION = 'attestor.release-runtime-pki-store.v1';
 export const RELEASE_RUNTIME_REQUEST_PATH_DIAGNOSTICS_SPEC_VERSION =
   'attestor.release-runtime-request-path-diagnostics.v1';
@@ -130,16 +132,31 @@ export type ReleaseRuntimeRequestPathContract =
 
 type ReleaseRuntimePki = ReturnType<typeof generatePkiHierarchy>;
 
+interface StoredReleaseRuntimeVerificationKey {
+  readonly keyId: string;
+  readonly algorithm: 'EdDSA';
+  readonly publicKeyFingerprint: string;
+  readonly publicKeyPem: string;
+  readonly retiredAt: string;
+  readonly rotationId: string | null;
+}
+
 export interface ReleaseRuntimePkiPersistence {
   readonly mode: 'ephemeral' | 'file';
   readonly path: string | null;
   readonly generated: boolean;
+  readonly rotated: boolean;
+  readonly rotationId: string | null;
+  readonly retiredVerificationKeyCount: number;
 }
 
 interface StoredReleaseRuntimePki {
   readonly version: typeof RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION;
   readonly issuer: typeof RELEASE_ISSUER;
   readonly createdAt: string;
+  readonly rotationId?: string | null;
+  readonly rotatedAt?: string | null;
+  readonly retiredVerificationKeys?: readonly StoredReleaseRuntimeVerificationKey[];
   readonly pki: ReleaseRuntimePki;
 }
 
@@ -203,13 +220,66 @@ function releaseRuntimePkiPath(): string {
     : join(process.cwd(), '.attestor', 'release-runtime-pki.json');
 }
 
+function releaseRuntimePkiRotationId(): string | null {
+  const configured = process.env[ATTESTOR_RELEASE_RUNTIME_PKI_ROTATION_ID_ENV]?.trim();
+  return configured && configured.length > 0 ? configured : null;
+}
+
 function assertPem(value: unknown, fieldName: string): asserts value is string {
   if (typeof value !== 'string' || !value.includes('-----BEGIN') || !value.includes('-----END')) {
     throw new Error(`Release runtime PKI store has invalid ${fieldName}.`);
   }
 }
 
-function parseStoredReleaseRuntimePki(content: string): ReleaseRuntimePki {
+function assertStoredVerificationKey(
+  value: unknown,
+  fieldName: string,
+): asserts value is StoredReleaseRuntimeVerificationKey {
+  const record = value as Partial<StoredReleaseRuntimeVerificationKey> | undefined;
+  if (!record || typeof record !== 'object') {
+    throw new Error(`Release runtime PKI store has invalid ${fieldName}.`);
+  }
+  if (typeof record.keyId !== 'string' || record.keyId.length === 0) {
+    throw new Error(`Release runtime PKI store has invalid ${fieldName}.keyId.`);
+  }
+  if (record.algorithm !== 'EdDSA') {
+    throw new Error(`Release runtime PKI store has invalid ${fieldName}.algorithm.`);
+  }
+  if (
+    typeof record.publicKeyFingerprint !== 'string' ||
+    record.publicKeyFingerprint.length === 0
+  ) {
+    throw new Error(`Release runtime PKI store has invalid ${fieldName}.publicKeyFingerprint.`);
+  }
+  assertPem(record.publicKeyPem, `${fieldName}.publicKeyPem`);
+  if (typeof record.retiredAt !== 'string' || Number.isNaN(new Date(record.retiredAt).getTime())) {
+    throw new Error(`Release runtime PKI store has invalid ${fieldName}.retiredAt.`);
+  }
+  if (record.rotationId !== null && typeof record.rotationId !== 'string') {
+    throw new Error(`Release runtime PKI store has invalid ${fieldName}.rotationId.`);
+  }
+}
+
+function signerVerificationKeyFromPki(
+  pki: ReleaseRuntimePki,
+  retiredAt: string,
+  rotationId: string | null,
+): StoredReleaseRuntimeVerificationKey {
+  return Object.freeze({
+    keyId: pki.signer.keyPair.fingerprint,
+    algorithm: 'EdDSA' as const,
+    publicKeyFingerprint: pki.signer.keyPair.fingerprint,
+    publicKeyPem: pki.signer.keyPair.publicKeyPem,
+    retiredAt,
+    rotationId,
+  });
+}
+
+function parseStoredReleaseRuntimePki(content: string): {
+  pki: ReleaseRuntimePki;
+  rotationId: string | null;
+  retiredVerificationKeys: readonly StoredReleaseRuntimeVerificationKey[];
+} {
   let parsed: unknown;
   try {
     parsed = JSON.parse(content);
@@ -233,22 +303,77 @@ function parseStoredReleaseRuntimePki(content: string): ReleaseRuntimePki {
   assertPem(pki?.reviewer?.keyPair?.privateKeyPem, 'reviewer.keyPair.privateKeyPem');
   assertPem(pki?.reviewer?.keyPair?.publicKeyPem, 'reviewer.keyPair.publicKeyPem');
 
-  return pki;
+  const retiredVerificationKeys = Array.isArray(record.retiredVerificationKeys)
+    ? record.retiredVerificationKeys
+    : [];
+  retiredVerificationKeys.forEach((key, index) =>
+    assertStoredVerificationKey(key, `retiredVerificationKeys[${index}]`),
+  );
+
+  return {
+    pki,
+    rotationId: typeof record.rotationId === 'string' ? record.rotationId : null,
+    retiredVerificationKeys: Object.freeze([...retiredVerificationKeys]),
+  };
 }
 
 function loadOrCreateFileBackedReleaseRuntimePki(path: string): {
   pki: ReleaseRuntimePki;
+  retiredVerificationKeys: readonly StoredReleaseRuntimeVerificationKey[];
   persistence: ReleaseRuntimePkiPersistence;
 } {
   mkdirSync(dirname(path), { recursive: true });
   return withFileLock(path, () => {
+    const rotationId = releaseRuntimePkiRotationId();
     if (existsSync(path)) {
+      const stored = parseStoredReleaseRuntimePki(readFileSync(path, 'utf8'));
+      if (rotationId !== null && stored.rotationId !== rotationId) {
+        const now = new Date().toISOString();
+        const pki = generatePkiHierarchy(API_CA_SUBJECT, API_SIGNER_SUBJECT, API_REVIEWER_SUBJECT);
+        const retiredVerificationKeys = Object.freeze([
+          signerVerificationKeyFromPki(stored.pki, now, stored.rotationId),
+          ...stored.retiredVerificationKeys,
+        ]);
+        const next: StoredReleaseRuntimePki = {
+          version: RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION,
+          issuer: RELEASE_ISSUER,
+          createdAt: now,
+          rotationId,
+          rotatedAt: now,
+          retiredVerificationKeys,
+          pki,
+        };
+        writeTextFileAtomic(path, `${JSON.stringify(next, null, 2)}\n`);
+        try {
+          chmodSync(path, 0o600);
+        } catch {
+          // chmod is best-effort on some Windows filesystems.
+        }
+
+        return {
+          pki,
+          retiredVerificationKeys,
+          persistence: {
+            mode: 'file',
+            path,
+            generated: true,
+            rotated: true,
+            rotationId,
+            retiredVerificationKeyCount: retiredVerificationKeys.length,
+          },
+        };
+      }
+
       return {
-        pki: parseStoredReleaseRuntimePki(readFileSync(path, 'utf8')),
+        pki: stored.pki,
+        retiredVerificationKeys: stored.retiredVerificationKeys,
         persistence: {
           mode: 'file',
           path,
           generated: false,
+          rotated: false,
+          rotationId: stored.rotationId,
+          retiredVerificationKeyCount: stored.retiredVerificationKeys.length,
         },
       };
     }
@@ -258,6 +383,9 @@ function loadOrCreateFileBackedReleaseRuntimePki(path: string): {
       version: RELEASE_RUNTIME_PKI_STORE_SPEC_VERSION,
       issuer: RELEASE_ISSUER,
       createdAt: new Date().toISOString(),
+      rotationId,
+      rotatedAt: null,
+      retiredVerificationKeys: [],
       pki,
     };
     writeTextFileAtomic(path, `${JSON.stringify(stored, null, 2)}\n`);
@@ -270,10 +398,14 @@ function loadOrCreateFileBackedReleaseRuntimePki(path: string): {
 
     return {
       pki,
+      retiredVerificationKeys: [],
       persistence: {
         mode: 'file',
         path,
         generated: true,
+        rotated: false,
+        rotationId,
+        retiredVerificationKeyCount: 0,
       },
     };
   });
@@ -281,6 +413,7 @@ function loadOrCreateFileBackedReleaseRuntimePki(path: string): {
 
 function resolveReleaseRuntimePki(runtimeProfile: AttestorRuntimeProfile): {
   pki: ReleaseRuntimePki;
+  retiredVerificationKeys: readonly StoredReleaseRuntimeVerificationKey[];
   persistence: ReleaseRuntimePkiPersistence;
 } {
   if (
@@ -289,10 +422,14 @@ function resolveReleaseRuntimePki(runtimeProfile: AttestorRuntimeProfile): {
   ) {
     return {
       pki: generatePkiHierarchy(API_CA_SUBJECT, API_SIGNER_SUBJECT, API_REVIEWER_SUBJECT),
+      retiredVerificationKeys: [],
       persistence: {
         mode: 'ephemeral',
         path: null,
         generated: true,
+        rotated: false,
+        rotationId: null,
+        retiredVerificationKeyCount: 0,
       },
     };
   }
@@ -845,6 +982,7 @@ export interface ReleaseRuntimeBootstrap {
   apiReleaseEvidencePackStore: RequestPathReleaseEvidencePackStore;
   apiReleaseEvidencePackIssuer: ReleaseEvidencePackIssuer;
   apiReleaseVerificationKeyPromise: Promise<ReleaseTokenVerificationKey>;
+  apiReleaseVerificationKeysPromise: Promise<readonly ReleaseTokenVerificationKey[]>;
   apiReleaseDegradedModeGrantStore: RequestPathDegradedModeGrantStore;
   policyControlPlaneStore: RequestPathPolicyControlPlaneStore;
   policyActivationApprovalStore: RequestPathPolicyActivationApprovalStore;
@@ -898,7 +1036,11 @@ export async function createReleaseRuntimeBootstrap(
     mode: releaseAuthorityStoreMode(),
     configured: isReleaseAuthorityStoreConfigured(),
   });
-  const { pki, persistence: pkiPersistence } = resolveReleaseRuntimePki(runtimeProfile);
+  const {
+    pki,
+    retiredVerificationKeys,
+    persistence: pkiPersistence,
+  } = resolveReleaseRuntimePki(runtimeProfile);
   const pkiReady = true;
   const financeReleaseDecisionLog =
     sharedAuthorityRequestPath?.financeReleaseDecisionLog ??
@@ -932,6 +1074,21 @@ export async function createReleaseRuntimeBootstrap(
     publicKeyPem: pki.signer.keyPair.publicKeyPem,
   });
   const apiReleaseVerificationKeyPromise = apiReleaseTokenIssuer.exportVerificationKey();
+  const apiReleaseVerificationKeysPromise = apiReleaseVerificationKeyPromise.then(
+    async (activeVerificationKey) => {
+      const retired = await Promise.all(
+        retiredVerificationKeys.map((retiredKey) =>
+          token.createReleaseTokenVerificationKey({
+            issuer: RELEASE_ISSUER,
+            publicKeyPem: retiredKey.publicKeyPem,
+            keyId: retiredKey.keyId,
+            algorithm: retiredKey.algorithm,
+          }),
+        ),
+      );
+      return Object.freeze([activeVerificationKey, ...retired]);
+    },
+  );
   const apiReleaseDegradedModeGrantStore =
     sharedAuthorityRequestPath?.apiReleaseDegradedModeGrantStore ??
     (runtimeProfile.id === 'production-shared'
@@ -1010,6 +1167,7 @@ export async function createReleaseRuntimeBootstrap(
     apiReleaseEvidencePackStore,
     apiReleaseEvidencePackIssuer,
     apiReleaseVerificationKeyPromise,
+    apiReleaseVerificationKeysPromise,
     apiReleaseDegradedModeGrantStore,
     policyControlPlaneStore,
     policyActivationApprovalStore,

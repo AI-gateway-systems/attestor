@@ -38,6 +38,13 @@ export interface CreateReleaseTokenIssuerInput {
   readonly algorithm?: ReleaseTokenSigningAlgorithm;
 }
 
+export interface CreateReleaseTokenVerificationKeyInput {
+  readonly issuer: string;
+  readonly publicKeyPem: string;
+  readonly keyId?: string;
+  readonly algorithm?: ReleaseTokenSigningAlgorithm;
+}
+
 export interface ReleaseTokenIssueInput {
   readonly decision: ReleaseDecision;
   readonly subject?: string;
@@ -113,6 +120,31 @@ export class ReleaseTokenVerificationFailure extends Error {
 export interface ReleaseTokenIssuer {
   issue(input: ReleaseTokenIssueInput): Promise<IssuedReleaseToken>;
   exportVerificationKey(): Promise<ReleaseTokenVerificationKey>;
+}
+
+export async function createReleaseTokenVerificationKey(
+  input: CreateReleaseTokenVerificationKeyInput,
+): Promise<ReleaseTokenVerificationKey> {
+  const algorithm = input.algorithm ?? 'EdDSA';
+  const keyIdentity = derivePublicKeyIdentity(input.publicKeyPem);
+  const keyId = input.keyId ?? keyIdentity.fingerprint;
+  const publicKey = await importSPKI(input.publicKeyPem, algorithm);
+  const jwk = await exportJWK(publicKey);
+
+  return {
+    version: RELEASE_TOKEN_VERIFICATION_KEY_SPEC_VERSION,
+    issuer: input.issuer,
+    algorithm,
+    keyId,
+    publicKeyFingerprint: keyIdentity.fingerprint,
+    publicKeyPem: input.publicKeyPem,
+    jwk: {
+      ...jwk,
+      kid: keyId,
+      use: 'sig',
+      alg: algorithm,
+    },
+  };
 }
 
 function isExpiredJoseError(error: unknown): boolean {
@@ -242,30 +274,19 @@ export function createReleaseTokenIssuer(
     },
 
     async exportVerificationKey(): Promise<ReleaseTokenVerificationKey> {
-      const publicKey = await importSPKI(input.publicKeyPem, algorithm);
-      const jwk = await exportJWK(publicKey);
-
-      return {
-        version: RELEASE_TOKEN_VERIFICATION_KEY_SPEC_VERSION,
+      return createReleaseTokenVerificationKey({
         issuer: input.issuer,
-        algorithm,
-        keyId,
-        publicKeyFingerprint: keyIdentity.fingerprint,
         publicKeyPem: input.publicKeyPem,
-        jwk: {
-          ...jwk,
-          kid: keyId,
-          use: 'sig',
-          alg: algorithm,
-        },
-      };
+        keyId,
+        algorithm,
+      });
     },
   };
 }
 
-export function releaseTokenVerificationKeyToJwks(
+function releaseTokenVerificationKeyToJwk(
   verificationKey: ReleaseTokenVerificationKey,
-): ReleaseTokenJwks {
+): JWK {
   const {
     d: _d,
     p: _p,
@@ -277,17 +298,36 @@ export function releaseTokenVerificationKeyToJwks(
     ...publicJwk
   } = verificationKey.jwk as JWK & Record<string, unknown>;
 
+  return Object.freeze({
+    ...publicJwk,
+    kid: verificationKey.keyId,
+    use: 'sig',
+    alg: verificationKey.algorithm,
+    key_ops: ['verify'],
+  });
+}
+
+export function releaseTokenVerificationKeysToJwks(
+  verificationKeys: readonly ReleaseTokenVerificationKey[],
+): ReleaseTokenJwks {
+  const seen = new Set<string>();
+  const keys = verificationKeys.flatMap((verificationKey) => {
+    if (seen.has(verificationKey.keyId)) {
+      return [];
+    }
+    seen.add(verificationKey.keyId);
+    return [releaseTokenVerificationKeyToJwk(verificationKey)];
+  });
+
   return {
-    keys: [
-      Object.freeze({
-        ...publicJwk,
-        kid: verificationKey.keyId,
-        use: 'sig',
-        alg: verificationKey.algorithm,
-        key_ops: ['verify'],
-      }),
-    ],
+    keys,
   };
+}
+
+export function releaseTokenVerificationKeyToJwks(
+  verificationKey: ReleaseTokenVerificationKey,
+): ReleaseTokenJwks {
+  return releaseTokenVerificationKeysToJwks([verificationKey]);
 }
 
 export async function verifyIssuedReleaseToken(

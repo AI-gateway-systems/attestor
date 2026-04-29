@@ -64,9 +64,12 @@ ATTESTOR_POLICY_CONTROL_PLANE_STORE_PATH=/var/lib/attestor/policy-control-plane.
 ATTESTOR_POLICY_ACTIVATION_APPROVAL_STORE_PATH=/var/lib/attestor/policy-activation-approvals.json
 ATTESTOR_POLICY_MUTATION_AUDIT_LOG_PATH=/var/lib/attestor/policy-mutation-audit.json
 ATTESTOR_RELEASE_RUNTIME_PKI_PATH=/var/lib/attestor/release-runtime-pki.json
+ATTESTOR_RELEASE_RUNTIME_PKI_ROTATION_ID=initial-issuer
 ```
 
 That PKI path carries the release-token issuer key material. Restart recovery is not complete if the release authority stores survive but the issuer key changes; previously issued release tokens must remain verifiable by the restarted runtime's exported verification key.
+
+Changing `ATTESTOR_RELEASE_RUNTIME_PKI_ROTATION_ID` in a file-backed runtime explicitly rotates the active release-token signer. The runtime keeps the previous public verification key in `GET /api/v1/release-token/jwks` so already-issued tokens can still be verified by `kid`. This is controlled local/file-backed key lifecycle support; production KMS/HSM-backed rotation, compromise response, and key destruction remain a separate operator control.
 
 For `production-shared`, do not paper over the gate with file paths. Use it only when the dedicated release-authority PostgreSQL substrate is configured, reachable, and reflected in `/api/v1/ready`.
 
@@ -74,6 +77,7 @@ For `production-shared`, do not paper over the gate with file paths. Use it only
 ATTESTOR_RUNTIME_PROFILE=production-shared
 ATTESTOR_RELEASE_AUTHORITY_PG_URL=postgres://attestor:...@postgres.example.internal:5432/attestor_release_authority
 ATTESTOR_RELEASE_RUNTIME_PKI_PATH=/var/lib/attestor/release-runtime-pki.json
+ATTESTOR_RELEASE_RUNTIME_PKI_ROTATION_ID=initial-issuer
 ```
 
 In this profile, file-backed release-authority paths are no longer the authority-plane proof. The request path must use the async shared authority-store contract, and readiness must fail closed if the shared PostgreSQL substrate is missing or unreachable. The PKI path is still part of the runtime trust boundary until a customer KMS/HSM-backed issuer is wired; deploy it through the same secret-management posture as other signing material.
