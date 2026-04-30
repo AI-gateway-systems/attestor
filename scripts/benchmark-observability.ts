@@ -165,11 +165,16 @@ export async function captureObservabilityBenchmark(options: BenchmarkOptions): 
       requestsPerSecond: round(Number(entry.value[1]), 3),
     })),
   };
+  const persistedBenchmark = {
+    source: benchmark.source,
+    requestsPerSecond: benchmark.requestsPerSecond,
+    successRate: benchmark.successRate,
+    p95LatencyMs: benchmark.p95LatencyMs,
+  };
 
   mkdirSync(outputDir, { recursive: true });
-  writeFileSync(resolve(outputDir, 'benchmark.json'), `${JSON.stringify(benchmark, null, 2)}\n`, 'utf8');
+  writeFileSync(resolve(outputDir, 'benchmark.json'), `${JSON.stringify(persistedBenchmark, null, 2)}\n`, 'utf8');
   writeFileSync(resolve(outputDir, 'hot-routes.json'), `${JSON.stringify(benchmark.hotRoutes, null, 2)}\n`, 'utf8');
-  writeFileSync(resolve(outputDir, 'alerts-summary.json'), `${JSON.stringify(benchmark.activeAlerts, null, 2)}\n`, 'utf8');
   writeFileSync(
     resolve(outputDir, 'README.md'),
     `# Observability calibration snapshot

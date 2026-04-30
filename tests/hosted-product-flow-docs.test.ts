@@ -325,8 +325,7 @@ function testHostedJourneyRoutesMatchShippedRoutes(): void {
       accountRoutes,
       routeContract
         .replace('GET ', "app.get('")
-        .replace('POST ', "app.post('")
-        .replace(/:id/u, ':id'),
+        .replace('POST ', "app.post('"),
       `Hosted product flow docs: shipped account route exists for ${routeContract}`,
     );
   }

@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import type { Context } from 'hono';
 import { setCookie } from 'hono/cookie';
 import type { ReviewerIdentity } from '../financial/types.js';
@@ -17,6 +17,7 @@ import {
   type AccountAccessContext,
   type TenantContext,
 } from './tenant-isolation.js';
+import { digestSecretForComparison } from './secret-derivation.js';
 
 interface RequestSignerPair {
   signer: KeylessSigner;
@@ -131,8 +132,8 @@ export function requireAccountSession(
 
 export function constantTimeSecretEquals(candidate: string, configured: string): boolean {
   if (!candidate || !configured) return false;
-  const candidateDigest = createHash('sha256').update(candidate).digest();
-  const configuredDigest = createHash('sha256').update(configured).digest();
+  const candidateDigest = digestSecretForComparison(candidate, 'request.bearer-token.compare');
+  const configuredDigest = digestSecretForComparison(configured, 'request.bearer-token.compare');
   return timingSafeEqual(candidateDigest, configuredDigest);
 }
 

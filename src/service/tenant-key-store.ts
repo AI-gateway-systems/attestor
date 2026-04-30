@@ -12,12 +12,13 @@
  * - No dashboard, no billing sync, no multi-node shared datastore yet
  */
 
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DEFAULT_HOSTED_PLAN_ID, resolvePlanSpec } from './plan-catalog.js';
 import type { SecretEnvelopeRecord } from './secret-envelope.js';
 import { writeTextFileAtomic } from './file-store.js';
+import { hashSecretForLookup } from './secret-derivation.js';
 
 export type TenantKeyStatus = 'active' | 'inactive' | 'revoked';
 
@@ -101,7 +102,7 @@ export function tenantKeyStorePolicy(): { maxActiveKeysPerTenant: number } {
 }
 
 function hashApiKey(apiKey: string): string {
-  return createHash('sha256').update(apiKey).digest('hex');
+  return hashSecretForLookup(apiKey, 'tenant.api-key');
 }
 
 function previewApiKey(apiKey: string): string {

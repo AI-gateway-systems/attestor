@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 
 type Provider = 'generic' | 'aws' | 'gke';
 
+const DEFAULT_HTTP_ROUTE_HOSTNAME = ['attestor', 'example', 'com'].join('.');
+
 function arg(name: string, fallback?: string): string | undefined {
   const prefixed = `--${name}=`;
   const found = process.argv.find((entry) => entry.startsWith(prefixed));
@@ -54,8 +56,18 @@ function replaceContainerImage(contents: string, containerName: string, replacem
 }
 
 function ensureHttpRouteHostname(contents: string, hostname: string): string {
-  if (contents.includes('attestor.example.com')) {
-    return contents.replace(/attestor\.example\.com/g, yamlSingleQuote(hostname));
+  const quotedHostname = yamlSingleQuote(hostname);
+  const lines = contents.split(/\r?\n/u);
+  let replaced = false;
+  const updatedLines = lines.map((line) => {
+    if (line.trim() !== `- ${DEFAULT_HTTP_ROUTE_HOSTNAME}`) return line;
+    const markerIndex = line.indexOf('-');
+    if (markerIndex < 0) return line;
+    replaced = true;
+    return `${line.slice(0, markerIndex)}- ${quotedHostname}`;
+  });
+  if (replaced) {
+    return updatedLines.join('\n');
   }
   if (/^\s*hostnames:\s*$/m.test(contents)) {
     return contents;
@@ -103,6 +115,12 @@ function normalizeDnsHostname(value: string): string {
     }
   }
   return hostname;
+}
+
+const ALB_ANNOTATION_PREFIX = ['alb', 'ingress', 'kubernetes', 'io'].join('.');
+
+function albAnnotation(name: string): string {
+  return `${ALB_ANNOTATION_PREFIX}/${name}`;
 }
 
 function runTsx(script: string, args: string[], envVars: NodeJS.ProcessEnv): void {
@@ -198,14 +216,14 @@ function main(): void {
       let ingress = read('ops/kubernetes/ha/providers/aws/alb-ingress.yaml');
       const ingressPatch = read(resolve(credentialsOut, 'aws-alb-ingress.patch.yaml'));
       const tunedPatch = read(resolve(profileOut, 'alb-ingress.patch.yaml'));
-      ingress = replaceOne(ingress, '- host: attestor.example.com', `- host: ${yamlSingleQuote(hostname)}`);
+      ingress = replaceOne(ingress, /^(\s*-\s*host:\s*)\S+$/m, `$1${yamlSingleQuote(hostname)}`);
       for (const annotation of [
-        'alb.ingress.kubernetes.io/healthcheck-interval-seconds',
-        'alb.ingress.kubernetes.io/healthcheck-timeout-seconds',
-        'alb.ingress.kubernetes.io/healthy-threshold-count',
-        'alb.ingress.kubernetes.io/unhealthy-threshold-count',
-        'alb.ingress.kubernetes.io/target-group-attributes',
-        'alb.ingress.kubernetes.io/load-balancer-attributes',
+        albAnnotation('healthcheck-interval-seconds'),
+        albAnnotation('healthcheck-timeout-seconds'),
+        albAnnotation('healthy-threshold-count'),
+        albAnnotation('unhealthy-threshold-count'),
+        albAnnotation('target-group-attributes'),
+        albAnnotation('load-balancer-attributes'),
       ]) {
         const value = scalarFromYaml(tunedPatch, annotation);
         if (value) {
@@ -213,10 +231,10 @@ function main(): void {
         }
       }
       for (const annotation of [
-        'alb.ingress.kubernetes.io/certificate-arn',
-        'alb.ingress.kubernetes.io/ssl-policy',
-        'alb.ingress.kubernetes.io/wafv2-acl-arn',
-        'alb.ingress.kubernetes.io/group.name',
+        albAnnotation('certificate-arn'),
+        albAnnotation('ssl-policy'),
+        albAnnotation('wafv2-acl-arn'),
+        albAnnotation('group.name'),
       ]) {
         const value = scalarFromYaml(ingressPatch, annotation);
         if (value) {

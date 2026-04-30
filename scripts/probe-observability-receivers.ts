@@ -40,6 +40,27 @@ function headerValue(prefix: 'PROMETHEUS' | 'ALERTMANAGER'): string | null {
   return `Basic ${Buffer.from(`${username}:${password}`, 'utf8').toString('base64')}`;
 }
 
+function endpointUrl(rawUrl: string, name: string): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error(`${name} must be a valid URL.`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`${name} must use http or https.`);
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error(`${name} must not include credentials. Use *_AUTH_HEADER or *_BEARER_TOKEN instead.`);
+  }
+  parsed.hash = '';
+  return parsed;
+}
+
+function safeEndpointSummary(url: URL): string {
+  return url.origin;
+}
+
 async function fetchJson<T>(url: string, authHeader: string | null): Promise<{ ok: boolean; status: number; body: T | null; error: string | null }> {
   try {
     const headers = new Headers();
@@ -100,6 +121,8 @@ export async function probeObservabilityReceivers(options?: {
   const outputDir = resolve(options?.outputDir ?? arg('output-dir', '.attestor/observability/probe/latest')!);
   const prometheusUrl = options?.prometheusUrl ?? arg('prometheus-url', env('ATTESTOR_OBSERVABILITY_PROMETHEUS_URL') ?? env('PROMETHEUS_BASE_URL'));
   const alertmanagerUrl = options?.alertmanagerUrl ?? arg('alertmanager-url', env('ATTESTOR_OBSERVABILITY_ALERTMANAGER_URL') ?? env('ALERTMANAGER_BASE_URL'));
+  const prometheusEndpoint = prometheusUrl ? endpointUrl(prometheusUrl, 'prometheusUrl') : null;
+  const alertmanagerEndpoint = alertmanagerUrl ? endpointUrl(alertmanagerUrl, 'alertmanagerUrl') : null;
 
   const telemetry = initializeTelemetry('1.0.0');
   let flushSucceeded = false;
@@ -168,15 +191,15 @@ export async function probeObservabilityReceivers(options?: {
       flushError = error instanceof Error ? error.message : String(error);
     }
 
-    const prometheusProbe = prometheusUrl
+    const prometheusProbe = prometheusEndpoint
       ? await fetchJson<{ status?: string }>(
-        new URL('/api/v1/query?query=vector(1)', prometheusUrl).toString(),
+        new URL('/api/v1/query?query=vector(1)', prometheusEndpoint).toString(),
         headerValue('PROMETHEUS'),
       )
       : null;
-    const alertmanagerProbe = alertmanagerUrl
+    const alertmanagerProbe = alertmanagerEndpoint
       ? await fetchJson<Array<unknown>>(
-        new URL('/api/v2/alerts', alertmanagerUrl).toString(),
+        new URL('/api/v2/alerts', alertmanagerEndpoint).toString(),
         headerValue('ALERTMANAGER'),
       )
       : null;
@@ -188,15 +211,15 @@ export async function probeObservabilityReceivers(options?: {
         flushError,
       },
       prometheus: {
-        configured: Boolean(prometheusUrl),
-        url: prometheusUrl ?? null,
+        configured: Boolean(prometheusEndpoint),
+        url: prometheusEndpoint ? safeEndpointSummary(prometheusEndpoint) : null,
         ok: prometheusProbe?.ok ?? false,
         status: prometheusProbe ? prometheusProbe.status : null,
         error: prometheusProbe?.error ?? null,
       },
       alertmanager: {
-        configured: Boolean(alertmanagerUrl),
-        url: alertmanagerUrl ?? null,
+        configured: Boolean(alertmanagerEndpoint),
+        url: alertmanagerEndpoint ? safeEndpointSummary(alertmanagerEndpoint) : null,
         ok: alertmanagerProbe?.ok ?? false,
         status: alertmanagerProbe ? alertmanagerProbe.status : null,
         error: alertmanagerProbe?.error ?? null,

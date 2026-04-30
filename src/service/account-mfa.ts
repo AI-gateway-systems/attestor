@@ -25,6 +25,7 @@ import {
   type AccountUserRecoveryCodeRecord,
   type AccountUserTotpState,
 } from './account-user-store.js';
+import { deriveServiceKey } from './secret-derivation.js';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const TOTP_DIGITS = 6;
@@ -45,7 +46,7 @@ function encryptionKey(): Buffer {
       'ATTESTOR_ACCOUNT_MFA_ENCRYPTION_KEY or ATTESTOR_ADMIN_API_KEY must be set before enabling account MFA.',
     );
   }
-  return createHash('sha256').update(`attestor.account.mfa:${raw}`).digest();
+  return deriveServiceKey(raw, 'account.mfa.encryption');
 }
 
 function normalizeBase32(value: string): string {

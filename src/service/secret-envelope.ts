@@ -61,14 +61,75 @@ function vaultConfig(): {
       'Vault Transit requires ATTESTOR_VAULT_TRANSIT_BASE_URL, ATTESTOR_VAULT_TRANSIT_TOKEN, and ATTESTOR_VAULT_TRANSIT_KEY_NAME.',
     );
   }
-  return { baseUrl: baseUrl.replace(/\/+$/, ''), token, keyName, mountPath, namespace };
+  return {
+    baseUrl: normalizeVaultBaseUrl(baseUrl),
+    token,
+    keyName: normalizeVaultPath(keyName, 'ATTESTOR_VAULT_TRANSIT_KEY_NAME').join('/'),
+    mountPath: normalizeVaultPath(mountPath, 'ATTESTOR_VAULT_TRANSIT_MOUNT_PATH').join('/'),
+    namespace,
+  };
 }
 
 function encodeContext(context: Record<string, unknown>): string {
   return Buffer.from(stableJsonStringify(context), 'utf8').toString('base64');
 }
 
-async function vaultTransitRequest<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+function normalizeVaultBaseUrl(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new SecretEnvelopeError('MISCONFIGURED', 'ATTESTOR_VAULT_TRANSIT_BASE_URL must be a valid URL.');
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new SecretEnvelopeError('MISCONFIGURED', 'ATTESTOR_VAULT_TRANSIT_BASE_URL must use http or https.');
+  }
+  if (url.username || url.password) {
+    throw new SecretEnvelopeError(
+      'MISCONFIGURED',
+      'ATTESTOR_VAULT_TRANSIT_BASE_URL must not contain credentials; use ATTESTOR_VAULT_TRANSIT_TOKEN.',
+    );
+  }
+  url.search = '';
+  url.hash = '';
+  url.pathname = url.pathname.replace(/\/+$/u, '');
+  return url.toString().replace(/\/+$/u, '');
+}
+
+function normalizeVaultPath(value: string, name: string): string[] {
+  const normalized = value.trim().replace(/^\/+|\/+$/gu, '');
+  if (!normalized) {
+    throw new SecretEnvelopeError('MISCONFIGURED', `${name} must not be empty.`);
+  }
+  const segments = normalized.split('/');
+  for (const segment of segments) {
+    if (!/^[A-Za-z0-9_.-]+$/u.test(segment)) {
+      throw new SecretEnvelopeError(
+        'MISCONFIGURED',
+        `${name} contains an unsupported Vault path segment.`,
+      );
+    }
+  }
+  return segments;
+}
+
+function vaultTransitUrl(config: ReturnType<typeof vaultConfig>, pathSegments: readonly string[]): string {
+  const url = new URL(config.baseUrl);
+  const basePath = url.pathname.replace(/\/+$/u, '');
+  const mountSegments = normalizeVaultPath(config.mountPath, 'ATTESTOR_VAULT_TRANSIT_MOUNT_PATH');
+  const normalizedPathSegments = pathSegments.flatMap((segment, index) => (
+    normalizeVaultPath(segment, `Vault Transit request path segment ${index + 1}`)
+  ));
+  const encodedPath = ['v1', ...mountSegments, ...normalizedPathSegments]
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  url.pathname = `${basePath}/${encodedPath}`;
+  url.search = '';
+  url.hash = '';
+  return url.toString();
+}
+
+async function vaultTransitRequest<T>(pathSegments: readonly string[], payload: Record<string, unknown>): Promise<T> {
   const config = vaultConfig();
   const headers: Record<string, string> = {
     'content-type': 'application/json',
@@ -76,7 +137,7 @@ async function vaultTransitRequest<T>(path: string, payload: Record<string, unkn
   };
   if (config.namespace) headers['x-vault-namespace'] = config.namespace;
 
-  const response = await fetch(`${config.baseUrl}/v1/${config.mountPath}/${path}`, {
+  const response = await fetch(vaultTransitUrl(config, pathSegments), {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
@@ -107,8 +168,17 @@ export function getSecretEnvelopeStatus(): SecretEnvelopeStatus {
     };
   }
   if (provider === 'vault_transit') {
-    const baseUrl = process.env.ATTESTOR_VAULT_TRANSIT_BASE_URL?.trim() || null;
-    const keyName = process.env.ATTESTOR_VAULT_TRANSIT_KEY_NAME?.trim() || null;
+    const rawBaseUrl = process.env.ATTESTOR_VAULT_TRANSIT_BASE_URL?.trim() || null;
+    const rawKeyName = process.env.ATTESTOR_VAULT_TRANSIT_KEY_NAME?.trim() || null;
+    let baseUrl: string | null = null;
+    let keyName: string | null = null;
+    try {
+      baseUrl = rawBaseUrl ? normalizeVaultBaseUrl(rawBaseUrl) : null;
+      keyName = rawKeyName ? normalizeVaultPath(rawKeyName, 'ATTESTOR_VAULT_TRANSIT_KEY_NAME').join('/') : null;
+    } catch {
+      baseUrl = null;
+      keyName = null;
+    }
     return {
       configured: Boolean(baseUrl && keyName),
       provider,
@@ -138,7 +208,7 @@ export async function sealSecretEnvelope(
     const config = vaultConfig();
     const contextBase64 = encodeContext(context);
     const response = await vaultTransitRequest<{ data?: { ciphertext?: string } }>(
-      `encrypt/${config.keyName}`,
+      ['encrypt', config.keyName],
       {
         plaintext: Buffer.from(plaintext, 'utf8').toString('base64'),
         context: contextBase64,
@@ -175,7 +245,7 @@ export async function recoverSecretEnvelope(record: SecretEnvelopeRecord): Promi
   }
   if (provider === 'vault_transit') {
     const response = await vaultTransitRequest<{ data?: { plaintext?: string } }>(
-      `decrypt/${record.keyName}`,
+      ['decrypt', record.keyName],
       {
         ciphertext: record.ciphertext,
         context: record.contextBase64,

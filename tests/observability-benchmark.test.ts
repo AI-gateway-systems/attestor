@@ -85,7 +85,6 @@ async function main(): Promise<void> {
     });
     const benchmark = JSON.parse(readFileSync(resolve(outputDir, 'benchmark.json'), 'utf8')) as any;
     const routes = JSON.parse(readFileSync(resolve(outputDir, 'hot-routes.json'), 'utf8')) as any[];
-    const alerts = JSON.parse(readFileSync(resolve(outputDir, 'alerts-summary.json'), 'utf8')) as any;
     const readme = readFileSync(resolve(outputDir, 'README.md'), 'utf8');
 
     ok(benchmark.requestsPerSecond === 42.5, 'Observability benchmark: benchmark captures request rate');
@@ -93,7 +92,7 @@ async function main(): Promise<void> {
     ok(benchmark.p95LatencyMs === 480, 'Observability benchmark: benchmark captures p95 latency');
     ok(routes.length === 2 && routes[0].route === '/api/v1/pipeline/run', 'Observability benchmark: hot route summary is emitted');
     ok(!routes[1].route.includes('\n') && !routes[1].route.includes('\r'), 'Observability benchmark: route labels are sanitized before file output');
-    ok(alerts.critical === 1 && alerts.warning === 1 && alerts.total === 2, 'Observability benchmark: alert summary is emitted');
+    ok(!('activeAlerts' in benchmark), 'Observability benchmark: live alert summary is returned but not persisted to the release artifact');
     ok(readme.includes('render:observability-profile') && readme.includes('15m'), 'Observability benchmark: README carries next-step guidance');
     ok(benchmark.source.prometheusUrl.includes(`:${prometheusPort}`), 'Observability benchmark: source summary captures Prometheus URL');
     ok(!readme.includes('@127.0.0.1'), 'Observability benchmark: README omits URL credentials');

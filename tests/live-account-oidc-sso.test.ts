@@ -245,7 +245,7 @@ async function main(): Promise<void> {
       res.end('not found');
     } catch (error) {
       res.statusCode = 500;
-      res.end(error instanceof Error ? error.message : String(error));
+      res.end('internal test identity provider error');
     }
   });
 

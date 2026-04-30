@@ -22,6 +22,7 @@ import type {
   AccountUserRecord,
   AccountUserSamlIdentityRecord,
 } from './account-user-store.js';
+import { deriveServiceKey } from './secret-derivation.js';
 
 export interface HostedSamlConfig {
   idpMetadataXml: string;
@@ -157,7 +158,7 @@ function relayStateKey(): Buffer {
       'ATTESTOR_HOSTED_SAML_RELAY_STATE_KEY or ATTESTOR_ADMIN_API_KEY must be set before enabling hosted SAML SSO.',
     );
   }
-  return createHash('sha256').update(`attestor.hosted.saml.relay:${raw}`).digest();
+  return deriveServiceKey(raw, 'hosted.saml.relay');
 }
 
 function encodeBase64Url(value: Buffer): string {

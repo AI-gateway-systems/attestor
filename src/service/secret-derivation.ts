@@ -1,0 +1,33 @@
+import { createHmac, hkdfSync } from 'node:crypto';
+
+function contextLabel(context: string): string {
+  if (!/^[a-z0-9_.:-]+$/u.test(context)) {
+    throw new Error('Secret derivation context must be a stable internal label.');
+  }
+  return `attestor:${context}`;
+}
+
+export function deriveServiceKey(rawSecret: string, context: string, length = 32): Buffer {
+  const secret = rawSecret.trim();
+  if (!secret) {
+    throw new Error('Cannot derive service key from an empty secret.');
+  }
+  const label = contextLabel(context);
+  return Buffer.from(hkdfSync(
+    'sha256',
+    Buffer.from(secret, 'utf8'),
+    Buffer.from(`${label}:salt`, 'utf8'),
+    Buffer.from(`${label}:key`, 'utf8'),
+    length,
+  ));
+}
+
+export function digestSecretForComparison(secret: string, context: string): Buffer {
+  return createHmac('sha256', contextLabel(context))
+    .update(secret, 'utf8')
+    .digest();
+}
+
+export function hashSecretForLookup(secret: string, context: string): string {
+  return `hmac-sha256:${digestSecretForComparison(secret, `${context}.lookup`).toString('hex')}`;
+}

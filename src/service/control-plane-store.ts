@@ -192,6 +192,7 @@ import {
 } from './async-dead-letter-store.js';
 import { hashJsonValue } from './json-stable.js';
 import { DEFAULT_HOSTED_PLAN_ID, resolvePlanSpec } from './plan-catalog.js';
+import { hashSecretForLookup } from './secret-derivation.js';
 import type { HostedSamlReplayRecord } from './account-saml.js';
 
 type PgQueryResultRow = Record<string, unknown>;
@@ -644,7 +645,7 @@ async function ensureSchema(): Promise<void> {
 }
 
 function hashApiKey(apiKey: string): string {
-  return createHash('sha256').update(apiKey).digest('hex');
+  return hashSecretForLookup(apiKey, 'tenant.api-key');
 }
 
 function previewApiKey(apiKey: string): string {

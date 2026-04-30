@@ -14,7 +14,6 @@
 import {
   createCipheriv,
   createDecipheriv,
-  createHash,
   randomBytes,
 } from 'node:crypto';
 import * as oidcClient from 'openid-client';
@@ -22,6 +21,7 @@ import type {
   AccountUserOidcIdentityRecord,
   AccountUserRecord,
 } from './account-user-store.js';
+import { deriveServiceKey } from './secret-derivation.js';
 
 export interface HostedOidcConfig {
   issuerUrl: string;
@@ -80,7 +80,7 @@ function stateKey(): Buffer {
       'ATTESTOR_HOSTED_OIDC_STATE_KEY or ATTESTOR_ADMIN_API_KEY must be set before enabling hosted OIDC SSO.',
     );
   }
-  return createHash('sha256').update(`attestor.hosted.oidc.state:${raw}`).digest();
+  return deriveServiceKey(raw, 'hosted.oidc.state');
 }
 
 function encodeBase64Url(value: Buffer): string {

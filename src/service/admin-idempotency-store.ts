@@ -8,11 +8,12 @@
  * - Short-lived retention only; this is not a long-term event store
  */
 
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { withFileLock, writeTextFileAtomic } from './file-store.js';
 import { hashJsonValue, stableJsonStringify } from './json-stable.js';
+import { deriveServiceKey } from './secret-derivation.js';
 
 export interface AdminIdempotencyRecord {
   id: string;
@@ -53,7 +54,7 @@ function adminEncryptionKey(): Buffer {
   if (!adminKey) {
     throw new Error('ATTESTOR_ADMIN_API_KEY must be set before using admin idempotency storage');
   }
-  return createHash('sha256').update(`attestor.admin.idempotency:${adminKey}`).digest();
+  return deriveServiceKey(adminKey, 'admin.idempotency.encryption');
 }
 
 export function encryptAdminIdempotencyResponse(response: unknown): {

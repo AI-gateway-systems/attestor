@@ -483,7 +483,7 @@ async function run(): Promise<void> {
     try {
       await pg.stop();
     } catch {}
-    rmSync(tempRoot, { recursive: true, force: true });
+    rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
   }
 
   console.log(`Production-shared multi-instance recovery tests: ${passed} passed, 0 failed`);

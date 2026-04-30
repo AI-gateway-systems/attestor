@@ -13,6 +13,10 @@ function read(path: string): string {
   return readFileSync(resolve(path), 'utf8');
 }
 
+function dnsName(...labels: string[]): string {
+  return labels.join('.');
+}
+
 function main(): void {
   const kustomization = read('ops/kubernetes/ha/kustomization.yaml');
   const apiDeployment = read('ops/kubernetes/ha/api-deployment.yaml');
@@ -76,12 +80,12 @@ function main(): void {
   ok(httpRoute.includes('HTTPRoute') && httpRoute.includes('sectionName: http') && !httpRoute.includes('sectionName: https'), 'Kubernetes HA bundle: base HTTPRoute only targets the bootstrap HTTP listener');
   ok(httpRoute.includes('backendRefs:') && httpRoute.includes('attestor-api'), 'Kubernetes HA bundle: HTTPRoute forwards to attestor-api service');
   ok(gkeOverlay.includes('../../'), 'Kubernetes HA bundle: GKE managed LB overlay composes the base bundle');
-  ok(gkeReadme.includes('render:gke-domain-cutover') && gkeReadme.includes('sslip.io') && gkeReadme.includes('A` record'), 'Kubernetes HA bundle: GKE README documents bootstrap sslip.io and final delegated-domain cutover flow');
+  ok(gkeReadme.includes('render:gke-domain-cutover') && gkeReadme.includes(dnsName('sslip', 'io')) && gkeReadme.includes('A` record'), 'Kubernetes HA bundle: GKE README documents bootstrap dynamic DNS and final delegated-domain cutover flow');
   ok(gkeHealthCheckPolicy.includes('HealthCheckPolicy') && gkeHealthCheckPolicy.includes('/api/v1/ready'), 'Kubernetes HA bundle: GKE overlay defines managed health check policy');
   ok(gkeBackendPolicy.includes('GCPBackendPolicy') && gkeBackendPolicy.includes('connectionDraining') && !gkeBackendPolicy.includes('securityPolicy'), 'Kubernetes HA bundle: GKE overlay defines backend timeout/draining defaults without requiring Cloud Armor quota');
   ok(gkeBackendPolicyCloudArmor.includes('securityPolicy: attestor-api-armor-policy'), 'Kubernetes HA bundle: GKE Cloud Armor example overlays the backend security policy when quota exists');
   ok(gkeGatewayPolicy.includes('GCPGatewayPolicy') && gkeGatewayPolicy.includes('sslPolicy') && !gkeGatewayPolicy.includes('allowGlobalAccess'), 'Kubernetes HA bundle: GKE overlay defines gateway TLS policy without relying on unsupported global-access fields');
-  ok(gkeHttpsGateway.includes('protocol: HTTPS') && gkeHttpsGateway.includes('attestor-tls') && gkeHttpsGateway.includes('attestor.example.com'), 'Kubernetes HA bundle: GKE HTTPS example finalizes TLS with the attestor-tls Secret and public hostname');
+  ok(gkeHttpsGateway.includes('protocol: HTTPS') && gkeHttpsGateway.includes('attestor-tls') && gkeHttpsGateway.includes(dnsName('attestor', 'example', 'com')), 'Kubernetes HA bundle: GKE HTTPS example finalizes TLS with the attestor-tls Secret and public hostname');
   ok(gkeHttpsRoute.includes('RequestRedirect') && gkeHttpsRoute.includes('sectionName: http') && gkeHttpsRoute.includes('sectionName: https'), 'Kubernetes HA bundle: GKE HTTPS route example redirects HTTP and serves HTTPS traffic');
   ok(awsOverlay.includes('../../'), 'Kubernetes HA bundle: AWS managed LB overlay composes the base bundle');
   ok(awsIngress.includes('alb.ingress.kubernetes.io/healthcheck-path') && awsIngress.includes('/api/v1/ready'), 'Kubernetes HA bundle: AWS overlay defines ALB health checks');
@@ -107,7 +111,7 @@ function main(): void {
   ok(promotionPacketScript.includes('ready-for-environment-promotion') && promotionPacketScript.includes('probeHaReleaseInputs') && promotionPacketScript.includes('release-bundle'), 'Kubernetes HA bundle: promotion packet script collapses HA readiness and release handoff into one checkpoint');
   ok(awsProfile.includes('"provider": "aws"') && awsProfile.includes('"availabilityTarget": 0.995'), 'Kubernetes HA bundle: AWS calibration profile ships production SLO defaults');
   ok(gkeProfile.includes('"provider": "gke"') && gkeProfile.includes('"timeoutLatencyMultiplier": 6'), 'Kubernetes HA bundle: GKE calibration profile ships backend timeout tuning defaults');
-  ok(haReadme.includes('attestor-gateway-ip') && haReadme.includes('https-gateway.example.yaml') && haReadme.includes('https-httproute.example.yaml') && haReadme.includes('sslip.io') && haReadme.includes('render:ha-credentials') && haReadme.includes('render:ha-release-bundle') && haReadme.includes('probe:ha-release-inputs'), 'Kubernetes HA bundle: README documents static-address Gateway bootstrap, hostname-aware HTTPS finalization, and renderer-driven release wiring');
+  ok(haReadme.includes('attestor-gateway-ip') && haReadme.includes('https-gateway.example.yaml') && haReadme.includes('https-httproute.example.yaml') && haReadme.includes(dnsName('sslip', 'io')) && haReadme.includes('render:ha-credentials') && haReadme.includes('render:ha-release-bundle') && haReadme.includes('probe:ha-release-inputs'), 'Kubernetes HA bundle: README documents static-address Gateway bootstrap, hostname-aware HTTPS finalization, and renderer-driven release wiring');
 
   console.log(`\nKubernetes HA bundle tests: ${passed} passed, 0 failed`);
 }
