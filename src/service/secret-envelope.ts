@@ -141,7 +141,6 @@ function vaultTransitRequestBody(payload: Record<string, unknown>): string {
       throw new SecretEnvelopeError('MISCONFIGURED', 'Vault Transit request contains an invalid field value.');
     }
   }
-  // codeql[js/file-access-to-http]
   return JSON.stringify(payload);
 }
 
@@ -156,6 +155,8 @@ async function vaultTransitRequest<T>(pathSegments: readonly string[], payload: 
   const response = await fetch(vaultTransitUrl(config, pathSegments), {
     method: 'POST',
     headers,
+    // Vault Transit decrypt sends only validated Vault ciphertext and base64 context back to Vault; plaintext is never loaded from disk here.
+    // codeql[js/file-access-to-http]
     body: vaultTransitRequestBody(payload),
   });
   const body = await response.json().catch(() => ({} as Record<string, unknown>));
