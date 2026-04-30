@@ -5,7 +5,7 @@ import { join } from 'node:path';
 let passed = 0;
 
 function readProjectFile(...segments: string[]): string {
-  return readFileSync(join(process.cwd(), ...segments), 'utf8');
+  return readFileSync(join(process.cwd(), ...segments), 'utf8').replace(/\r\n/gu, '\n');
 }
 
 function includes(content: string, expected: string, message: string): void {
