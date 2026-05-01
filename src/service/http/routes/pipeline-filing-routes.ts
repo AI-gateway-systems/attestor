@@ -33,6 +33,13 @@ export interface PipelineFilingRoutesDeps {
   ReleaseVerificationError: ReleaseVerificationErrorConstructor;
 }
 
+export function isReleaseBoundFilingAdapter(
+  adapterId: string,
+  financeFilingAdapterId: string,
+): boolean {
+  return adapterId === financeFilingAdapterId;
+}
+
 export function registerPipelineFilingRoutes(app: Hono, deps: PipelineFilingRoutesDeps): void {
   const {
     FINANCE_FILING_ADAPTER_ID,
@@ -62,54 +69,63 @@ app.post('/api/v1/filing/export', async (c) => {
       return c.json({ error: `Filing adapter '${adapterId}' not registered. Available: ${filingRegistry.list().map((a) => a.id).join(', ')}` }, 404);
     }
 
+    if (!isReleaseBoundFilingAdapter(adapterId, FINANCE_FILING_ADAPTER_ID)) {
+      return c.json(
+        {
+          error: 'filing_adapter_not_release_bound',
+          error_description:
+            `Filing adapter '${adapterId}' is registered but not release-bound for this export route. Add an explicit release material and token verification binding before enabling it.`,
+        },
+        403,
+      );
+    }
+
     let verifiedRelease: ReleaseVerificationContext | null = null;
-    if (adapterId === FINANCE_FILING_ADAPTER_ID) {
-      const material = buildFinanceFilingReleaseMaterial({
-        adapterId,
-        runId,
-        decision: decision ?? 'unknown',
-        certificateId: certificateId ?? null,
-        evidenceChainTerminal: evidenceChainTerminal ?? '',
-        rows,
-        proofMode: proofMode ?? 'unknown',
+    const material = buildFinanceFilingReleaseMaterial({
+      adapterId,
+      runId,
+      decision: decision ?? 'unknown',
+      certificateId: certificateId ?? null,
+      evidenceChainTerminal: evidenceChainTerminal ?? '',
+      rows,
+      proofMode: proofMode ?? 'unknown',
+    });
+
+    try {
+      const verificationKey = await apiReleaseVerificationKeyPromise;
+      const token = resolveReleaseTokenFromRequest(c.req.raw);
+      verifiedRelease = await verifyReleaseAuthorization({
+        token,
+        verificationKey,
+        audience: material.target.id,
+        expectedTargetId: material.target.id,
+        expectedOutputHash: material.hashBundle.outputHash,
+        expectedConsequenceHash: material.hashBundle.consequenceHash,
+        introspector: apiReleaseIntrospector,
+        usageStore: apiReleaseIntrospectionStore,
+        consumeOnSuccess: true,
+        tokenTypeHint: 'attestor_release_token',
+        resourceServerId: 'attestor.api.finance.filing-export',
       });
-
-      try {
-        const verificationKey = await apiReleaseVerificationKeyPromise;
-        const token = resolveReleaseTokenFromRequest(c.req.raw);
-        verifiedRelease = await verifyReleaseAuthorization({
-          token,
-          verificationKey,
-          audience: material.target.id,
-          expectedTargetId: material.target.id,
-          expectedOutputHash: material.hashBundle.outputHash,
-          expectedConsequenceHash: material.hashBundle.consequenceHash,
-          introspector: apiReleaseIntrospector,
-          usageStore: apiReleaseIntrospectionStore,
-          consumeOnSuccess: true,
-          tokenTypeHint: 'attestor_release_token',
-          resourceServerId: 'attestor.api.finance.filing-export',
-        });
-      } catch (error) {
-        if (error instanceof ReleaseVerificationError) {
-          c.header('WWW-Authenticate', error.challenge);
-          return c.json(error.toResponseBody(), error.status);
-        }
-
-        const description =
-          error instanceof Error ? error.message : 'Release verification failed unexpectedly.';
-        c.header(
-          'WWW-Authenticate',
-          `Bearer realm="attestor-release", error="invalid_token", error_description="${description.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
-        );
-        return c.json(
-          {
-            error: 'invalid_token',
-            error_description: description,
-          },
-          401,
-        );
+    } catch (error) {
+      if (error instanceof ReleaseVerificationError) {
+        c.header('WWW-Authenticate', error.challenge);
+        return c.json(error.toResponseBody(), error.status);
       }
+
+      const description =
+        error instanceof Error ? error.message : 'Release verification failed unexpectedly.';
+      c.header(
+        'WWW-Authenticate',
+        `Bearer realm="attestor-release", error="invalid_token", error_description="${description.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+      );
+      return c.json(
+        {
+          error: 'invalid_token',
+          error_description: description,
+        },
+        401,
+      );
     }
 
     // Build decision envelope from provided data
