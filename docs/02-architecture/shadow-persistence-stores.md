@@ -88,6 +88,14 @@ GET  /api/v1/shadow/simulations/:reportId
 
 The `POST` route creates a new impact report from current tenant-scoped shadow events and persists it. Listing and lookup return persisted reports without exposing the local backing file path.
 
+Simulation creation requires an explicit `proposedMode`. The route does not silently choose an adoption mode for persisted reports. The summary surface may still generate an ephemeral review-mode view when no persisted simulation exists, but a stored impact report must say which mode it is replaying.
+
+Simulation reports are analysis artifacts, not approval artifacts. They replay recorded shadow admission events under a proposed mode to estimate review/block impact. They do not prove that the underlying policy is correct, and they do not authorize a mode change. If shadow events were recorded during a bad configuration, the simulation can replay that bad configuration. Operators should verify the event capture boundary before treating recommendations as useful.
+
+Recommendations can include `nextMode`, but that field is a suggested next adoption rung, not an instruction. A recommendation to promote toward `review` or `enforce` still requires customer-controlled approval and a separate promotion path.
+
+The file-backed evaluation store has no automatic retention or pruning. Long-running deployments should move reports to the shared authority/control plane or add retention limits before treating this as production operational history.
+
 ## Policy Candidate Lifecycle
 
 Policy candidates are derived from shadow-mode simulation reports.

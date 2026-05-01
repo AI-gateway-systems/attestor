@@ -3,6 +3,7 @@ import {
   createGenericAdmissionEnvelope,
   createShadowAdmissionEvent,
   createShadowPolicySimulationReport,
+  SHADOW_POLICY_SIMULATION_MAX_EVENTS,
 } from '../src/consequence-admission/index.js';
 
 let passed = 0;
@@ -178,8 +179,31 @@ function testInvalidModeFailsClosed(): void {
   );
 }
 
+function testOversizedSimulationFailsClosed(): void {
+  const event = createShadowAdmissionEvent({
+    admission: createGenericAdmissionEnvelope({
+      ...moneyAdmission('observe'),
+      requestId: 'shadow-limit-request',
+    }),
+    occurredAt: '2026-05-01T20:30:02.000Z',
+    downstreamOutcome: 'proceeded',
+  });
+  const events = Array.from({ length: SHADOW_POLICY_SIMULATION_MAX_EVENTS + 1 }, () => event);
+
+  throws(
+    () =>
+      createShadowPolicySimulationReport({
+        events,
+        proposedMode: 'review',
+      }),
+    /event count exceeds maximum/u,
+    'Shadow simulation: oversized event windows fail closed',
+  );
+}
+
 testSimulationReplaysShadowDecisions();
 testPromotionRecommendationRequiresCleanShadowTraffic();
 testInvalidModeFailsClosed();
+testOversizedSimulationFailsClosed();
 
 console.log(`Shadow policy simulation tests: ${passed} passed, 0 failed`);

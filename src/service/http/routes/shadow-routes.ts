@@ -182,12 +182,18 @@ async function readStatusTransitionBody(c: Context): Promise<{
 }
 
 async function readSimulationRequestBody(c: Context): Promise<{
-  readonly proposedMode: GenericAdmissionMode | null;
+  readonly proposedMode: GenericAdmissionMode;
   readonly minimumPromotionEvents: number | null;
 } | Response> {
   const contentType = c.req.header('content-type') ?? '';
   if (!contentType.includes('application/json')) {
-    return { proposedMode: null, minimumPromotionEvents: null };
+    return problem(c, {
+      type: 'https://attestor.dev/problems/shadow-simulation-json-required',
+      title: 'Shadow simulation JSON required',
+      status: 400,
+      detail: 'The shadow simulation route requires a JSON object body with an explicit proposedMode.',
+      reasonCodes: ['shadow-simulation-json-required'],
+    });
   }
 
   let body: unknown;
@@ -215,7 +221,16 @@ async function readSimulationRequestBody(c: Context): Promise<{
   const proposedMode = typeof body.proposedMode === 'string'
     ? parseGenericMode(body.proposedMode)
     : null;
-  if (body.proposedMode !== undefined && !proposedMode) {
+  if (body.proposedMode === undefined || body.proposedMode === null) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/shadow-simulation-mode-required',
+      title: 'Shadow simulation mode required',
+      status: 400,
+      detail: `proposedMode is required and must be one of: ${GENERIC_ADMISSION_MODES.join(', ')}.`,
+      reasonCodes: ['shadow-simulation-mode-required'],
+    });
+  }
+  if (!proposedMode) {
     return problem(c, {
       type: 'https://attestor.dev/problems/shadow-simulation-mode-invalid',
       title: 'Invalid shadow simulation mode',
@@ -291,10 +306,9 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
   });
 
   app.post('/api/v1/shadow/simulations', async (c) => {
+    c.header('cache-control', 'no-store');
     const body = await readSimulationRequestBody(c);
     if (body instanceof Response) return body;
-    const result = safeShadowSummary(c, deps);
-    if (result instanceof Response) return result;
     if (!deps.recordShadowPolicySimulationReport) {
       return problem(c, {
         type: 'https://attestor.dev/problems/shadow-simulation-store-unavailable',
@@ -305,19 +319,21 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
       });
     }
 
-    const report = createShadowPolicySimulationReport({
-      events: result.events,
-      proposedMode: body.proposedMode ?? 'review',
-      minimumPromotionEvents: body.minimumPromotionEvents,
-      generatedAt: deps.now?.() ?? null,
-    });
     try {
+      const tenant = deps.currentTenant(c);
+      const events = deps.listShadowEvents({ tenant });
+      const report = createShadowPolicySimulationReport({
+        events,
+        proposedMode: body.proposedMode,
+        minimumPromotionEvents: body.minimumPromotionEvents,
+        generatedAt: deps.now?.() ?? null,
+      });
       const persisted = deps.recordShadowPolicySimulationReport({
-        tenant: result.tenant,
+        tenant,
         report,
       });
       return c.json({
-        tenant: tenantSummary(result.tenant),
+        tenant: tenantSummary(tenant),
         storageMode: 'file-backed-evaluation',
         productionReady: false,
         rawPayloadStored: false,
@@ -332,10 +348,11 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         error instanceof Error
           ? error.message
           : 'The shadow simulation report could not be recorded.';
+      const status: ShadowProblemStatus = detail.includes('exceeds maximum') ? 400 : 503;
       return problem(c, {
         type: 'https://attestor.dev/problems/shadow-simulation-record-failed',
         title: 'Shadow simulation record failed',
-        status: 503,
+        status,
         detail,
         reasonCodes: ['shadow-simulation-record-failed'],
       });
