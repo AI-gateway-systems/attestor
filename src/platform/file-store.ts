@@ -4,10 +4,14 @@ import {
   fsyncSync,
   mkdirSync,
   openSync,
+  readFileSync,
   renameSync,
   rmSync,
+  statSync,
+  writeFileSync,
   writeSync,
 } from 'node:fs';
+import { hostname } from 'node:os';
 import { dirname } from 'node:path';
 
 const SLEEP_BUFFER = new SharedArrayBuffer(4);
@@ -18,26 +22,126 @@ function sleepSync(milliseconds: number): void {
   Atomics.wait(SLEEP_VIEW, 0, 0, milliseconds);
 }
 
+interface FileLockOwner {
+  pid: number;
+  hostname: string;
+  acquiredAtMs: number;
+  acquiredAt: string;
+}
+
+function positiveIntegerEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function defaultLockTimeoutMs(): number {
+  return positiveIntegerEnv('ATTESTOR_FILE_LOCK_TIMEOUT_MS', 5_000);
+}
+
+function defaultLockRetryDelayMs(): number {
+  return positiveIntegerEnv('ATTESTOR_FILE_LOCK_RETRY_DELAY_MS', 25);
+}
+
+function defaultLockStaleMs(): number {
+  return positiveIntegerEnv('ATTESTOR_FILE_LOCK_STALE_MS', 60_000);
+}
+
+function readLockOwner(lockPath: string): FileLockOwner | null {
+  try {
+    const parsed = JSON.parse(readFileSync(`${lockPath}/owner.json`, 'utf8')) as Partial<FileLockOwner>;
+    if (
+      typeof parsed.pid === 'number' &&
+      typeof parsed.hostname === 'string' &&
+      typeof parsed.acquiredAtMs === 'number' &&
+      typeof parsed.acquiredAt === 'string'
+    ) {
+      return {
+        pid: parsed.pid,
+        hostname: parsed.hostname,
+        acquiredAtMs: parsed.acquiredAtMs,
+        acquiredAt: parsed.acquiredAt,
+      };
+    }
+  } catch {
+    // fall back to directory mtime below
+  }
+  return null;
+}
+
+function processAppearsAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    return code === 'EPERM';
+  }
+}
+
+function lockAgeMs(lockPath: string, nowMs: number): {
+  ageMs: number;
+  owner: FileLockOwner | null;
+} | null {
+  const owner = readLockOwner(lockPath);
+  if (owner) {
+    return { ageMs: nowMs - owner.acquiredAtMs, owner };
+  }
+  try {
+    return { ageMs: nowMs - statSync(lockPath).mtimeMs, owner: null };
+  } catch {
+    return null;
+  }
+}
+
+function tryRecoverStaleLock(lockPath: string, staleMs: number): boolean {
+  const age = lockAgeMs(lockPath, Date.now());
+  if (!age || age.ageMs < staleMs) return false;
+  if (age.owner?.hostname === hostname() && processAppearsAlive(age.owner.pid)) return false;
+  rmSync(lockPath, { recursive: true, force: true });
+  return true;
+}
+
+function writeLockOwner(lockPath: string): void {
+  const acquiredAtMs = Date.now();
+  const owner: FileLockOwner = {
+    pid: process.pid,
+    hostname: hostname(),
+    acquiredAtMs,
+    acquiredAt: new Date(acquiredAtMs).toISOString(),
+  };
+  writeFileSync(`${lockPath}/owner.json`, `${JSON.stringify(owner, null, 2)}\n`, { mode: 0o600 });
+}
+
 export function withFileLock<T>(
   targetPath: string,
   action: () => T,
   options?: {
     timeoutMs?: number;
     retryDelayMs?: number;
+    staleMs?: number;
   },
 ): T {
   const lockPath = `${targetPath}.lock`;
-  const timeoutMs = options?.timeoutMs ?? 5_000;
-  const retryDelayMs = options?.retryDelayMs ?? 25;
+  const timeoutMs = options?.timeoutMs ?? defaultLockTimeoutMs();
+  const retryDelayMs = options?.retryDelayMs ?? defaultLockRetryDelayMs();
+  const staleMs = options?.staleMs ?? defaultLockStaleMs();
   const startedAt = Date.now();
 
   while (true) {
     try {
       mkdirSync(lockPath);
+      try {
+        writeLockOwner(lockPath);
+      } catch (error) {
+        rmSync(lockPath, { recursive: true, force: true });
+        throw error;
+      }
       break;
     } catch (error) {
       const code = (error as NodeJS.ErrnoException | undefined)?.code;
       if (code !== 'EEXIST') throw error;
+      if (tryRecoverStaleLock(lockPath, staleMs)) continue;
       if ((Date.now() - startedAt) >= timeoutMs) {
         throw new Error(`Timed out waiting for file lock: ${lockPath}`);
       }

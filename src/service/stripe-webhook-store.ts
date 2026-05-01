@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { hashJsonValue } from './json-stable.js';
-import { writeTextFileAtomic } from './file-store.js';
+import { withFileLock, writeTextFileAtomic } from './file-store.js';
 
 export interface StripeWebhookRecord {
   id: string;
@@ -62,15 +62,19 @@ function saveStore(store: StripeWebhookStoreFile): void {
   writeTextFileAtomic(path, `${JSON.stringify(store, null, 2)}\n`);
 }
 
+function withStripeWebhookStoreLock<T>(action: (store: StripeWebhookStoreFile, path: string) => T): T {
+  const path = storePath();
+  return withFileLock(path, () => action(loadStore(), path));
+}
+
 export function readStripeWebhookStoreSnapshot(): {
   path: string;
   records: StripeWebhookRecord[];
 } {
-  const store = loadStore();
-  return {
-    path: storePath(),
+  return withStripeWebhookStoreLock((store, path) => ({
+    path,
     records: [...store.records],
-  };
+  }));
 }
 
 function payloadHash(payload: string): string {
@@ -78,47 +82,50 @@ function payloadHash(payload: string): string {
 }
 
 export function lookupProcessedStripeWebhook(eventId: string, rawPayload: string): StripeWebhookLookup {
-  const requestHash = payloadHash(rawPayload);
-  const store = loadStore();
-  const existing = store.records.find((entry) => entry.eventId === eventId);
-  if (!existing) return { kind: 'miss', payloadHash: requestHash };
-  if (existing.payloadHash !== requestHash) {
-    return { kind: 'conflict', payloadHash: requestHash, record: existing };
-  }
-  return { kind: 'duplicate', payloadHash: requestHash, record: existing };
+  return withStripeWebhookStoreLock((store) => {
+    const requestHash = payloadHash(rawPayload);
+    const existing = store.records.find((entry) => entry.eventId === eventId);
+    if (!existing) return { kind: 'miss', payloadHash: requestHash };
+    if (existing.payloadHash !== requestHash) {
+      return { kind: 'conflict', payloadHash: requestHash, record: { ...existing } };
+    }
+    return { kind: 'duplicate', payloadHash: requestHash, record: { ...existing } };
+  });
 }
 
 export function recordProcessedStripeWebhook(input: Omit<StripeWebhookRecord, 'id' | 'receivedAt' | 'payloadHash'> & {
   rawPayload: string;
 }): { record: StripeWebhookRecord; path: string } {
-  const store = loadStore();
-  const requestHash = payloadHash(input.rawPayload);
-  const existing = store.records.find((entry) => entry.eventId === input.eventId);
-  if (existing) {
-    if (existing.payloadHash !== requestHash) {
-      throw new Error(`Stripe event '${input.eventId}' was already recorded with a different payload hash.`);
+  return withStripeWebhookStoreLock((store, path) => {
+    const requestHash = payloadHash(input.rawPayload);
+    const existing = store.records.find((entry) => entry.eventId === input.eventId);
+    if (existing) {
+      if (existing.payloadHash !== requestHash) {
+        throw new Error(`Stripe event '${input.eventId}' was already recorded with a different payload hash.`);
+      }
+      return { record: { ...existing }, path };
     }
-    return { record: existing, path: storePath() };
-  }
 
-  const record: StripeWebhookRecord = {
-    id: `stripe_evt_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
-    eventId: input.eventId,
-    eventType: input.eventType,
-    payloadHash: requestHash,
-    accountId: input.accountId,
-    stripeCustomerId: input.stripeCustomerId,
-    stripeSubscriptionId: input.stripeSubscriptionId,
-    outcome: input.outcome,
-    reason: input.reason,
-    receivedAt: new Date().toISOString(),
-  };
-  store.records.push(record);
-  saveStore(store);
-  return { record, path: storePath() };
+    const record: StripeWebhookRecord = {
+      id: `stripe_evt_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+      eventId: input.eventId,
+      eventType: input.eventType,
+      payloadHash: requestHash,
+      accountId: input.accountId,
+      stripeCustomerId: input.stripeCustomerId,
+      stripeSubscriptionId: input.stripeSubscriptionId,
+      outcome: input.outcome,
+      reason: input.reason,
+      receivedAt: new Date().toISOString(),
+    };
+    store.records.push(record);
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function resetStripeWebhookStoreForTests(): void {
   const path = storePath();
   if (existsSync(path)) rmSync(path, { force: true });
+  if (existsSync(`${path}.lock`)) rmSync(`${path}.lock`, { recursive: true, force: true });
 }

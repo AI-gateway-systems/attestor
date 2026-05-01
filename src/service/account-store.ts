@@ -13,7 +13,7 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { writeTextFileAtomic } from './file-store.js';
+import { withFileLock, writeTextFileAtomic } from './file-store.js';
 
 export type HostedAccountStatus = 'active' | 'suspended' | 'archived';
 
@@ -242,6 +242,11 @@ function saveStore(store: AccountStoreFile): void {
   writeTextFileAtomic(path, `${JSON.stringify(store, null, 2)}\n`);
 }
 
+function withAccountStoreLock<T>(action: (store: AccountStoreFile, path: string) => T): T {
+  const path = storePath();
+  return withFileLock(path, () => action(loadStore(), path));
+}
+
 function findRecord(store: AccountStoreFile, id: string): HostedAccountRecord | null {
   return store.records.find((entry) => entry.id === id) ?? null;
 }
@@ -359,25 +364,26 @@ export function createHostedAccount(input: CreateHostedAccountInput): {
   record: HostedAccountRecord;
   path: string;
 } {
-  const now = new Date().toISOString();
-  const record: HostedAccountRecord = {
-    id: `acct_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
-    accountName: input.accountName,
-    contactEmail: input.contactEmail,
-    primaryTenantId: input.primaryTenantId,
-    status: 'active',
-    createdAt: now,
-    updatedAt: now,
-    suspendedAt: null,
-    archivedAt: null,
-    billing: defaultBillingState(),
-  };
+  return withAccountStoreLock((store, path) => {
+    const now = new Date().toISOString();
+    const record: HostedAccountRecord = {
+      id: `acct_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+      accountName: input.accountName,
+      contactEmail: input.contactEmail,
+      primaryTenantId: input.primaryTenantId,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      suspendedAt: null,
+      archivedAt: null,
+      billing: defaultBillingState(),
+    };
 
-  const store = loadStore();
-  ensureUniqueTenant(store, input.primaryTenantId);
-  store.records.push(record);
-  saveStore(store);
-  return { record, path: storePath() };
+    ensureUniqueTenant(store, input.primaryTenantId);
+    store.records.push(record);
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function listHostedAccounts(): {
@@ -412,58 +418,60 @@ export function setHostedAccountStatus(id: string, nextStatus: HostedAccountStat
   record: HostedAccountRecord;
   path: string;
 } {
-  const store = loadStore();
-  const record = requireRecord(store, id);
-  if (record.status === 'archived' && nextStatus !== 'archived') {
-    throw new AccountStoreError(
-      'INVALID_STATE',
-      `Hosted account '${id}' is archived and cannot transition back to ${nextStatus}.`,
-    );
-  }
+  return withAccountStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    if (record.status === 'archived' && nextStatus !== 'archived') {
+      throw new AccountStoreError(
+        'INVALID_STATE',
+        `Hosted account '${id}' is archived and cannot transition back to ${nextStatus}.`,
+      );
+    }
 
-  if (record.status === nextStatus) {
-    return { record, path: storePath() };
-  }
+    if (record.status === nextStatus) {
+      return { record, path };
+    }
 
-  record.status = nextStatus;
-  if (nextStatus === 'active') {
-    record.suspendedAt = null;
-  } else if (nextStatus === 'suspended') {
-    record.suspendedAt = new Date().toISOString();
-  } else if (nextStatus === 'archived') {
-    record.archivedAt = new Date().toISOString();
-  }
-  touchRecord(record);
-  saveStore(store);
-  return { record, path: storePath() };
+    record.status = nextStatus;
+    if (nextStatus === 'active') {
+      record.suspendedAt = null;
+    } else if (nextStatus === 'suspended') {
+      record.suspendedAt = new Date().toISOString();
+    } else if (nextStatus === 'archived') {
+      record.archivedAt = new Date().toISOString();
+    }
+    touchRecord(record);
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function attachStripeBillingToAccount(id: string, billing: AttachStripeBillingInput): {
   record: HostedAccountRecord;
   path: string;
 } {
-  const store = loadStore();
-  const record = requireRecord(store, id);
-  ensureStripeBindingUniqueness(store, billing, id);
+  return withAccountStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    ensureStripeBindingUniqueness(store, billing, id);
 
-  record.billing = {
-    ...defaultBillingState(),
-    ...record.billing,
-    provider: billing.stripeCustomerId || billing.stripeSubscriptionId ? 'stripe' : record.billing.provider,
-    stripeCustomerId: billing.stripeCustomerId ?? record.billing.stripeCustomerId,
-    stripeSubscriptionId: billing.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
-    stripeSubscriptionStatus: normalizeStripeSubscriptionStatus(
-      billing.stripeSubscriptionStatus ?? record.billing.stripeSubscriptionStatus,
-    ),
-    stripePriceId: billing.stripePriceId ?? record.billing.stripePriceId,
-    lastWebhookEventId: billing.lastWebhookEventId ?? record.billing.lastWebhookEventId,
-    lastWebhookEventType: billing.lastWebhookEventType ?? record.billing.lastWebhookEventType,
-    lastWebhookProcessedAt: billing.lastWebhookProcessedAt ?? record.billing.lastWebhookProcessedAt,
-  };
+    record.billing = {
+      ...defaultBillingState(),
+      ...record.billing,
+      provider: billing.stripeCustomerId || billing.stripeSubscriptionId ? 'stripe' : record.billing.provider,
+      stripeCustomerId: billing.stripeCustomerId ?? record.billing.stripeCustomerId,
+      stripeSubscriptionId: billing.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
+      stripeSubscriptionStatus: normalizeStripeSubscriptionStatus(
+        billing.stripeSubscriptionStatus ?? record.billing.stripeSubscriptionStatus,
+      ),
+      stripePriceId: billing.stripePriceId ?? record.billing.stripePriceId,
+      lastWebhookEventId: billing.lastWebhookEventId ?? record.billing.lastWebhookEventId,
+      lastWebhookEventType: billing.lastWebhookEventType ?? record.billing.lastWebhookEventType,
+      lastWebhookProcessedAt: billing.lastWebhookProcessedAt ?? record.billing.lastWebhookProcessedAt,
+    };
 
-  touchRecord(record);
-  saveStore(store);
-  return { record, path: storePath() };
+    touchRecord(record);
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function applyStripeSubscriptionState(options: {
@@ -483,65 +491,66 @@ export function applyStripeSubscriptionState(options: {
   path: string | null;
   matchReason: 'account_id' | 'subscription_id' | 'customer_id' | 'none';
 } {
-  const normalizedStatus = normalizeStripeSubscriptionStatus(options.stripeSubscriptionStatus ?? null);
-  const store = loadStore();
-  const match = resolveStripeAccountMatch(store, options);
-  const matchReason = match.matchReason;
-  const record = match.record;
+  return withAccountStoreLock((store, path) => {
+    const normalizedStatus = normalizeStripeSubscriptionStatus(options.stripeSubscriptionStatus ?? null);
+    const match = resolveStripeAccountMatch(store, options);
+    const matchReason = match.matchReason;
+    const record = match.record;
 
-  if (!record) {
-    return {
-      record: null,
-      previousStatus: null,
-      nextStatus: null,
-      previousBillingStatus: null,
-      nextBillingStatus: normalizedStatus,
-      path: null,
-      matchReason: 'none',
-    };
-  }
-
-  ensureStripeBindingUniqueness(store, {
-    stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
-    stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
-  }, record.id);
-
-  const previousStatus = record.status;
-  const previousBillingStatus = record.billing.stripeSubscriptionStatus;
-  record.billing = {
-    ...defaultBillingState(),
-    ...record.billing,
-    provider: 'stripe',
-    stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
-    stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
-    stripeSubscriptionStatus: normalizedStatus,
-    stripePriceId: options.stripePriceId ?? record.billing.stripePriceId,
-    lastWebhookEventId: options.eventId,
-    lastWebhookEventType: options.eventType,
-    lastWebhookProcessedAt: new Date().toISOString(),
-  };
-
-  const derivedStatus = deriveHostedAccountStatusFromStripeSubscriptionStatus(normalizedStatus);
-  if (record.status !== 'archived' && derivedStatus && record.status !== derivedStatus) {
-    record.status = derivedStatus;
-    if (derivedStatus === 'active') {
-      record.suspendedAt = null;
-    } else if (derivedStatus === 'suspended') {
-      record.suspendedAt = new Date().toISOString();
+    if (!record) {
+      return {
+        record: null,
+        previousStatus: null,
+        nextStatus: null,
+        previousBillingStatus: null,
+        nextBillingStatus: normalizedStatus,
+        path: null,
+        matchReason: 'none',
+      };
     }
-  }
 
-  touchRecord(record);
-  saveStore(store);
-  return {
-    record,
-    previousStatus,
-    nextStatus: record.status,
-    previousBillingStatus,
-    nextBillingStatus: record.billing.stripeSubscriptionStatus,
-    path: storePath(),
-    matchReason,
-  };
+    ensureStripeBindingUniqueness(store, {
+      stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
+      stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
+    }, record.id);
+
+    const previousStatus = record.status;
+    const previousBillingStatus = record.billing.stripeSubscriptionStatus;
+    record.billing = {
+      ...defaultBillingState(),
+      ...record.billing,
+      provider: 'stripe',
+      stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
+      stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
+      stripeSubscriptionStatus: normalizedStatus,
+      stripePriceId: options.stripePriceId ?? record.billing.stripePriceId,
+      lastWebhookEventId: options.eventId,
+      lastWebhookEventType: options.eventType,
+      lastWebhookProcessedAt: new Date().toISOString(),
+    };
+
+    const derivedStatus = deriveHostedAccountStatusFromStripeSubscriptionStatus(normalizedStatus);
+    if (record.status !== 'archived' && derivedStatus && record.status !== derivedStatus) {
+      record.status = derivedStatus;
+      if (derivedStatus === 'active') {
+        record.suspendedAt = null;
+      } else if (derivedStatus === 'suspended') {
+        record.suspendedAt = new Date().toISOString();
+      }
+    }
+
+    touchRecord(record);
+    saveStore(store);
+    return {
+      record,
+      previousStatus,
+      nextStatus: record.status,
+      previousBillingStatus,
+      nextBillingStatus: record.billing.stripeSubscriptionStatus,
+      path,
+      matchReason,
+    };
+  });
 }
 
 export function applyStripeCheckoutCompletion(options: {
@@ -563,55 +572,56 @@ export function applyStripeCheckoutCompletion(options: {
   path: string | null;
   matchReason: 'account_id' | 'subscription_id' | 'customer_id' | 'none';
 } {
-  const store = loadStore();
-  const match = resolveStripeAccountMatch(store, options);
-  const matchReason = match.matchReason;
-  const record = match.record;
-  if (!record) {
-    return {
-      record: null,
-      previousStatus: null,
-      nextStatus: null,
-      previousBillingStatus: null,
-      nextBillingStatus: null,
-      path: null,
-      matchReason: 'none',
+  return withAccountStoreLock((store, path) => {
+    const match = resolveStripeAccountMatch(store, options);
+    const matchReason = match.matchReason;
+    const record = match.record;
+    if (!record) {
+      return {
+        record: null,
+        previousStatus: null,
+        nextStatus: null,
+        previousBillingStatus: null,
+        nextBillingStatus: null,
+        path: null,
+        matchReason: 'none',
+      };
+    }
+
+    ensureStripeBindingUniqueness(store, {
+      stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
+      stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
+    }, record.id);
+
+    const previousStatus = record.status;
+    const previousBillingStatus = record.billing.stripeSubscriptionStatus;
+    record.billing = {
+      ...defaultBillingState(),
+      ...record.billing,
+      provider: 'stripe',
+      stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
+      stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
+      stripePriceId: options.stripePriceId ?? record.billing.stripePriceId,
+      lastCheckoutSessionId: options.checkoutSessionId,
+      lastCheckoutCompletedAt: options.completedAt ?? new Date().toISOString(),
+      lastCheckoutPlanId: options.planId ?? record.billing.lastCheckoutPlanId,
+      lastWebhookEventId: options.eventId,
+      lastWebhookEventType: options.eventType,
+      lastWebhookProcessedAt: new Date().toISOString(),
     };
-  }
 
-  ensureStripeBindingUniqueness(store, {
-    stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
-    stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
-  }, record.id);
-
-  const previousStatus = record.status;
-  const previousBillingStatus = record.billing.stripeSubscriptionStatus;
-  record.billing = {
-    ...defaultBillingState(),
-    ...record.billing,
-    provider: 'stripe',
-    stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
-    stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
-    stripePriceId: options.stripePriceId ?? record.billing.stripePriceId,
-    lastCheckoutSessionId: options.checkoutSessionId,
-    lastCheckoutCompletedAt: options.completedAt ?? new Date().toISOString(),
-    lastCheckoutPlanId: options.planId ?? record.billing.lastCheckoutPlanId,
-    lastWebhookEventId: options.eventId,
-    lastWebhookEventType: options.eventType,
-    lastWebhookProcessedAt: new Date().toISOString(),
-  };
-
-  touchRecord(record);
-  saveStore(store);
-  return {
-    record,
-    previousStatus,
-    nextStatus: record.status,
-    previousBillingStatus,
-    nextBillingStatus: record.billing.stripeSubscriptionStatus,
-    path: storePath(),
-    matchReason,
-  };
+    touchRecord(record);
+    saveStore(store);
+    return {
+      record,
+      previousStatus,
+      nextStatus: record.status,
+      previousBillingStatus,
+      nextBillingStatus: record.billing.stripeSubscriptionStatus,
+      path,
+      matchReason,
+    };
+  });
 }
 
 export function applyStripeInvoiceState(options: {
@@ -637,90 +647,92 @@ export function applyStripeInvoiceState(options: {
   path: string | null;
   matchReason: 'account_id' | 'subscription_id' | 'customer_id' | 'none';
 } {
-  const normalizedInvoiceStatus = normalizeStripeInvoiceStatus(options.invoiceStatus ?? null);
-  const store = loadStore();
-  const match = resolveStripeAccountMatch(store, options);
-  const matchReason = match.matchReason;
-  const record = match.record;
-  if (!record) {
-    return {
-      record: null,
-      previousStatus: null,
-      nextStatus: null,
-      previousBillingStatus: null,
-      nextBillingStatus: null,
-      path: null,
-      matchReason: 'none',
-    };
-  }
-
-  ensureStripeBindingUniqueness(store, {
-    stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
-    stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
-  }, record.id);
-
-  const previousStatus = record.status;
-  const previousBillingStatus = record.billing.stripeSubscriptionStatus;
-  const nextBillingStatus = deriveStripeSubscriptionStatusFromInvoiceEvent(
-    options.eventType,
-    record.billing.stripeSubscriptionStatus,
-  );
-  const paidAt = options.eventType === 'invoice.paid'
-    ? (options.paidAt ?? new Date().toISOString())
-    : record.billing.lastInvoicePaidAt;
-  const delinquentSince = options.eventType === 'invoice.payment_failed'
-    ? (record.billing.delinquentSince ?? options.paymentFailedAt ?? new Date().toISOString())
-    : options.eventType === 'invoice.paid'
-      ? null
-      : record.billing.delinquentSince;
-
-  record.billing = {
-    ...defaultBillingState(),
-    ...record.billing,
-    provider: 'stripe',
-    stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
-    stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
-    stripeSubscriptionStatus: nextBillingStatus,
-    stripePriceId: options.stripePriceId ?? record.billing.stripePriceId,
-    lastInvoiceId: options.invoiceId,
-    lastInvoiceStatus: normalizedInvoiceStatus,
-    lastInvoiceCurrency: options.currency ?? record.billing.lastInvoiceCurrency,
-    lastInvoiceAmountPaid: options.amountPaid ?? record.billing.lastInvoiceAmountPaid,
-    lastInvoiceAmountDue: options.amountDue ?? record.billing.lastInvoiceAmountDue,
-    lastInvoiceEventId: options.eventId,
-    lastInvoiceEventType: options.eventType,
-    lastInvoiceProcessedAt: new Date().toISOString(),
-    lastInvoicePaidAt: paidAt,
-    delinquentSince,
-    lastWebhookEventId: options.eventId,
-    lastWebhookEventType: options.eventType,
-    lastWebhookProcessedAt: new Date().toISOString(),
-  };
-
-  const derivedStatus = deriveHostedAccountStatusFromStripeSubscriptionStatus(nextBillingStatus);
-  if (record.status !== 'archived' && derivedStatus && record.status !== derivedStatus) {
-    record.status = derivedStatus;
-    if (derivedStatus === 'active') {
-      record.suspendedAt = null;
-    } else if (derivedStatus === 'suspended') {
-      record.suspendedAt = new Date().toISOString();
+  return withAccountStoreLock((store, path) => {
+    const normalizedInvoiceStatus = normalizeStripeInvoiceStatus(options.invoiceStatus ?? null);
+    const match = resolveStripeAccountMatch(store, options);
+    const matchReason = match.matchReason;
+    const record = match.record;
+    if (!record) {
+      return {
+        record: null,
+        previousStatus: null,
+        nextStatus: null,
+        previousBillingStatus: null,
+        nextBillingStatus: null,
+        path: null,
+        matchReason: 'none',
+      };
     }
-  }
 
-  touchRecord(record);
-  saveStore(store);
-  return {
-    record,
-    previousStatus,
-    nextStatus: record.status,
-    previousBillingStatus,
-    nextBillingStatus: record.billing.stripeSubscriptionStatus,
-    path: storePath(),
-    matchReason,
-  };
+    ensureStripeBindingUniqueness(store, {
+      stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
+      stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
+    }, record.id);
+
+    const previousStatus = record.status;
+    const previousBillingStatus = record.billing.stripeSubscriptionStatus;
+    const nextBillingStatus = deriveStripeSubscriptionStatusFromInvoiceEvent(
+      options.eventType,
+      record.billing.stripeSubscriptionStatus,
+    );
+    const paidAt = options.eventType === 'invoice.paid'
+      ? (options.paidAt ?? new Date().toISOString())
+      : record.billing.lastInvoicePaidAt;
+    const delinquentSince = options.eventType === 'invoice.payment_failed'
+      ? (record.billing.delinquentSince ?? options.paymentFailedAt ?? new Date().toISOString())
+      : options.eventType === 'invoice.paid'
+        ? null
+        : record.billing.delinquentSince;
+
+    record.billing = {
+      ...defaultBillingState(),
+      ...record.billing,
+      provider: 'stripe',
+      stripeCustomerId: options.stripeCustomerId ?? record.billing.stripeCustomerId,
+      stripeSubscriptionId: options.stripeSubscriptionId ?? record.billing.stripeSubscriptionId,
+      stripeSubscriptionStatus: nextBillingStatus,
+      stripePriceId: options.stripePriceId ?? record.billing.stripePriceId,
+      lastInvoiceId: options.invoiceId,
+      lastInvoiceStatus: normalizedInvoiceStatus,
+      lastInvoiceCurrency: options.currency ?? record.billing.lastInvoiceCurrency,
+      lastInvoiceAmountPaid: options.amountPaid ?? record.billing.lastInvoiceAmountPaid,
+      lastInvoiceAmountDue: options.amountDue ?? record.billing.lastInvoiceAmountDue,
+      lastInvoiceEventId: options.eventId,
+      lastInvoiceEventType: options.eventType,
+      lastInvoiceProcessedAt: new Date().toISOString(),
+      lastInvoicePaidAt: paidAt,
+      delinquentSince,
+      lastWebhookEventId: options.eventId,
+      lastWebhookEventType: options.eventType,
+      lastWebhookProcessedAt: new Date().toISOString(),
+    };
+
+    const derivedStatus = deriveHostedAccountStatusFromStripeSubscriptionStatus(nextBillingStatus);
+    if (record.status !== 'archived' && derivedStatus && record.status !== derivedStatus) {
+      record.status = derivedStatus;
+      if (derivedStatus === 'active') {
+        record.suspendedAt = null;
+      } else if (derivedStatus === 'suspended') {
+        record.suspendedAt = new Date().toISOString();
+      }
+    }
+
+    touchRecord(record);
+    saveStore(store);
+    return {
+      record,
+      previousStatus,
+      nextStatus: record.status,
+      previousBillingStatus,
+      nextBillingStatus: record.billing.stripeSubscriptionStatus,
+      path,
+      matchReason,
+    };
+  });
 }
 
 export function resetAccountStoreForTests(): void {
   const path = storePath();
   if (existsSync(path)) rmSync(path, { force: true });
+  if (existsSync(`${path}.lock`)) rmSync(`${path}.lock`, { recursive: true, force: true });
 }

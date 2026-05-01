@@ -17,7 +17,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DEFAULT_HOSTED_PLAN_ID, resolvePlanSpec } from './plan-catalog.js';
 import type { SecretEnvelopeRecord } from './secret-envelope.js';
-import { writeTextFileAtomic } from './file-store.js';
+import { withFileLock, writeTextFileAtomic } from './file-store.js';
 import { hashSecretForLookup } from './secret-derivation.js';
 
 export type TenantKeyStatus = 'active' | 'inactive' | 'revoked';
@@ -170,6 +170,11 @@ function saveStore(store: TenantKeyStoreFile): void {
   writeTextFileAtomic(path, `${JSON.stringify(store, null, 2)}\n`);
 }
 
+function withTenantKeyStoreLock<T>(action: (store: TenantKeyStoreFile, path: string) => T): T {
+  const path = storePath();
+  return withFileLock(path, () => action(loadStore(), path));
+}
+
 function countActiveKeysForTenant(store: TenantKeyStoreFile, tenantId: string): number {
   return store.records.filter((entry) => entry.tenantId === tenantId && entry.status === 'active').length;
 }
@@ -233,28 +238,29 @@ export function issueTenantApiKey(input: IssueTenantKeyInput): {
   record: TenantKeyRecord;
   path: string;
 } {
-  const resolvedPlan = resolvePlanSpec({
-    planId: input.planId,
-    monthlyRunQuota: input.monthlyRunQuota,
-    defaultPlanId: DEFAULT_HOSTED_PLAN_ID,
+  return withTenantKeyStoreLock((store, path) => {
+    const resolvedPlan = resolvePlanSpec({
+      planId: input.planId,
+      monthlyRunQuota: input.monthlyRunQuota,
+      defaultPlanId: DEFAULT_HOSTED_PLAN_ID,
+    });
+    ensureCanCreateActiveKey(store, input.tenantId);
+
+    const apiKey = `atk_${randomBytes(24).toString('hex')}`;
+    const record = buildTenantKeyRecord({
+      tenantId: input.tenantId,
+      tenantName: input.tenantName,
+      planId: resolvedPlan.planId,
+      monthlyRunQuota: resolvedPlan.monthlyRunQuota,
+      apiKey,
+      createdAt: new Date().toISOString(),
+    });
+
+    store.records.push(record);
+    saveStore(store);
+
+    return { apiKey, record, path };
   });
-  const store = loadStore();
-  ensureCanCreateActiveKey(store, input.tenantId);
-
-  const apiKey = `atk_${randomBytes(24).toString('hex')}`;
-  const record = buildTenantKeyRecord({
-    tenantId: input.tenantId,
-    tenantName: input.tenantName,
-    planId: resolvedPlan.planId,
-    monthlyRunQuota: resolvedPlan.monthlyRunQuota,
-    apiKey,
-    createdAt: new Date().toISOString(),
-  });
-
-  store.records.push(record);
-  saveStore(store);
-
-  return { apiKey, record, path: storePath() };
 }
 
 export function rotateTenantApiKey(id: string, input?: RotateTenantKeyInput): {
@@ -263,51 +269,52 @@ export function rotateTenantApiKey(id: string, input?: RotateTenantKeyInput): {
   previousRecord: TenantKeyRecord;
   path: string;
 } {
-  const store = loadStore();
-  const sourceRecord = requireRecord(store, id);
-  if (sourceRecord.status !== 'active') {
-    throw new TenantKeyStoreError(
-      'INVALID_STATE',
-      `Tenant key '${id}' must be active before rotation. Current status: ${sourceRecord.status}.`,
-    );
-  }
-  if (activeReplacementExists(store, sourceRecord)) {
-    throw new TenantKeyStoreError(
-      'INVALID_STATE',
-      `Tenant key '${id}' already has an unreconciled replacement key. Reuse or revoke the replacement before rotating again.`,
-    );
-  }
+  return withTenantKeyStoreLock((store, path) => {
+    const sourceRecord = requireRecord(store, id);
+    if (sourceRecord.status !== 'active') {
+      throw new TenantKeyStoreError(
+        'INVALID_STATE',
+        `Tenant key '${id}' must be active before rotation. Current status: ${sourceRecord.status}.`,
+      );
+    }
+    if (activeReplacementExists(store, sourceRecord)) {
+      throw new TenantKeyStoreError(
+        'INVALID_STATE',
+        `Tenant key '${id}' already has an unreconciled replacement key. Reuse or revoke the replacement before rotating again.`,
+      );
+    }
 
-  ensureCanCreateActiveKey(store, sourceRecord.tenantId);
+    ensureCanCreateActiveKey(store, sourceRecord.tenantId);
 
-  const resolvedPlan = resolvePlanSpec({
-    planId: input?.planId ?? sourceRecord.planId,
-    monthlyRunQuota: input?.monthlyRunQuota ?? sourceRecord.monthlyRunQuota,
-    defaultPlanId: DEFAULT_HOSTED_PLAN_ID,
+    const resolvedPlan = resolvePlanSpec({
+      planId: input?.planId ?? sourceRecord.planId,
+      monthlyRunQuota: input?.monthlyRunQuota ?? sourceRecord.monthlyRunQuota,
+      defaultPlanId: DEFAULT_HOSTED_PLAN_ID,
+    });
+    const apiKey = `atk_${randomBytes(24).toString('hex')}`;
+    const createdAt = new Date().toISOString();
+    const record = buildTenantKeyRecord({
+      tenantId: sourceRecord.tenantId,
+      tenantName: sourceRecord.tenantName,
+      planId: resolvedPlan.planId,
+      monthlyRunQuota: resolvedPlan.monthlyRunQuota,
+      apiKey,
+      createdAt,
+      rotatedFromKeyId: sourceRecord.id,
+    });
+
+    sourceRecord.supersededByKeyId = record.id;
+    sourceRecord.supersededAt = createdAt;
+    store.records.push(record);
+    saveStore(store);
+
+    return {
+      apiKey,
+      record,
+      previousRecord: { ...sourceRecord },
+      path,
+    };
   });
-  const apiKey = `atk_${randomBytes(24).toString('hex')}`;
-  const createdAt = new Date().toISOString();
-  const record = buildTenantKeyRecord({
-    tenantId: sourceRecord.tenantId,
-    tenantName: sourceRecord.tenantName,
-    planId: resolvedPlan.planId,
-    monthlyRunQuota: resolvedPlan.monthlyRunQuota,
-    apiKey,
-    createdAt,
-    rotatedFromKeyId: sourceRecord.id,
-  });
-
-  sourceRecord.supersededByKeyId = record.id;
-  sourceRecord.supersededAt = createdAt;
-  store.records.push(record);
-  saveStore(store);
-
-  return {
-    apiKey,
-    record,
-    previousRecord: { ...sourceRecord },
-    path: storePath(),
-  };
 }
 
 export function listTenantKeyRecords(): {
@@ -322,50 +329,52 @@ export function setTenantApiKeyStatus(id: string, nextStatus: 'active' | 'inacti
   record: TenantKeyRecord;
   path: string;
 } {
-  const store = loadStore();
-  const record = requireRecord(store, id);
-  if (record.status === 'revoked') {
-    throw new TenantKeyStoreError(
-      'INVALID_STATE',
-      `Tenant key '${id}' is revoked and cannot transition back to ${nextStatus}.`,
-    );
-  }
-
-  if (nextStatus === 'inactive') {
-    if (record.status === 'inactive') {
-      return { record, path: storePath() };
+  return withTenantKeyStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    if (record.status === 'revoked') {
+      throw new TenantKeyStoreError(
+        'INVALID_STATE',
+        `Tenant key '${id}' is revoked and cannot transition back to ${nextStatus}.`,
+      );
     }
-    record.status = 'inactive';
-    record.deactivatedAt = new Date().toISOString();
+
+    if (nextStatus === 'inactive') {
+      if (record.status === 'inactive') {
+        return { record, path };
+      }
+      record.status = 'inactive';
+      record.deactivatedAt = new Date().toISOString();
+      saveStore(store);
+      return { record, path };
+    }
+
+    if (record.status === 'active') {
+      return { record, path };
+    }
+
+    ensureCanCreateActiveKey(store, record.tenantId);
+    record.status = 'active';
+    record.deactivatedAt = null;
     saveStore(store);
-    return { record, path: storePath() };
-  }
-
-  if (record.status === 'active') {
-    return { record, path: storePath() };
-  }
-
-  ensureCanCreateActiveKey(store, record.tenantId);
-  record.status = 'active';
-  record.deactivatedAt = null;
-  saveStore(store);
-  return { record, path: storePath() };
+    return { record, path };
+  });
 }
 
 export function revokeTenantApiKey(id: string): {
   record: TenantKeyRecord | null;
   path: string;
 } {
-  const store = loadStore();
-  const record = store.records.find((entry) => entry.id === id);
-  if (!record) return { record: null, path: storePath() };
-  if (record.status === 'revoked') {
-    return { record, path: storePath() };
-  }
-  record.status = 'revoked';
-  record.revokedAt = new Date().toISOString();
-  saveStore(store);
-  return { record, path: storePath() };
+  return withTenantKeyStoreLock((store, path) => {
+    const record = store.records.find((entry) => entry.id === id);
+    if (!record) return { record: null, path };
+    if (record.status === 'revoked') {
+      return { record, path };
+    }
+    record.status = 'revoked';
+    record.revokedAt = new Date().toISOString();
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function findTenantKeyRecordById(id: string): {
@@ -383,23 +392,25 @@ export function setTenantKeyRecoveryEnvelope(id: string, recoveryEnvelope: Secre
   record: TenantKeyRecord;
   path: string;
 } {
-  const store = loadStore();
-  const record = requireRecord(store, id);
-  record.recoveryEnvelope = recoveryEnvelope;
-  saveStore(store);
-  return { record, path: storePath() };
+  return withTenantKeyStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    record.recoveryEnvelope = recoveryEnvelope;
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function findActiveTenantKey(apiKey: string, options?: { markUsed?: boolean }): TenantKeyRecord | null {
-  const hashed = hashApiKey(apiKey);
-  const store = loadStore();
-  const record = store.records.find((entry) => entry.status === 'active' && entry.apiKeyHash === hashed) ?? null;
-  if (!record) return null;
-  if (options?.markUsed) {
-    record.lastUsedAt = new Date().toISOString();
-    saveStore(store);
-  }
-  return record;
+  return withTenantKeyStoreLock((store) => {
+    const hashed = hashApiKey(apiKey);
+    const record = store.records.find((entry) => entry.status === 'active' && entry.apiKeyHash === hashed) ?? null;
+    if (!record) return null;
+    if (options?.markUsed) {
+      record.lastUsedAt = new Date().toISOString();
+      saveStore(store);
+    }
+    return { ...record };
+  });
 }
 
 export function hasActiveTenantKeys(): boolean {
@@ -437,27 +448,29 @@ export function syncTenantPlanByTenantId(tenantId: string, options: {
   records: TenantKeyRecord[];
   path: string;
 } {
-  const store = loadStore();
-  const records = store.records.filter((entry) => entry.tenantId === tenantId && entry.status !== 'revoked');
-  if (records.length === 0) {
-    return { records: [], path: storePath() };
-  }
+  return withTenantKeyStoreLock((store, path) => {
+    const records = store.records.filter((entry) => entry.tenantId === tenantId && entry.status !== 'revoked');
+    if (records.length === 0) {
+      return { records: [], path };
+    }
 
-  const resolvedPlan = resolvePlanSpec({
-    planId: options.planId,
-    monthlyRunQuota: options.monthlyRunQuota,
-    defaultPlanId: DEFAULT_HOSTED_PLAN_ID,
+    const resolvedPlan = resolvePlanSpec({
+      planId: options.planId,
+      monthlyRunQuota: options.monthlyRunQuota,
+      defaultPlanId: DEFAULT_HOSTED_PLAN_ID,
+    });
+
+    for (const record of records) {
+      record.planId = resolvedPlan.planId;
+      record.monthlyRunQuota = resolvedPlan.monthlyRunQuota;
+    }
+    saveStore(store);
+    return { records, path };
   });
-
-  for (const record of records) {
-    record.planId = resolvedPlan.planId;
-    record.monthlyRunQuota = resolvedPlan.monthlyRunQuota;
-  }
-  saveStore(store);
-  return { records, path: storePath() };
 }
 
 export function resetTenantKeyStoreForTests(): void {
   const path = storePath();
   if (existsSync(path)) rmSync(path, { force: true });
+  if (existsSync(`${path}.lock`)) rmSync(`${path}.lock`, { recursive: true, force: true });
 }

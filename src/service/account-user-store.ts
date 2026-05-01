@@ -16,7 +16,7 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { writeTextFileAtomic } from './file-store.js';
+import { withFileLock, writeTextFileAtomic } from './file-store.js';
 
 export type AccountUserRole = 'account_admin' | 'billing_admin' | 'read_only';
 export type AccountUserStatus = 'active' | 'inactive';
@@ -395,6 +395,11 @@ function saveStore(store: AccountUserStoreFile): void {
   writeTextFileAtomic(path, `${JSON.stringify(store, null, 2)}\n`);
 }
 
+function withAccountUserStoreLock<T>(action: (store: AccountUserStoreFile, path: string) => T): T {
+  const path = storePath();
+  return withFileLock(path, () => action(loadStore(), path));
+}
+
 function hashPassword(password: string): AccountUserPasswordState {
   const salt = randomBytes(16);
   const derived = scryptSync(password, salt, PASSWORD_PARAMS.keylen, scryptOptions(PASSWORD_PARAMS));
@@ -551,41 +556,44 @@ export function createAccountUser(input: CreateAccountUserInput): {
   record: AccountUserRecord;
   path: string;
 } {
-  const store = loadStore();
-  const normalizedEmail = normalizeEmail(input.email);
-  ensureUniqueEmail(store, normalizedEmail);
-  const record = buildAccountUserRecord(input);
-  store.records.push(record);
-  saveStore(store);
-  return { record, path: storePath() };
+  return withAccountUserStoreLock((store, path) => {
+    const normalizedEmail = normalizeEmail(input.email);
+    ensureUniqueEmail(store, normalizedEmail);
+    const record = buildAccountUserRecord(input);
+    store.records.push(record);
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function saveAccountUserRecord(record: AccountUserRecord): {
   record: AccountUserRecord;
   path: string;
 } {
-  const store = loadStore();
-  const normalized = normalizeRecord(record);
-  ensureUniqueEmail(store, normalized.email, normalized.id);
-  const index = store.records.findIndex((entry) => entry.id === normalized.id);
-  if (index < 0) {
-    throw new AccountUserStoreError('NOT_FOUND', `Account user '${normalized.id}' was not found.`);
-  }
-  store.records[index] = normalized;
-  saveStore(store);
-  return { record: normalized, path: storePath() };
+  return withAccountUserStoreLock((store, path) => {
+    const normalized = normalizeRecord(record);
+    ensureUniqueEmail(store, normalized.email, normalized.id);
+    const index = store.records.findIndex((entry) => entry.id === normalized.id);
+    if (index < 0) {
+      throw new AccountUserStoreError('NOT_FOUND', `Account user '${normalized.id}' was not found.`);
+    }
+    store.records[index] = normalized;
+    saveStore(store);
+    return { record: normalized, path };
+  });
 }
 
 export function recordAccountUserLogin(id: string): {
   record: AccountUserRecord;
   path: string;
 } {
-  const store = loadStore();
-  const record = requireRecord(store, id);
-  record.lastLoginAt = new Date().toISOString();
-  record.updatedAt = record.lastLoginAt;
-  saveStore(store);
-  return { record, path: storePath() };
+  return withAccountUserStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    record.lastLoginAt = new Date().toISOString();
+    record.updatedAt = record.lastLoginAt;
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function setAccountUserPassword(
@@ -595,14 +603,15 @@ export function setAccountUserPassword(
   record: AccountUserRecord;
   path: string;
 } {
-  const store = loadStore();
-  const record = requireRecord(store, id);
-  const now = new Date().toISOString();
-  record.password = hashPassword(nextPassword);
-  record.passwordUpdatedAt = now;
-  record.updatedAt = now;
-  saveStore(store);
-  return { record, path: storePath() };
+  return withAccountUserStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    const now = new Date().toISOString();
+    record.password = hashPassword(nextPassword);
+    record.passwordUpdatedAt = now;
+    record.updatedAt = now;
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function setAccountUserStatus(
@@ -612,25 +621,27 @@ export function setAccountUserStatus(
   record: AccountUserRecord;
   path: string;
 } {
-  const store = loadStore();
-  const record = requireRecord(store, id);
-  if (record.status === nextStatus) {
-    return { record, path: storePath() };
-  }
-  if (nextStatus === 'inactive' && record.role === 'account_admin' && activeAdminCount(store, record.accountId) <= 1) {
-    throw new AccountUserStoreError(
-      'INVALID_STATE',
-      `Account '${record.accountId}' must retain at least one active account_admin user.`,
-    );
-  }
-  record.status = nextStatus;
-  record.updatedAt = new Date().toISOString();
-  record.deactivatedAt = nextStatus === 'inactive' ? record.updatedAt : null;
-  saveStore(store);
-  return { record, path: storePath() };
+  return withAccountUserStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    if (record.status === nextStatus) {
+      return { record, path };
+    }
+    if (nextStatus === 'inactive' && record.role === 'account_admin' && activeAdminCount(store, record.accountId) <= 1) {
+      throw new AccountUserStoreError(
+        'INVALID_STATE',
+        `Account '${record.accountId}' must retain at least one active account_admin user.`,
+      );
+    }
+    record.status = nextStatus;
+    record.updatedAt = new Date().toISOString();
+    record.deactivatedAt = nextStatus === 'inactive' ? record.updatedAt : null;
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function resetAccountUserStoreForTests(): void {
   const path = storePath();
   if (existsSync(path)) rmSync(path, { force: true });
+  if (existsSync(`${path}.lock`)) rmSync(`${path}.lock`, { recursive: true, force: true });
 }
