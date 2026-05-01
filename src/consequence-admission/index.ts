@@ -1289,6 +1289,7 @@ export * from './money-movement-shadow.js';
 export * from './shadow-summary.js';
 export * from './action-risk-inventory.js';
 export * from './policy-discovery-candidates.js';
+export * from './shadow-policy-promotion-draft.js';
 export * from './finance.js';
 export * from './crypto.js';
 export * from './facade.js';
