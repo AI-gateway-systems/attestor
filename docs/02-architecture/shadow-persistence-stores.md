@@ -135,6 +135,34 @@ The API does not expose the local file path of the backing store, and status tra
 
 Invalid lifecycle jumps fail closed. For example, a `draft` candidate cannot move directly to `activated`; it must move through `proposed` and `approved` first.
 
+## Policy Promotion Draft
+
+The next hosted surface turns approved or activated candidates into a non-enforcing promotion review artifact:
+
+```text
+GET /api/v1/shadow/policy-promotion-draft
+GET /api/v1/shadow/policy-promotion-draft?status=activated
+```
+
+The draft contains:
+
+- approved candidate ids and digests
+- source simulation report ids and digests
+- action surface, domain, proposed mode, required controls, and reason codes
+- approval actor refs and a digest of the approval trail
+- `enforcementState: draft-only`
+
+It deliberately keeps:
+
+```text
+approvalRequired: true
+autoEnforce: false
+rawPayloadStored: false
+productionReady: false
+```
+
+The draft is not a policy bundle, not a deployment, and not a mode switch. It is the review packet that a later customer-controlled policy promotion workflow can consume.
+
 ## Why This Shape
 
 This follows the same pattern used by mature control systems:
@@ -152,6 +180,7 @@ AI action observed
 shadow decision recorded
 candidate policy/control inferred
 customer approves or rejects
+promotion draft generated for review
 only then can enforcement promotion happen
 ```
 

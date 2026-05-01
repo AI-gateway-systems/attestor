@@ -3,10 +3,13 @@ import {
   createConsequenceAdmissionProblem,
   createActionRiskInventory,
   createShadowPolicyDiscoveryCandidates,
+  createShadowPolicyPromotionDraft,
   createShadowPolicySimulationReport,
   createShadowSummarySurface,
   GENERIC_ADMISSION_MODES,
+  SHADOW_POLICY_PROMOTION_SOURCE_STATUSES,
   type GenericAdmissionMode,
+  type ShadowPolicyPromotionSourceStatus,
   type ShadowAdmissionEvent,
   type ShadowPolicySimulationReport,
 } from '../../../consequence-admission/index.js';
@@ -123,6 +126,16 @@ function parseGenericMode(value: string | null | undefined): GenericAdmissionMod
   const normalized = value.trim();
   return GENERIC_ADMISSION_MODES.includes(normalized as GenericAdmissionMode)
     ? normalized as GenericAdmissionMode
+    : null;
+}
+
+function parsePromotionSourceStatus(
+  value: string | null | undefined,
+): ShadowPolicyPromotionSourceStatus | null {
+  if (value === undefined || value === null || value.trim() === '') return 'approved';
+  const normalized = value.trim();
+  return SHADOW_POLICY_PROMOTION_SOURCE_STATUSES.includes(normalized as ShadowPolicyPromotionSourceStatus)
+    ? normalized as ShadowPolicyPromotionSourceStatus
     : null;
 }
 
@@ -566,6 +579,66 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         status: 503,
         detail,
         reasonCodes: ['policy-candidate-records-unavailable'],
+      });
+    }
+  });
+
+  app.get('/api/v1/shadow/policy-promotion-draft', (c) => {
+    c.header('cache-control', 'no-store');
+    if (!deps.listShadowPolicyCandidateRecords) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-candidate-store-unavailable',
+        title: 'Policy candidate store unavailable',
+        status: 503,
+        detail: 'Policy promotion draft generation is not configured for this runtime.',
+        reasonCodes: ['policy-candidate-store-unavailable'],
+      });
+    }
+    const statusQuery = c.req.query('status');
+    const sourceStatus = parsePromotionSourceStatus(statusQuery);
+    if (!sourceStatus) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-promotion-source-status-invalid',
+        title: 'Invalid policy promotion source status',
+        status: 400,
+        detail:
+          `Policy promotion drafts can only be generated from: ${SHADOW_POLICY_PROMOTION_SOURCE_STATUSES.join(', ')}.`,
+        reasonCodes: ['invalid-policy-promotion-source-status'],
+      });
+    }
+
+    try {
+      const tenant = deps.currentTenant(c);
+      const records = deps.listShadowPolicyCandidateRecords({
+        tenant,
+        status: sourceStatus,
+      });
+      const draft = createShadowPolicyPromotionDraft({
+        tenantId: tenant.tenantId,
+        records,
+        sourceStatus,
+        generatedAt: deps.now?.() ?? null,
+      });
+      return c.json({
+        tenant: tenantSummary(tenant),
+        storageMode: 'file-backed-evaluation',
+        productionReady: false,
+        approvalRequired: true,
+        autoEnforce: false,
+        rawPayloadStored: false,
+        draft,
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : 'Policy promotion draft could not be generated.';
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-promotion-draft-failed',
+        title: 'Policy promotion draft failed',
+        status: 503,
+        detail,
+        reasonCodes: ['policy-promotion-draft-failed'],
       });
     }
   });

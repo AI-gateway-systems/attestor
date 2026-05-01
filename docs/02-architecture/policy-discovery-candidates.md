@@ -63,12 +63,10 @@ Attestor applies the same discipline to AI action authorization: observe actions
 
 ## Current Boundary
 
-This is an evaluation candidate model and hosted read route. It is not yet:
+This is an evaluation candidate model with a hosted read route, file-backed candidate materialization, lifecycle transitions, and a non-enforcing promotion draft. It is not yet:
 
-- a persistent candidate store
-- an approval workflow
 - an automatic policy writer
 - a policy compiler
 - a customer-operated enforcement promotion system
 
-The production path should bind candidates to tenant-scoped storage, reviewer identity, policy bundle versions, simulations, and downstream enforcement proofs.
+The production path should bind candidates to shared tenant-scoped storage, reviewer identity, policy bundle versions, simulations, and downstream enforcement proofs.
