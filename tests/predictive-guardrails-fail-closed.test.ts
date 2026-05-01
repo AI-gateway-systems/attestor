@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { analyzePlan } from '../src/connectors/predictive-guardrails.js';
+import { analyzePlan, runPredictivePreflight } from '../src/connectors/predictive-guardrails.js';
 import { runPostgresProve } from '../src/connectors/postgres-prove.js';
 import { snowflakeConnector } from '../src/connectors/snowflake-connector.js';
 
@@ -58,6 +58,46 @@ function testValidLowRiskPlanCanProceed(): void {
   ok(result.plannerEvidence?.nodeTypes.includes('Index Scan'), 'Predictive guardrail: valid plan evidence is retained');
 }
 
+async function testPostgresPredictivePreflightRejectsWriteSqlBeforeExplain(): Promise<void> {
+  const result = await runPredictivePreflight(
+    'DELETE FROM finance.payments',
+    'postgres://attestor:attestor@127.0.0.1:1/attestor',
+  );
+
+  equal(result.performed, false, 'Postgres predictive preflight: write SQL is not treated as performed');
+  equal(result.riskLevel, 'critical', 'Postgres predictive preflight: write SQL is critical');
+  equal(result.recommendation, 'deny', 'Postgres predictive preflight: write SQL denies before EXPLAIN');
+  equal(result.signals[0]?.signal, 'sql_governance_failed_before_explain', 'Postgres predictive preflight: write SQL is rejected by governance before planner access');
+  ok(result.signals[0]?.detail.includes('Write operation detected'), 'Postgres predictive preflight: write rejection reason is explicit');
+}
+
+async function testPostgresPredictivePreflightRejectsStackedSqlBeforeExplain(): Promise<void> {
+  const result = await runPredictivePreflight(
+    'SELECT * FROM finance.payments; SELECT * FROM finance.ledger',
+    'postgres://attestor:attestor@127.0.0.1:1/attestor',
+  );
+
+  equal(result.performed, false, 'Postgres predictive preflight: stacked SQL is not treated as performed');
+  equal(result.riskLevel, 'critical', 'Postgres predictive preflight: stacked SQL is critical');
+  equal(result.recommendation, 'deny', 'Postgres predictive preflight: stacked SQL denies before EXPLAIN');
+  equal(result.signals[0]?.signal, 'sql_governance_failed_before_explain', 'Postgres predictive preflight: stacked SQL is rejected by governance before planner access');
+  ok(result.signals[0]?.detail.includes('Stacked queries detected'), 'Postgres predictive preflight: stacked rejection reason is explicit');
+}
+
+async function testPostgresPredictivePreflightRejectsSchemaBypassBeforeExplain(): Promise<void> {
+  const result = await runPredictivePreflight(
+    'SELECT * FROM payments',
+    'postgres://attestor:attestor@127.0.0.1:1/attestor',
+    { allowedSchemas: ['finance'] },
+  );
+
+  equal(result.performed, false, 'Postgres predictive preflight: unqualified allowlisted query is not treated as performed');
+  equal(result.riskLevel, 'critical', 'Postgres predictive preflight: schema bypass risk is critical');
+  equal(result.recommendation, 'deny', 'Postgres predictive preflight: schema bypass risk denies before EXPLAIN');
+  equal(result.signals[0]?.signal, 'sql_governance_failed_before_explain', 'Postgres predictive preflight: schema bypass is rejected by governance before planner access');
+  ok(result.signals[0]?.detail.includes('Unqualified table reference'), 'Postgres predictive preflight: schema rejection reason is explicit');
+}
+
 async function testPostgresProofPathNotReadyFailsClosed(): Promise<void> {
   const originalPgUrl = process.env.ATTESTOR_PG_URL;
   delete process.env.ATTESTOR_PG_URL;
@@ -102,6 +142,9 @@ async function testSnowflakeWriteSqlFailsClosedBeforeDriver(): Promise<void> {
 testMissingExplainPlanFailsClosed();
 testMalformedExplainPlanFailsClosed();
 testValidLowRiskPlanCanProceed();
+await testPostgresPredictivePreflightRejectsWriteSqlBeforeExplain();
+await testPostgresPredictivePreflightRejectsStackedSqlBeforeExplain();
+await testPostgresPredictivePreflightRejectsSchemaBypassBeforeExplain();
 await testPostgresProofPathNotReadyFailsClosed();
 await testSnowflakeWriteSqlFailsClosedBeforeDriver();
 

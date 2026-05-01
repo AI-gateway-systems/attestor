@@ -74,7 +74,9 @@ export async function runPostgresProve(sql: string): Promise<PostgresProveResult
   const sanitizedUrl = config.connectionUrl.replace(/:[^@]*@/, ':***@');
 
   // Step 1: Predictive guardrail preflight
-  const preflight = await runPredictivePreflight(sql, config.connectionUrl);
+  const preflight = await runPredictivePreflight(sql, config.connectionUrl, {
+    allowedSchemas: config.allowedSchemas ?? [],
+  });
 
   // Step 2: Check if preflight denies execution
   if (preflight.recommendation === 'deny') {

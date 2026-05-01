@@ -16,6 +16,8 @@
  * - A replacement for runtime guardrails (those still run independently)
  */
 
+import { enforceAllowedSchemas, validateReadOnlySql } from './postgres.js';
+
 export interface PredictiveGuardrailResult {
   /** Whether the preflight was performed. */
   performed: boolean;
@@ -41,6 +43,10 @@ export interface PredictiveRiskSignal {
   detail: string;
   threshold: string;
   observed: string;
+}
+
+export interface PredictivePreflightOptions {
+  readonly allowedSchemas?: readonly string[];
 }
 
 // ─── Risk Thresholds ─────────────────────────────────────────────────────────
@@ -179,7 +185,29 @@ export function analyzePlan(explainResult: unknown): PredictiveGuardrailResult {
 export async function runPredictivePreflight(
   sql: string,
   connectionUrl: string,
+  options: PredictivePreflightOptions = {},
 ): Promise<PredictiveGuardrailResult> {
+  try {
+    validateReadOnlySql(sql);
+    if (options.allowedSchemas?.length) {
+      enforceAllowedSchemas(sql, Array.from(options.allowedSchemas));
+    }
+  } catch (err) {
+    return {
+      performed: false,
+      riskLevel: 'critical',
+      signals: [{
+        signal: 'sql_governance_failed_before_explain',
+        severity: 'critical',
+        detail: err instanceof Error ? err.message : String(err),
+        threshold: 'read-only SELECT/WITH SQL accepted by PostgreSQL governance before EXPLAIN',
+        observed: 'rejected before planner preflight',
+      }],
+      recommendation: 'deny',
+      plannerEvidence: null,
+    };
+  }
+
   let Client: any;
   try {
     const pg = await (Function('return import("pg")')() as Promise<any>);
