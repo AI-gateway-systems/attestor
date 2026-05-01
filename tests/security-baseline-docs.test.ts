@@ -77,6 +77,9 @@ function testSupplyChainSecurityGatesStayPresent(): void {
   };
 
   includes(security, 'Supply Chain Scanning', 'Security baseline: supply-chain scanning is documented');
+  includes(security, 'npm run security:supply-chain-baseline', 'Security baseline: supply-chain baseline guard is documented');
+  includes(security, 'blocks lockfile drift, non-registry dependency resolutions, missing registry integrity metadata, unexpected dependency install scripts, and workflow permission regressions', 'Security baseline: supply-chain guard scope is documented');
+  includes(security, 'The install-script allowlist is intentionally narrow.', 'Security baseline: install-script allowlist is documented');
   includes(security, 'npm run security:audit-high', 'Security baseline: npm high/critical audit is documented');
   includes(security, 'actions/dependency-review-action@v4', 'Security baseline: dependency review action is documented');
   includes(security, 'CodeQL JavaScript/TypeScript analysis', 'Security baseline: CodeQL coverage is documented');
@@ -85,6 +88,8 @@ function testSupplyChainSecurityGatesStayPresent(): void {
   includes(security, 'moderate `uuid` advisories', 'Security baseline: remaining moderate advisory is documented honestly');
 
   includes(securityScan, 'name: Security Scan', 'Security baseline: security scan workflow title is stable');
+  includes(securityScan, 'supply-chain-baseline:', 'Security baseline: security scan runs the supply-chain baseline job');
+  includes(securityScan, 'npm run security:supply-chain-baseline', 'Security baseline: security scan runs the supply-chain baseline guard');
   includes(securityScan, 'npm run security:audit-high', 'Security baseline: security scan runs npm audit gate');
   includes(securityScan, 'uses: actions/dependency-review-action@v4', 'Security baseline: dependency review action is pinned by major version');
   includes(securityScan, 'fail-on-severity: high', 'Security baseline: dependency review blocks high and critical advisories');
@@ -150,9 +155,23 @@ function testPackageExposesSecurityDocsGuard(): void {
   };
 
   assert.equal(
+    packageJson.scripts['security:supply-chain-baseline'],
+    'node scripts/check-supply-chain-baseline.mjs',
+    'Security baseline: package.json exposes the supply-chain baseline guard',
+  );
+  passed += 1;
+
+  assert.equal(
     packageJson.scripts['security:audit-high'],
     'npm audit --audit-level=high',
     'Security baseline: package.json exposes the high/critical npm audit gate',
+  );
+  passed += 1;
+
+  assert.equal(
+    packageJson.scripts['test:supply-chain-baseline'],
+    'npm run security:supply-chain-baseline',
+    'Security baseline: package.json exposes the supply-chain baseline test alias',
   );
   passed += 1;
 
