@@ -103,6 +103,7 @@
     "test:consequence-taxonomy": "tsx tests/consequence-taxonomy.test.ts",
     "test:downstream-enforcement-contract": "tsx tests/downstream-enforcement-contract.test.ts",
     "test:consequence-verifier-helper": "tsx tests/consequence-verifier-helper.test.ts",
+    "test:policy-limit-model": "tsx tests/policy-limit-model.test.ts",
     "test:first-useful-admission-demo": "tsx tests/first-useful-admission-demo.test.ts",
     "test:non-bypassable-gateway-demo": "tsx tests/non-bypassable-gateway-demo.test.ts",
     "test:first-impression-path": "tsx tests/first-impression-path.test.ts",

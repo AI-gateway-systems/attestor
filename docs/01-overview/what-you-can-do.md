@@ -35,6 +35,7 @@ Attestor owns the control point before consequence:
 - later verification path
 
 For the shared consequence-domain vocabulary behind these examples, see [Consequence taxonomy](../02-architecture/consequence-taxonomy.md).
+For amount, velocity, scope, allowlist, and review-threshold limits, see [Policy limit model](../02-architecture/policy-limit-model.md).
 For the customer-side allow/hold binding before downstream execution, see [Downstream enforcement contract](../02-architecture/downstream-enforcement-contract.md).
 For the small adapter-side verify/assert wrapper, see [Verifier helper](../02-architecture/verifier-helper.md).
 

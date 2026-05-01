@@ -89,6 +89,7 @@ function testFastSuiteKeepsCriticalCoverage(): void {
     'test:consequence-taxonomy',
     'test:downstream-enforcement-contract',
     'test:consequence-verifier-helper',
+    'test:policy-limit-model',
     'test:non-bypassable-gateway-demo',
     'test:first-impression-path',
     'test:proof-surface-readiness',

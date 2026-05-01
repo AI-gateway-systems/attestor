@@ -64,6 +64,14 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.consequenceAdmissionPolicyLimitDescriptor().limitKinds.includes('velocity'),
+  true,
+);
+assert.equal(
+  typeof admission.evaluateConsequenceAdmissionPolicyLimits,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

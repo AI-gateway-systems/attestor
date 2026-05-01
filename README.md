@@ -191,6 +191,8 @@ The [downstream enforcement contract](docs/02-architecture/downstream-enforcemen
 
 The [verifier helper](docs/02-architecture/verifier-helper.md) is the small customer-side wrapper for that contract. A downstream adapter can call `verify` for a structured hold decision or `assert` to stop execution fail-closed.
 
+The [policy limit model](docs/02-architecture/policy-limit-model.md) gives those admissions bounded policy material: amount caps, velocity windows, recipient and asset allowlists, data scope, authority scope, time windows, risk ceilings, and review thresholds.
+
 The release layer turns a decision into something the rest of the system can inspect: deterministic checks, release tokens, reviewer queues, evidence packs, and proof references. This is where "the AI said so" becomes a bounded release decision.
 
 The policy control plane is where authority changes are controlled: signed policy bundles, activation, rollback, scoping, simulation, and audit trail. A gateway without policy provenance is only an interruption point.
@@ -258,6 +260,7 @@ Start here:
 - [Consequence taxonomy](docs/02-architecture/consequence-taxonomy.md) - consequence domains, risk floors, and minimum controls
 - [Downstream enforcement contract](docs/02-architecture/downstream-enforcement-contract.md) - customer-side allow/hold contract before downstream action
 - [Verifier helper](docs/02-architecture/verifier-helper.md) - customer-side verify/assert helper for downstream adapters
+- [Policy limit model](docs/02-architecture/policy-limit-model.md) - amount, velocity, scope, allowlist, and review-threshold limits
 - [Proof console buildout](docs/02-architecture/proof-console-buildout.md) - local proof-surface tracker
 - [Production runtime hardening buildout](docs/02-architecture/production-runtime-hardening-buildout.md) - runtime profile and fail-closed hardening tracker
 - [Production shared authority plane buildout](docs/02-architecture/production-shared-authority-plane-buildout.md) - shared production authority-plane tracker

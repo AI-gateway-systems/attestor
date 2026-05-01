@@ -26,6 +26,8 @@ The customer-side allow/hold contract lives in [Downstream enforcement contract]
 
 The practical customer-side helper lives in [Verifier helper](verifier-helper.md). Use it when wiring an adapter that should call `verify` or `assert` before a downstream system acts.
 
+The shared limit vocabulary lives in [Policy limit model](policy-limit-model.md). Use it when a proposed consequence must carry amount caps, velocity windows, recipient or asset allowlists, data scope, authority scope, time bounds, risk ceilings, or review thresholds before admission.
+
 ## Shared Platform Core
 
 The platform core is made of reusable layers:
@@ -72,6 +74,8 @@ The taxonomy comes before the pack. A pack may add native adapters and evidence 
 The downstream contract comes before execution. A downstream integration should not act on an Attestor response until the admission id, digest, decision, consequence domain, downstream system, policy scope, proof, replay/idempotency binding, and any `narrow` constraints match the customer enforcement point.
 
 The verifier helper packages that rule into a small customer-side API. It does not replace signed release-token verification; it gives the downstream adapter a consistent fail-closed check before it enters the stronger release-enforcement plane or the customer-owned execution layer.
+
+The policy limit model sits before both. It prevents broad "yes" decisions by making the admitted consequence bounded: how much, how often, to whom, over what data, under which authority, in what window, and when human review becomes mandatory.
 
 ## Finance Pack
 
