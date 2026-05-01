@@ -6,6 +6,7 @@ import {
   checkAuthAttemptAllowed,
   recordAuthAttemptFailure,
   recordAuthAttemptSuccess,
+  recordAuthAttemptUse,
   resetAuthAbuseGuardForTests,
   resolveAuthAttemptSource,
 } from '../src/service/auth-abuse-guard.js';
@@ -136,6 +137,24 @@ function run() {
       lockoutSeconds: 30,
     });
     {
+      const subject = { email: 'password-reset-issue:acct:user', source: '198.51.100.17', nowMs: 25_000 };
+      recordAuthAttemptUse(subject);
+      ok(checkAuthAttemptAllowed({ ...subject, nowMs: 26_000 }).allowed, 'sensitive action use remains allowed below threshold');
+      recordAuthAttemptUse({ ...subject, nowMs: 27_000 });
+      ok(
+        !checkAuthAttemptAllowed({ ...subject, nowMs: 28_000 }).allowed,
+        'sensitive action use locks after the configured threshold',
+      );
+    }
+
+    resetCase();
+    setPolicy({
+      windowSeconds: 60,
+      maxFailuresPerEmail: 2,
+      maxFailuresPerSource: 50,
+      lockoutSeconds: 30,
+    });
+    {
       const subject = { email: 'expire@example.com', source: '198.51.100.8', nowMs: 30_000 };
       recordAuthAttemptFailure(subject);
       recordAuthAttemptFailure({ ...subject, nowMs: 31_000 });
@@ -175,6 +194,20 @@ function run() {
           routeSource.includes('const authAttempt = authAttemptForPasswordReset(c, resetToken);') &&
           routeSource.includes('const resetRateLimit = maybeRateLimitAuthAttempt(c, authAttempt);'),
         'hosted password-reset apply route is wired through the auth abuse guard',
+      );
+      ok(
+        routeSource.includes("app.post('/api/v1/account/users/invites/accept'") &&
+          routeSource.includes("const authAttempt = authAttemptForActionToken(c, 'invite', inviteToken);") &&
+          routeSource.includes('const inviteAcceptRateLimit = maybeRateLimitAuthAttempt(c, authAttempt);') &&
+          routeSource.includes('recordAuthAttemptFailure(authAttempt);'),
+        'hosted invite accept route is wired through action-token abuse throttling',
+      );
+      ok(
+        routeSource.includes("app.post('/api/v1/account/users/:id/password-reset'") &&
+          routeSource.includes("`password-reset-issue:${access.accountId}:${c.req.param('id')}`") &&
+          routeSource.includes('const resetIssueRateLimit = maybeRateLimitAuthAttempt(c, authAttempt);') &&
+          routeSource.includes('recordAuthAttemptUse(authAttempt);'),
+        'hosted password reset issue route throttles successful request flooding',
       );
       ok(
         routeSource.includes('async function recordPasskeyAuthenticationFailure') &&
