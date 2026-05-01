@@ -37,21 +37,23 @@ function appearsBefore(content: string, earlier: string, later: string, message:
 function testReadmeHasAFirstImpressionPath(): void {
   const readme = readProjectFile('README.md');
 
-  includes(readme, 'A fail-closed gateway for AI actions before they affect real systems.', 'README: opens with a sharper outside-reader hook');
-  includes(readme, 'The dangerous moment is not the suggestion. It is the handoff from suggestion to consequence.', 'README: frames the risk before architecture');
-  includes(readme, 'Attestor sits at that handoff.', 'README: explains placement before architecture');
-  includes(readme, 'The point is not to make the AI more confident.', 'README: keeps the gate framing cold and direct');
-  includes(readme, 'If they do not close, the gate holds or blocks by default.', 'README: explains the fail-closed gateway result');
+  includes(readme, 'AI Consequence Gateway.', 'README: opens with the AI consequence gateway category');
+  includes(readme, 'The trust boundary is not the model. The trust boundary is the consequence.', 'README: frames the risk before architecture');
+  includes(readme, 'Attestor sits at that boundary.', 'README: explains placement before architecture');
+  includes(readme, 'It is the admission layer before a proposed AI action becomes a real-world consequence.', 'README: keeps the gate framing cold and direct');
+  includes(readme, 'If policy, authority, evidence, freshness, scope, or verification cannot close, the consequence does not proceed silently.', 'README: explains the fail-closed gateway result');
   includes(readme, 'Attestor does not replace the model, agent runtime, wallet, custody platform, orchestration layer, or downstream system.', 'README: keeps replacement non-claim near the top');
   includes(readme, '## Current Status', 'README: exposes the evaluation boundary near the top');
   includes(readme, 'not a finished public SaaS', 'README: avoids public SaaS overclaim');
   includes(readme, '## What Attestor Does', 'README: names the operating model before architecture');
   includes(readme, 'AI proposes -> Attestor admits / narrows / reviews / blocks -> allowed consequences proceed -> proof remains', 'README: explains the control flow in one line');
+  includes(readme, '## Why It Exists', 'README: explains the category before architecture');
+  includes(readme, 'AI consequence infrastructure', 'README: positions Attestor as infrastructure, not a generic tool');
   includes(readme, '## Try It In 60 Seconds', 'README: exposes a fast first run near the top');
   includes(readme, 'npm run example:admission', 'README: shows the first runnable command');
   includes(readme, 'one proposed consequence admitted with proof references', 'README: explains admitted proof refs');
   includes(readme, 'one proposed consequence blocked fail-closed', 'README: explains blocked fail-closed path');
-  includes(readme, 'a customer-side gate that refuses to run the downstream action unless Attestor allows it', 'README: explains downstream gate behavior');
+  includes(readme, 'a customer-side gate that only proceeds when Attestor allows it', 'README: explains downstream gate behavior');
   includes(readme, '## Decision Model', 'README: makes the decision vocabulary prominent');
   includes(readme, '## Proof Model', 'README: surfaces proof as a first-class concept near the top');
   includes(readme, 'local proof artifacts that can be reviewed later', 'README: explains why proof matters');

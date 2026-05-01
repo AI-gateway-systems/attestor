@@ -2,22 +2,20 @@
 
 ![Attestor: proof before consequence](docs/assets/attestor-readme-hero.png)
 
-**A fail-closed gateway for AI actions before they affect real systems.**
+**AI Consequence Gateway.**
 
-AI systems can draft, call tools, prepare records, request payments, and trigger workflows. The dangerous moment is not the suggestion. It is the handoff from suggestion to consequence.
+AI systems are moving from suggestions into actions: sending messages, preparing filings, calling tools, changing records, requesting payments, touching wallets, querying databases, and triggering operational workflows. The trust boundary is not the model. The trust boundary is the consequence.
 
-Attestor sits at that handoff. A model, agent, workflow, wallet, or application can propose an action; Attestor admits it, narrows it, sends it to review, or blocks it before the downstream system writes, sends, files, settles, or executes.
+Attestor sits at that boundary. A model, agent, workflow, wallet, or application proposes an action; Attestor admits it, narrows it, sends it to review, or blocks it before the downstream system writes, sends, files, settles, grants access, releases data, or executes.
 
-The point is not to make the AI more confident. The point is to make real systems harder to change by accident. Policy, authority, evidence, and enforcement checks must close before a proposed action proceeds. If they do not close, the gate holds or blocks by default.
-
-Attestor does not replace the model, agent runtime, wallet, custody platform, orchestration layer, or downstream system. It sits before the consequence.
+Attestor does not replace the model, agent runtime, wallet, custody platform, orchestration layer, or downstream system. It is the admission layer before a proposed AI action becomes a real-world consequence.
 
 > [!NOTE]
 > This repository is source-available under Business Source License 1.1. Non-production use is allowed. Production use requires a commercial license until the Change Date in [LICENSE](LICENSE).
 
 ## Current Status
 
-Attestor is currently an **evaluation release**: reviewer-runnable, CI-backed, and useful for technical evaluation. It shows the admission model, proof artifacts, finance wedge, crypto extension surfaces, and current fail-closed boundaries.
+Attestor is currently an **evaluation release**: reviewer-runnable, CI-backed, and useful for technical evaluation. It demonstrates the consequence-gateway model, proof artifacts, finance wedge, crypto extension surfaces, and current fail-closed boundaries.
 
 It is not a finished public SaaS, a production-use guarantee, a completed customer-operated deployment, or a substitute for an external security audit.
 
@@ -27,23 +25,39 @@ Start review with:
 - [v0.1.2-evaluation release notes](docs/00-evaluation/v0.1.2-evaluation-release-notes.md)
 - [Security Policy](SECURITY.md)
 - [Evaluation Smoke workflow](.github/workflows/evaluation-smoke.yml)
+- [Artifact attestation plan](docs/08-deployment/artifact-attestation-plan.md)
 
 ## What Attestor Does
 
-Attestor is the approval layer between an AI-assisted system and a real effect:
+Attestor is admission control for important AI-driven consequences:
 
 ```text
 AI proposes -> Attestor admits / narrows / reviews / blocks -> allowed consequences proceed -> proof remains
 ```
 
-Use it where "the AI decided" is not enough:
+Use it where an AI-assisted system should not be able to create a consequence just because it can form a request:
 
-- a financial record is about to be released
-- money movement is about to be sent, authorized, or settled
-- a downstream write, filing, settlement, or execution path is about to run
-- authority, policy, evidence, freshness, or enforcement is missing
+- release a financial record
+- send, authorize, or hand off money movement
+- approve a programmable-money action before a wallet, Safe, custody callback, or solver flow sees it
+- export sensitive data or run a live database-backed report
+- send customer, legal, compliance, or filing communications
+- mutate account status, permissions, entitlements, or admin state
+- trigger deployment, infrastructure, incident, or operational changes
 
-Attestor returns a bounded decision and proof references. The customer system enforces the decision. If the checks cannot close, the safe outcome is not "try anyway"; it is hold, review, or block.
+The posture is fail-closed. If policy, authority, evidence, freshness, scope, or verification cannot close, the consequence does not proceed silently.
+
+## Why It Exists
+
+Most AI safety layers focus on prompts, outputs, model behavior, or tool routing. Those matter, but they are not enough for enterprise systems where the costly event is downstream:
+
+```text
+bad instruction -> plausible model output -> tool call -> real system changed
+```
+
+Attestor treats the proposed consequence as the object of control. It does not need the model to become perfectly reliable. It requires the action to pass a bounded admission decision before the system of record, payment layer, wallet, filing path, admin plane, or operational workflow is allowed to act.
+
+This is the category: **AI consequence infrastructure**. Not a chatbot feature. Not a prompt wrapper. Not a generic agent workspace. A gateway before important AI actions become real.
 
 ## Try It In 60 Seconds
 
@@ -52,11 +66,11 @@ npm install
 npm run example:admission
 ```
 
-You will see the gateway behavior directly:
+You will see:
 
 - one proposed consequence admitted with proof references
 - one proposed consequence blocked fail-closed
-- a customer-side gate that refuses to run the downstream action unless Attestor allows it
+- a customer-side gate that only proceeds when Attestor allows it
 
 For a guided first run, see [Try Attestor first](docs/01-overview/try-attestor-first.md).
 
@@ -86,11 +100,11 @@ npm run verify
 
 It is a local static proof surface; it does not start a hosted console or claim a public hosted crypto route.
 
-`npm run showcase:proof` generates a local PostgreSQL-backed proof packet. Without a live upstream model, `verify:cert` reports `PROOF_DEGRADED` and exits non-zero by design. The full local release gate remains `npm run verify`.
+`npm run showcase:proof` generates a local PostgreSQL-backed proof packet. Without a live upstream model, `verify:cert` reports `PROOF_DEGRADED` and exits non-zero by design. The green local release gate remains `npm run verify`.
 
 ## Decision Model
 
-The gateway never returns an open-ended "looks good." It returns one of four bounded outcomes:
+Attestor never returns an open-ended "looks good." It returns one of four bounded outcomes:
 
 | Decision | Meaning |
 |---|---|
@@ -142,13 +156,13 @@ The first hard boundary is:
 AI output -> structured financial record release
 ```
 
-This is where weak acceptance models break quickly. Reviewer authority matters. Deterministic checks matter. Portable proof matters. Auditability is not optional. Finance is the current proving ground, not the ceiling of the platform.
+This is a proving wedge, not the ceiling. The same admission model applies to money-adjacent actions, programmable-money handoffs, data exports, authority changes, regulated filings, customer communications, and operational execution.
 
 See [AI-assisted financial reporting acceptance](docs/01-overview/financial-reporting-acceptance.md).
 
 ## Architecture: Core And Packs
 
-Attestor is one gateway with a shared admission core and modular packs for specific consequence domains.
+Attestor is one product with a shared consequence-gateway core and modular packs for specific consequence domains.
 
 One product. One platform core.
 
@@ -182,8 +196,9 @@ The current evaluation baseline already includes:
 - protected-route guards that disable anonymous tenant fallback in production-like runtimes
 - connector proof paths that sanitize connection URLs before exposing proof or probe material
 - PostgreSQL proof connector limits including read-only transactions, statement timeouts, row limits, and schema allowlists when configured
-- CI coverage for evaluation smoke, CodeQL, dependency review, and high/critical npm audit gates
+- CI coverage for evaluation smoke, CodeQL, dependency review, high/critical npm audit gates, and supply-chain baseline checks
 - release signing provider readiness that distinguishes runtime-ephemeral, file-backed, and external KMS-style provider boundaries
+- explicit live/ops verification separation so external live integrations are not implied by a secretless reviewer run
 
 Proof and logs are not a place to dump secrets. Access tokens, private keys, database connection strings, payment details, and sensitive personal data should be masked, hashed, encrypted, or kept out unless a deployment deliberately configures otherwise.
 
