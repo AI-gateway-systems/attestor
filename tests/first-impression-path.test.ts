@@ -61,10 +61,13 @@ function testReadmeHasAFirstImpressionPath(): void {
   includes(readme, 'npm run proof:surface', 'README: exposes the proof surface command near the first proof explanation');
   includes(readme, 'POST /api/v1/admissions', 'README: exposes the generic admission route');
   includes(readme, '`observe`, `warn`, `review`, or `enforce`', 'README: explains the generic mode ladder');
+  includes(readme, '## Consequence Packs', 'README: introduces consequence packs before architecture');
+  includes(readme, 'The pack is the consequence class. Adapters sit underneath it.', 'README: keeps consequence packs above adapters');
   includes(readme, 'Attestor is designed as a control point, not a data lake.', 'README: explains data handling posture early');
   includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'README: links to the guided first run');
   appearsBefore(readme, '## Current Status', '## Architecture: Core And Packs', 'README: keeps evaluation boundary before architecture');
   appearsBefore(readme, '## Try It In 60 Seconds', '## Architecture: Core And Packs', 'README: keeps the runnable path before product packaging');
+  appearsBefore(readme, '## Consequence Packs', '## Architecture: Core And Packs', 'README: names consequence packs before architecture detail');
   appearsBefore(readme, 'npm run proof:surface', '## Architecture: Core And Packs', 'README: keeps proof inspection before platform packaging');
   appearsBefore(readme, '## Data And Security Posture', '## What Attestor Is Not', 'README: explains trust boundaries before non-claims');
 }
