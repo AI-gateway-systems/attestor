@@ -17,6 +17,19 @@ import {
   CONSEQUENCE_ADMISSION_TAXONOMY,
   type ConsequenceAdmissionKnownConsequenceKind,
 } from './taxonomy.js';
+import {
+  CONSEQUENCE_ADMISSION_POLICY_LIMIT_BREACH_ACTIONS,
+  CONSEQUENCE_ADMISSION_POLICY_LIMIT_KINDS,
+} from './policy-limits.js';
+import {
+  CONSEQUENCE_ADMISSION_PRESENTATION_BINDING_FIELDS,
+} from './presentation-binding.js';
+import {
+  CONSEQUENCE_ADMISSION_PRESENTATION_REPLAY_LEDGER_FAILURE_REASONS,
+} from './presentation-replay-ledger.js';
+import {
+  CONSEQUENCE_ADMISSION_DOWNSTREAM_EXECUTION_STATUSES,
+} from './downstream-execution-receipt.js';
 
 export const CONSEQUENCE_ADMISSION_CONTRACT_VERSION =
   'attestor.consequence-admission.v1';
@@ -231,6 +244,11 @@ export interface ConsequenceAdmissionDescriptor {
   readonly consequenceDomains: typeof CONSEQUENCE_ADMISSION_DOMAINS;
   readonly controlRequirements: typeof CONSEQUENCE_ADMISSION_CONTROL_REQUIREMENTS;
   readonly taxonomy: typeof CONSEQUENCE_ADMISSION_TAXONOMY;
+  readonly policyLimitKinds: typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_KINDS;
+  readonly policyLimitBreachActions: typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_BREACH_ACTIONS;
+  readonly presentationBindingFields: typeof CONSEQUENCE_ADMISSION_PRESENTATION_BINDING_FIELDS;
+  readonly presentationReplayLedgerFailureReasons: typeof CONSEQUENCE_ADMISSION_PRESENTATION_REPLAY_LEDGER_FAILURE_REASONS;
+  readonly downstreamExecutionStatuses: typeof CONSEQUENCE_ADMISSION_DOWNSTREAM_EXECUTION_STATUSES;
 }
 
 export interface CreateConsequenceAdmissionRequestInput {
@@ -661,10 +679,19 @@ ConsequenceAdmissionDescriptor {
     consequenceDomains: CONSEQUENCE_ADMISSION_DOMAINS,
     controlRequirements: CONSEQUENCE_ADMISSION_CONTROL_REQUIREMENTS,
     taxonomy: CONSEQUENCE_ADMISSION_TAXONOMY,
+    policyLimitKinds: CONSEQUENCE_ADMISSION_POLICY_LIMIT_KINDS,
+    policyLimitBreachActions: CONSEQUENCE_ADMISSION_POLICY_LIMIT_BREACH_ACTIONS,
+    presentationBindingFields: CONSEQUENCE_ADMISSION_PRESENTATION_BINDING_FIELDS,
+    presentationReplayLedgerFailureReasons: CONSEQUENCE_ADMISSION_PRESENTATION_REPLAY_LEDGER_FAILURE_REASONS,
+    downstreamExecutionStatuses: CONSEQUENCE_ADMISSION_DOWNSTREAM_EXECUTION_STATUSES,
   });
 }
 
 export * from './taxonomy.js';
+export * from './policy-limits.js';
+export * from './presentation-binding.js';
+export * from './presentation-replay-ledger.js';
+export * from './downstream-execution-receipt.js';
 export * from './downstream-enforcement-contract.js';
 export * from './verifier-helper.js';
 export * from './finance.js';

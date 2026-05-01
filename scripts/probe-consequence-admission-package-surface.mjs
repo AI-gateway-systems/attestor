@@ -64,6 +64,44 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.consequenceAdmissionPolicyLimitDescriptor().limitKinds.includes('velocity'),
+  true,
+);
+assert.equal(
+  typeof admission.evaluateConsequenceAdmissionPolicyLimits,
+  'function',
+);
+assert.equal(
+  admission.consequenceAdmissionPresentationBindingDescriptor().bindingFields.includes(
+    'body-digest',
+  ),
+  true,
+);
+assert.equal(
+  typeof admission.evaluateConsequenceAdmissionPresentationBinding,
+  'function',
+);
+assert.equal(
+  admission.consequenceAdmissionPresentationReplayLedgerDescriptor().failureReasons.includes(
+    'replay-key-already-consumed',
+  ),
+  true,
+);
+assert.equal(
+  typeof admission.createConsequenceAdmissionPresentationReplayLedger,
+  'function',
+);
+assert.equal(
+  admission.consequenceAdmissionDownstreamExecutionReceiptDescriptor().statuses.includes(
+    'succeeded',
+  ),
+  true,
+);
+assert.equal(
+  typeof admission.recordConsequenceAdmissionDownstreamExecution,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

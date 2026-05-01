@@ -29,6 +29,14 @@ The output is grouped into four practical parts:
 
 This is the simplest way to see Attestor's role: proof first, action second.
 
+To see the stronger customer-side shape after that, run:
+
+```bash
+npm run example:non-bypassable-gateway
+```
+
+That demo shows a payment adapter whose dispatch function is only reachable after the verifier helper allows the Attestor admission.
+
 ## What This Does Not Claim
 
 - It is not a universal hosted admission route.
@@ -42,6 +50,7 @@ Customer systems still choose the relevant Attestor surface explicitly.
 
 - Need the shared admission vocabulary? Read [Consequence Admission Quickstart](consequence-admission-quickstart.md).
 - Need to wire the decision into your own app? Read [Customer admission gate](customer-admission-gate.md).
+- Need to see the no-bypass adapter shape? Read [Non-bypassable gateway demo](non-bypassable-gateway-demo.md).
 - Need the first hosted call after signup? Read [First hosted API call](hosted-first-api-call.md).
 - Need the finance and crypto entry paths? Read [Finance and crypto first integrations](finance-and-crypto-first-integrations.md).
 - Need pricing, evaluation, or hosted trial details? Read [Commercial packaging, pricing, and evaluation](product-packaging.md).

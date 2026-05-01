@@ -35,8 +35,12 @@ Attestor owns the control point before consequence:
 - later verification path
 
 For the shared consequence-domain vocabulary behind these examples, see [Consequence taxonomy](../02-architecture/consequence-taxonomy.md).
+For amount, velocity, scope, allowlist, and review-threshold limits, see [Policy limit model](../02-architecture/policy-limit-model.md).
 For the customer-side allow/hold binding before downstream execution, see [Downstream enforcement contract](../02-architecture/downstream-enforcement-contract.md).
 For the small adapter-side verify/assert wrapper, see [Verifier helper](../02-architecture/verifier-helper.md).
+For target, body, replay, nonce, freshness, proof, and constraint binding at the final customer edge, see [Downstream presentation binding](../02-architecture/downstream-presentation-binding.md).
+For single-use replay consumption with redacted receipts, see [Presentation replay ledger](../02-architecture/presentation-replay-ledger.md).
+For post-consequence result receipts that avoid raw downstream data, see [Downstream execution receipt](../02-architecture/downstream-execution-receipt.md).
 
 ## Start With The Smallest Useful Path
 
@@ -45,6 +49,7 @@ For local evaluation:
 ```bash
 npm run example:admission
 npm run example:customer-gate
+npm run example:non-bypassable-gateway
 ```
 
 For hosted evaluation:
@@ -56,6 +61,8 @@ For hosted evaluation:
 5. enforce the customer gate before the downstream action
 
 See [First hosted API call](hosted-first-api-call.md) for the hosted path and [Customer admission gate](customer-admission-gate.md) for the customer-side enforcement helper.
+
+See [Non-bypassable gateway demo](non-bypassable-gateway-demo.md) for the protected adapter shape where the downstream dispatch path cannot skip verifier allow.
 
 For concrete placement examples in customer applications, see [Customer integration recipes](customer-integration-recipes.md).
 

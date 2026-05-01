@@ -73,6 +73,7 @@ You will see:
 - one proposed consequence admitted with proof references
 - one proposed consequence blocked fail-closed
 - a customer-side gate that only proceeds when Attestor allows it
+- a non-bypassable gateway demo where a payment adapter cannot dispatch without verifier allow
 
 For a guided first run, see [Try Attestor first](docs/01-overview/try-attestor-first.md).
 
@@ -84,6 +85,9 @@ npm run example:admission
 
 # Customer-side enforcement demo
 npm run example:customer-gate
+
+# Non-bypassable gateway demo
+npm run example:non-bypassable-gateway
 
 # Local cross-pack proof surface
 npm run proof:surface
@@ -187,6 +191,14 @@ The [downstream enforcement contract](docs/02-architecture/downstream-enforcemen
 
 The [verifier helper](docs/02-architecture/verifier-helper.md) is the small customer-side wrapper for that contract. A downstream adapter can call `verify` for a structured hold decision or `assert` to stop execution fail-closed.
 
+The [policy limit model](docs/02-architecture/policy-limit-model.md) gives those admissions bounded policy material: amount caps, velocity windows, recipient and asset allowlists, data scope, authority scope, time windows, risk ceilings, and review thresholds.
+
+The [downstream presentation binding](docs/02-architecture/downstream-presentation-binding.md) binds an allowed admission to the exact enforcement point, target, method, body digest, replay key, nonce, freshness window, proof refs, and acknowledged constraints that are about to cross into the real system.
+
+The [presentation replay ledger](docs/02-architecture/presentation-replay-ledger.md) consumes that replay key once. The evaluation helper keeps exported ledger entries redacted; production deployments should back the same contract with a shared atomic store at the enforcement edge.
+
+The [downstream execution receipt](docs/02-architecture/downstream-execution-receipt.md) records what happened after the replay key was consumed: succeeded, failed, or skipped, with result/error/receipt material kept as digests instead of raw downstream data.
+
 The release layer turns a decision into something the rest of the system can inspect: deterministic checks, release tokens, reviewer queues, evidence packs, and proof references. This is where "the AI said so" becomes a bounded release decision.
 
 The policy control plane is where authority changes are controlled: signed policy bundles, activation, rollback, scoping, simulation, and audit trail. A gateway without policy provenance is only an interruption point.
@@ -242,6 +254,7 @@ Start here:
 - [Consequence admission quickstart](docs/01-overview/consequence-admission-quickstart.md) - package facade and first admission call
 - [Attestor operating model](docs/01-overview/operating-model.md) - decision vocabulary and placement model
 - [Customer admission gate](docs/01-overview/customer-admission-gate.md) - first customer-side enforcement step
+- [Non-bypassable gateway demo](docs/01-overview/non-bypassable-gateway-demo.md) - protected adapter demo with no verifier bypass
 - [Customer integration recipes](docs/01-overview/customer-integration-recipes.md) - where to put Attestor in an existing app
 - [Commercial packaging, pricing, and evaluation](docs/01-overview/product-packaging.md) - commercial truth source and evaluation boundary
 - [Hosted customer journey](docs/01-overview/hosted-customer-journey.md) - hosted account and checkout path
@@ -253,6 +266,10 @@ Start here:
 - [Consequence taxonomy](docs/02-architecture/consequence-taxonomy.md) - consequence domains, risk floors, and minimum controls
 - [Downstream enforcement contract](docs/02-architecture/downstream-enforcement-contract.md) - customer-side allow/hold contract before downstream action
 - [Verifier helper](docs/02-architecture/verifier-helper.md) - customer-side verify/assert helper for downstream adapters
+- [Policy limit model](docs/02-architecture/policy-limit-model.md) - amount, velocity, scope, allowlist, and review-threshold limits
+- [Downstream presentation binding](docs/02-architecture/downstream-presentation-binding.md) - target, body, replay, nonce, freshness, proof, and constraint binding
+- [Presentation replay ledger](docs/02-architecture/presentation-replay-ledger.md) - single-use replay consumption with redacted receipts
+- [Downstream execution receipt](docs/02-architecture/downstream-execution-receipt.md) - redacted result receipt after replay consumption
 - [Proof console buildout](docs/02-architecture/proof-console-buildout.md) - local proof-surface tracker
 - [Production runtime hardening buildout](docs/02-architecture/production-runtime-hardening-buildout.md) - runtime profile and fail-closed hardening tracker
 - [Production shared authority plane buildout](docs/02-architecture/production-shared-authority-plane-buildout.md) - shared production authority-plane tracker

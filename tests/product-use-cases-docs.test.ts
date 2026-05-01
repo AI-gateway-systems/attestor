@@ -38,10 +38,12 @@ function testUseCaseBridgeStaysConcrete(): void {
   includes(doc, 'Attestor owns the control point before consequence:', 'Use cases: Attestor role is explicit');
   includes(doc, 'npm run example:admission', 'Use cases: local first-run command is present');
   includes(doc, 'npm run example:customer-gate', 'Use cases: customer gate command is present');
+  includes(doc, 'npm run example:non-bypassable-gateway', 'Use cases: non-bypassable gateway command is present');
   includes(doc, 'POST /api/v1/pipeline/run', 'Use cases: hosted finance route is present');
   includes(doc, 'attestor/consequence-admission', 'Use cases: package facade is present');
   includes(doc, '[First hosted API call](hosted-first-api-call.md)', 'Use cases: hosted next step is linked');
   includes(doc, '[Customer admission gate](customer-admission-gate.md)', 'Use cases: customer gate next step is linked');
+  includes(doc, '[Non-bypassable gateway demo](non-bypassable-gateway-demo.md)', 'Use cases: non-bypassable gateway next step is linked');
 }
 
 function testUseCaseBridgeDoesNotOverclaim(): void {

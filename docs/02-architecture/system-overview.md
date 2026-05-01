@@ -26,6 +26,14 @@ The customer-side allow/hold contract lives in [Downstream enforcement contract]
 
 The practical customer-side helper lives in [Verifier helper](verifier-helper.md). Use it when wiring an adapter that should call `verify` or `assert` before a downstream system acts.
 
+The shared limit vocabulary lives in [Policy limit model](policy-limit-model.md). Use it when a proposed consequence must carry amount caps, velocity windows, recipient or asset allowlists, data scope, authority scope, time bounds, risk ceilings, or review thresholds before admission.
+
+The execution handoff vocabulary lives in [Downstream presentation binding](downstream-presentation-binding.md). Use it when the enforcement point must bind an allowed admission to the exact target, body digest, replay key, nonce, freshness window, proof references, and acknowledged constraints it is about to present to a real system.
+
+The single-use replay consumption shape lives in [Presentation replay ledger](presentation-replay-ledger.md). Use it when a customer enforcement point must consume the presentation replay key once and keep redacted evidence that the key was not reused.
+
+The post-consequence result shape lives in [Downstream execution receipt](downstream-execution-receipt.md). Use it when the customer edge must record whether the consequence succeeded, failed, or was skipped after replay consumption, without storing raw downstream payloads or error bodies.
+
 ## Shared Platform Core
 
 The platform core is made of reusable layers:
@@ -72,6 +80,14 @@ The taxonomy comes before the pack. A pack may add native adapters and evidence 
 The downstream contract comes before execution. A downstream integration should not act on an Attestor response until the admission id, digest, decision, consequence domain, downstream system, policy scope, proof, replay/idempotency binding, and any `narrow` constraints match the customer enforcement point.
 
 The verifier helper packages that rule into a small customer-side API. It does not replace signed release-token verification; it gives the downstream adapter a consistent fail-closed check before it enters the stronger release-enforcement plane or the customer-owned execution layer.
+
+The policy limit model sits before both. It prevents broad "yes" decisions by making the admitted consequence bounded: how much, how often, to whom, over what data, under which authority, in what window, and when human review becomes mandatory.
+
+The presentation binding sits at the last customer-side edge. It prevents an admitted decision from being copied into a different target, body, replay attempt, or enforcement point.
+
+The replay ledger is the consumption step after presentation binding. It turns replay posture from a caller-provided fact into an explicit single-use contract, while keeping raw replay keys, targets, and nonces out of exported entries.
+
+The execution receipt closes the path. It binds the observed downstream result back to the admission, presentation, and replay receipt so the proof trail does not stop at permission.
 
 ## Finance Pack
 
