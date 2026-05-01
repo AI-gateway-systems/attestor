@@ -39,6 +39,12 @@ const tenant: TenantContext = {
   monthlyRunQuota: 100,
 };
 
+const tenantB: TenantContext = {
+  ...tenant,
+  tenantId: 'tenant_shadow_simulation_b',
+  tenantName: 'Shadow Simulation Tenant B',
+};
+
 function createEvent(): ShadowAdmissionEvent {
   return createShadowAdmissionEvent({
     admission: createGenericAdmissionEnvelope({
@@ -65,11 +71,19 @@ function createEvent(): ShadowAdmissionEvent {
   });
 }
 
-function createApp(events: readonly ShadowAdmissionEvent[]): Hono {
-  const simulationStore = createFileBackedShadowPolicySimulationReportStore({ path: simulationPath });
+function createApp(
+  events: readonly ShadowAdmissionEvent[],
+  options?: {
+    readonly routeTenant?: TenantContext;
+    readonly simulationStore?: ReturnType<typeof createFileBackedShadowPolicySimulationReportStore>;
+  },
+): Hono {
+  const simulationStore =
+    options?.simulationStore ?? createFileBackedShadowPolicySimulationReportStore({ path: simulationPath });
+  const routeTenant = options?.routeTenant ?? tenant;
   const app = new Hono();
   registerShadowRoutes(app, {
-    currentTenant: () => tenant,
+    currentTenant: () => routeTenant,
     listShadowEvents: ({ tenant: routeTenant }) =>
       routeTenant.tenantId === tenant.tenantId ? events : [],
     listShadowSimulations: ({ tenant: routeTenant }) =>
@@ -192,7 +206,10 @@ async function testInvalidSimulationInputsFailClosed(): Promise<void> {
   const invalidMinimum = await app.request('/api/v1/shadow/simulations', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ minimumPromotionEvents: 0 }),
+    body: JSON.stringify({
+      proposedMode: 'review',
+      minimumPromotionEvents: 0,
+    }),
   });
   const invalidListMode = await app.request('/api/v1/shadow/simulations?proposedMode=force');
   const missing = await app.request('/api/v1/shadow/simulations/shadow-simulation%3Amissing');
@@ -203,11 +220,67 @@ async function testInvalidSimulationInputsFailClosed(): Promise<void> {
   equal(missing.status, 404, 'Shadow simulation history route: missing report returns 404');
 }
 
+async function testExplicitModeAndEventLimitFailClosed(): Promise<void> {
+  const app = createApp([createEvent()]);
+  const noBody = await app.request('/api/v1/shadow/simulations', {
+    method: 'POST',
+  });
+  const missingMode = await app.request('/api/v1/shadow/simulations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  const event = createEvent();
+  const tooManyEvents = Array.from({ length: 10_001 }, () => event);
+  const tooManyApp = createApp(tooManyEvents);
+  const tooMany = await tooManyApp.request('/api/v1/shadow/simulations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      proposedMode: 'review',
+    }),
+  });
+
+  equal(noBody.status, 400, 'Shadow simulation history route: JSON body is required');
+  equal(missingMode.status, 400, 'Shadow simulation history route: proposedMode is required');
+  equal(tooMany.status, 400, 'Shadow simulation history route: oversized event windows are rejected');
+}
+
+async function testCrossTenantSimulationLookupIsIsolated(): Promise<void> {
+  const simulationStore = createFileBackedShadowPolicySimulationReportStore({ path: simulationPath });
+  const tenantAApp = createApp([createEvent()], { routeTenant: tenant, simulationStore });
+  const createResponse = await tenantAApp.request('/api/v1/shadow/simulations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      proposedMode: 'review',
+    }),
+  });
+  const createBody = await createResponse.json() as {
+    readonly report: { readonly reportId: string };
+  };
+  const tenantBApp = createApp([], { routeTenant: tenantB, simulationStore });
+  const crossTenantLookup = await tenantBApp.request(
+    `/api/v1/shadow/simulations/${encodeURIComponent(createBody.report.reportId)}`,
+  );
+  const tenantBList = await tenantBApp.request('/api/v1/shadow/simulations');
+
+  equal(createResponse.status, 200, 'Shadow simulation history route: tenant A creates report');
+  equal(crossTenantLookup.status, 404, 'Shadow simulation history route: tenant B cannot lookup tenant A report');
+  equal(tenantBList.status, 200, 'Shadow simulation history route: tenant B list returns 200');
+  const tenantBListBody = await tenantBList.json() as { readonly recordCount: number };
+  equal(tenantBListBody.recordCount, 0, 'Shadow simulation history route: tenant B list is isolated');
+}
+
 try {
   resetShadowPersistenceStoresForTests({ policySimulationReportPath: simulationPath });
   await testSimulationHistoryRoutesPersistAndReplayReports();
   resetShadowPersistenceStoresForTests({ policySimulationReportPath: simulationPath });
   await testInvalidSimulationInputsFailClosed();
+  resetShadowPersistenceStoresForTests({ policySimulationReportPath: simulationPath });
+  await testExplicitModeAndEventLimitFailClosed();
+  resetShadowPersistenceStoresForTests({ policySimulationReportPath: simulationPath });
+  await testCrossTenantSimulationLookupIsIsolated();
 
   console.log(`Shadow simulation history route tests: ${passed} passed, 0 failed`);
 } finally {

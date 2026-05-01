@@ -13,6 +13,7 @@ import type {
 
 export const SHADOW_POLICY_SIMULATION_VERSION =
   'attestor.shadow-policy-simulation.v1';
+export const SHADOW_POLICY_SIMULATION_MAX_EVENTS = 10_000;
 
 export const SHADOW_POLICY_RECOMMENDATION_KINDS = [
   'define-policy',
@@ -422,6 +423,11 @@ function reportIdFor(input: {
 export function createShadowPolicySimulationReport(
   input: CreateShadowPolicySimulationReportInput,
 ): ShadowPolicySimulationReport {
+  if (input.events.length > SHADOW_POLICY_SIMULATION_MAX_EVENTS) {
+    throw new Error(
+      `Shadow policy simulation event count exceeds maximum: ${input.events.length} > ${SHADOW_POLICY_SIMULATION_MAX_EVENTS}.`,
+    );
+  }
   const proposedMode = normalizeMode(input.proposedMode);
   const generatedAt = normalizeIsoTimestamp(
     input.generatedAt,

@@ -519,14 +519,18 @@ function normalizeSimulationRecord(
 
 function readSimulationStore(path: string): ShadowPolicySimulationReportStoreFile {
   if (!existsSync(path)) return defaultSimulationStore();
-  const parsed = JSON.parse(readFileSync(path, 'utf8')) as ShadowPolicySimulationReportStoreFile;
-  if (parsed.version !== 1 || !Array.isArray(parsed.records)) {
-    throw new Error('Shadow policy simulation report store file is invalid.');
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as ShadowPolicySimulationReportStoreFile;
+    if (parsed.version !== 1 || !Array.isArray(parsed.records)) {
+      throw new Error('invalid store shape');
+    }
+    return {
+      version: 1,
+      records: parsed.records.map(normalizeSimulationRecord),
+    };
+  } catch {
+    throw new Error('Shadow policy simulation report store corruption detected.');
   }
-  return {
-    version: 1,
-    records: parsed.records.map(normalizeSimulationRecord),
-  };
 }
 
 function saveSimulationStore(path: string, store: ShadowPolicySimulationReportStoreFile): void {

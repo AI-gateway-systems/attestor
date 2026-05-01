@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Hono } from 'hono';
@@ -278,6 +278,17 @@ function testSimulationReportStorePersistsTenantScopedReports(): void {
   );
 }
 
+function testSimulationReportStoreFailsClosedOnCorruption(): void {
+  const store = createFileBackedShadowPolicySimulationReportStore({ path: simulationPath });
+  writeFileSync(simulationPath, '{ invalid json', 'utf8');
+
+  throws(
+    () => store.list({ tenantId: tenantA.tenantId }),
+    /corruption detected/u,
+    'Shadow simulation persistence: corrupted store fails closed',
+  );
+}
+
 function testPolicyCandidateStorePreservesApprovalLifecycle(): void {
   const eventWithoutPolicy = createEvent({
     tenantId: tenantA.tenantId,
@@ -341,6 +352,8 @@ function testPolicyCandidateStorePreservesApprovalLifecycle(): void {
   const candidateFileText = readFileSync(candidatePath, 'utf8');
 
   ok(upsert.createdCount >= 1, 'Policy candidate persistence: bundle creates candidates');
+  equal(draft.sourceReportId, report.reportId, 'Policy candidate persistence: source report id is retained');
+  equal(draft.sourceReportDigest, report.digest, 'Policy candidate persistence: source report digest is retained');
   equal(proposed.status, 'proposed', 'Policy candidate persistence: candidate can be proposed');
   equal(approved.status, 'approved', 'Policy candidate persistence: candidate can be approved');
   equal(activated.status, 'activated', 'Policy candidate persistence: approved candidate can be activated');
@@ -382,6 +395,7 @@ try {
   testShadowAdmissionStorePersistsTenantScopedEvents();
   await testAdmissionRouteRecordsAndSummaryReadsPersistedEvents();
   testSimulationReportStorePersistsTenantScopedReports();
+  testSimulationReportStoreFailsClosedOnCorruption();
   testPolicyCandidateStorePreservesApprovalLifecycle();
 
   console.log(`Shadow persistence store tests: ${passed} passed, 0 failed`);
