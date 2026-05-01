@@ -165,6 +165,10 @@ export function recordAuthAttemptFailure(input: AuthAttemptSubject): AuthAttempt
   return checkAuthAttemptAllowed(input);
 }
 
+export function recordAuthAttemptUse(input: AuthAttemptSubject): AuthAttemptDecision {
+  return recordAuthAttemptFailure(input);
+}
+
 export function recordAuthAttemptSuccess(input: AuthAttemptSubject): void {
   emailBuckets.delete(normalizeEmail(input.email));
   sourceBuckets.delete(normalizeSource(input.source));

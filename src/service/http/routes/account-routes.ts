@@ -44,6 +44,7 @@ import {
   checkAuthAttemptAllowed,
   recordAuthAttemptFailure,
   recordAuthAttemptSuccess,
+  recordAuthAttemptUse,
   resolveAuthAttemptSource,
   type AuthAttemptDecision,
   type AuthAttemptSubject,
@@ -123,11 +124,19 @@ function authAttemptFor(context: Context, email: string): AuthAttemptSubject {
 }
 
 function authAttemptForPasswordReset(context: Context, resetToken: string): AuthAttemptSubject {
-  const normalized = resetToken.trim();
+  return authAttemptForActionToken(context, 'password-reset', resetToken);
+}
+
+function authAttemptForActionToken(
+  context: Context,
+  purpose: 'invite' | 'password-reset',
+  token: string,
+): AuthAttemptSubject {
+  const normalized = token.trim();
   const tokenBucket = normalized
     ? createHash('sha256').update(normalized).digest('hex').slice(0, 24)
     : 'missing-token';
-  return authAttemptFor(context, `password-reset:${tokenBucket}`);
+  return authAttemptFor(context, `${purpose}:${tokenBucket}`);
 }
 
 function authRateLimitResponse(context: Context, decision: AuthAttemptDecision): Response {
@@ -1777,11 +1786,15 @@ app.post('/api/v1/account/users/invites/accept', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const inviteToken = typeof body.inviteToken === 'string' ? body.inviteToken.trim() : '';
   const password = typeof body.password === 'string' ? body.password : '';
+  const authAttempt = authAttemptForActionToken(c, 'invite', inviteToken);
+  const inviteAcceptRateLimit = maybeRateLimitAuthAttempt(c, authAttempt);
+  if (inviteAcceptRateLimit) return inviteAcceptRateLimit;
   try {
     const accepted = await userManagementService.acceptInvite({
       inviteToken,
       password,
     });
+    recordAuthAttemptSuccess(authAttempt);
     setSessionCookieForRecord(c, accepted.sessionToken, accepted.session.expiresAt);
     return c.json({
       accepted: true,
@@ -1795,7 +1808,12 @@ app.post('/api/v1/account/users/invites/accept', async (c) => {
     }, 201);
   } catch (err) {
     const mapped = accountUserManagementServiceErrorResponse(c, err);
-    if (mapped) return mapped;
+    if (mapped) {
+      if (err instanceof AccountUserManagementServiceError && err.statusCode === 400) {
+        recordAuthAttemptFailure(authAttempt);
+      }
+      return mapped;
+    }
     throw err;
   }
 });
@@ -1844,6 +1862,10 @@ app.post('/api/v1/account/users/:id/password-reset', async (c) => {
   const access = currentAccountAccess(c)!;
   const body = await c.req.json().catch(() => ({}));
   const ttlMinutes = typeof body.ttlMinutes === 'number' ? body.ttlMinutes : null;
+  const authAttempt = authAttemptFor(c, `password-reset-issue:${access.accountId}:${c.req.param('id')}`);
+  const resetIssueRateLimit = maybeRateLimitAuthAttempt(c, authAttempt);
+  if (resetIssueRateLimit) return resetIssueRateLimit;
+  recordAuthAttemptUse(authAttempt);
   try {
     const issued = await userManagementService.issuePasswordReset({
       accountId: access.accountId,

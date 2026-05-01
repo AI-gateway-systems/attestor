@@ -38,7 +38,7 @@ function notIncludes(content: string, unexpected: string, message: string): void
 }
 
 function workflow(): string {
-  return readProjectFile('.github', 'workflows', 'production-rehearsal.yml');
+  return readProjectFile('.github', 'workflows', 'production-rehearsal.yml').replace(/\r\n/g, '\n');
 }
 
 function testWorkflowIsManualOnly(): void {
