@@ -28,7 +28,8 @@ function testTopLevelPositioningStaysAligned(): void {
   const packaging = readProjectFile('docs', '01-overview', 'product-packaging.md');
   const useCases = readProjectFile('docs', '01-overview', 'what-you-can-do.md');
 
-  includes(readme, 'Attestor is one gateway with a shared admission core and modular packs for specific consequence domains.', 'Product docs: README keeps one-product framing');
+  includes(readme, 'Attestor is one product with a shared consequence-gateway core and modular packs for specific consequence domains.', 'Product docs: README keeps one-product framing');
+  includes(readme, 'AI consequence infrastructure', 'Product docs: README names the infrastructure category');
   includes(purpose, 'Attestor is one product:', 'Product docs: purpose keeps one-product framing');
   includes(systemOverview, 'Attestor should be understood as one product:', 'Product docs: system overview keeps one-product framing');
   includes(packaging, 'Attestor is one product:', 'Product docs: packaging keeps one-product framing');
