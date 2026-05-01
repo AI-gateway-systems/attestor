@@ -54,6 +54,7 @@ function testReadmeHasAFirstImpressionPath(): void {
   includes(readme, 'one proposed consequence admitted with proof references', 'README: explains admitted proof refs');
   includes(readme, 'one proposed consequence blocked fail-closed', 'README: explains blocked fail-closed path');
   includes(readme, 'a customer-side gate that only proceeds when Attestor allows it', 'README: explains downstream gate behavior');
+  includes(readme, 'a non-bypassable gateway demo where a payment adapter cannot dispatch without verifier allow', 'README: explains non-bypassable adapter behavior');
   includes(readme, '## Decision Model', 'README: makes the decision vocabulary prominent');
   includes(readme, '## Proof Model', 'README: surfaces proof as a first-class concept near the top');
   includes(readme, 'local proof artifacts that can be reviewed later', 'README: explains why proof matters');
@@ -70,6 +71,7 @@ function testTryFirstDocKeepsTheBoundaryHonest(): void {
   const doc = readProjectFile('docs', '01-overview', 'try-attestor-first.md');
 
   includes(doc, 'npm run example:admission', 'Try-first doc: includes the runnable command');
+  includes(doc, 'npm run example:non-bypassable-gateway', 'Try-first doc: includes the non-bypassable gateway command');
   includes(doc, 'one is admitted', 'Try-first doc: explains admitted path');
   includes(doc, 'one is blocked fail-closed', 'Try-first doc: explains blocked path');
   includes(doc, 'proposed consequence -> Attestor admission decision -> proof refs -> downstream gate', 'Try-first doc: explains the operating shape');
@@ -83,6 +85,7 @@ function testQuickstartPointsToTheFastPath(): void {
   const quickstart = readProjectFile('docs', '01-overview', 'consequence-admission-quickstart.md');
 
   includes(quickstart, '[Try Attestor first](try-attestor-first.md)', 'Quickstart: links to the shortest first run');
+  includes(quickstart, '[Non-bypassable gateway demo](non-bypassable-gateway-demo.md)', 'Quickstart: links to the protected adapter demo');
 }
 
 function testDemoOutputIsPitchReady(): void {
@@ -105,6 +108,7 @@ function testPackageScriptsProtectThePath(): void {
   };
 
   includes(packageJson.scripts['example:admission'], 'examples/first-useful-admission-demo.ts', 'Package: exposes the admission example');
+  includes(packageJson.scripts['example:non-bypassable-gateway'], 'examples/non-bypassable-gateway-demo.ts', 'Package: exposes the non-bypassable gateway example');
   includes(packageJson.scripts['test:first-impression-path'], 'tests/first-impression-path.test.ts', 'Package: exposes the first impression guard');
   includes(packageJson.scripts.test, 'scripts/run-suite.mjs test', 'Package: npm test delegates to the suite runner');
   includes(packageJson.scripts.verify, 'scripts/run-suite.mjs verify', 'Package: verify delegates to the suite runner');

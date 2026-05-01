@@ -73,6 +73,7 @@ You will see:
 - one proposed consequence admitted with proof references
 - one proposed consequence blocked fail-closed
 - a customer-side gate that only proceeds when Attestor allows it
+- a non-bypassable gateway demo where a payment adapter cannot dispatch without verifier allow
 
 For a guided first run, see [Try Attestor first](docs/01-overview/try-attestor-first.md).
 
@@ -84,6 +85,9 @@ npm run example:admission
 
 # Customer-side enforcement demo
 npm run example:customer-gate
+
+# Non-bypassable gateway demo
+npm run example:non-bypassable-gateway
 
 # Local cross-pack proof surface
 npm run proof:surface
@@ -242,6 +246,7 @@ Start here:
 - [Consequence admission quickstart](docs/01-overview/consequence-admission-quickstart.md) - package facade and first admission call
 - [Attestor operating model](docs/01-overview/operating-model.md) - decision vocabulary and placement model
 - [Customer admission gate](docs/01-overview/customer-admission-gate.md) - first customer-side enforcement step
+- [Non-bypassable gateway demo](docs/01-overview/non-bypassable-gateway-demo.md) - protected adapter demo with no verifier bypass
 - [Customer integration recipes](docs/01-overview/customer-integration-recipes.md) - where to put Attestor in an existing app
 - [Commercial packaging, pricing, and evaluation](docs/01-overview/product-packaging.md) - commercial truth source and evaluation boundary
 - [Hosted customer journey](docs/01-overview/hosted-customer-journey.md) - hosted account and checkout path

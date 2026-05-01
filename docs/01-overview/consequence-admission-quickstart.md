@@ -10,6 +10,7 @@ This quickstart does not add a new hosted route. It uses the public package faca
 
 For the shortest first run, start with [Try Attestor first](try-attestor-first.md).
 For the first customer-side enforcement step, see [Customer admission gate](customer-admission-gate.md).
+For the protected adapter shape, see [Non-bypassable gateway demo](non-bypassable-gateway-demo.md).
 
 ## Run The Local Demo
 
@@ -20,6 +21,14 @@ npm run example:admission
 ```
 
 The demo shows an allowed finance consequence and a blocked finance consequence. In both cases, the customer system proposes the consequence, Attestor returns a canonical admission decision, and the downstream gate proceeds only when the decision allows it.
+
+Use the non-bypassable gateway demo when you want to see the next step:
+
+```bash
+npm run example:non-bypassable-gateway
+```
+
+That demo shows a payment adapter that cannot dispatch without verifier allow.
 
 ## Rules
 

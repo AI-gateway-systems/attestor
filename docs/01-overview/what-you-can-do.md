@@ -45,6 +45,7 @@ For local evaluation:
 ```bash
 npm run example:admission
 npm run example:customer-gate
+npm run example:non-bypassable-gateway
 ```
 
 For hosted evaluation:
@@ -56,6 +57,8 @@ For hosted evaluation:
 5. enforce the customer gate before the downstream action
 
 See [First hosted API call](hosted-first-api-call.md) for the hosted path and [Customer admission gate](customer-admission-gate.md) for the customer-side enforcement helper.
+
+See [Non-bypassable gateway demo](non-bypassable-gateway-demo.md) for the protected adapter shape where the downstream dispatch path cannot skip verifier allow.
 
 For concrete placement examples in customer applications, see [Customer integration recipes](customer-integration-recipes.md).
 

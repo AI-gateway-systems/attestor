@@ -7,6 +7,7 @@ npm run example:customer-gate
 ```
 
 For concrete application placements, see [Customer integration recipes](customer-integration-recipes.md).
+For the stronger protected-adapter shape, see [Non-bypassable gateway demo](non-bypassable-gateway-demo.md).
 
 The example shows the customer-side step:
 
