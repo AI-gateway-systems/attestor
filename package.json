@@ -66,6 +66,7 @@
     "test:production-rehearsal-buildout-docs": "tsx tests/production-rehearsal-buildout-docs.test.ts",
     "test:production-rehearsal-manifest": "tsx tests/production-rehearsal-manifest.test.ts",
     "test:production-rehearsal-planner": "tsx tests/production-rehearsal-planner.test.ts",
+    "test:production-rehearsal-workflow": "tsx tests/production-rehearsal-workflow.test.ts",
     "test:production-rehearsal-target-profile": "tsx tests/production-rehearsal-target-profile.test.ts",
     "test:production-rehearsal-substrate-probe": "tsx tests/production-rehearsal-substrate-probe.test.ts",
     "test:production-rehearsal-consequence-behavior": "tsx tests/production-rehearsal-consequence-behavior.test.ts",
