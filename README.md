@@ -168,24 +168,30 @@ Attestor is one product with a shared consequence-gateway core and modular packs
 
 One product. One platform core.
 
-| Layer | Role | Current status |
-|---|---|---|
-| Consequence admission | common admit / narrow / review / block vocabulary and customer-side gate model | evaluation-packaged |
-| Release layer | decisions, deterministic checks, tokens, reviewer queue, evidence packs | evaluation-packaged |
-| Policy control plane | signed policy bundles, activation, rollback, scoping, simulation, audit trail | evaluation-packaged |
-| Enforcement plane | offline/online verification, gateways, DPoP, mTLS/SPIFFE, HTTP message signatures | evaluation-packaged |
-| Crypto authorization core | programmable-money authorization vocabulary, bindings, simulation, adapter preflight | evaluation-packaged |
+Read the architecture as a path, not a stack diagram:
+
+```text
+proposed consequence
+  -> consequence admission
+  -> policy, authority, evidence, freshness, and enforcement checks
+  -> bounded decision
+  -> proof material
+  -> downstream verification
+```
+
+The consequence-admission core gives every pack the same public language: `admit`, `narrow`, `review`, or `block`. Finance, crypto, data export, authority change, and future packs should not invent their own trust story. They attach to the same admission model.
+
+The release layer turns a decision into something the rest of the system can inspect: deterministic checks, release tokens, reviewer queues, evidence packs, and proof references. This is where "the AI said so" becomes a bounded release decision.
+
+The policy control plane is where authority changes are controlled: signed policy bundles, activation, rollback, scoping, simulation, and audit trail. A gateway without policy provenance is only an interruption point.
+
+The enforcement plane is the downstream edge. It verifies releases offline or online and fails closed when the required proof is absent, stale, out of scope, or invalid. This is the difference between advice and a gate.
+
+The crypto authorization core extends the same model into programmable-money surfaces: wallet RPC, Safe guards, ERC-4337 bundlers, modular accounts, delegated EOAs, x402 middleware, custody policy callbacks, intent-solver handoffs, telemetry receipts, and conformance fixtures. It is not a separate product identity; it is a pack on the shared consequence gateway.
+
+Finance remains the deepest proof wedge today. Crypto is the active programmable-money extension. Both exist to prove the same architectural claim: important AI actions should meet policy, authority, evidence, and verification before they reach the system that can make them real.
 
 Customer systems call the relevant Attestor path for the consequence they want to control. Attestor does not guess what to run automatically, and it does not bypass the customer's own enforcement point.
-
-## Pack Status
-
-| Pack | What it means today | Status |
-|---|---|---|
-| Finance | deepest proven path today; financial reporting is the current proof wedge | evaluation proving pack |
-| Crypto | packaged extension of the same policy / authority / proof / fail-closed model for programmable-money admission surfaces | authorization and execution-admission surfaces packaged for evaluation |
-
-The crypto pack applies the same gate to programmable-money surfaces: wallet RPC, Safe guard, ERC-4337 bundler, modular-account runtime, delegated-EOA runtime, x402 resource-server middleware, custody policy callbacks, intent-solver handoffs, telemetry receipts, and conformance fixtures. It extends the shared Attestor model; it is not a separate product identity.
 
 ## Data And Security Posture
 
