@@ -1283,6 +1283,7 @@ export * from './presentation-replay-ledger.js';
 export * from './downstream-execution-receipt.js';
 export * from './downstream-enforcement-contract.js';
 export * from './verifier-helper.js';
+export * from './shadow-events.js';
 export * from './finance.js';
 export * from './crypto.js';
 export * from './facade.js';
