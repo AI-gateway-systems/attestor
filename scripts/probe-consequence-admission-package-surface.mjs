@@ -92,6 +92,16 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.consequenceAdmissionDownstreamExecutionReceiptDescriptor().statuses.includes(
+    'succeeded',
+  ),
+  true,
+);
+assert.equal(
+  typeof admission.recordConsequenceAdmissionDownstreamExecution,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

@@ -92,6 +92,7 @@ function testFastSuiteKeepsCriticalCoverage(): void {
     'test:policy-limit-model',
     'test:downstream-presentation-binding',
     'test:presentation-replay-ledger',
+    'test:downstream-execution-receipt',
     'test:non-bypassable-gateway-demo',
     'test:first-impression-path',
     'test:proof-surface-readiness',

@@ -16,6 +16,7 @@ Attestor admission
   -> presentation binding
   -> replay ledger consumption
   -> downstream action
+  -> downstream execution receipt
 ```
 
 ## Why It Exists
@@ -70,6 +71,8 @@ second consume:
 
 The downstream payment adapter should continue only after consumption succeeds. A passed presentation binding without replay consumption is not enough for money movement.
 
+After the downstream action is attempted, record the observed result with [Downstream execution receipt](downstream-execution-receipt.md).
+
 ## Example: Wallet Handoff
 
 A wallet adapter may bind a Safe transaction, wallet RPC request, ERC-4337 user operation, custody callback, or solver handoff to a replay key.
@@ -98,4 +101,5 @@ Production money, crypto, data export, admin, and operations flows should use a 
 - [Downstream enforcement contract](downstream-enforcement-contract.md) decides whether this enforcement point may act.
 - [Downstream presentation binding](downstream-presentation-binding.md) binds the allowed admission to target, body, nonce, proof, constraints, and freshness.
 - The replay ledger consumes the presentation replay key once.
+- [Downstream execution receipt](downstream-execution-receipt.md) records the observed result after replay consumption.
 - The release-enforcement plane remains the deeper cryptographic path for signed release tokens, DPoP, HTTP message signatures, online introspection, and gateway verification.
