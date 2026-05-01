@@ -6,5 +6,6 @@ dist/
 *.pem
 snowflake.log
 .attestor/
+.attestor-test-runs/
 *.log
 tmp-qrda3.xml

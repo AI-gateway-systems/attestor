@@ -16,7 +16,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { AccountUserRole } from './account-user-store.js';
-import { writeTextFileAtomic } from './file-store.js';
+import { withFileLock, writeTextFileAtomic } from './file-store.js';
 
 export type AccountUserActionTokenPurpose =
   | 'invite'
@@ -163,6 +163,13 @@ function saveStore(store: AccountUserActionTokenStoreFile): void {
   const path = storePath();
   mkdirSync(dirname(path), { recursive: true });
   writeTextFileAtomic(path, `${JSON.stringify(store, null, 2)}\n`);
+}
+
+function withAccountUserActionTokenStoreLock<T>(
+  action: (store: AccountUserActionTokenStoreFile, path: string) => T,
+): T {
+  const path = storePath();
+  return withFileLock(path, () => action(loadStore(), path));
 }
 
 function isExpired(record: AccountUserActionTokenRecord, now = Date.now()): boolean {
@@ -316,17 +323,18 @@ export function issueAccountInviteToken(input: IssueAccountInviteTokenInput): {
   record: AccountUserActionTokenRecord;
   path: string;
 } {
-  const store = loadStore();
-  pruneExpired(store);
-  const normalizedEmail = normalizeEmail(input.email);
-  revokeMatching(
-    store,
-    (record) => record.purpose === 'invite' && record.accountId === input.accountId && record.email === normalizedEmail,
-  );
-  const issued = buildAccountInviteTokenRecord(input);
-  store.records.push(issued.record);
-  saveStore(store);
-  return { token: issued.token, record: issued.record, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    pruneExpired(store);
+    const normalizedEmail = normalizeEmail(input.email);
+    revokeMatching(
+      store,
+      (record) => record.purpose === 'invite' && record.accountId === input.accountId && record.email === normalizedEmail,
+    );
+    const issued = buildAccountInviteTokenRecord(input);
+    store.records.push(issued.record);
+    saveStore(store);
+    return { token: issued.token, record: issued.record, path };
+  });
 }
 
 export function issuePasswordResetToken(input: IssuePasswordResetTokenInput): {
@@ -334,16 +342,17 @@ export function issuePasswordResetToken(input: IssuePasswordResetTokenInput): {
   record: AccountUserActionTokenRecord;
   path: string;
 } {
-  const store = loadStore();
-  pruneExpired(store);
-  revokeMatching(
-    store,
-    (record) => record.purpose === 'password_reset' && record.accountUserId === input.accountUserId,
-  );
-  const issued = buildPasswordResetTokenRecord(input);
-  store.records.push(issued.record);
-  saveStore(store);
-  return { token: issued.token, record: issued.record, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    pruneExpired(store);
+    revokeMatching(
+      store,
+      (record) => record.purpose === 'password_reset' && record.accountUserId === input.accountUserId,
+    );
+    const issued = buildPasswordResetTokenRecord(input);
+    store.records.push(issued.record);
+    saveStore(store);
+    return { token: issued.token, record: issued.record, path };
+  });
 }
 
 export function issueAccountMfaLoginToken(input: IssueAccountMfaLoginTokenInput): {
@@ -351,16 +360,17 @@ export function issueAccountMfaLoginToken(input: IssueAccountMfaLoginTokenInput)
   record: AccountUserActionTokenRecord;
   path: string;
 } {
-  const store = loadStore();
-  pruneExpired(store);
-  revokeMatching(
-    store,
-    (record) => record.purpose === 'mfa_login' && record.accountUserId === input.accountUserId,
-  );
-  const issued = buildAccountMfaLoginTokenRecord(input);
-  store.records.push(issued.record);
-  saveStore(store);
-  return { token: issued.token, record: issued.record, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    pruneExpired(store);
+    revokeMatching(
+      store,
+      (record) => record.purpose === 'mfa_login' && record.accountUserId === input.accountUserId,
+    );
+    const issued = buildAccountMfaLoginTokenRecord(input);
+    store.records.push(issued.record);
+    saveStore(store);
+    return { token: issued.token, record: issued.record, path };
+  });
 }
 
 export function issueAccountPasskeyChallengeToken(input: IssueAccountPasskeyChallengeTokenInput): {
@@ -368,121 +378,130 @@ export function issueAccountPasskeyChallengeToken(input: IssueAccountPasskeyChal
   record: AccountUserActionTokenRecord;
   path: string;
 } {
-  const store = loadStore();
-  pruneExpired(store);
-  revokeMatching(
-    store,
-    (record) =>
-      record.accountUserId === input.accountUserId
-      && record.purpose === input.purpose,
-  );
-  const issued = buildAccountPasskeyChallengeTokenRecord(input);
-  store.records.push(issued.record);
-  saveStore(store);
-  return { token: issued.token, record: issued.record, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    pruneExpired(store);
+    revokeMatching(
+      store,
+      (record) =>
+        record.accountUserId === input.accountUserId
+        && record.purpose === input.purpose,
+    );
+    const issued = buildAccountPasskeyChallengeTokenRecord(input);
+    store.records.push(issued.record);
+    saveStore(store);
+    return { token: issued.token, record: issued.record, path };
+  });
 }
 
 export function listAccountUserActionTokensByAccountId(
   accountId: string,
   options?: { purpose?: AccountUserActionTokenPurpose | null },
 ): { records: AccountUserActionTokenRecord[]; path: string } {
-  const store = loadStore();
-  if (pruneExpired(store)) saveStore(store);
-  const records = store.records
-    .filter((record) => record.accountId === accountId)
-    .filter((record) => !options?.purpose || record.purpose === options.purpose)
-    .map((record) => normalizeRecord(record))
-    .sort((left, right) => left.createdAt < right.createdAt ? 1 : -1);
-  return { records, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    if (pruneExpired(store)) saveStore(store);
+    const records = store.records
+      .filter((record) => record.accountId === accountId)
+      .filter((record) => !options?.purpose || record.purpose === options.purpose)
+      .map((record) => normalizeRecord(record))
+      .sort((left, right) => left.createdAt < right.createdAt ? 1 : -1);
+    return { records, path };
+  });
 }
 
 export function listAllAccountUserActionTokens(): {
   records: AccountUserActionTokenRecord[];
   path: string;
 } {
-  const store = loadStore();
-  if (pruneExpired(store)) saveStore(store);
-  return { records: store.records.map((record) => normalizeRecord(record)), path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    if (pruneExpired(store)) saveStore(store);
+    return { records: store.records.map((record) => normalizeRecord(record)), path };
+  });
 }
 
 export function findAccountUserActionTokenByToken(token: string): AccountUserActionTokenRecord | null {
-  const store = loadStore();
-  let changed = pruneExpired(store);
-  const record = store.records.find((entry) => entry.tokenHash === hashAccountUserActionToken(token)) ?? null;
-  if (!record || !isUsable(record)) {
+  return withAccountUserActionTokenStoreLock((store) => {
+    const changed = pruneExpired(store);
+    const record = store.records.find((entry) => entry.tokenHash === hashAccountUserActionToken(token)) ?? null;
+    if (!record || !isUsable(record)) {
+      if (changed) saveStore(store);
+      return null;
+    }
     if (changed) saveStore(store);
-    return null;
-  }
-  if (changed) saveStore(store);
-  return record ? normalizeRecord(record) : null;
+    return normalizeRecord(record);
+  });
 }
 
 export function consumeAccountUserActionToken(id: string): {
   record: AccountUserActionTokenRecord | null;
   path: string;
 } {
-  const store = loadStore();
-  const record = store.records.find((entry) => entry.id === id) ?? null;
-  if (!record || !isUsable(record)) return { record: null, path: storePath() };
-  record.consumedAt = new Date().toISOString();
-  record.updatedAt = record.consumedAt;
-  saveStore(store);
-  return { record, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    const record = store.records.find((entry) => entry.id === id) ?? null;
+    if (!record || !isUsable(record)) return { record: null, path };
+    record.consumedAt = new Date().toISOString();
+    record.updatedAt = record.consumedAt;
+    saveStore(store);
+    return { record, path };
+  });
 }
 
 export function revokeAccountUserActionToken(id: string): {
   record: AccountUserActionTokenRecord | null;
   path: string;
 } {
-  const store = loadStore();
-  const record = store.records.find((entry) => entry.id === id) ?? null;
-  if (!record) return { record: null, path: storePath() };
-  if (!record.revokedAt && !record.consumedAt) {
-    record.revokedAt = new Date().toISOString();
-    record.updatedAt = record.revokedAt;
-    saveStore(store);
-  }
-  return { record, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    const record = store.records.find((entry) => entry.id === id) ?? null;
+    if (!record) return { record: null, path };
+    if (!record.revokedAt && !record.consumedAt) {
+      record.revokedAt = new Date().toISOString();
+      record.updatedAt = record.revokedAt;
+      saveStore(store);
+    }
+    return { record, path };
+  });
 }
 
 export function revokeAccountUserActionTokensForUser(
   accountUserId: string,
   purpose?: AccountUserActionTokenPurpose,
 ): { revokedCount: number; path: string } {
-  const store = loadStore();
-  let revokedCount = 0;
-  const revokedAt = new Date().toISOString();
-  for (const record of store.records) {
-    if (
-      record.accountUserId === accountUserId
-      && (!purpose || record.purpose === purpose)
-      && isUsable(record)
-    ) {
-      record.revokedAt = revokedAt;
-      record.updatedAt = revokedAt;
-      revokedCount += 1;
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    let revokedCount = 0;
+    const revokedAt = new Date().toISOString();
+    for (const record of store.records) {
+      if (
+        record.accountUserId === accountUserId
+        && (!purpose || record.purpose === purpose)
+        && isUsable(record)
+      ) {
+        record.revokedAt = revokedAt;
+        record.updatedAt = revokedAt;
+        revokedCount += 1;
+      }
     }
-  }
-  if (revokedCount > 0) saveStore(store);
-  return { revokedCount, path: storePath() };
+    if (revokedCount > 0) saveStore(store);
+    return { revokedCount, path };
+  });
 }
 
 export function saveAccountUserActionTokenRecord(record: AccountUserActionTokenRecord): {
   record: AccountUserActionTokenRecord;
   path: string;
 } {
-  const store = loadStore();
-  const normalized = normalizeRecord(record);
-  const index = store.records.findIndex((entry) => entry.id === normalized.id);
-  if (index < 0) {
-    throw new Error(`Account user action token '${normalized.id}' was not found.`);
-  }
-  store.records[index] = normalized;
-  saveStore(store);
-  return { record: normalized, path: storePath() };
+  return withAccountUserActionTokenStoreLock((store, path) => {
+    const normalized = normalizeRecord(record);
+    const index = store.records.findIndex((entry) => entry.id === normalized.id);
+    if (index < 0) {
+      throw new Error(`Account user action token '${normalized.id}' was not found.`);
+    }
+    store.records[index] = normalized;
+    saveStore(store);
+    return { record: normalized, path };
+  });
 }
 
 export function resetAccountUserActionTokenStoreForTests(): void {
   const path = storePath();
   if (existsSync(path)) rmSync(path, { force: true });
+  if (existsSync(`${path}.lock`)) rmSync(`${path}.lock`, { recursive: true, force: true });
 }
