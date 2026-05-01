@@ -36,6 +36,7 @@ function testTopLevelPositioningStaysAligned(): void {
   includes(readme, 'observe -> warn -> review -> enforce', 'Product docs: README keeps the adoption mode ladder');
   includes(readme, 'The current generic admission route implements the first control ladder for this path.', 'Product docs: README bounds implemented shadow ladder');
   includes(readme, 'This is the route-level entry point for the shadow-to-enforcement ladder described above.', 'Product docs: README avoids repeating the route mode explanation');
+  includes(readme, 'a treasury or wallet workflow prepares a programmable-money transaction', 'Product docs: README uses consequence-pack examples');
   includes(readme, 'Attestor is one product with a shared AI action authorization core and modular packs for specific consequence domains.', 'Product docs: README keeps one-product framing');
   includes(readme, 'AI action authorization infrastructure', 'Product docs: README names the infrastructure category');
   includes(readme, '## Consequence Packs', 'Product docs: README names consequence packs before architecture');
@@ -88,6 +89,8 @@ function testCoreAndPackStatusStayConsistent(): void {
   excludes(readme, /\| Layer \| Role \| Current status \|/u, 'Product docs: README should not use the old layer table');
   excludes(readme, /\| Pack \| What it means today \| Status \|/u, 'Product docs: README should not use the old pack table');
   excludes(readme, /Finance, crypto, data export, authority change, and future packs should not invent/u, 'Product docs: README should not use old finance-crypto-first pack wording');
+  excludes(readme, /a finance assistant prepares a report from live warehouse data/u, 'Product docs: README should not lead use cases with finance-only wording');
+  excludes(readme, /a crypto workflow prepares a Safe transaction/u, 'Product docs: README should not lead use cases with crypto-only wording');
   includes(purpose, 'The finance pack remains the deepest proven wedge today.', 'Product docs: purpose keeps finance as strongest wedge');
   includes(purpose, 'not a public hosted crypto HTTP route', 'Product docs: purpose keeps crypto hosted-route guardrail');
   includes(firstIntegrations, 'Do not describe crypto as generally available through a public hosted route', 'Product docs: first integrations keep crypto hosted-route guardrail');

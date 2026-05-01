@@ -43,11 +43,10 @@ AI proposes -> Attestor admits / narrows / reviews / blocks -> allowed consequen
 
 Use it where an AI-assisted system should not be able to act just because it can form a request:
 
-- a finance assistant prepares a report from live warehouse data
-- an agent proposes paying a supplier after reading a changed bank-account instruction
-- a crypto workflow prepares a Safe transaction, wallet RPC call, custody callback, or solver handoff
 - a support copilot drafts a refund, credit, suspension, or account-status change
-- an internal AI requests a customer-data export or live database-backed report
+- a procurement agent proposes paying a supplier after reading a changed bank-account instruction
+- an analytics agent requests a customer-data export or live database-backed report
+- a treasury or wallet workflow prepares a programmable-money transaction
 - a compliance workflow prepares a filing, notice, or customer communication
 - an operations agent proposes a deploy, secret rotation, incident action, or infrastructure change
 
