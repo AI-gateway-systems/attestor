@@ -48,6 +48,9 @@ function testReadmeHasAFirstImpressionPath(): void {
   includes(readme, 'not a finished public SaaS', 'README: avoids public SaaS overclaim');
   includes(readme, '## What Attestor Does', 'README: names the operating model before architecture');
   includes(readme, 'AI proposes -> Attestor admits / narrows / reviews / blocks -> allowed consequences proceed -> proof remains', 'README: explains the control flow in one line');
+  includes(readme, 'a procurement agent proposes paying a supplier after reading a changed bank-account instruction', 'README: frames money movement by consequence');
+  includes(readme, 'an analytics agent requests a customer-data export or live database-backed report', 'README: frames data movement by consequence');
+  includes(readme, 'a treasury or wallet workflow prepares a programmable-money transaction', 'README: frames programmable money by consequence');
   includes(readme, '## Start Without Blocking', 'README: exposes shadow mode as the adoption path');
   includes(readme, 'observe -> warn -> review -> enforce', 'README: explains the adoption mode ladder');
   includes(readme, 'observe -> recommend -> simulate -> approve -> enforce -> prove', 'README: explains shadow-to-enforcement sequence');
