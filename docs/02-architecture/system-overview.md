@@ -32,6 +32,8 @@ The execution handoff vocabulary lives in [Downstream presentation binding](down
 
 The single-use replay consumption shape lives in [Presentation replay ledger](presentation-replay-ledger.md). Use it when a customer enforcement point must consume the presentation replay key once and keep redacted evidence that the key was not reused.
 
+The post-consequence result shape lives in [Downstream execution receipt](downstream-execution-receipt.md). Use it when the customer edge must record whether the consequence succeeded, failed, or was skipped after replay consumption, without storing raw downstream payloads or error bodies.
+
 ## Shared Platform Core
 
 The platform core is made of reusable layers:
@@ -84,6 +86,8 @@ The policy limit model sits before both. It prevents broad "yes" decisions by ma
 The presentation binding sits at the last customer-side edge. It prevents an admitted decision from being copied into a different target, body, replay attempt, or enforcement point.
 
 The replay ledger is the consumption step after presentation binding. It turns replay posture from a caller-provided fact into an explicit single-use contract, while keeping raw replay keys, targets, and nonces out of exported entries.
+
+The execution receipt closes the path. It binds the observed downstream result back to the admission, presentation, and replay receipt so the proof trail does not stop at permission.
 
 ## Finance Pack
 
