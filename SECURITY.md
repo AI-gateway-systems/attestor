@@ -57,11 +57,14 @@ That matches GitHub's least-privilege guidance for `GITHUB_TOKEN`. Elevated perm
 
 The evaluation baseline now includes a dedicated `Security Scan` workflow:
 
+- `npm run security:supply-chain-baseline` blocks lockfile drift, non-registry dependency resolutions, missing registry integrity metadata, unexpected dependency install scripts, and workflow permission regressions before dependency installation
 - `npm run security:audit-high` blocks high and critical npm advisories in CI
 - `actions/dependency-review-action@v4` blocks pull requests that introduce high or critical dependency vulnerabilities
 - [codeql.yml](.github/workflows/codeql.yml) runs CodeQL JavaScript/TypeScript analysis on `master`, schedule, and manual dispatch with `security-events: write` scoped to code scanning upload
 - [dependabot.yml](.github/dependabot.yml) asks Dependabot to keep npm and GitHub Actions dependencies reviewed weekly
 - The runtime and type baseline is Node 22. Dependabot may update Node 22-compatible `@types/node` releases, but `@types/node` semver-major updates are ignored until the CI/runtime baseline is deliberately moved.
+
+The install-script allowlist is intentionally narrow. It currently permits the packaged platform binaries needed by `embedded-postgres`, `esbuild`, `fsevents`, `msgpackr-extract`, `protobufjs`, and `redis-memory-server`. New install-script packages must be reviewed before the baseline accepts them.
 
 Current known limitation: npm still reports moderate `uuid` advisories in the Snowflake/Azure transitive chain where the automatic fix path is breaking. Those are tracked as non-blocking evaluation risk until the upstream dependency chain can be upgraded without downgrading Snowflake.
 
