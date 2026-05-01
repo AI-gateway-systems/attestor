@@ -176,6 +176,27 @@ This is a proving wedge, not the ceiling. The same admission model applies to mo
 
 See [AI-assisted financial reporting acceptance](docs/01-overview/financial-reporting-acceptance.md).
 
+## Consequence Packs
+
+Attestor packs are organized by the type of consequence an AI action can create, not by the industry the customer happens to be in.
+
+A pack does not answer "is this finance or crypto?" It answers a colder question:
+
+```text
+What real system consequence is this AI action trying to create?
+```
+
+The current pack language is:
+
+- **Money Movement** - AI actions that move or modify financial value: refunds, payouts, supplier payments, credits, adjustments, and payment-adjacent dispatch.
+- **Data Movement** - AI actions that read, export, disclose, or release sensitive data: warehouse queries, customer exports, report releases, and controlled data packages.
+- **Authority Change** - AI actions that grant, revoke, unlock, approve, delegate, or change access and control.
+- **External Communication** - AI actions that send customer-facing, legal, regulated, billing, support, or public messages.
+- **Operational Execution** - AI actions that deploy, rotate secrets, change infrastructure, trigger incident actions, or modify live operations.
+- **Programmable Money** - AI actions that prepare, approve, sign, submit, or settle on programmable-money rails: wallet calls, Safe transactions, account-abstraction flows, custody callbacks, payment middleware, and intent settlement.
+
+The pack is the consequence class. Adapters sit underneath it. A refund service, payment processor, ERP, wallet RPC, Snowflake connector, CRM, identity provider, email sender, or deployment system can all attach to the same admission core without changing the public trust story.
+
 ## Architecture: Core And Packs
 
 Attestor is one product with a shared AI action authorization core and modular packs for specific consequence domains.
@@ -195,7 +216,7 @@ proposed consequence
 
 The [consequence taxonomy](docs/02-architecture/consequence-taxonomy.md) names the domains this path is meant to control: financial records, money movement, programmable money, data disclosure, authority change, external communication, regulated filing, system operation, decision support, and custom customer-defined surfaces.
 
-The consequence-admission core gives every pack the same public language: `admit`, `narrow`, `review`, or `block`. Finance, crypto, data export, authority change, and future packs should not invent their own trust story. They attach to the same admission model.
+The consequence-admission core gives every pack the same public language: `admit`, `narrow`, `review`, or `block`. Money movement, data movement, authority change, external communication, operational execution, programmable money, and future packs should not invent their own trust story. They attach to the same admission model.
 
 The [downstream enforcement contract](docs/02-architecture/downstream-enforcement-contract.md) defines what customer systems must bind before acting on an admission: admission id, digest, decision, consequence domain, consequence kind, risk class, downstream system, policy scope, proof, idempotency, and `narrow` constraints. This is where the gateway stops being advice.
 
@@ -215,9 +236,7 @@ The policy control plane is where authority changes are controlled: signed polic
 
 The enforcement plane is the downstream edge. It verifies releases offline or online and fails closed when the required proof is absent, stale, out of scope, or invalid. This is the difference between advice and a gate.
 
-The crypto authorization core extends the same model into programmable-money surfaces: wallet RPC, Safe guards, ERC-4337 bundlers, modular accounts, delegated EOAs, x402 middleware, custody policy callbacks, intent-solver handoffs, telemetry receipts, and conformance fixtures. It is not a separate product identity; it is a pack on the shared consequence gateway.
-
-Finance remains the deepest proof wedge today. Crypto is the active programmable-money extension. Both exist to prove the same architectural claim: important AI actions should meet policy, authority, evidence, and verification before they reach the system that can make them real.
+Pack-specific adapters live below this layer. They provide native evidence, simulations, verifier bindings, release material, conformance fixtures, and downstream handoff details for a consequence class. They do not get a separate product identity or a separate trust story.
 
 Customer systems call the relevant Attestor path for the consequence they want to control. Attestor does not guess what to run automatically, and it does not bypass the customer's own enforcement point.
 

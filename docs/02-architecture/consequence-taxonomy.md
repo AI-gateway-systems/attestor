@@ -27,7 +27,7 @@ The taxonomy separates three things that otherwise get blurred:
 - **Consequence domain:** the business or security surface affected, such as financial record, money movement, programmable money, data disclosure, authority change, regulated filing, or system operation.
 - **Control requirements:** the minimum gate material expected before a consequence can proceed, such as policy scope, actor authority, evidence binding, freshness, downstream verification, replay protection, human review, data minimization, and audit retention.
 
-This lets finance, crypto, data export, authority-change, communication, and operations packs attach to the same consequence-gateway core without inventing separate trust stories.
+This lets Money Movement, Data Movement, Authority Change, External Communication, Operational Execution, Programmable Money, and future packs attach to the same consequence-gateway core without inventing separate trust stories.
 
 After classification, the customer-side allow/hold binding is defined in [Downstream enforcement contract](downstream-enforcement-contract.md). The taxonomy says what kind of consequence this is; the downstream contract says whether a specific enforcement point may act on this admission.
 

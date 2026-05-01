@@ -50,15 +50,16 @@ AI proposes -> Attestor admits / narrows / reviews / blocks -> allowed consequen
 
 The word "consequence" matters because not every tool call deserves the same treatment. Reading a harmless local document is not the same as issuing a refund, exporting customer data, changing an entitlement, sending a regulated notice, deploying infrastructure, or preparing a wallet transaction.
 
-Attestor should focus on high-risk actions with real downstream consequences:
+Attestor should focus on high-risk actions by consequence class:
 
-- money movement
-- data movement
-- authority change
-- external communication
-- operational execution
-- programmable-money handoff
-- regulated filing or reporting
+- Money Movement
+- Data Movement
+- Authority Change
+- External Communication
+- Operational Execution
+- Programmable Money
+
+This is the pack language. A pack does not say which industry the customer is in; it says what real consequence the AI action is trying to create. Finance and crypto remain proof wedges and adapter families underneath that map, not the top-level product categories.
 
 ## Adoption Wedge
 
