@@ -78,6 +78,21 @@ The planner:
 
 The planner does not run the rehearsal commands. It does not produce proof. It only turns a filled manifest into a fail-closed operator plan.
 
+## GitHub Actions Target-Run Workflow
+
+The manual workflow [`production-rehearsal.yml`](../../.github/workflows/production-rehearsal.yml) is the repository entry point for running this chain against a named target environment.
+
+It has two modes:
+
+- `plan-only` installs the repo, runs the production rehearsal documentation guards, and runs `npm run plan:production-rehearsal -- --manifest <path>`. It does not access target secrets and it does not run any rehearsal command.
+- `execute` first requires a filled manifest, a `release_provenance_run_id`, and a protected GitHub Environment. The execute job downloads the release provenance artifact, verifies its GitHub artifact attestation, runs the target-bound rehearsal command chain, packages the promotion candidate, and uploads `.attestor/rehearsal/` as the workflow artifact.
+
+The execute job references the selected GitHub Environment so environment protection rules and environment-scoped secrets gate the run. The job uses read-only repository permissions plus `actions: read` for artifact download. It does not request `contents: write`, `id-token: write`, or `attestations: write`.
+
+The workflow intentionally uses `deployment: false` for the environment because it is a rehearsal, not a deployment. If an operator later adds a custom deployment protection rule that requires GitHub deployment objects, that operator must intentionally change this workflow and document the new promotion semantics.
+
+This workflow is still not proof that production readiness has happened. A real claim requires a filled manifest, a protected environment with real target secrets, passing execute-mode evidence, and human review of the generated production-promotion candidate bundle.
+
 ## Target Profile Binding
 
 Step 04 adds the first explicit target profile: [`gke-production-rehearsal`](production-rehearsal-targets/gke-production-rehearsal.json).

@@ -1,0 +1,208 @@
+name: Production Rehearsal
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run only the manifest plan, or execute the target-bound rehearsal chain."
+        required: true
+        default: "plan-only"
+        type: choice
+        options:
+          - plan-only
+          - execute
+      manifest_path:
+        description: "Filled production rehearsal manifest path in this repository."
+        required: true
+        default: "docs/08-deployment/production-rehearsal-manifest.example.json"
+        type: string
+      github_environment:
+        description: "Protected GitHub Environment that holds the target rehearsal secrets."
+        required: true
+        default: "production-rehearsal"
+        type: string
+      release_provenance_run_id:
+        description: "Required for execute mode: Release Provenance workflow run id with evaluation-artifacts."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-rehearsal-${{ inputs.github_environment }}-${{ inputs.mode }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Rehearsal docs guard
+        run: |
+          npm run test:production-rehearsal-buildout-docs
+          npm run test:production-rehearsal-manifest
+          npm run test:production-rehearsal-planner
+
+      - name: Validate execute inputs
+        if: ${{ inputs.mode == 'execute' }}
+        env:
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          RELEASE_PROVENANCE_RUN_ID: ${{ inputs.release_provenance_run_id }}
+        run: |
+          if [ "$MANIFEST_PATH" = "docs/08-deployment/production-rehearsal-manifest.example.json" ]; then
+            echo "::error::Execute mode requires a filled target manifest, not the example template."
+            exit 1
+          fi
+          if [ -z "$RELEASE_PROVENANCE_RUN_ID" ]; then
+            echo "::error::Execute mode requires release_provenance_run_id so release artifacts can be downloaded and verified."
+            exit 1
+          fi
+
+      - name: Plan production rehearsal
+        env:
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+        run: npm run plan:production-rehearsal -- --manifest "$MANIFEST_PATH"
+
+  execute:
+    if: ${{ inputs.mode == 'execute' }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    environment:
+      name: ${{ inputs.github_environment }}
+      deployment: false
+    permissions:
+      contents: read
+      actions: read
+
+    env:
+      MANIFEST_PATH: ${{ inputs.manifest_path }}
+      RELEASE_PROVENANCE_RUN_ID: ${{ inputs.release_provenance_run_id }}
+      ATTESTOR_RUNTIME_PROFILE: production-shared
+      ATTESTOR_REPO_PIPELINE_READY: "true"
+      ATTESTOR_HA_BENCHMARK_PATH: .attestor/rehearsal/gke-production-rehearsal/benchmarks/ha.json
+      ATTESTOR_OBSERVABILITY_BENCHMARK_PATH: .attestor/rehearsal/gke-production-rehearsal/benchmarks/observability/benchmark.json
+      ATTESTOR_RELEASE_AUTHORITY_PG_URL: ${{ secrets.ATTESTOR_RELEASE_AUTHORITY_PG_URL }}
+      ATTESTOR_CONTROL_PLANE_PG_URL: ${{ secrets.ATTESTOR_CONTROL_PLANE_PG_URL }}
+      ATTESTOR_BILLING_LEDGER_PG_URL: ${{ secrets.ATTESTOR_BILLING_LEDGER_PG_URL }}
+      ATTESTOR_PG_URL: ${{ secrets.ATTESTOR_PG_URL }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      ATTESTOR_EXTERNAL_SECRET_STORE: ${{ secrets.ATTESTOR_EXTERNAL_SECRET_STORE }}
+      ATTESTOR_GKE_WORKLOAD_IDENTITY_SERVICE_ACCOUNT: ${{ secrets.ATTESTOR_GKE_WORKLOAD_IDENTITY_SERVICE_ACCOUNT }}
+      ATTESTOR_PUBLIC_HOSTNAME: ${{ secrets.ATTESTOR_PUBLIC_HOSTNAME }}
+      ATTESTOR_API_HEALTH_URL: ${{ secrets.ATTESTOR_API_HEALTH_URL }}
+      ATTESTOR_API_READY_URL: ${{ secrets.ATTESTOR_API_READY_URL }}
+      ATTESTOR_WORKER_HEALTH_URL: ${{ secrets.ATTESTOR_WORKER_HEALTH_URL }}
+      ATTESTOR_WORKER_READY_URL: ${{ secrets.ATTESTOR_WORKER_READY_URL }}
+      ATTESTOR_GKE_STATIC_ADDRESS_NAME: ${{ secrets.ATTESTOR_GKE_STATIC_ADDRESS_NAME }}
+      ATTESTOR_DNS_TARGET_IP: ${{ secrets.ATTESTOR_DNS_TARGET_IP }}
+      ATTESTOR_TLS_CLUSTER_ISSUER: ${{ secrets.ATTESTOR_TLS_CLUSTER_ISSUER }}
+      ATTESTOR_TLS_SECRET_NAME: ${{ secrets.ATTESTOR_TLS_SECRET_NAME }}
+      ATTESTOR_ACME_EMAIL: ${{ secrets.ATTESTOR_ACME_EMAIL }}
+      ATTESTOR_K8S_NAMESPACE: ${{ secrets.ATTESTOR_K8S_NAMESPACE }}
+      ATTESTOR_K8S_RUNTIME_EXTERNAL_SECRET_NAME: ${{ secrets.ATTESTOR_K8S_RUNTIME_EXTERNAL_SECRET_NAME }}
+      ATTESTOR_K8S_GATEWAY_NAME: ${{ secrets.ATTESTOR_K8S_GATEWAY_NAME }}
+      ATTESTOR_K8S_HTTPROUTE_NAME: ${{ secrets.ATTESTOR_K8S_HTTPROUTE_NAME }}
+      ATTESTOR_K8S_CERTIFICATE_NAME: ${{ secrets.ATTESTOR_K8S_CERTIFICATE_NAME }}
+      ATTESTOR_OBSERVABILITY_PROVIDER: ${{ secrets.ATTESTOR_OBSERVABILITY_PROVIDER }}
+      ATTESTOR_OBSERVABILITY_PROMETHEUS_URL: ${{ secrets.ATTESTOR_OBSERVABILITY_PROMETHEUS_URL }}
+      ATTESTOR_OBSERVABILITY_ALERTMANAGER_URL: ${{ secrets.ATTESTOR_OBSERVABILITY_ALERTMANAGER_URL }}
+      PROMETHEUS_AUTH_HEADER: ${{ secrets.PROMETHEUS_AUTH_HEADER }}
+      PROMETHEUS_BEARER_TOKEN: ${{ secrets.PROMETHEUS_BEARER_TOKEN }}
+      PROMETHEUS_BASIC_AUTH_USERNAME: ${{ secrets.PROMETHEUS_BASIC_AUTH_USERNAME }}
+      PROMETHEUS_BASIC_AUTH_PASSWORD: ${{ secrets.PROMETHEUS_BASIC_AUTH_PASSWORD }}
+      ALERTMANAGER_AUTH_HEADER: ${{ secrets.ALERTMANAGER_AUTH_HEADER }}
+      ALERTMANAGER_BEARER_TOKEN: ${{ secrets.ALERTMANAGER_BEARER_TOKEN }}
+      ALERTMANAGER_BASIC_AUTH_USERNAME: ${{ secrets.ALERTMANAGER_BASIC_AUTH_USERNAME }}
+      ALERTMANAGER_BASIC_AUTH_PASSWORD: ${{ secrets.ALERTMANAGER_BASIC_AUTH_PASSWORD }}
+      ATTESTOR_DR_PITR_EVIDENCE_PATH: ${{ secrets.ATTESTOR_DR_PITR_EVIDENCE_PATH }}
+      ATTESTOR_DR_REPLACEMENT_CONTROL_PLANE_PG_URL: ${{ secrets.ATTESTOR_DR_REPLACEMENT_CONTROL_PLANE_PG_URL }}
+      ATTESTOR_DR_REPLACEMENT_BILLING_LEDGER_PG_URL: ${{ secrets.ATTESTOR_DR_REPLACEMENT_BILLING_LEDGER_PG_URL }}
+      ATTESTOR_DR_REPLACEMENT_RELEASE_AUTHORITY_PG_URL: ${{ secrets.ATTESTOR_DR_REPLACEMENT_RELEASE_AUTHORITY_PG_URL }}
+      ATTESTOR_DR_REPLACEMENT_REDIS_URL: ${{ secrets.ATTESTOR_DR_REPLACEMENT_REDIS_URL }}
+      ATTESTOR_DR_REPLACEMENT_API_READY_URL: ${{ secrets.ATTESTOR_DR_REPLACEMENT_API_READY_URL }}
+      ATTESTOR_DR_REPLACEMENT_WORKER_READY_URL: ${{ secrets.ATTESTOR_DR_REPLACEMENT_WORKER_READY_URL }}
+      ATTESTOR_PRODUCTION_PROMOTION_SIGNING_PRIVATE_KEY_PATH: ${{ secrets.ATTESTOR_PRODUCTION_PROMOTION_SIGNING_PRIVATE_KEY_PATH }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Download release provenance artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .attestor/rehearsal/release-provenance
+          gh run download "$RELEASE_PROVENANCE_RUN_ID" \
+            --name evaluation-artifacts \
+            --dir .attestor/rehearsal/release-provenance
+          test -f .attestor/rehearsal/release-provenance/evaluation-artifacts.tar.gz
+
+      - name: Verify release provenance artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify .attestor/rehearsal/release-provenance/evaluation-artifacts.tar.gz \
+            -R 0xlamarr-labs/attestor \
+            --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml
+
+      - name: Verify repo gate
+        run: npm run verify
+
+      - name: Capture target benchmarks
+        run: |
+          test -n "$ATTESTOR_API_HEALTH_URL"
+          mkdir -p .attestor/rehearsal/gke-production-rehearsal/benchmarks
+          npm run benchmark:ha -- --url="$ATTESTOR_API_HEALTH_URL" --output="$ATTESTOR_HA_BENCHMARK_PATH"
+          npm run benchmark:observability -- --output-dir=.attestor/rehearsal/gke-production-rehearsal/benchmarks/observability
+
+      - name: Render production readiness packet
+        run: npm run render:production-readiness-packet
+
+      - name: Probe production substrates
+        run: |
+          npm run probe:ha-runtime-connectivity
+          npm run probe:ha-release-inputs
+          npm run probe:observability-receivers
+          npm run probe:production-rehearsal-substrates
+
+      - name: Rehearse production behavior and recovery
+        run: |
+          npm run rehearse:production-consequence
+          npm run rehearse:production-async-recovery
+          npm run rehearse:production-backup-restore-dr
+          npm run rehearse:production-observability-alerting
+
+      - name: Package production promotion candidate
+        run: npm run package:production-promotion-candidate -- --manifest "$MANIFEST_PATH"
+
+      - name: Upload production rehearsal artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-rehearsal-${{ github.run_id }}
+          path: .attestor/rehearsal/
+          if-no-files-found: warn
