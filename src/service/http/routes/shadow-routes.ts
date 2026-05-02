@@ -2,6 +2,7 @@ import type { Context, Hono } from 'hono';
 import {
   createConsequenceAdmissionProblem,
   createActionRiskInventory,
+  createShadowActivationReadinessGate,
   createShadowPolicyDiscoveryCandidates,
   createShadowDownstreamIntegrationProof,
   createShadowDownstreamVerificationBinding,
@@ -1236,6 +1237,114 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         status,
         detail,
         reasonCodes: ['downstream-integration-proof-failed'],
+      });
+    }
+  });
+
+  app.post('/api/v1/shadow/activation-readiness', async (c) => {
+    c.header('cache-control', 'no-store');
+    const body = await readDownstreamIntegrationProofBody(c);
+    if (body instanceof Response) return body;
+    if (!deps.listShadowPolicyCandidateRecords) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-candidate-store-unavailable',
+        title: 'Policy candidate store unavailable',
+        status: 503,
+        detail: 'Activation readiness evaluation is not configured for this runtime.',
+        reasonCodes: ['policy-candidate-store-unavailable'],
+      });
+    }
+    const statusQuery = c.req.query('status');
+    const sourceStatus = parsePromotionSourceStatus(statusQuery);
+    if (!sourceStatus) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-promotion-source-status-invalid',
+        title: 'Invalid policy promotion source status',
+        status: 400,
+        detail:
+          `Activation readiness can only be generated from: ${SHADOW_POLICY_PROMOTION_SOURCE_STATUSES.join(', ')}.`,
+        reasonCodes: ['invalid-policy-promotion-source-status'],
+      });
+    }
+
+    try {
+      const tenant = deps.currentTenant(c);
+      const records = deps.listShadowPolicyCandidateRecords({
+        tenant,
+        status: sourceStatus,
+      });
+      const draft = createShadowPolicyPromotionDraft({
+        tenantId: tenant.tenantId,
+        records,
+        sourceStatus,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const packet = createShadowPolicyPromotionPacket({
+        draft,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const simulation = createShadowPolicyPromotionSimulation({
+        packet,
+        events: deps.listShadowEvents({ tenant }),
+        generatedAt: deps.now?.() ?? null,
+      });
+      const signingPayload = createShadowPolicyBundleSigningPayload(simulation);
+      const signature = deps.signShadowPolicyBundlePublication?.({
+        tenant,
+        payload: signingPayload,
+      }) ?? null;
+      const publication = createShadowPolicyBundlePublication({
+        simulation,
+        signature,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const binding = createShadowDownstreamVerificationBinding({
+        simulation,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const integrationProof = createShadowDownstreamIntegrationProof({
+        publication,
+        binding,
+        enforcementPointId: body.enforcementPointId,
+        boundaryKind: body.boundaryKind,
+        verifierRef: body.verifierRef,
+        evidenceRefs: body.evidenceRefs,
+        observedVerificationChecks: body.observedVerificationChecks,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const activationReadiness = createShadowActivationReadinessGate({
+        sourceStatus,
+        publication,
+        binding,
+        integrationProof,
+        generatedAt: deps.now?.() ?? null,
+      });
+      return c.json({
+        tenant: tenantSummary(tenant),
+        storageMode: 'file-backed-evaluation',
+        productionReady: false,
+        approvalRequired: true,
+        autoEnforce: false,
+        rawPayloadStored: false,
+        activationReadiness,
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : 'Activation readiness could not be generated.';
+      const status: ShadowProblemStatus =
+        detail.includes('Shadow downstream integration proof') ||
+        detail.includes('Shadow activation readiness gate') ||
+        detail.includes('exceeds maximum')
+          ? 400
+          : 503;
+      return problem(c, {
+        type: 'https://attestor.dev/problems/activation-readiness-failed',
+        title: 'Activation readiness failed',
+        status,
+        detail,
+        reasonCodes: ['activation-readiness-failed'],
       });
     }
   });

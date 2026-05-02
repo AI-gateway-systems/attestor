@@ -345,6 +345,48 @@ productionReady: false
 
 This is integration evidence, not a production deployment guarantee. Evaluation signatures still leave `production-signing-provider-required` open, and customer systems must keep enforcing the verification contract at the actual execution point.
 
+## Activation Readiness Gate
+
+The final shadow promotion surface summarizes the whole chain:
+
+```text
+POST /api/v1/shadow/activation-readiness
+POST /api/v1/shadow/activation-readiness?status=activated
+```
+
+It uses the same data-minimized downstream integration proof request body, then evaluates:
+
+- promotion source status
+- policy simulation presence
+- signed policy bundle publication
+- downstream verification binding
+- downstream integration proof
+- production signing boundary
+- operator activation source status
+
+The result is a single canonical readiness artifact with component statuses and remaining blockers. In an evaluation signer path, it remains blocked even when downstream integration evidence is complete:
+
+```text
+production-signing-provider-required
+operator-activation-required
+```
+
+If the source candidates are already `activated`, the publication is signed with a production signing boundary, the downstream binding is ready, and the integration proof closes every required verifier check, the readiness state can become:
+
+```text
+customer-controlled-activation-eligible
+```
+
+This still does not auto-enforce. The route returns:
+
+```text
+autoEnforce: false
+rawPayloadStored: false
+productionReady: false
+```
+
+The gate is an activation readiness artifact, not a customer deployment switch. Customer systems must still perform the actual activation, keep the downstream verifier on the execution path, and retain their own rollback/kill-switch controls.
+
 ## Why This Shape
 
 This follows the same pattern used by mature control systems:
@@ -368,6 +410,7 @@ policy promotion packet simulated
 policy bundle publication signed or held unsigned
 downstream verification binding drafted
 downstream integration proof supplied
+activation readiness gate evaluated
 only then can enforcement promotion happen
 ```
 
