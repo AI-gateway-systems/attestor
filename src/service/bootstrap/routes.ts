@@ -18,6 +18,7 @@ import {
 import { registerWebhookRoutes } from '../http/routes/webhook-routes.js';
 import {
   createFileBackedShadowAdmissionEventStore,
+  createFileBackedShadowCustomerActivationReceiptStore,
   createFileBackedShadowPolicyCandidateStore,
   createFileBackedShadowPolicySimulationReportStore,
 } from '../shadow-persistence-store.js';
@@ -67,6 +68,7 @@ export function createShadowRouteDeps<Packet>(
   const shadowEventStore = createFileBackedShadowAdmissionEventStore();
   const shadowSimulationStore = createFileBackedShadowPolicySimulationReportStore();
   const shadowCandidateStore = createFileBackedShadowPolicyCandidateStore();
+  const shadowActivationReceiptStore = createFileBackedShadowCustomerActivationReceiptStore();
   return {
     currentTenant: runtime.services.httpRoutes.pipeline.currentTenant,
     listShadowEvents: ({ tenant }) =>
@@ -105,6 +107,23 @@ export function createShadowRouteDeps<Packet>(
         status,
         actorRef,
         reason,
+      }).record,
+    recordShadowCustomerActivationReceipt: ({ tenant, receipt }) =>
+      shadowActivationReceiptStore.append({
+        tenantId: tenant.tenantId,
+        receipt,
+      }),
+    listShadowCustomerActivationReceiptRecords: ({ tenant, activationStatus, receiptReady, sourceHandoffDigest }) =>
+      shadowActivationReceiptStore.list({
+        tenantId: tenant.tenantId,
+        activationStatus,
+        receiptReady,
+        sourceHandoffDigest,
+      }).records,
+    findShadowCustomerActivationReceipt: ({ tenant, receiptId }) =>
+      shadowActivationReceiptStore.find({
+        tenantId: tenant.tenantId,
+        receiptId,
       }).record,
   };
 }

@@ -13,6 +13,8 @@ import { dirname, resolve } from 'node:path';
 import type {
   GenericAdmissionMode,
   ShadowAdmissionEvent,
+  ShadowCustomerActivationReceipt,
+  ShadowCustomerActivationReceiptStatus,
   ShadowPolicyDiscoveryCandidate,
   ShadowPolicyDiscoveryCandidates,
   ShadowPolicySimulationReport,
@@ -26,6 +28,8 @@ export const SHADOW_POLICY_CANDIDATE_STORE_VERSION =
   'attestor.shadow-policy-candidate-store.v1';
 export const SHADOW_POLICY_SIMULATION_REPORT_STORE_VERSION =
   'attestor.shadow-policy-simulation-report-store.v1';
+export const SHADOW_CUSTOMER_ACTIVATION_RECEIPT_STORE_VERSION =
+  'attestor.shadow-customer-activation-receipt-store.v1';
 
 export const SHADOW_POLICY_CANDIDATE_STATUSES = [
   'draft',
@@ -41,6 +45,7 @@ export type ShadowPolicyCandidateStatus =
 export type ShadowAdmissionStoreAppendResultKind = 'recorded' | 'duplicate';
 export type ShadowPolicyCandidateUpsertKind = 'created' | 'updated' | 'unchanged';
 export type ShadowPolicySimulationReportAppendKind = 'recorded' | 'duplicate';
+export type ShadowCustomerActivationReceiptAppendKind = 'recorded' | 'duplicate';
 
 export interface ShadowAdmissionEventStoreRecord {
   readonly version: typeof SHADOW_ADMISSION_EVENT_STORE_VERSION;
@@ -199,6 +204,26 @@ interface ShadowPolicyCandidateStoreFile {
   records: ShadowPolicyCandidateStoreRecord[];
 }
 
+export interface ShadowCustomerActivationReceiptStoreRecord {
+  readonly version: typeof SHADOW_CUSTOMER_ACTIVATION_RECEIPT_STORE_VERSION;
+  readonly tenantId: string;
+  readonly receiptId: string;
+  readonly receiptDigest: string;
+  readonly sourceHandoffId: string;
+  readonly sourceHandoffDigest: string;
+  readonly activationStatus: ShadowCustomerActivationReceiptStatus;
+  readonly receiptReady: boolean;
+  readonly activationClosed: boolean;
+  readonly recordedAt: string;
+  readonly receipt: ShadowCustomerActivationReceipt;
+  readonly rawPayloadStored: false;
+}
+
+interface ShadowCustomerActivationReceiptStoreFile {
+  version: 1;
+  records: ShadowCustomerActivationReceiptStoreRecord[];
+}
+
 export interface UpsertShadowPolicyCandidateInput {
   readonly tenantId: string;
   readonly candidate: ShadowPolicyDiscoveryCandidate;
@@ -267,6 +292,56 @@ export interface FileBackedShadowPolicyCandidateStore {
   };
 }
 
+export interface AppendShadowCustomerActivationReceiptInput {
+  readonly tenantId: string;
+  readonly receipt: ShadowCustomerActivationReceipt;
+  readonly recordedAt?: string | null;
+}
+
+export interface AppendShadowCustomerActivationReceiptResult {
+  readonly kind: ShadowCustomerActivationReceiptAppendKind;
+  readonly record: ShadowCustomerActivationReceiptStoreRecord;
+  readonly path: string;
+}
+
+export interface ShadowCustomerActivationReceiptListFilters {
+  readonly tenantId: string;
+  readonly activationStatus?: ShadowCustomerActivationReceiptStatus | null;
+  readonly receiptReady?: boolean | null;
+  readonly sourceHandoffDigest?: string | null;
+  readonly limit?: number | null;
+}
+
+export interface FileBackedShadowCustomerActivationReceiptStore {
+  append(input: AppendShadowCustomerActivationReceiptInput): AppendShadowCustomerActivationReceiptResult;
+  list(filters: ShadowCustomerActivationReceiptListFilters): {
+    readonly records: readonly ShadowCustomerActivationReceiptStoreRecord[];
+    readonly receipts: readonly ShadowCustomerActivationReceipt[];
+    readonly path: string;
+  };
+  find(input: {
+    readonly tenantId: string;
+    readonly receiptId: string;
+  }): {
+    readonly record: ShadowCustomerActivationReceiptStoreRecord | null;
+    readonly path: string;
+  };
+  summarize(input: { readonly tenantId: string }): {
+    readonly summary: {
+      readonly tenantId: string;
+      readonly storageMode: 'file-backed-evaluation';
+      readonly receiptCount: number;
+      readonly readyReceiptCount: number;
+      readonly heldReceiptCount: number;
+      readonly latestReceiptDigest: string | null;
+      readonly latestRecordedAt: string | null;
+      readonly rawPayloadStored: false;
+      readonly productionReady: false;
+    };
+    readonly path: string;
+  };
+}
+
 function defaultShadowAdmissionEventStorePath(): string {
   return resolve(process.env.ATTESTOR_SHADOW_ADMISSION_EVENT_STORE_PATH ?? '.attestor/shadow-admission-events.json');
 }
@@ -279,6 +354,10 @@ function defaultShadowPolicySimulationReportStorePath(): string {
   return resolve(process.env.ATTESTOR_SHADOW_POLICY_SIMULATION_REPORT_STORE_PATH ?? '.attestor/shadow-policy-simulation-reports.json');
 }
 
+function defaultShadowCustomerActivationReceiptStorePath(): string {
+  return resolve(process.env.ATTESTOR_SHADOW_CUSTOMER_ACTIVATION_RECEIPT_STORE_PATH ?? '.attestor/shadow-customer-activation-receipts.json');
+}
+
 function defaultAdmissionStore(): ShadowAdmissionEventStoreFile {
   return { version: 1, records: [] };
 }
@@ -288,6 +367,10 @@ function defaultSimulationStore(): ShadowPolicySimulationReportStoreFile {
 }
 
 function defaultCandidateStore(): ShadowPolicyCandidateStoreFile {
+  return { version: 1, records: [] };
+}
+
+function defaultActivationReceiptStore(): ShadowCustomerActivationReceiptStoreFile {
   return { version: 1, records: [] };
 }
 
@@ -336,6 +419,22 @@ function normalizeMode(value: GenericAdmissionMode | null | undefined, fieldName
     return value;
   }
   throw new Error(`Shadow persistence ${fieldName} must be observe, warn, review, or enforce.`);
+}
+
+function normalizeActivationReceiptStatus(
+  value: ShadowCustomerActivationReceiptStatus | null | undefined,
+  fieldName: string,
+): ShadowCustomerActivationReceiptStatus | null {
+  if (value === undefined || value === null) return null;
+  if (
+    value === 'activated' ||
+    value === 'rolled-back' ||
+    value === 'failed' ||
+    value === 'aborted'
+  ) {
+    return value;
+  }
+  throw new Error(`Shadow persistence ${fieldName} must be activated, rolled-back, failed, or aborted.`);
 }
 
 function normalizeCandidateStatus(
@@ -937,15 +1036,205 @@ export function createFileBackedShadowPolicyCandidateStore(options?: {
   });
 }
 
+function normalizeActivationReceiptRecord(
+  record: ShadowCustomerActivationReceiptStoreRecord,
+): ShadowCustomerActivationReceiptStoreRecord {
+  return {
+    version: SHADOW_CUSTOMER_ACTIVATION_RECEIPT_STORE_VERSION,
+    tenantId: normalizeIdentifier(record.tenantId, 'tenantId'),
+    receiptId: normalizeIdentifier(record.receiptId || record.receipt?.receiptId, 'receiptId'),
+    receiptDigest: normalizeIdentifier(record.receiptDigest || record.receipt?.digest, 'receiptDigest'),
+    sourceHandoffId: normalizeIdentifier(
+      record.sourceHandoffId || record.receipt?.sourceHandoffId,
+      'sourceHandoffId',
+    ),
+    sourceHandoffDigest: normalizeIdentifier(
+      record.sourceHandoffDigest || record.receipt?.sourceHandoffDigest,
+      'sourceHandoffDigest',
+    ),
+    activationStatus: normalizeActivationReceiptStatus(
+      record.activationStatus ?? record.receipt?.activationStatus,
+      'activationStatus',
+    ) ?? 'failed',
+    receiptReady: Boolean(record.receiptReady ?? record.receipt?.receiptReady),
+    activationClosed: Boolean(record.activationClosed ?? record.receipt?.activationClosed),
+    recordedAt: normalizeIsoTimestamp(record.recordedAt, new Date().toISOString(), 'recordedAt'),
+    receipt: record.receipt,
+    rawPayloadStored: false,
+  };
+}
+
+function readActivationReceiptStore(path: string): ShadowCustomerActivationReceiptStoreFile {
+  if (!existsSync(path)) return defaultActivationReceiptStore();
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as ShadowCustomerActivationReceiptStoreFile;
+    if (parsed.version !== 1 || !Array.isArray(parsed.records)) {
+      throw new Error('invalid store shape');
+    }
+    return {
+      version: 1,
+      records: parsed.records.map(normalizeActivationReceiptRecord),
+    };
+  } catch {
+    throw new Error('Shadow customer activation receipt store corruption detected.');
+  }
+}
+
+function saveActivationReceiptStore(
+  path: string,
+  store: ShadowCustomerActivationReceiptStoreFile,
+): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeTextFileAtomic(path, `${JSON.stringify(store, null, 2)}\n`);
+}
+
+function sortActivationReceiptRecords(
+  records: readonly ShadowCustomerActivationReceiptStoreRecord[],
+): ShadowCustomerActivationReceiptStoreRecord[] {
+  return [...records].sort((left, right) => {
+    const byRecorded = compareDesc(left.recordedAt, right.recordedAt);
+    if (byRecorded !== 0) return byRecorded;
+    return left.receiptId.localeCompare(right.receiptId);
+  });
+}
+
+function assertActivationReceiptTenantMatches(
+  tenantId: string,
+  receipt: ShadowCustomerActivationReceipt,
+): void {
+  if (receipt.tenantId !== tenantId) {
+    throw new Error('Shadow customer activation receipt tenant does not match the store tenant.');
+  }
+  if (receipt.rawPayloadStored !== false) {
+    throw new Error('Shadow customer activation receipt store only accepts data-minimized receipts.');
+  }
+}
+
+function activationReceiptSummary(
+  records: readonly ShadowCustomerActivationReceiptStoreRecord[],
+): {
+  readonly receiptCount: number;
+  readonly readyReceiptCount: number;
+  readonly heldReceiptCount: number;
+} {
+  let readyReceiptCount = 0;
+  for (const record of records) {
+    if (record.receiptReady) readyReceiptCount += 1;
+  }
+  return {
+    receiptCount: records.length,
+    readyReceiptCount,
+    heldReceiptCount: records.length - readyReceiptCount,
+  };
+}
+
+export function createFileBackedShadowCustomerActivationReceiptStore(options?: {
+  readonly path?: string | null;
+}): FileBackedShadowCustomerActivationReceiptStore {
+  const path = resolve(options?.path ?? defaultShadowCustomerActivationReceiptStorePath());
+
+  function withStoreLock<T>(action: (store: ShadowCustomerActivationReceiptStoreFile) => T): T {
+    return withFileLock(path, () => action(readActivationReceiptStore(path)));
+  }
+
+  return Object.freeze({
+    append(input: AppendShadowCustomerActivationReceiptInput): AppendShadowCustomerActivationReceiptResult {
+      return withStoreLock((store) => {
+        const tenantId = normalizeIdentifier(input.tenantId, 'tenantId');
+        assertActivationReceiptTenantMatches(tenantId, input.receipt);
+        const existing = store.records.find((record) =>
+          record.tenantId === tenantId &&
+          (record.receiptId === input.receipt.receiptId || record.receiptDigest === input.receipt.digest)
+        );
+        if (existing) {
+          return { kind: 'duplicate', record: normalizeActivationReceiptRecord(existing), path };
+        }
+
+        const recordedAt = normalizeIsoTimestamp(
+          input.recordedAt,
+          new Date().toISOString(),
+          'recordedAt',
+        );
+        const record: ShadowCustomerActivationReceiptStoreRecord = {
+          version: SHADOW_CUSTOMER_ACTIVATION_RECEIPT_STORE_VERSION,
+          tenantId,
+          receiptId: input.receipt.receiptId,
+          receiptDigest: input.receipt.digest,
+          sourceHandoffId: input.receipt.sourceHandoffId,
+          sourceHandoffDigest: input.receipt.sourceHandoffDigest,
+          activationStatus: input.receipt.activationStatus,
+          receiptReady: input.receipt.receiptReady,
+          activationClosed: input.receipt.activationClosed,
+          recordedAt,
+          receipt: input.receipt,
+          rawPayloadStored: false,
+        };
+        store.records.push(record);
+        saveActivationReceiptStore(path, store);
+        return { kind: 'recorded', record, path };
+      });
+    },
+    list(filters: ShadowCustomerActivationReceiptListFilters) {
+      const tenantId = normalizeIdentifier(filters.tenantId, 'tenantId');
+      const activationStatus = normalizeActivationReceiptStatus(
+        filters.activationStatus,
+        'activationStatus',
+      );
+      const receiptReady = filters.receiptReady ?? null;
+      const sourceHandoffDigest = normalizeOptionalString(filters.sourceHandoffDigest);
+      const limit = normalizeLimit(filters.limit, 100);
+      const records = sortActivationReceiptRecords(readActivationReceiptStore(path).records)
+        .filter((record) => record.tenantId === tenantId)
+        .filter((record) => !activationStatus || record.activationStatus === activationStatus)
+        .filter((record) => receiptReady === null || record.receiptReady === receiptReady)
+        .filter((record) => !sourceHandoffDigest || record.sourceHandoffDigest === sourceHandoffDigest)
+        .slice(0, limit);
+      return {
+        records,
+        receipts: records.map((record) => record.receipt),
+        path,
+      };
+    },
+    find(input: { readonly tenantId: string; readonly receiptId: string }) {
+      const tenantId = normalizeIdentifier(input.tenantId, 'tenantId');
+      const receiptId = normalizeIdentifier(input.receiptId, 'receiptId');
+      const record = readActivationReceiptStore(path).records.find((entry) =>
+        entry.tenantId === tenantId && entry.receiptId === receiptId
+      ) ?? null;
+      return { record: record ? normalizeActivationReceiptRecord(record) : null, path };
+    },
+    summarize(input: { readonly tenantId: string }) {
+      const tenantId = normalizeIdentifier(input.tenantId, 'tenantId');
+      const records = sortActivationReceiptRecords(readActivationReceiptStore(path).records)
+        .filter((record) => record.tenantId === tenantId);
+      const summary = activationReceiptSummary(records);
+      return {
+        summary: {
+          tenantId,
+          storageMode: 'file-backed-evaluation',
+          ...summary,
+          latestReceiptDigest: records[0]?.receiptDigest ?? null,
+          latestRecordedAt: records[0]?.recordedAt ?? null,
+          rawPayloadStored: false,
+          productionReady: false,
+        } as const,
+        path,
+      };
+    },
+  });
+}
+
 export function resetShadowPersistenceStoresForTests(options?: {
   readonly admissionEventPath?: string | null;
   readonly policyCandidatePath?: string | null;
   readonly policySimulationReportPath?: string | null;
+  readonly customerActivationReceiptPath?: string | null;
 }): void {
   const admissionPath = resolve(options?.admissionEventPath ?? defaultShadowAdmissionEventStorePath());
   const candidatePath = resolve(options?.policyCandidatePath ?? defaultShadowPolicyCandidateStorePath());
   const simulationPath = resolve(options?.policySimulationReportPath ?? defaultShadowPolicySimulationReportStorePath());
-  for (const path of [admissionPath, candidatePath, simulationPath]) {
+  const activationReceiptPath = resolve(options?.customerActivationReceiptPath ?? defaultShadowCustomerActivationReceiptStorePath());
+  for (const path of [admissionPath, candidatePath, simulationPath, activationReceiptPath]) {
     if (existsSync(path)) rmSync(path, { force: true });
     if (existsSync(`${path}.lock`)) rmSync(`${path}.lock`, { recursive: true, force: true });
   }
