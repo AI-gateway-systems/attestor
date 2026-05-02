@@ -3,6 +3,7 @@ import {
   createConsequenceAdmissionProblem,
   createActionRiskInventory,
   createShadowPolicyDiscoveryCandidates,
+  createShadowDownstreamIntegrationProof,
   createShadowDownstreamVerificationBinding,
   createShadowPolicyBundlePublication,
   createShadowPolicyBundleSigningPayload,
@@ -11,9 +12,15 @@ import {
   createShadowPolicyPromotionSimulation,
   createShadowPolicySimulationReport,
   createShadowSummarySurface,
+  CONSEQUENCE_ADMISSION_DOWNSTREAM_BOUNDARY_KINDS,
   GENERIC_ADMISSION_MODES,
+  SHADOW_DOWNSTREAM_INTEGRATION_EVIDENCE_KINDS,
+  SHADOW_DOWNSTREAM_VERIFICATION_CHECKS,
   SHADOW_POLICY_PROMOTION_SOURCE_STATUSES,
+  type ConsequenceAdmissionDownstreamBoundaryKind,
   type GenericAdmissionMode,
+  type ShadowDownstreamIntegrationEvidenceKind,
+  type ShadowDownstreamVerificationCheckKind,
   type ShadowPolicyBundlePublicationSignature,
   type ShadowPolicyBundleSigningPayload,
   type ShadowPolicyPromotionSourceStatus,
@@ -283,6 +290,198 @@ async function readSimulationRequestBody(c: Context): Promise<{
   return {
     proposedMode,
     minimumPromotionEvents,
+  };
+}
+
+function parseDownstreamBoundaryKind(
+  value: string | null | undefined,
+): ConsequenceAdmissionDownstreamBoundaryKind | null {
+  if (value === undefined || value === null || value.trim() === '') return null;
+  const normalized = value.trim();
+  return CONSEQUENCE_ADMISSION_DOWNSTREAM_BOUNDARY_KINDS.includes(
+    normalized as ConsequenceAdmissionDownstreamBoundaryKind,
+  )
+    ? normalized as ConsequenceAdmissionDownstreamBoundaryKind
+    : null;
+}
+
+function parseIntegrationEvidenceKind(
+  value: string | null | undefined,
+): ShadowDownstreamIntegrationEvidenceKind | null {
+  if (value === undefined || value === null || value.trim() === '') return null;
+  const normalized = value.trim();
+  return SHADOW_DOWNSTREAM_INTEGRATION_EVIDENCE_KINDS.includes(
+    normalized as ShadowDownstreamIntegrationEvidenceKind,
+  )
+    ? normalized as ShadowDownstreamIntegrationEvidenceKind
+    : null;
+}
+
+function parseDownstreamVerificationCheck(
+  value: string | null | undefined,
+): ShadowDownstreamVerificationCheckKind | null {
+  if (value === undefined || value === null || value.trim() === '') return null;
+  const normalized = value.trim();
+  return SHADOW_DOWNSTREAM_VERIFICATION_CHECKS.includes(
+    normalized as ShadowDownstreamVerificationCheckKind,
+  )
+    ? normalized as ShadowDownstreamVerificationCheckKind
+    : null;
+}
+
+async function readDownstreamIntegrationProofBody(c: Context): Promise<{
+  readonly enforcementPointId: string;
+  readonly boundaryKind: ConsequenceAdmissionDownstreamBoundaryKind;
+  readonly verifierRef: string;
+  readonly evidenceRefs: readonly {
+    readonly id: string;
+    readonly kind: ShadowDownstreamIntegrationEvidenceKind;
+    readonly digest: string;
+    readonly uri: string | null;
+  }[];
+  readonly observedVerificationChecks: readonly ShadowDownstreamVerificationCheckKind[];
+} | Response> {
+  const contentType = c.req.header('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/downstream-integration-proof-json-required',
+      title: 'Downstream integration proof JSON required',
+      status: 400,
+      detail: 'The downstream integration proof route requires a JSON object body.',
+      reasonCodes: ['downstream-integration-proof-json-required'],
+    });
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json<unknown>();
+  } catch {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/downstream-integration-proof-json-invalid',
+      title: 'Invalid downstream integration proof JSON',
+      status: 400,
+      detail: 'The downstream integration proof route requires a valid JSON object body.',
+      reasonCodes: ['invalid-json'],
+    });
+  }
+  if (!isRecord(body)) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/downstream-integration-proof-input-invalid',
+      title: 'Invalid downstream integration proof input',
+      status: 400,
+      detail: 'The downstream integration proof route requires an object body.',
+      reasonCodes: ['invalid-downstream-integration-proof-input'],
+    });
+  }
+
+  const enforcementPointId = typeof body.enforcementPointId === 'string'
+    ? body.enforcementPointId.trim()
+    : '';
+  const boundaryKind = typeof body.boundaryKind === 'string'
+    ? parseDownstreamBoundaryKind(body.boundaryKind)
+    : null;
+  const verifierRef = typeof body.verifierRef === 'string'
+    ? body.verifierRef.trim()
+    : '';
+  if (!enforcementPointId || !boundaryKind || !verifierRef) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/downstream-integration-proof-input-invalid',
+      title: 'Invalid downstream integration proof input',
+      status: 400,
+      detail:
+        `The downstream integration proof route requires enforcementPointId, verifierRef, and boundaryKind. Boundary kind must be one of: ${CONSEQUENCE_ADMISSION_DOWNSTREAM_BOUNDARY_KINDS.join(', ')}.`,
+      reasonCodes: ['invalid-downstream-integration-proof-input'],
+    });
+  }
+
+  const evidenceInput = body.evidenceRefs ?? [];
+  if (!Array.isArray(evidenceInput)) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/downstream-integration-proof-evidence-invalid',
+      title: 'Invalid downstream integration proof evidence',
+      status: 400,
+      detail: 'evidenceRefs must be an array when provided.',
+      reasonCodes: ['invalid-downstream-integration-proof-evidence'],
+    });
+  }
+  const evidenceRefs: {
+    readonly id: string;
+    readonly kind: ShadowDownstreamIntegrationEvidenceKind;
+    readonly digest: string;
+    readonly uri: string | null;
+  }[] = [];
+  for (const entry of evidenceInput) {
+    if (!isRecord(entry)) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/downstream-integration-proof-evidence-invalid',
+        title: 'Invalid downstream integration proof evidence',
+        status: 400,
+        detail: 'Every evidenceRef must be an object with id, kind, digest, and optional uri.',
+        reasonCodes: ['invalid-downstream-integration-proof-evidence'],
+      });
+    }
+    const id = typeof entry.id === 'string' ? entry.id.trim() : '';
+    const kind = typeof entry.kind === 'string'
+      ? parseIntegrationEvidenceKind(entry.kind)
+      : null;
+    const digest = typeof entry.digest === 'string' ? entry.digest.trim() : '';
+    const uri = entry.uri === undefined || entry.uri === null
+      ? null
+      : typeof entry.uri === 'string'
+        ? entry.uri.trim()
+        : '';
+    if (!id || !kind || !digest || uri === '') {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/downstream-integration-proof-evidence-invalid',
+        title: 'Invalid downstream integration proof evidence',
+        status: 400,
+        detail:
+          `Every evidenceRef requires id, kind, and digest. Evidence kind must be one of: ${SHADOW_DOWNSTREAM_INTEGRATION_EVIDENCE_KINDS.join(', ')}.`,
+        reasonCodes: ['invalid-downstream-integration-proof-evidence'],
+      });
+    }
+    evidenceRefs.push(Object.freeze({
+      id,
+      kind,
+      digest,
+      uri,
+    }));
+  }
+
+  const checkInput = body.observedVerificationChecks ?? body.observedChecks ?? [];
+  if (!Array.isArray(checkInput)) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/downstream-integration-proof-checks-invalid',
+      title: 'Invalid downstream integration proof checks',
+      status: 400,
+      detail: 'observedVerificationChecks must be an array when provided.',
+      reasonCodes: ['invalid-downstream-integration-proof-checks'],
+    });
+  }
+  const observedVerificationChecks: ShadowDownstreamVerificationCheckKind[] = [];
+  for (const entry of checkInput) {
+    const check = typeof entry === 'string'
+      ? parseDownstreamVerificationCheck(entry)
+      : null;
+    if (!check) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/downstream-integration-proof-checks-invalid',
+        title: 'Invalid downstream integration proof checks',
+        status: 400,
+        detail:
+          `observedVerificationChecks entries must be one of: ${SHADOW_DOWNSTREAM_VERIFICATION_CHECKS.join(', ')}.`,
+        reasonCodes: ['invalid-downstream-integration-proof-checks'],
+      });
+    }
+    observedVerificationChecks.push(check);
+  }
+
+  return {
+    enforcementPointId,
+    boundaryKind,
+    verifierRef,
+    evidenceRefs: Object.freeze(evidenceRefs),
+    observedVerificationChecks: Object.freeze(observedVerificationChecks),
   };
 }
 
@@ -938,6 +1137,105 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         status,
         detail,
         reasonCodes: ['downstream-verification-binding-failed'],
+      });
+    }
+  });
+
+  app.post('/api/v1/shadow/downstream-integration-proof', async (c) => {
+    c.header('cache-control', 'no-store');
+    const body = await readDownstreamIntegrationProofBody(c);
+    if (body instanceof Response) return body;
+    if (!deps.listShadowPolicyCandidateRecords) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-candidate-store-unavailable',
+        title: 'Policy candidate store unavailable',
+        status: 503,
+        detail: 'Downstream integration proof generation is not configured for this runtime.',
+        reasonCodes: ['policy-candidate-store-unavailable'],
+      });
+    }
+    const statusQuery = c.req.query('status');
+    const sourceStatus = parsePromotionSourceStatus(statusQuery);
+    if (!sourceStatus) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-promotion-source-status-invalid',
+        title: 'Invalid policy promotion source status',
+        status: 400,
+        detail:
+          `Downstream integration proofs can only be generated from: ${SHADOW_POLICY_PROMOTION_SOURCE_STATUSES.join(', ')}.`,
+        reasonCodes: ['invalid-policy-promotion-source-status'],
+      });
+    }
+
+    try {
+      const tenant = deps.currentTenant(c);
+      const records = deps.listShadowPolicyCandidateRecords({
+        tenant,
+        status: sourceStatus,
+      });
+      const draft = createShadowPolicyPromotionDraft({
+        tenantId: tenant.tenantId,
+        records,
+        sourceStatus,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const packet = createShadowPolicyPromotionPacket({
+        draft,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const simulation = createShadowPolicyPromotionSimulation({
+        packet,
+        events: deps.listShadowEvents({ tenant }),
+        generatedAt: deps.now?.() ?? null,
+      });
+      const signingPayload = createShadowPolicyBundleSigningPayload(simulation);
+      const signature = deps.signShadowPolicyBundlePublication?.({
+        tenant,
+        payload: signingPayload,
+      }) ?? null;
+      const publication = createShadowPolicyBundlePublication({
+        simulation,
+        signature,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const binding = createShadowDownstreamVerificationBinding({
+        simulation,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const proof = createShadowDownstreamIntegrationProof({
+        publication,
+        binding,
+        enforcementPointId: body.enforcementPointId,
+        boundaryKind: body.boundaryKind,
+        verifierRef: body.verifierRef,
+        evidenceRefs: body.evidenceRefs,
+        observedVerificationChecks: body.observedVerificationChecks,
+        generatedAt: deps.now?.() ?? null,
+      });
+      return c.json({
+        tenant: tenantSummary(tenant),
+        storageMode: 'file-backed-evaluation',
+        productionReady: false,
+        approvalRequired: true,
+        autoEnforce: false,
+        rawPayloadStored: false,
+        proof,
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : 'Downstream integration proof could not be generated.';
+      const status: ShadowProblemStatus =
+        detail.includes('Shadow downstream integration proof') || detail.includes('exceeds maximum')
+          ? 400
+          : 503;
+      return problem(c, {
+        type: 'https://attestor.dev/problems/downstream-integration-proof-failed',
+        title: 'Downstream integration proof failed',
+        status,
+        detail,
+        reasonCodes: ['downstream-integration-proof-failed'],
       });
     }
   });

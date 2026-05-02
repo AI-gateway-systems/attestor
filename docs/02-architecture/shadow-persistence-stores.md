@@ -294,6 +294,57 @@ productionReady: false
 
 This follows the same discipline used by external authorization and signed-policy systems: the downstream side must verify the signed artifact chain, the intended audience/scope, freshness, replay resistance, and the exact rule/admission digest before a consequence can execute.
 
+## Downstream Integration Proof
+
+The next surface binds the signed publication, downstream verification binding, and customer-supplied integration evidence:
+
+```text
+POST /api/v1/shadow/downstream-integration-proof
+POST /api/v1/shadow/downstream-integration-proof?status=activated
+```
+
+The request identifies the downstream enforcement point and supplies data-minimized evidence refs:
+
+```json
+{
+  "enforcementPointId": "refund-service/ext-authz",
+  "boundaryKind": "http-handler",
+  "verifierRef": "verifier:refund-service-ci",
+  "evidenceRefs": [
+    {
+      "id": "ci:run:123",
+      "kind": "adapter-test",
+      "digest": "sha256:...",
+      "uri": "https://example.invalid/evidence/ci-run-123"
+    }
+  ],
+  "observedVerificationChecks": [
+    "verify-artifact-signature",
+    "verify-source-digests",
+    "verify-tenant-scope",
+    "verify-rule-binding",
+    "verify-admission-digest",
+    "verify-downstream-scope",
+    "verify-replay-protection",
+    "verify-freshness",
+    "hold-on-mismatch"
+  ]
+}
+```
+
+The proof does not store raw adapter config, request bodies, customer records, payment secrets, wallet material, or downstream response bodies. It records only refs, digests, the verifier reference, the enforcement point id, and the observed verification check names.
+
+If every required binding check is represented, at least one evidence ref is present, the signed publication is ready, and the publication/binding source chain matches, the returned artifact can close `downstream-integration-proof-required` for that proof. It still keeps:
+
+```text
+activationReady: false
+autoEnforce: false
+rawPayloadStored: false
+productionReady: false
+```
+
+This is integration evidence, not a production deployment guarantee. Evaluation signatures still leave `production-signing-provider-required` open, and customer systems must keep enforcing the verification contract at the actual execution point.
+
 ## Why This Shape
 
 This follows the same pattern used by mature control systems:
@@ -316,6 +367,7 @@ policy promotion packet generated
 policy promotion packet simulated
 policy bundle publication signed or held unsigned
 downstream verification binding drafted
+downstream integration proof supplied
 only then can enforcement promotion happen
 ```
 
