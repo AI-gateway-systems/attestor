@@ -3,6 +3,7 @@ import {
   createConsequenceAdmissionProblem,
   createActionRiskInventory,
   createShadowActivationReadinessGate,
+  createShadowCustomerActivationHandoff,
   createShadowPolicyDiscoveryCandidates,
   createShadowDownstreamIntegrationProof,
   createShadowDownstreamVerificationBinding,
@@ -17,9 +18,14 @@ import {
   GENERIC_ADMISSION_MODES,
   SHADOW_DOWNSTREAM_INTEGRATION_EVIDENCE_KINDS,
   SHADOW_DOWNSTREAM_VERIFICATION_CHECKS,
+  SHADOW_CUSTOMER_ACTIVATION_REF_KINDS,
+  SHADOW_CUSTOMER_ACTIVATION_ROLLOUT_STRATEGIES,
   SHADOW_POLICY_PROMOTION_SOURCE_STATUSES,
   type ConsequenceAdmissionDownstreamBoundaryKind,
   type GenericAdmissionMode,
+  type ShadowCustomerActivationControlRef,
+  type ShadowCustomerActivationRefKind,
+  type ShadowCustomerActivationRolloutStrategy,
   type ShadowDownstreamIntegrationEvidenceKind,
   type ShadowDownstreamVerificationCheckKind,
   type ShadowPolicyBundlePublicationSignature,
@@ -39,6 +45,19 @@ import {
 import type { TenantContext } from '../../tenant-isolation.js';
 
 type ShadowProblemStatus = 400 | 404 | 409 | 503;
+
+type DownstreamIntegrationProofRouteBody = {
+  readonly enforcementPointId: string;
+  readonly boundaryKind: ConsequenceAdmissionDownstreamBoundaryKind;
+  readonly verifierRef: string;
+  readonly evidenceRefs: readonly {
+    readonly id: string;
+    readonly kind: ShadowDownstreamIntegrationEvidenceKind;
+    readonly digest: string;
+    readonly uri: string | null;
+  }[];
+  readonly observedVerificationChecks: readonly ShadowDownstreamVerificationCheckKind[];
+};
 
 export interface ShadowRouteDeps {
   currentTenant(context: Context): TenantContext;
@@ -330,18 +349,7 @@ function parseDownstreamVerificationCheck(
     : null;
 }
 
-async function readDownstreamIntegrationProofBody(c: Context): Promise<{
-  readonly enforcementPointId: string;
-  readonly boundaryKind: ConsequenceAdmissionDownstreamBoundaryKind;
-  readonly verifierRef: string;
-  readonly evidenceRefs: readonly {
-    readonly id: string;
-    readonly kind: ShadowDownstreamIntegrationEvidenceKind;
-    readonly digest: string;
-    readonly uri: string | null;
-  }[];
-  readonly observedVerificationChecks: readonly ShadowDownstreamVerificationCheckKind[];
-} | Response> {
+async function readDownstreamIntegrationProofBody(c: Context): Promise<DownstreamIntegrationProofRouteBody | Response> {
   const contentType = c.req.header('content-type') ?? '';
   if (!contentType.includes('application/json')) {
     return problem(c, {
@@ -483,6 +491,241 @@ async function readDownstreamIntegrationProofBody(c: Context): Promise<{
     verifierRef,
     evidenceRefs: Object.freeze(evidenceRefs),
     observedVerificationChecks: Object.freeze(observedVerificationChecks),
+  };
+}
+
+function parseCustomerActivationRefKind(
+  value: string | null | undefined,
+): ShadowCustomerActivationRefKind | null {
+  if (value === undefined || value === null || value.trim() === '') return null;
+  const normalized = value.trim();
+  return SHADOW_CUSTOMER_ACTIVATION_REF_KINDS.includes(
+    normalized as ShadowCustomerActivationRefKind,
+  )
+    ? normalized as ShadowCustomerActivationRefKind
+    : null;
+}
+
+function parseCustomerActivationRolloutStrategy(
+  value: string | null | undefined,
+): ShadowCustomerActivationRolloutStrategy | null {
+  if (value === undefined || value === null || value.trim() === '') return null;
+  const normalized = value.trim();
+  return SHADOW_CUSTOMER_ACTIVATION_ROLLOUT_STRATEGIES.includes(
+    normalized as ShadowCustomerActivationRolloutStrategy,
+  )
+    ? normalized as ShadowCustomerActivationRolloutStrategy
+    : null;
+}
+
+async function readCustomerActivationHandoffBody(c: Context): Promise<{
+  readonly integration: DownstreamIntegrationProofRouteBody;
+  readonly activationRef: string;
+  readonly operatorRef: string;
+  readonly rolloutStrategy: ShadowCustomerActivationRolloutStrategy;
+  readonly rollbackRef: ShadowCustomerActivationControlRef | null;
+  readonly killSwitchRef: ShadowCustomerActivationControlRef | null;
+  readonly monitoringRef: ShadowCustomerActivationControlRef | null;
+  readonly expiresAt: string | null;
+} | Response> {
+  const contentType = c.req.header('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/customer-activation-handoff-json-required',
+      title: 'Customer activation handoff JSON required',
+      status: 400,
+      detail: 'The customer activation handoff route requires a JSON object body.',
+      reasonCodes: ['customer-activation-handoff-json-required'],
+    });
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json<unknown>();
+  } catch {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/customer-activation-handoff-json-invalid',
+      title: 'Invalid customer activation handoff JSON',
+      status: 400,
+      detail: 'The customer activation handoff route requires a valid JSON object body.',
+      reasonCodes: ['invalid-json'],
+    });
+  }
+  if (!isRecord(body)) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/customer-activation-handoff-input-invalid',
+      title: 'Invalid customer activation handoff input',
+      status: 400,
+      detail: 'The customer activation handoff route requires an object body.',
+      reasonCodes: ['invalid-customer-activation-handoff-input'],
+    });
+  }
+  const bodyRecord = body;
+
+  const enforcementPointId = typeof bodyRecord.enforcementPointId === 'string'
+    ? bodyRecord.enforcementPointId.trim()
+    : '';
+  const boundaryKind = typeof bodyRecord.boundaryKind === 'string'
+    ? parseDownstreamBoundaryKind(bodyRecord.boundaryKind)
+    : null;
+  const verifierRef = typeof bodyRecord.verifierRef === 'string'
+    ? bodyRecord.verifierRef.trim()
+    : '';
+  const activationRef = typeof bodyRecord.activationRef === 'string' ? bodyRecord.activationRef.trim() : '';
+  const operatorRef = typeof bodyRecord.operatorRef === 'string' ? bodyRecord.operatorRef.trim() : '';
+  const rolloutStrategy = typeof bodyRecord.rolloutStrategy === 'string'
+    ? parseCustomerActivationRolloutStrategy(bodyRecord.rolloutStrategy)
+    : null;
+  const expiresAt = bodyRecord.expiresAt === undefined || bodyRecord.expiresAt === null
+    ? null
+    : typeof bodyRecord.expiresAt === 'string'
+      ? bodyRecord.expiresAt.trim()
+      : '';
+  if (!enforcementPointId || !boundaryKind || !verifierRef || !activationRef || !operatorRef || !rolloutStrategy || expiresAt === '') {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/customer-activation-handoff-input-invalid',
+      title: 'Invalid customer activation handoff input',
+      status: 400,
+      detail:
+        `The customer activation handoff route requires enforcementPointId, verifierRef, boundaryKind, activationRef, operatorRef, and rolloutStrategy. Rollout strategy must be one of: ${SHADOW_CUSTOMER_ACTIVATION_ROLLOUT_STRATEGIES.join(', ')}.`,
+      reasonCodes: ['invalid-customer-activation-handoff-input'],
+    });
+  }
+
+  const evidenceInput = bodyRecord.evidenceRefs ?? [];
+  if (!Array.isArray(evidenceInput)) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/customer-activation-handoff-evidence-invalid',
+      title: 'Invalid customer activation handoff evidence',
+      status: 400,
+      detail: 'evidenceRefs must be an array when provided.',
+      reasonCodes: ['invalid-customer-activation-handoff-evidence'],
+    });
+  }
+  const evidenceRefs: {
+    readonly id: string;
+    readonly kind: ShadowDownstreamIntegrationEvidenceKind;
+    readonly digest: string;
+    readonly uri: string | null;
+  }[] = [];
+  for (const entry of evidenceInput) {
+    if (!isRecord(entry)) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-handoff-evidence-invalid',
+        title: 'Invalid customer activation handoff evidence',
+        status: 400,
+        detail: 'Every evidenceRef must be an object with id, kind, digest, and optional uri.',
+        reasonCodes: ['invalid-customer-activation-handoff-evidence'],
+      });
+    }
+    const id = typeof entry.id === 'string' ? entry.id.trim() : '';
+    const kind = typeof entry.kind === 'string'
+      ? parseIntegrationEvidenceKind(entry.kind)
+      : null;
+    const digest = typeof entry.digest === 'string' ? entry.digest.trim() : '';
+    const uri = entry.uri === undefined || entry.uri === null
+      ? null
+      : typeof entry.uri === 'string'
+        ? entry.uri.trim()
+        : '';
+    if (!id || !kind || !digest || uri === '') {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-handoff-evidence-invalid',
+        title: 'Invalid customer activation handoff evidence',
+        status: 400,
+        detail:
+          `Every evidenceRef requires id, kind, and digest. Evidence kind must be one of: ${SHADOW_DOWNSTREAM_INTEGRATION_EVIDENCE_KINDS.join(', ')}.`,
+        reasonCodes: ['invalid-customer-activation-handoff-evidence'],
+      });
+    }
+    evidenceRefs.push(Object.freeze({ id, kind, digest, uri }));
+  }
+
+  const checkInput = bodyRecord.observedVerificationChecks ?? bodyRecord.observedChecks ?? [];
+  if (!Array.isArray(checkInput)) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/customer-activation-handoff-checks-invalid',
+      title: 'Invalid customer activation handoff checks',
+      status: 400,
+      detail: 'observedVerificationChecks must be an array when provided.',
+      reasonCodes: ['invalid-customer-activation-handoff-checks'],
+    });
+  }
+  const observedVerificationChecks: ShadowDownstreamVerificationCheckKind[] = [];
+  for (const entry of checkInput) {
+    const check = typeof entry === 'string'
+      ? parseDownstreamVerificationCheck(entry)
+      : null;
+    if (!check) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-handoff-checks-invalid',
+        title: 'Invalid customer activation handoff checks',
+        status: 400,
+        detail:
+          `observedVerificationChecks entries must be one of: ${SHADOW_DOWNSTREAM_VERIFICATION_CHECKS.join(', ')}.`,
+        reasonCodes: ['invalid-customer-activation-handoff-checks'],
+      });
+    }
+    observedVerificationChecks.push(check);
+  }
+
+  function readControlRef(fieldName: string): ShadowCustomerActivationControlRef | Response | null {
+    const value = bodyRecord[fieldName];
+    if (value === undefined || value === null) return null;
+    if (!isRecord(value)) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-handoff-control-invalid',
+        title: 'Invalid customer activation handoff control',
+        status: 400,
+        detail: `${fieldName} must be an object with id, kind, digest, and optional uri when provided.`,
+        reasonCodes: ['invalid-customer-activation-handoff-control'],
+      });
+    }
+    const id = typeof value.id === 'string' ? value.id.trim() : '';
+    const kind = typeof value.kind === 'string'
+      ? parseCustomerActivationRefKind(value.kind)
+      : null;
+    const digest = typeof value.digest === 'string' ? value.digest.trim() : '';
+    const uri = value.uri === undefined || value.uri === null
+      ? null
+      : typeof value.uri === 'string'
+        ? value.uri.trim()
+        : '';
+    if (!id || !kind || !digest || uri === '') {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-handoff-control-invalid',
+        title: 'Invalid customer activation handoff control',
+        status: 400,
+        detail:
+          `${fieldName} requires id, kind, and digest. Control ref kind must be one of: ${SHADOW_CUSTOMER_ACTIVATION_REF_KINDS.join(', ')}.`,
+        reasonCodes: ['invalid-customer-activation-handoff-control'],
+      });
+    }
+    return Object.freeze({ id, kind, digest, uri });
+  }
+
+  const rollbackRef = readControlRef('rollbackRef');
+  if (rollbackRef instanceof Response) return rollbackRef;
+  const killSwitchRef = readControlRef('killSwitchRef');
+  if (killSwitchRef instanceof Response) return killSwitchRef;
+  const monitoringRef = readControlRef('monitoringRef');
+  if (monitoringRef instanceof Response) return monitoringRef;
+
+  return {
+    integration: {
+      enforcementPointId,
+      boundaryKind,
+      verifierRef,
+      evidenceRefs: Object.freeze(evidenceRefs),
+      observedVerificationChecks: Object.freeze(observedVerificationChecks),
+    },
+    activationRef,
+    operatorRef,
+    rolloutStrategy,
+    rollbackRef,
+    killSwitchRef,
+    monitoringRef,
+    expiresAt,
   };
 }
 
@@ -1345,6 +1588,126 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         status,
         detail,
         reasonCodes: ['activation-readiness-failed'],
+      });
+    }
+  });
+
+  app.post('/api/v1/shadow/customer-activation-handoff', async (c) => {
+    c.header('cache-control', 'no-store');
+    const body = await readCustomerActivationHandoffBody(c);
+    if (body instanceof Response) return body;
+    if (!deps.listShadowPolicyCandidateRecords) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-candidate-store-unavailable',
+        title: 'Policy candidate store unavailable',
+        status: 503,
+        detail: 'Customer activation handoff generation is not configured for this runtime.',
+        reasonCodes: ['policy-candidate-store-unavailable'],
+      });
+    }
+    const statusQuery = c.req.query('status');
+    const sourceStatus = parsePromotionSourceStatus(statusQuery);
+    if (!sourceStatus) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/policy-promotion-source-status-invalid',
+        title: 'Invalid policy promotion source status',
+        status: 400,
+        detail:
+          `Customer activation handoffs can only be generated from: ${SHADOW_POLICY_PROMOTION_SOURCE_STATUSES.join(', ')}.`,
+        reasonCodes: ['invalid-policy-promotion-source-status'],
+      });
+    }
+
+    try {
+      const tenant = deps.currentTenant(c);
+      const records = deps.listShadowPolicyCandidateRecords({
+        tenant,
+        status: sourceStatus,
+      });
+      const draft = createShadowPolicyPromotionDraft({
+        tenantId: tenant.tenantId,
+        records,
+        sourceStatus,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const packet = createShadowPolicyPromotionPacket({
+        draft,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const simulation = createShadowPolicyPromotionSimulation({
+        packet,
+        events: deps.listShadowEvents({ tenant }),
+        generatedAt: deps.now?.() ?? null,
+      });
+      const signingPayload = createShadowPolicyBundleSigningPayload(simulation);
+      const signature = deps.signShadowPolicyBundlePublication?.({
+        tenant,
+        payload: signingPayload,
+      }) ?? null;
+      const publication = createShadowPolicyBundlePublication({
+        simulation,
+        signature,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const binding = createShadowDownstreamVerificationBinding({
+        simulation,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const integrationProof = createShadowDownstreamIntegrationProof({
+        publication,
+        binding,
+        enforcementPointId: body.integration.enforcementPointId,
+        boundaryKind: body.integration.boundaryKind,
+        verifierRef: body.integration.verifierRef,
+        evidenceRefs: body.integration.evidenceRefs,
+        observedVerificationChecks: body.integration.observedVerificationChecks,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const activationReadiness = createShadowActivationReadinessGate({
+        sourceStatus,
+        publication,
+        binding,
+        integrationProof,
+        generatedAt: deps.now?.() ?? null,
+      });
+      const handoff = createShadowCustomerActivationHandoff({
+        activationReadiness,
+        activationRef: body.activationRef,
+        operatorRef: body.operatorRef,
+        rolloutStrategy: body.rolloutStrategy,
+        rollbackRef: body.rollbackRef,
+        killSwitchRef: body.killSwitchRef,
+        monitoringRef: body.monitoringRef,
+        expiresAt: body.expiresAt,
+        generatedAt: deps.now?.() ?? null,
+      });
+      return c.json({
+        tenant: tenantSummary(tenant),
+        storageMode: 'file-backed-evaluation',
+        productionReady: false,
+        approvalRequired: true,
+        autoEnforce: false,
+        rawPayloadStored: false,
+        handoff,
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : 'Customer activation handoff could not be generated.';
+      const status: ShadowProblemStatus =
+        detail.includes('Shadow downstream integration proof') ||
+        detail.includes('Shadow activation readiness gate') ||
+        detail.includes('Shadow customer activation handoff') ||
+        detail.includes('exceeds maximum')
+          ? 400
+          : 503;
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-handoff-failed',
+        title: 'Customer activation handoff failed',
+        status,
+        detail,
+        reasonCodes: ['customer-activation-handoff-failed'],
       });
     }
   });

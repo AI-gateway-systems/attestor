@@ -387,6 +387,60 @@ productionReady: false
 
 The gate is an activation readiness artifact, not a customer deployment switch. Customer systems must still perform the actual activation, keep the downstream verifier on the execution path, and retain their own rollback/kill-switch controls.
 
+## Customer Activation Handoff
+
+Activation readiness answers whether the Attestor-side promotion chain is eligible. The customer activation handoff adds the next boundary:
+
+```text
+POST /api/v1/shadow/customer-activation-handoff
+POST /api/v1/shadow/customer-activation-handoff?status=activated
+```
+
+The request uses the same downstream integration proof body and adds customer-side activation controls:
+
+```json
+{
+  "activationRef": "change:shadow-enforcement-activation-789",
+  "operatorRef": "operator:security-reviewer",
+  "rolloutStrategy": "canary",
+  "rollbackRef": {
+    "id": "runbook:rollback-shadow-enforcement",
+    "kind": "deployment-rollback",
+    "digest": "sha256:..."
+  },
+  "killSwitchRef": {
+    "id": "flag:disable-shadow-enforcement",
+    "kind": "feature-flag-disable",
+    "digest": "sha256:..."
+  },
+  "monitoringRef": {
+    "id": "slo:shadow-enforcement-error-budget",
+    "kind": "slo-alarm",
+    "digest": "sha256:..."
+  }
+}
+```
+
+The handoff records whether the customer has supplied:
+
+- an operator activation reference
+- a rollback plan reference
+- a kill-switch reference
+- a monitoring/alarm reference
+
+These controls do not make Attestor a deployment orchestrator. They make the handoff explicit: customer systems can begin their controlled activation process only after the activation readiness gate is closed and customer rollback/kill-switch evidence is present.
+
+The handoff still returns:
+
+```text
+approvalRequired: true
+autoEnforce: false
+rawPayloadStored: false
+productionReady: false
+```
+
+It is a signed/canonical review artifact for the customer's activation process, not an instruction for Attestor to flip enforcement on by itself.
+
 ## Why This Shape
 
 This follows the same pattern used by mature control systems:
@@ -411,6 +465,7 @@ policy bundle publication signed or held unsigned
 downstream verification binding drafted
 downstream integration proof supplied
 activation readiness gate evaluated
+customer activation handoff generated
 only then can enforcement promotion happen
 ```
 

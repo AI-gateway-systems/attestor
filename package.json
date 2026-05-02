@@ -119,6 +119,7 @@
     "test:shadow-downstream-verification-binding": "tsx tests/shadow-downstream-verification-binding.test.ts",
     "test:shadow-downstream-integration-proof": "tsx tests/shadow-downstream-integration-proof.test.ts",
     "test:shadow-activation-readiness-gate": "tsx tests/shadow-activation-readiness-gate.test.ts",
+    "test:shadow-customer-activation-handoff": "tsx tests/shadow-customer-activation-handoff.test.ts",
     "test:consequence-taxonomy": "tsx tests/consequence-taxonomy.test.ts",
     "test:downstream-enforcement-contract": "tsx tests/downstream-enforcement-contract.test.ts",
     "test:consequence-verifier-helper": "tsx tests/consequence-verifier-helper.test.ts",
