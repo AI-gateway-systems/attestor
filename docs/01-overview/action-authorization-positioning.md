@@ -146,6 +146,8 @@ The first implemented layer is the admission feedback contract. It adds model-sa
 
 The second layer is retry attempt binding and retry budget evaluation. A corrected request carries a `retryAttempt` object that points back to the held admission through the previous admission ID, previous admission digest, previous request ID, attempt number, correction reason codes, and optional idempotency key. The budget check then verifies the binding, max-attempt count, retry window, and correction reason scope before the retry can be treated as a valid model correction. This keeps retries useful without turning the gateway into a blind probing oracle.
 
+The third layer is a correction catalog. Correction reason codes must be stable enough for clients, agent wrappers, review UIs, and audit exports to understand, while still being safe enough to return to a model. The catalog separates model-retryable gaps from customer-review and operator-control reasons.
+
 This does not mean the model can keep probing until it gets an admit. Some reasons are not model-retryable. Unsafe signals, policy blocks, adapter readiness gaps, custom-domain review, replay failures, and human rejection must route to customer review or operator control.
 
 Use this language:

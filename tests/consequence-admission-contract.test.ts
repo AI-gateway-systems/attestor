@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import {
+  CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION,
   CONSEQUENCE_ADMISSION_CONTRACT_VERSION,
   CONSEQUENCE_ADMISSION_RETRY_DEFAULT_MAX_ATTEMPTS,
   CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS,
   CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_VERSION,
   CONSEQUENCE_ADMISSION_RETRY_RULE_VERSION,
   consequenceAdmissionAllowsConsequence,
+  consequenceAdmissionCorrectionCatalog,
+  consequenceAdmissionCorrectionForReason,
   consequenceAdmissionDescriptor,
   createConsequenceAdmissionCheck,
   createConsequenceAdmissionProblem,
@@ -123,6 +126,11 @@ function testDescriptorAndDecisionHelpers(): void {
     'Admission contract: retry rule version is stable',
   );
   equal(
+    descriptor.correctionCatalogVersion,
+    CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION,
+    'Admission contract: correction catalog version is stable',
+  );
+  equal(
     descriptor.retryDefaultMaxAttempts,
     CONSEQUENCE_ADMISSION_RETRY_DEFAULT_MAX_ATTEMPTS,
     'Admission contract: default retry max attempts is exposed',
@@ -151,12 +159,59 @@ function testDescriptorAndDecisionHelpers(): void {
     descriptor.retryBudgetOutcomes.includes('hold-for-review'),
     'Admission contract: retry budget can hold retries fail-closed',
   );
+  ok(
+    descriptor.correctionAudiences.includes('model'),
+    'Admission contract: correction catalog exposes model audience',
+  );
+  ok(
+    descriptor.correctionReasonCodes.includes('evidence-ref-missing'),
+    'Admission contract: correction reason codes are exposed',
+  );
   ok(isConsequenceAdmissionDecision('admit'), 'Admission contract: admit is recognized');
   ok(!isConsequenceAdmissionDecision('pass'), 'Admission contract: finance pass stays native, not canonical');
   equal(consequenceAdmissionAllowsConsequence('admit'), true, 'Admission contract: admit allows consequence');
   equal(consequenceAdmissionAllowsConsequence('narrow'), true, 'Admission contract: narrow allows constrained consequence');
   equal(consequenceAdmissionAllowsConsequence('review'), false, 'Admission contract: review does not allow automatic consequence');
   equal(consequenceAdmissionAllowsConsequence('block'), false, 'Admission contract: block does not allow consequence');
+}
+
+function testCorrectionCatalogIsStableAndSafe(): void {
+  const catalog = consequenceAdmissionCorrectionCatalog();
+  const evidence = consequenceAdmissionCorrectionForReason('evidence-ref-missing');
+  const adapter = consequenceAdmissionCorrectionForReason('adapter-readiness-missing');
+
+  equal(catalog.version, CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION, 'Admission contract: correction catalog version is stable');
+  ok(catalog.reasonCodes.includes('policy-ref-missing'), 'Admission contract: correction catalog includes policy ref gap');
+  ok(catalog.reasonCodes.includes('feature-unsafe'), 'Admission contract: correction catalog includes unsafe signal');
+  ok(
+    catalog.modelRetryableReasonCodes.includes('evidence-ref-missing'),
+    'Admission contract: evidence gap is model-retryable',
+  );
+  ok(
+    !catalog.modelRetryableReasonCodes.includes('adapter-readiness-missing'),
+    'Admission contract: adapter readiness is not model-retryable',
+  );
+  ok(
+    catalog.operatorOnlyReasonCodes.includes('adapter-readiness-missing'),
+    'Admission contract: operator-only correction codes are exposed',
+  );
+  equal(evidence?.audience, 'model', 'Admission contract: evidence correction is model audience');
+  equal(evidence?.disclosureLevel, 'actionable', 'Admission contract: model correction is actionable');
+  assert.deepEqual(evidence?.missingFields, ['evidenceRefs']);
+  passed += 1;
+  equal(adapter?.audience, 'operator-control', 'Admission contract: adapter correction routes to operator');
+  equal(adapter?.retryableByModel, false, 'Admission contract: adapter correction is not model-retryable');
+  equal(
+    consequenceAdmissionCorrectionForReason('unknown-correction-code'),
+    null,
+    'Admission contract: unknown correction reason returns null',
+  );
+
+  for (const entry of catalog.entries) {
+    ok(entry.safeSummary.length > 0, `Admission contract: ${entry.reasonCode} has safe summary`);
+    ok(!/secret|private key|bank account|wallet key|threshold/iu.test(entry.safeSummary),
+      `Admission contract: ${entry.reasonCode} safe summary avoids sensitive details`);
+  }
 }
 
 function testNativeDecisionMappingsFailClosed(): void {
@@ -632,6 +687,7 @@ function testProblemShapeIsFailClosed(): void {
 }
 
 testDescriptorAndDecisionHelpers();
+testCorrectionCatalogIsStableAndSafe();
 testNativeDecisionMappingsFailClosed();
 testRequestAndResponseAreCanonicalAndProofBearing();
 testRetryAttemptBindingIsCanonical();
