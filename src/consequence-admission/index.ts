@@ -42,6 +42,9 @@ export const CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_VERSION =
 export const CONSEQUENCE_ADMISSION_RETRY_RULE_VERSION =
   'attestor.consequence-admission-retry-rules.v1';
 
+export const CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION =
+  'attestor.consequence-admission-correction-catalog.v1';
+
 export const CONSEQUENCE_ADMISSION_RETRY_DEFAULT_MAX_ATTEMPTS = 2;
 export const CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS = 300;
 
@@ -88,6 +91,14 @@ export const CONSEQUENCE_ADMISSION_FEEDBACK_DISCLOSURE_LEVELS = [
 ] as const;
 export type ConsequenceAdmissionFeedbackDisclosureLevel =
   typeof CONSEQUENCE_ADMISSION_FEEDBACK_DISCLOSURE_LEVELS[number];
+
+export const CONSEQUENCE_ADMISSION_CORRECTION_AUDIENCES = [
+  'model',
+  'customer-review',
+  'operator-control',
+] as const;
+export type ConsequenceAdmissionCorrectionAudience =
+  typeof CONSEQUENCE_ADMISSION_CORRECTION_AUDIENCES[number];
 
 export const CONSEQUENCE_ADMISSION_RETRY_BINDING_FIELDS = [
   'previousAdmissionId',
@@ -287,6 +298,25 @@ export interface ConsequenceAdmissionFeedback {
   readonly safeInstruction: string;
 }
 
+export interface ConsequenceAdmissionCorrectionCatalogEntry {
+  readonly reasonCode: string;
+  readonly audience: ConsequenceAdmissionCorrectionAudience;
+  readonly disclosureLevel: ConsequenceAdmissionFeedbackDisclosureLevel;
+  readonly missingFields: readonly string[];
+  readonly requiredEvidenceKinds: readonly string[];
+  readonly retryableByModel: boolean;
+  readonly operatorOnly: boolean;
+  readonly safeSummary: string;
+}
+
+export interface ConsequenceAdmissionCorrectionCatalog {
+  readonly version: typeof CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION;
+  readonly entries: readonly ConsequenceAdmissionCorrectionCatalogEntry[];
+  readonly reasonCodes: readonly string[];
+  readonly modelRetryableReasonCodes: readonly string[];
+  readonly operatorOnlyReasonCodes: readonly string[];
+}
+
 export interface ConsequenceAdmissionRetryGuidance {
   readonly retryAllowed: boolean;
   readonly retryCategory:
@@ -361,6 +391,7 @@ export interface ConsequenceAdmissionDescriptor {
   readonly version: typeof CONSEQUENCE_ADMISSION_CONTRACT_VERSION;
   readonly retryAttemptVersion: typeof CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_VERSION;
   readonly retryRuleVersion: typeof CONSEQUENCE_ADMISSION_RETRY_RULE_VERSION;
+  readonly correctionCatalogVersion: typeof CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION;
   readonly retryDefaultMaxAttempts: typeof CONSEQUENCE_ADMISSION_RETRY_DEFAULT_MAX_ATTEMPTS;
   readonly retryDefaultWindowSeconds: typeof CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS;
   readonly decisions: typeof CONSEQUENCE_ADMISSION_DECISIONS;
@@ -374,6 +405,8 @@ export interface ConsequenceAdmissionDescriptor {
   readonly checkKinds: typeof CONSEQUENCE_ADMISSION_CHECK_KINDS;
   readonly checkOutcomes: typeof CONSEQUENCE_ADMISSION_CHECK_OUTCOMES;
   readonly feedbackDisclosureLevels: typeof CONSEQUENCE_ADMISSION_FEEDBACK_DISCLOSURE_LEVELS;
+  readonly correctionAudiences: typeof CONSEQUENCE_ADMISSION_CORRECTION_AUDIENCES;
+  readonly correctionReasonCodes: readonly string[];
   readonly retryBindingFields: typeof CONSEQUENCE_ADMISSION_RETRY_BINDING_FIELDS;
   readonly retryBudgetOutcomes: typeof CONSEQUENCE_ADMISSION_RETRY_BUDGET_OUTCOMES;
   readonly proofKinds: typeof CONSEQUENCE_ADMISSION_PROOF_KINDS;
@@ -1204,88 +1237,139 @@ export function createConsequenceAdmissionCheck(
   });
 }
 
-interface AdmissionCorrectionHint {
-  readonly missingFields: readonly string[];
-  readonly requiredEvidenceKinds: readonly string[];
-  readonly retryableByModel: boolean;
-  readonly operatorOnly: boolean;
-}
+export const CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_ENTRIES:
+readonly ConsequenceAdmissionCorrectionCatalogEntry[] = Object.freeze([
+  {
+    reasonCode: 'policy-ref-missing',
+    audience: 'model',
+    disclosureLevel: 'actionable',
+    missingFields: ['policyRef'],
+    requiredEvidenceKinds: ['policy_ref'],
+    retryableByModel: true,
+    operatorOnly: false,
+    safeSummary: 'Attach a bounded policy reference accepted by the customer environment.',
+  },
+  {
+    reasonCode: 'evidence-ref-missing',
+    audience: 'model',
+    disclosureLevel: 'actionable',
+    missingFields: ['evidenceRefs'],
+    requiredEvidenceKinds: ['evidence_ref'],
+    retryableByModel: true,
+    operatorOnly: false,
+    safeSummary: 'Attach evidence references instead of raw customer or private data.',
+  },
+  {
+    reasonCode: 'amount-scope-missing',
+    audience: 'model',
+    disclosureLevel: 'actionable',
+    missingFields: ['amount'],
+    requiredEvidenceKinds: [],
+    retryableByModel: true,
+    operatorOnly: false,
+    safeSummary: 'Provide the proposed amount scope as structured metadata.',
+  },
+  {
+    reasonCode: 'recipient-scope-missing',
+    audience: 'model',
+    disclosureLevel: 'actionable',
+    missingFields: ['recipient'],
+    requiredEvidenceKinds: [],
+    retryableByModel: true,
+    operatorOnly: false,
+    safeSummary: 'Provide a bounded recipient reference for the proposed consequence.',
+  },
+  {
+    reasonCode: 'data-scope-missing',
+    audience: 'model',
+    disclosureLevel: 'actionable',
+    missingFields: ['dataScope'],
+    requiredEvidenceKinds: ['data_scope_ref'],
+    retryableByModel: true,
+    operatorOnly: false,
+    safeSummary: 'Provide data scope metadata such as classification, fields, or record bounds.',
+  },
+  {
+    reasonCode: 'authority-mode-missing',
+    audience: 'model',
+    disclosureLevel: 'actionable',
+    missingFields: ['authorityMode'],
+    requiredEvidenceKinds: ['authority_ref'],
+    retryableByModel: true,
+    operatorOnly: false,
+    safeSummary: 'Provide the customer-approved authority mode or authority reference.',
+  },
+  {
+    reasonCode: 'narrow-required',
+    audience: 'model',
+    disclosureLevel: 'actionable',
+    missingFields: [],
+    requiredEvidenceKinds: ['narrowing_ref'],
+    retryableByModel: true,
+    operatorOnly: false,
+    safeSummary: 'Retry only with a narrower customer-approved consequence scope.',
+  },
+  {
+    reasonCode: 'adapter-readiness-missing',
+    audience: 'operator-control',
+    disclosureLevel: 'minimal',
+    missingFields: ['observedFeatures.adapterReady'],
+    requiredEvidenceKinds: ['adapter_readiness_ref'],
+    retryableByModel: false,
+    operatorOnly: true,
+    safeSummary: 'Adapter readiness is an operator or customer integration control.',
+  },
+  {
+    reasonCode: 'custom-domain-review-required',
+    audience: 'customer-review',
+    disclosureLevel: 'minimal',
+    missingFields: [],
+    requiredEvidenceKinds: ['customer_policy_ref'],
+    retryableByModel: false,
+    operatorOnly: true,
+    safeSummary: 'Custom consequence domains require customer policy review before automation.',
+  },
+  {
+    reasonCode: 'policy-blocked',
+    audience: 'customer-review',
+    disclosureLevel: 'minimal',
+    missingFields: [],
+    requiredEvidenceKinds: [],
+    retryableByModel: false,
+    operatorOnly: true,
+    safeSummary: 'The customer policy blocked the proposed consequence.',
+  },
+  {
+    reasonCode: 'feature-blocked',
+    audience: 'operator-control',
+    disclosureLevel: 'minimal',
+    missingFields: [],
+    requiredEvidenceKinds: [],
+    retryableByModel: false,
+    operatorOnly: true,
+    safeSummary: 'A customer or operator supplied blocked signal prevented automatic retry.',
+  },
+  {
+    reasonCode: 'feature-unsafe',
+    audience: 'operator-control',
+    disclosureLevel: 'minimal',
+    missingFields: [],
+    requiredEvidenceKinds: [],
+    retryableByModel: false,
+    operatorOnly: true,
+    safeSummary: 'A customer or operator supplied unsafe signal prevented automatic retry.',
+  },
+]);
 
-const ADMISSION_CORRECTION_HINTS: Readonly<Record<string, AdmissionCorrectionHint>> =
-  Object.freeze({
-    'policy-ref-missing': {
-      missingFields: ['policyRef'],
-      requiredEvidenceKinds: ['policy_ref'],
-      retryableByModel: true,
-      operatorOnly: false,
-    },
-    'evidence-ref-missing': {
-      missingFields: ['evidenceRefs'],
-      requiredEvidenceKinds: ['evidence_ref'],
-      retryableByModel: true,
-      operatorOnly: false,
-    },
-    'amount-scope-missing': {
-      missingFields: ['amount'],
-      requiredEvidenceKinds: [],
-      retryableByModel: true,
-      operatorOnly: false,
-    },
-    'recipient-scope-missing': {
-      missingFields: ['recipient'],
-      requiredEvidenceKinds: [],
-      retryableByModel: true,
-      operatorOnly: false,
-    },
-    'data-scope-missing': {
-      missingFields: ['dataScope'],
-      requiredEvidenceKinds: ['data_scope_ref'],
-      retryableByModel: true,
-      operatorOnly: false,
-    },
-    'authority-mode-missing': {
-      missingFields: ['authorityMode'],
-      requiredEvidenceKinds: ['authority_ref'],
-      retryableByModel: true,
-      operatorOnly: false,
-    },
-    'narrow-required': {
-      missingFields: [],
-      requiredEvidenceKinds: ['narrowing_ref'],
-      retryableByModel: true,
-      operatorOnly: false,
-    },
-    'adapter-readiness-missing': {
-      missingFields: ['observedFeatures.adapterReady'],
-      requiredEvidenceKinds: ['adapter_readiness_ref'],
-      retryableByModel: false,
-      operatorOnly: true,
-    },
-    'custom-domain-review-required': {
-      missingFields: [],
-      requiredEvidenceKinds: ['customer_policy_ref'],
-      retryableByModel: false,
-      operatorOnly: true,
-    },
-    'policy-blocked': {
-      missingFields: [],
-      requiredEvidenceKinds: [],
-      retryableByModel: false,
-      operatorOnly: true,
-    },
-    'feature-blocked': {
-      missingFields: [],
-      requiredEvidenceKinds: [],
-      retryableByModel: false,
-      operatorOnly: true,
-    },
-    'feature-unsafe': {
-      missingFields: [],
-      requiredEvidenceKinds: [],
-      retryableByModel: false,
-      operatorOnly: true,
-    },
-  });
+const ADMISSION_CORRECTION_HINTS:
+Readonly<Record<string, ConsequenceAdmissionCorrectionCatalogEntry>> = Object.freeze(
+  Object.fromEntries(
+    CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_ENTRIES.map((entry) => [
+      entry.reasonCode,
+      entry,
+    ]),
+  ) as Record<string, ConsequenceAdmissionCorrectionCatalogEntry>,
+);
 
 function uniqueSortedStrings(items: readonly string[]): readonly string[] {
   return Object.freeze([...new Set(items)].sort());
@@ -1293,12 +1377,37 @@ function uniqueSortedStrings(items: readonly string[]): readonly string[] {
 
 function admissionCorrectionHints(
   reasonCodes: readonly string[],
-): readonly AdmissionCorrectionHint[] {
+): readonly ConsequenceAdmissionCorrectionCatalogEntry[] {
   return Object.freeze(
     reasonCodes
       .map((code) => ADMISSION_CORRECTION_HINTS[code])
-      .filter((hint): hint is AdmissionCorrectionHint => hint !== undefined),
+      .filter((hint): hint is ConsequenceAdmissionCorrectionCatalogEntry => hint !== undefined),
   );
+}
+
+export function consequenceAdmissionCorrectionCatalog():
+ConsequenceAdmissionCorrectionCatalog {
+  const entries = CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_ENTRIES;
+  return Object.freeze({
+    version: CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION,
+    entries,
+    reasonCodes: uniqueSortedStrings(entries.map((entry) => entry.reasonCode)),
+    modelRetryableReasonCodes: uniqueSortedStrings(
+      entries
+        .filter((entry) => entry.retryableByModel && !entry.operatorOnly)
+        .map((entry) => entry.reasonCode),
+    ),
+    operatorOnlyReasonCodes: uniqueSortedStrings(
+      entries.filter((entry) => entry.operatorOnly).map((entry) => entry.reasonCode),
+    ),
+  });
+}
+
+export function consequenceAdmissionCorrectionForReason(
+  reasonCode: string,
+): ConsequenceAdmissionCorrectionCatalogEntry | null {
+  const normalized = normalizeIdentifier(reasonCode, 'correction reasonCode');
+  return ADMISSION_CORRECTION_HINTS[normalized] ?? null;
 }
 
 function admissionFeedbackInstruction(input: {
@@ -1808,6 +1917,7 @@ ConsequenceAdmissionDescriptor {
     version: CONSEQUENCE_ADMISSION_CONTRACT_VERSION,
     retryAttemptVersion: CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_VERSION,
     retryRuleVersion: CONSEQUENCE_ADMISSION_RETRY_RULE_VERSION,
+    correctionCatalogVersion: CONSEQUENCE_ADMISSION_CORRECTION_CATALOG_VERSION,
     retryDefaultMaxAttempts: CONSEQUENCE_ADMISSION_RETRY_DEFAULT_MAX_ATTEMPTS,
     retryDefaultWindowSeconds: CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS,
     decisions: CONSEQUENCE_ADMISSION_DECISIONS,
@@ -1821,6 +1931,8 @@ ConsequenceAdmissionDescriptor {
     checkKinds: CONSEQUENCE_ADMISSION_CHECK_KINDS,
     checkOutcomes: CONSEQUENCE_ADMISSION_CHECK_OUTCOMES,
     feedbackDisclosureLevels: CONSEQUENCE_ADMISSION_FEEDBACK_DISCLOSURE_LEVELS,
+    correctionAudiences: CONSEQUENCE_ADMISSION_CORRECTION_AUDIENCES,
+    correctionReasonCodes: consequenceAdmissionCorrectionCatalog().reasonCodes,
     retryBindingFields: CONSEQUENCE_ADMISSION_RETRY_BINDING_FIELDS,
     retryBudgetOutcomes: CONSEQUENCE_ADMISSION_RETRY_BUDGET_OUTCOMES,
     proofKinds: CONSEQUENCE_ADMISSION_PROOF_KINDS,
