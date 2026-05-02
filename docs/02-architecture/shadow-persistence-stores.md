@@ -96,6 +96,38 @@ Recommendations can include `nextMode`, but that field is a suggested next adopt
 
 The file-backed evaluation store has no automatic retention or pruning. Long-running deployments should move reports to the shared authority/control plane or add retention limits before treating this as production operational history.
 
+## Activation Receipt History
+
+Customer activation receipts can also be recorded in a local tenant-scoped history store:
+
+```text
+POST /api/v1/shadow/customer-activation-receipt
+GET  /api/v1/shadow/customer-activation-receipts
+GET  /api/v1/shadow/customer-activation-receipts/:receiptId
+```
+
+The `POST` route remains a receipt generator, but when the evaluation store is configured it also records an idempotent ledger entry keyed by receipt id and digest. Listing supports operational filters:
+
+```text
+activationStatus=activated|rolled-back|failed|aborted
+receiptReady=true|false
+sourceHandoffDigest=sha256:...
+```
+
+The stored record indexes:
+
+- tenant id
+- receipt id and digest
+- source handoff id and digest
+- activation status
+- receipt readiness
+- activation closure
+- recorded timestamp
+
+It stores the data-minimized receipt artifact, not raw rollout output, alert payloads, operator identifiers, feature-flag values, payment responses, wallet data, or customer records.
+
+This is still an evaluation file-backed history, not an immutable audit ledger. The production path should move this to shared authority/control-plane storage with retention, export, tamper evidence, and operator access controls.
+
 ## Policy Candidate Lifecycle
 
 Policy candidates are derived from shadow-mode simulation reports.
@@ -491,6 +523,23 @@ productionReady: false
 ```
 
 This closes the activation observation trail without making Attestor the deployer, rollback engine, feature-flag provider, or monitoring system.
+
+When the receipt history store is configured, the route persists the receipt and the history can be listed or looked up through:
+
+```text
+GET /api/v1/shadow/customer-activation-receipts
+GET /api/v1/shadow/customer-activation-receipts/:receiptId
+```
+
+The history route is useful for reconstructing the activation chain:
+
+```text
+handoff generated
+activation attempted
+receipt recorded or held
+rollback completed or failed
+monitoring healthy, degraded, alarm, or unknown
+```
 
 ## Why This Shape
 

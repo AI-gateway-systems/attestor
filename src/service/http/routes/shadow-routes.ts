@@ -46,7 +46,9 @@ import {
 } from '../../../consequence-admission/index.js';
 import {
   SHADOW_POLICY_CANDIDATE_STATUSES,
+  type AppendShadowCustomerActivationReceiptResult,
   type AppendShadowPolicySimulationReportResult,
+  type ShadowCustomerActivationReceiptStoreRecord,
   type ShadowPolicyCandidateStatus,
   type ShadowPolicyCandidateStoreRecord,
   type ShadowPolicySimulationReportStoreRecord,
@@ -102,6 +104,20 @@ export interface ShadowRouteDeps {
     readonly actorRef: string;
     readonly reason: string;
   }): ShadowPolicyCandidateStoreRecord;
+  recordShadowCustomerActivationReceipt?(input: {
+    readonly tenant: TenantContext;
+    readonly receipt: ReturnType<typeof createShadowCustomerActivationReceipt>;
+  }): AppendShadowCustomerActivationReceiptResult;
+  listShadowCustomerActivationReceiptRecords?(input: {
+    readonly tenant: TenantContext;
+    readonly activationStatus: ShadowCustomerActivationReceiptStatus | null;
+    readonly receiptReady: boolean | null;
+    readonly sourceHandoffDigest: string | null;
+  }): readonly ShadowCustomerActivationReceiptStoreRecord[];
+  findShadowCustomerActivationReceipt?(input: {
+    readonly tenant: TenantContext;
+    readonly receiptId: string;
+  }): ShadowCustomerActivationReceiptStoreRecord | null;
   signShadowPolicyBundlePublication?(input: {
     readonly tenant: TenantContext;
     readonly payload: ShadowPolicyBundleSigningPayload;
@@ -749,6 +765,14 @@ function parseCustomerActivationReceiptStatus(
   )
     ? normalized as ShadowCustomerActivationReceiptStatus
     : null;
+}
+
+function parseBooleanQuery(value: string | null | undefined): boolean | null {
+  if (value === undefined || value === null || value.trim() === '') return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  return null;
 }
 
 function parseCustomerActivationReceiptRollbackStatus(
@@ -1946,14 +1970,24 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
           reasonCodes: ['customer-activation-receipt-tenant-mismatch'],
         });
       }
+      const persisted = deps.recordShadowCustomerActivationReceipt?.({
+        tenant,
+        receipt,
+      }) ?? null;
       return c.json({
         tenant: tenantSummary(tenant),
-        storageMode: 'stateless-receipt',
+        storageMode: persisted ? 'file-backed-evaluation' : 'stateless-receipt',
         productionReady: false,
         approvalRequired: true,
         autoEnforce: false,
         rawPayloadStored: false,
         receipt,
+        persisted: persisted
+          ? {
+            kind: persisted.kind,
+            record: persisted.record,
+          }
+          : null,
       });
     } catch (error) {
       const detail =
@@ -1970,6 +2004,126 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         status,
         detail,
         reasonCodes: ['customer-activation-receipt-failed'],
+      });
+    }
+  });
+
+  app.get('/api/v1/shadow/customer-activation-receipts', (c) => {
+    c.header('cache-control', 'no-store');
+    if (!deps.listShadowCustomerActivationReceiptRecords) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-receipt-store-unavailable',
+        title: 'Customer activation receipt store unavailable',
+        status: 503,
+        detail: 'Customer activation receipt history is not configured for this runtime.',
+        reasonCodes: ['customer-activation-receipt-store-unavailable'],
+      });
+    }
+    const statusQuery = c.req.query('activationStatus');
+    const activationStatus = statusQuery
+      ? parseCustomerActivationReceiptStatus(statusQuery)
+      : null;
+    if (statusQuery && !activationStatus) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-receipt-status-invalid',
+        title: 'Invalid customer activation receipt status',
+        status: 400,
+        detail:
+          `activationStatus must be one of: ${SHADOW_CUSTOMER_ACTIVATION_RECEIPT_STATUSES.join(', ')}.`,
+        reasonCodes: ['invalid-customer-activation-receipt-status'],
+      });
+    }
+    const receiptReadyQuery = c.req.query('receiptReady');
+    const receiptReady = parseBooleanQuery(receiptReadyQuery);
+    if (receiptReadyQuery && receiptReady === null) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-receipt-ready-invalid',
+        title: 'Invalid customer activation receipt ready filter',
+        status: 400,
+        detail: 'receiptReady must be true or false when provided.',
+        reasonCodes: ['invalid-customer-activation-receipt-ready'],
+      });
+    }
+    const sourceHandoffDigest = c.req.query('sourceHandoffDigest')?.trim() || null;
+
+    try {
+      const tenant = deps.currentTenant(c);
+      const records = deps.listShadowCustomerActivationReceiptRecords({
+        tenant,
+        activationStatus,
+        receiptReady,
+        sourceHandoffDigest,
+      });
+      return c.json({
+        tenant: tenantSummary(tenant),
+        storageMode: 'file-backed-evaluation',
+        productionReady: false,
+        rawPayloadStored: false,
+        recordCount: records.length,
+        records,
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : 'Customer activation receipt history could not be listed.';
+      const status: ShadowProblemStatus =
+        detail.includes('corruption detected') ? 503 : 400;
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-receipt-list-failed',
+        title: 'Customer activation receipt list failed',
+        status,
+        detail,
+        reasonCodes: ['customer-activation-receipt-list-failed'],
+      });
+    }
+  });
+
+  app.get('/api/v1/shadow/customer-activation-receipts/:receiptId', (c) => {
+    c.header('cache-control', 'no-store');
+    if (!deps.findShadowCustomerActivationReceipt) {
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-receipt-store-unavailable',
+        title: 'Customer activation receipt store unavailable',
+        status: 503,
+        detail: 'Customer activation receipt lookup is not configured for this runtime.',
+        reasonCodes: ['customer-activation-receipt-store-unavailable'],
+      });
+    }
+
+    try {
+      const tenant = deps.currentTenant(c);
+      const record = deps.findShadowCustomerActivationReceipt({
+        tenant,
+        receiptId: c.req.param('receiptId'),
+      });
+      if (!record) {
+        return problem(c, {
+          type: 'https://attestor.dev/problems/customer-activation-receipt-not-found',
+          title: 'Customer activation receipt not found',
+          status: 404,
+          detail: 'No customer activation receipt was found for this tenant and receipt id.',
+          reasonCodes: ['customer-activation-receipt-not-found'],
+        });
+      }
+      return c.json({
+        tenant: tenantSummary(tenant),
+        storageMode: 'file-backed-evaluation',
+        productionReady: false,
+        rawPayloadStored: false,
+        record,
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : 'Customer activation receipt lookup failed.';
+      return problem(c, {
+        type: 'https://attestor.dev/problems/customer-activation-receipt-lookup-failed',
+        title: 'Customer activation receipt lookup failed',
+        status: 503,
+        detail,
+        reasonCodes: ['customer-activation-receipt-lookup-failed'],
       });
     }
   });

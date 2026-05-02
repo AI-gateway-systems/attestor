@@ -14,6 +14,7 @@ import {
 } from '../src/consequence-admission/index.js';
 import { registerShadowRoutes } from '../src/service/http/routes/shadow-routes.js';
 import {
+  createFileBackedShadowCustomerActivationReceiptStore,
   createFileBackedShadowPolicyCandidateStore,
   resetShadowPersistenceStoresForTests,
   type ShadowPolicyCandidateStatus,
@@ -39,6 +40,7 @@ function ok(condition: unknown, message: string): void {
 
 const tempDir = mkdtempSync(join(tmpdir(), 'attestor-shadow-customer-activation-receipt-'));
 const candidatePath = join(tempDir, 'shadow-policy-candidates.json');
+const activationReceiptPath = join(tempDir, 'shadow-customer-activation-receipts.json');
 
 const tenant: TenantContext = {
   tenantId: 'tenant_shadow_customer_activation_receipt',
@@ -122,6 +124,9 @@ function createApp(input: {
   readonly productionSigner?: boolean;
 }): Hono {
   const candidateStore = createFileBackedShadowPolicyCandidateStore({ path: candidatePath });
+  const activationReceiptStore = createFileBackedShadowCustomerActivationReceiptStore({
+    path: activationReceiptPath,
+  });
   const app = new Hono();
   registerShadowRoutes(app, {
     currentTenant: () => tenant,
@@ -145,6 +150,23 @@ function createApp(input: {
         status,
         actorRef,
         reason,
+      }).record,
+    recordShadowCustomerActivationReceipt: ({ tenant: routeTenant, receipt }) =>
+      activationReceiptStore.append({
+        tenantId: routeTenant.tenantId,
+        receipt,
+      }),
+    listShadowCustomerActivationReceiptRecords: ({ tenant: routeTenant, activationStatus, receiptReady, sourceHandoffDigest }) =>
+      activationReceiptStore.list({
+        tenantId: routeTenant.tenantId,
+        activationStatus,
+        receiptReady,
+        sourceHandoffDigest,
+      }).records,
+    findShadowCustomerActivationReceipt: ({ tenant: routeTenant, receiptId }) =>
+      activationReceiptStore.find({
+        tenantId: routeTenant.tenantId,
+        receiptId,
       }).record,
     signShadowPolicyBundlePublication: ({ payload }) =>
       createSignature(payload, input.productionSigner ?? false),
@@ -516,24 +538,174 @@ async function testFailedReceiptRequiresErrorEvidence(): Promise<void> {
   equal(withErrorBody.receipt.errorDigest, errorDigest, 'Customer activation receipt route: error digest is carried');
 }
 
+async function testReceiptHistoryPersistsListsAndLooksUpReceipts(): Promise<void> {
+  const app = createApp({
+    events: Array.from({ length: 5 }, (_, index) => createSafeEvent(index + 1)),
+    productionSigner: true,
+  });
+  const handoff = await readyHandoff(app);
+  const createResponse = await postReceipt(app, activatedReceiptBody(handoff));
+  const createText = await createResponse.text();
+  const createBody = JSON.parse(createText) as {
+    readonly storageMode: string;
+    readonly persisted: {
+      readonly kind: string;
+      readonly path?: string;
+      readonly record: {
+        readonly receiptId: string;
+        readonly receiptDigest: string;
+        readonly sourceHandoffDigest: string;
+        readonly activationStatus: string;
+        readonly receiptReady: boolean;
+        readonly rawPayloadStored: boolean;
+      };
+    } | null;
+    readonly receipt: {
+      readonly receiptId: string;
+      readonly digest: string;
+    };
+  };
+  const receiptId = createBody.receipt.receiptId;
+  const duplicateResponse = await postReceipt(app, activatedReceiptBody(handoff));
+  const duplicateBody = await duplicateResponse.json() as {
+    readonly persisted: {
+      readonly kind: string;
+    } | null;
+  };
+  const listResponse = await app.request('/api/v1/shadow/customer-activation-receipts?activationStatus=activated&receiptReady=true');
+  const listText = await listResponse.text();
+  const listBody = JSON.parse(listText) as {
+    readonly storageMode: string;
+    readonly recordCount: number;
+    readonly rawPayloadStored: boolean;
+    readonly records: readonly {
+      readonly receiptId: string;
+      readonly receiptDigest: string;
+      readonly sourceHandoffDigest: string;
+      readonly activationStatus: string;
+      readonly receiptReady: boolean;
+      readonly rawPayloadStored: boolean;
+    }[];
+  };
+  const lookupResponse = await app.request(`/api/v1/shadow/customer-activation-receipts/${encodeURIComponent(receiptId)}`);
+  const lookupBody = await lookupResponse.json() as {
+    readonly record: {
+      readonly receiptId: string;
+      readonly receiptDigest: string;
+      readonly receiptReady: boolean;
+      readonly rawPayloadStored: boolean;
+    };
+  };
+  const filteredByHandoff = await app.request(
+    `/api/v1/shadow/customer-activation-receipts?sourceHandoffDigest=${encodeURIComponent(handoff.digest)}`,
+  );
+  const filteredByHandoffBody = await filteredByHandoff.json() as {
+    readonly recordCount: number;
+  };
+
+  equal(createResponse.status, 200, 'Customer activation receipt history route: create returns 200');
+  equal(createBody.storageMode, 'file-backed-evaluation', 'Customer activation receipt history route: storage mode is file-backed');
+  equal(createBody.persisted?.kind, 'recorded', 'Customer activation receipt history route: receipt is persisted');
+  equal(createBody.persisted?.path, undefined, 'Customer activation receipt history route: local path is not exposed');
+  equal(createBody.persisted?.record.receiptId, receiptId, 'Customer activation receipt history route: record carries receipt id');
+  equal(createBody.persisted?.record.receiptDigest, createBody.receipt.digest, 'Customer activation receipt history route: record digest matches receipt');
+  equal(createBody.persisted?.record.sourceHandoffDigest, handoff.digest, 'Customer activation receipt history route: handoff digest is indexed');
+  equal(createBody.persisted?.record.activationStatus, 'activated', 'Customer activation receipt history route: activation status is indexed');
+  equal(createBody.persisted?.record.receiptReady, true, 'Customer activation receipt history route: ready receipt is indexed');
+  equal(createBody.persisted?.record.rawPayloadStored, false, 'Customer activation receipt history route: persisted record is data-minimized');
+  equal(duplicateBody.persisted?.kind, 'duplicate', 'Customer activation receipt history route: duplicate receipt is idempotent');
+
+  equal(listResponse.status, 200, 'Customer activation receipt history route: list returns 200');
+  equal(listBody.storageMode, 'file-backed-evaluation', 'Customer activation receipt history route: list storage mode is explicit');
+  equal(listBody.recordCount, 1, 'Customer activation receipt history route: list filters ready activated receipts');
+  equal(listBody.rawPayloadStored, false, 'Customer activation receipt history route: list is data-minimized');
+  equal(listBody.records[0]?.receiptId, receiptId, 'Customer activation receipt history route: list returns receipt id');
+  equal(listBody.records[0]?.receiptDigest, createBody.receipt.digest, 'Customer activation receipt history route: list returns receipt digest');
+  equal(listBody.records[0]?.sourceHandoffDigest, handoff.digest, 'Customer activation receipt history route: list returns source handoff digest');
+  equal(listBody.records[0]?.activationStatus, 'activated', 'Customer activation receipt history route: list returns activation status');
+  equal(listBody.records[0]?.receiptReady, true, 'Customer activation receipt history route: list returns receipt readiness');
+  equal(listBody.records[0]?.rawPayloadStored, false, 'Customer activation receipt history route: list record is data-minimized');
+  ok(!createText.includes('raw_customer_value_must_not_escape'), 'Customer activation receipt history route: raw recipient is not persisted response');
+  ok(!listText.includes('raw_customer_value_must_not_escape'), 'Customer activation receipt history route: raw recipient is not listed');
+  ok(!listText.includes('operator:security-reviewer'), 'Customer activation receipt history route: raw operator ref is not listed');
+
+  equal(lookupResponse.status, 200, 'Customer activation receipt history route: lookup returns 200');
+  equal(lookupBody.record.receiptId, receiptId, 'Customer activation receipt history route: lookup returns receipt');
+  equal(lookupBody.record.receiptDigest, createBody.receipt.digest, 'Customer activation receipt history route: lookup returns receipt digest');
+  equal(lookupBody.record.receiptReady, true, 'Customer activation receipt history route: lookup returns readiness');
+  equal(lookupBody.record.rawPayloadStored, false, 'Customer activation receipt history route: lookup is data-minimized');
+  equal(filteredByHandoff.status, 200, 'Customer activation receipt history route: source handoff filter returns 200');
+  equal(filteredByHandoffBody.recordCount, 1, 'Customer activation receipt history route: source handoff filter works');
+}
+
+async function testReceiptHistoryFiltersAndMissingLookupFailClosed(): Promise<void> {
+  const app = createApp({
+    events: Array.from({ length: 5 }, (_, index) => createSafeEvent(index + 1)),
+    productionSigner: true,
+  });
+  const handoff = await readyHandoff(app);
+  await postReceipt(
+    app,
+    activatedReceiptBody(handoff, {
+      killSwitchStatus: 'not-tested',
+      monitoringStatus: 'alarm',
+    }),
+  );
+  const heldList = await app.request('/api/v1/shadow/customer-activation-receipts?receiptReady=false');
+  const heldBody = await heldList.json() as {
+    readonly recordCount: number;
+    readonly records: readonly {
+      readonly receiptReady: boolean;
+      readonly receipt: {
+        readonly failureReasons: readonly string[];
+      };
+    }[];
+  };
+  const invalidStatus = await app.request('/api/v1/shadow/customer-activation-receipts?activationStatus=unknown');
+  const invalidReady = await app.request('/api/v1/shadow/customer-activation-receipts?receiptReady=maybe');
+  const missing = await app.request('/api/v1/shadow/customer-activation-receipts/customer-activation-receipt%3Amissing');
+
+  equal(heldList.status, 200, 'Customer activation receipt history route: held list returns 200');
+  equal(heldBody.recordCount, 1, 'Customer activation receipt history route: held filter works');
+  equal(heldBody.records[0]?.receiptReady, false, 'Customer activation receipt history route: held record is marked not ready');
+  ok(
+    heldBody.records[0]?.receipt.failureReasons.includes('kill-switch-not-verified'),
+    'Customer activation receipt history route: held record carries failure reasons',
+  );
+  equal(invalidStatus.status, 400, 'Customer activation receipt history route: invalid status filter is rejected');
+  equal(invalidReady.status, 400, 'Customer activation receipt history route: invalid ready filter is rejected');
+  equal(missing.status, 404, 'Customer activation receipt history route: missing receipt returns 404');
+}
+
+function resetStores(): void {
+  resetShadowPersistenceStoresForTests({
+    policyCandidatePath: candidatePath,
+    customerActivationReceiptPath: activationReceiptPath,
+  });
+}
+
 try {
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   await testActivatedReceiptRecordsWithoutRawData();
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   await testBlockedHandoffKeepsReceiptHeld();
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   await testMonitoringOrKillSwitchGapKeepsReceiptHeld();
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   await testRolledBackReceiptCanRecordRollbackClosure();
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   await testTamperedHandoffDigestKeepsReceiptHeld();
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   await testInvalidActivationDigestIsRejected();
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   await testFailedReceiptRequiresErrorEvidence();
+  resetStores();
+  await testReceiptHistoryPersistsListsAndLooksUpReceipts();
+  resetStores();
+  await testReceiptHistoryFiltersAndMissingLookupFailClosed();
 
   console.log(`Shadow customer activation receipt tests: ${passed} passed, 0 failed`);
 } finally {
-  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  resetStores();
   if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true });
 }
