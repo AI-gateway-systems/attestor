@@ -7,6 +7,8 @@ The first hosted read surface is intentionally narrow:
 ```text
 GET /api/v1/shadow/summary
 GET /api/v1/shadow/recommendations
+GET /api/v1/shadow/audit-evidence
+GET /api/v1/shadow/business-risk-dashboard
 ```
 
 These routes summarize shadow admission events and policy simulation recommendations for the current tenant.
@@ -23,11 +25,29 @@ The summary route returns:
 
 The recommendations route returns the same recommendation list in a smaller operator-facing shape, plus the latest simulation digest.
 
+The audit-evidence route returns the canonical audit evidence export built from the same shadow surface:
+
+- event-set digest and sampled event digests
+- shadow summary and simulation artifact references
+- policy discovery evidence
+- structured audit findings
+- explicit `approvalRequired`, `autoEnforce`, `complianceClaimed`, `productionReady`, and `rawPayloadStored` boundaries
+
+The business-risk dashboard route returns the operator-facing dashboard model built from that audit evidence export:
+
+- action volume, review load, blocked, fail-closed, and policy-gap metrics
+- consequence-domain risk rows
+- downstream proof and control-gap signals
+- source audit export digest
+- explicit `decisionSupportOnly`, `autoEnforce`, `impactMode`, and raw impact boundaries
+
 ## Data Boundary
 
 The routes are read-only and data-minimized. They work from shadow metadata, digests, reason codes, action surfaces, counters, and simulation recommendations.
 
 They do not return raw prompts, raw tool payloads, recipients, evidence ids, SQL, customer records, payment secrets, wallet material, or downstream response bodies.
+
+The business-risk dashboard does not infer money saved, records protected, or loss avoided. Business impact can only appear when an operator supplies a separate impact observation to the package-level dashboard model; this hosted read route does not invent impact.
 
 Every response is served with `cache-control: no-store`.
 

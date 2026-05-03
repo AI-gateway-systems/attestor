@@ -65,6 +65,26 @@ Core functions:
 - `createConsequenceBusinessRiskDashboard(...)`
 - `consequenceBusinessRiskDashboardDescriptor()`
 
+## Hosted Read Surface
+
+The hosted shadow route exposes the dashboard model for the current tenant:
+
+```text
+GET /api/v1/shadow/business-risk-dashboard
+```
+
+The route is read-only and served with `cache-control: no-store`. It builds a fresh audit evidence export from the current shadow summary surface, then returns the dashboard bound to that export digest.
+
+The route keeps these boundaries explicit:
+
+- `decisionSupportOnly: true`
+- `autoEnforce: false`
+- `impactMode: not-supplied` unless operator impact evidence is added through the package model
+- `rawPayloadStored: false`
+- `rawImpactValueStored: false`
+- `complianceClaimed: false`
+- `productionReady: false`
+
 Dashboard widgets:
 
 - `action-volume`

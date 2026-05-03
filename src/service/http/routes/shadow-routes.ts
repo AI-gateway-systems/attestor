@@ -2,6 +2,8 @@ import type { Context, Hono } from 'hono';
 import {
   createConsequenceAdmissionProblem,
   createActionRiskInventory,
+  createConsequenceAuditEvidenceExport,
+  createConsequenceBusinessRiskDashboard,
   createShadowActivationReadinessGate,
   createShadowCustomerActivationHandoff,
   createShadowCustomerActivationReceipt,
@@ -154,6 +156,7 @@ function safeShadowSummary(c: Context, deps: ShadowRouteDeps) {
     return {
       tenant,
       events,
+      simulations,
       surface,
     };
   } catch (error) {
@@ -214,6 +217,14 @@ function problem(c: Context, input: {
     ...input,
     instance: c.req.path,
   }), input.status);
+}
+
+function simulationsForAuditEvidence(input: {
+  readonly simulations: readonly ShadowPolicySimulationReport[];
+  readonly latestSimulation: ShadowPolicySimulationReport | null;
+}): readonly ShadowPolicySimulationReport[] {
+  if (input.simulations.length > 0) return input.simulations;
+  return input.latestSimulation ? Object.freeze([input.latestSimulation]) : Object.freeze([]);
 }
 
 async function readStatusTransitionBody(c: Context): Promise<{
@@ -995,6 +1006,77 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         events: result.events,
         generatedAt: deps.now?.() ?? null,
       }),
+    });
+  });
+
+  app.get('/api/v1/shadow/audit-evidence', (c) => {
+    const result = safeShadowSummary(c, deps);
+    if (result instanceof Response) return result;
+    const policyDiscovery = createShadowPolicyDiscoveryCandidates({
+      report: result.surface.latestSimulation,
+      generatedAt: result.surface.generatedAt,
+    });
+    const auditEvidence = createConsequenceAuditEvidenceExport({
+      events: result.events,
+      summarySurface: result.surface,
+      simulations: simulationsForAuditEvidence({
+        simulations: result.simulations,
+        latestSimulation: result.surface.latestSimulation,
+      }),
+      policyDiscovery,
+      generatedAt: result.surface.generatedAt,
+      tenantId: result.tenant.tenantId,
+    });
+
+    return c.json({
+      tenant: tenantSummary(result.tenant),
+      storageMode: result.surface.storageMode,
+      productionReady: false,
+      complianceClaimed: false,
+      approvalRequired: true,
+      autoEnforce: false,
+      rawPayloadStored: false,
+      source: 'shadow-summary',
+      auditEvidence,
+    });
+  });
+
+  app.get('/api/v1/shadow/business-risk-dashboard', (c) => {
+    const result = safeShadowSummary(c, deps);
+    if (result instanceof Response) return result;
+    const policyDiscovery = createShadowPolicyDiscoveryCandidates({
+      report: result.surface.latestSimulation,
+      generatedAt: result.surface.generatedAt,
+    });
+    const auditEvidence = createConsequenceAuditEvidenceExport({
+      events: result.events,
+      summarySurface: result.surface,
+      simulations: simulationsForAuditEvidence({
+        simulations: result.simulations,
+        latestSimulation: result.surface.latestSimulation,
+      }),
+      policyDiscovery,
+      generatedAt: result.surface.generatedAt,
+      tenantId: result.tenant.tenantId,
+    });
+    const dashboard = createConsequenceBusinessRiskDashboard({
+      auditExport: auditEvidence,
+      generatedAt: result.surface.generatedAt,
+    });
+
+    return c.json({
+      tenant: tenantSummary(result.tenant),
+      storageMode: result.surface.storageMode,
+      productionReady: false,
+      complianceClaimed: false,
+      decisionSupportOnly: true,
+      autoEnforce: false,
+      rawPayloadStored: false,
+      rawImpactValueStored: false,
+      impactMode: dashboard.impactMode,
+      source: 'audit-evidence',
+      auditEvidenceDigest: auditEvidence.digest,
+      dashboard,
     });
   });
 
