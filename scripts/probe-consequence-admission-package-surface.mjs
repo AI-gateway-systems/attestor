@@ -94,6 +94,22 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.consequenceBusinessRiskDashboardDescriptor().widgets.includes(
+    'consequence-domain-risk',
+  ),
+  true,
+);
+assert.equal(
+  admission.consequenceAdmissionDescriptor().businessRiskSignals.includes(
+    'policy-gap',
+  ),
+  true,
+);
+assert.equal(
+  typeof admission.createConsequenceBusinessRiskDashboard,
+  'function',
+);
+assert.equal(
   admission.consequenceAdmissionPolicyLimitDescriptor().limitKinds.includes('velocity'),
   true,
 );
