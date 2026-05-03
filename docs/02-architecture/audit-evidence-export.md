@@ -66,6 +66,24 @@ Core functions:
 - `createConsequenceAuditEvidenceExport(...)`
 - `consequenceAuditEvidenceExportDescriptor()`
 
+## Hosted Read Surface
+
+The hosted shadow route exposes the same canonical packet for the current tenant:
+
+```text
+GET /api/v1/shadow/audit-evidence
+```
+
+The route is read-only, served with `cache-control: no-store`, and returns the audit evidence export plus explicit boundaries:
+
+- `approvalRequired: true`
+- `autoEnforce: false`
+- `complianceClaimed: false`
+- `productionReady: false`
+- `rawPayloadStored: false`
+
+It does not approve policy candidates, activate enforcement, or expose raw shadow payloads.
+
 The export can reference these artifact kinds:
 
 - `shadow-event-set`
