@@ -1,6 +1,6 @@
 # Data Minimization And Redaction Policy
 
-The data minimization and redaction policy is the shared privacy boundary for model feedback, proof, audit, dashboard, external review, retry, and downstream receipt surfaces.
+The data minimization and redaction policy is the shared privacy boundary for model feedback, proof, audit, tamper-history, dashboard, external review, retry, and downstream receipt surfaces.
 
 It answers a narrow question:
 
@@ -25,6 +25,7 @@ AI receives safe correction feedback
 operators receive scoped review evidence
 reviewers receive digest-first packets
 external reviewers receive evidence maps and non-claims
+tamper histories receive source digests and root digests
 dashboards receive counts and aggregate signals
 downstream receipts receive result digests
 ```
@@ -42,6 +43,7 @@ The versioned package descriptor covers these surfaces:
 - `shadow-simulation`
 - `policy-discovery-candidates`
 - `audit-evidence-export`
+- `tamper-evident-history`
 - `business-risk-dashboard`
 - `external-review-packet`
 - `downstream-presentation-binding`
@@ -74,7 +76,7 @@ Operator-supplied impact is allowed only as aggregate decision support. Attestor
 
 ## Forbidden Raw Classes
 
-These classes must not appear in model feedback, reviewer packets, dashboard models, retry ledgers, downstream presentation exports, replay receipts, or execution receipts:
+These classes must not appear in model feedback, reviewer packets, tamper histories, dashboard models, retry ledgers, downstream presentation exports, replay receipts, or execution receipts:
 
 - raw model prompts
 - raw model outputs

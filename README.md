@@ -323,6 +323,8 @@ The [adapter framework](docs/02-architecture/adapter-framework.md) turns that ve
 
 The [audit evidence export](docs/02-architecture/audit-evidence-export.md) packages shadow events, simulations, policy discovery, promotion packets, and downstream proof references into a canonical reviewer packet without claiming compliance or exporting raw customer payloads.
 
+The [tamper-evident history](docs/02-architecture/tamper-evident-history.md) links digest-first evidence over time. It exports a root digest and verification summary so modified, deleted, or reordered records fail closed before a reviewer trusts the packet.
+
 The [business risk dashboard](docs/02-architecture/business-risk-dashboard.md) turns that reviewer packet into operator-facing metrics: observed AI actions, review load, blocked actions, policy gaps, domain risk, downstream proof coverage, and optional operator-supplied impact.
 
 The [external review packet](docs/02-architecture/external-review-packet.md) wraps audit evidence, dashboard context, runtime/storage evidence, repository security refs, checklist items, and non-claims into a digest-first reviewer handoff. It is not a security audit, compliance certificate, or production-readiness guarantee.
@@ -414,6 +416,7 @@ Start here:
 - [Verifier helper](docs/02-architecture/verifier-helper.md) - customer-side verify/assert helper for downstream adapters
 - [Adapter framework](docs/02-architecture/adapter-framework.md) - protected verify-before-execute wrapper for tool and customer adapters
 - [Audit evidence export](docs/02-architecture/audit-evidence-export.md) - canonical reviewer packet for shadow-to-enforcement evidence
+- [Tamper-evident history](docs/02-architecture/tamper-evident-history.md) - digest-chain history for reviewer evidence
 - [Business risk dashboard](docs/02-architecture/business-risk-dashboard.md) - operator-facing dashboard model over audit evidence
 - [External review packet](docs/02-architecture/external-review-packet.md) - digest-first handoff for outside review without claiming audit completion
 - [Data minimization and redaction policy](docs/02-architecture/data-minimization-redaction-policy.md) - shared feedback, proof, audit, dashboard, external review, retry, and receipt redaction boundary
