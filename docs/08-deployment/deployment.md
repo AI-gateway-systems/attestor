@@ -120,8 +120,8 @@ docker run \
 | `ATTESTOR_SENDGRID_EVENT_WEBHOOK_MAX_AGE_SECONDS` | No | `300` | Max webhook timestamp age in seconds for SendGrid signature verification |
 | `ATTESTOR_MAILGUN_WEBHOOK_SIGNING_KEY` | No | None | Mailgun webhook signing key enabling signed delivery analytics at `POST /api/v1/email/mailgun/webhook` |
 | `ATTESTOR_MAILGUN_WEBHOOK_MAX_AGE_SECONDS` | No | `300` | Max webhook timestamp age in seconds for Mailgun signature verification |
-| `ATTESTOR_ACCOUNT_INVITE_BASE_URL` | No | None | Optional hosted invite URL base; Attestor appends `?token=...` |
-| `ATTESTOR_PASSWORD_RESET_BASE_URL` | No | None | Optional hosted password-reset URL base; Attestor appends `?token=...` |
+| `ATTESTOR_ACCOUNT_INVITE_BASE_URL` | No | None | Optional hosted invite URL base; Attestor appends `?token=...` for the email body, while delivery ledgers/API summaries redact the bearer token |
+| `ATTESTOR_PASSWORD_RESET_BASE_URL` | No | None | Optional hosted password-reset URL base; Attestor appends `?token=...` for the email body, while delivery ledgers/API summaries redact the bearer token |
 | `ATTESTOR_WEBAUTHN_RP_ID` | No | Request hostname | Optional RP ID override for hosted WebAuthn/passkey ceremonies |
 | `ATTESTOR_WEBAUTHN_ORIGIN` | No | Request origin | Optional origin override for hosted WebAuthn/passkey ceremonies |
 | `ATTESTOR_WEBAUTHN_RP_NAME` | No | `Attestor` | Hosted WebAuthn/passkey relying-party display name |
@@ -141,6 +141,7 @@ docker run \
 | `ATTESTOR_HOSTED_OIDC_STATE_KEY` | No | None | Dedicated secret for sealing stateless hosted OIDC login state; falls back to `ATTESTOR_ADMIN_API_KEY` |
 | `ATTESTOR_HOSTED_OIDC_STATE_TTL_MINUTES` | No | `10` | Hosted customer OIDC login-state TTL in minutes |
 | `ATTESTOR_HOSTED_OIDC_ALLOW_INSECURE_HTTP` | No | `false` | Localhost/test-only escape hatch allowing non-HTTPS hosted OIDC issuers |
+| `ATTESTOR_HOSTED_OIDC_ALLOW_UNVERIFIED_EMAIL_LINK` | No | None | Set to `accept-the-risk` only if automatic first-link fallback may trust OIDC emails without `email_verified=true`; default is fail-closed |
 | `ATTESTOR_HOSTED_SAML_IDP_METADATA_XML` | No | None | Inline IdP metadata XML enabling hosted SAML SSO first slice |
 | `ATTESTOR_HOSTED_SAML_IDP_METADATA_PATH` | No | None | Filesystem path to IdP metadata XML enabling hosted SAML SSO first slice |
 | `ATTESTOR_HOSTED_SAML_ENTITY_ID` | No | Metadata URL | Hosted SAML SP entity ID override |

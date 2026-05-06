@@ -204,6 +204,19 @@ function buildActionUrl(baseUrl: string | null, token: string): string | null {
   }
 }
 
+function redactBearerActionUrl(actionUrl: string | null): string | null {
+  if (!actionUrl) return null;
+  try {
+    const url = new URL(actionUrl);
+    if (url.searchParams.has('token')) {
+      url.searchParams.set('token', 'redacted');
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function buildInviteText(input: DeliverHostedInviteInput, actionUrl: string | null): string {
   return [
     `Hello ${input.displayName},`,
@@ -289,6 +302,7 @@ async function sendHostedEmail(input: {
   const provider = resolveHostedEmailProvider(config.mode);
   const deliveryId = buildHostedEmailDeliveryId();
   const actionUrl = buildActionUrl(input.baseUrl, input.token);
+  const summaryActionUrl = redactBearerActionUrl(actionUrl);
   if (config.mode !== 'smtp') {
     const summary: HostedEmailDeliverySummary = {
       deliveryId,
@@ -298,7 +312,7 @@ async function sendHostedEmail(input: {
       delivered: true,
       recipient: input.to,
       messageId: null,
-      actionUrl,
+      actionUrl: summaryActionUrl,
       tokenReturned: true,
     };
     await recordHostedEmailDispatchEventState({
@@ -361,7 +375,7 @@ async function sendHostedEmail(input: {
       delivered: true,
       recipient: input.to,
       messageId: typeof info.messageId === 'string' ? info.messageId : null,
-      actionUrl,
+      actionUrl: summaryActionUrl,
       tokenReturned: false,
     };
     await recordHostedEmailDispatchEventState({
