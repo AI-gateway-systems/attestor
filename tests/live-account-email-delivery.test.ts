@@ -306,16 +306,25 @@ async function main(): Promise<void> {
     ok(typeof inviteBody.delivery.deliveryId === 'string' && inviteBody.delivery.deliveryId.startsWith('edlv_'), 'Email Delivery: invite response includes delivery id');
     ok(inviteBody.delivery.tokenReturned === false, 'Email Delivery: invite response no longer returns raw token');
     ok(!('inviteToken' in inviteBody), 'Email Delivery: inviteToken omitted in smtp mode');
-    ok(String(inviteBody.delivery.actionUrl).startsWith('https://attestor.dev/invite?token='), 'Email Delivery: invite action URL returned');
+    ok(inviteBody.delivery.actionUrl === 'https://attestor.dev/invite?token=redacted', 'Email Delivery: invite API action URL redacts bearer token');
 
     const inviteEmail = await waitForMessage(messages, 1);
     const inviteToken = extractOpaqueToken(inviteEmail);
     const normalizedInviteEmail = normalizeEmailPayload(inviteEmail);
     const inviteActionUrl = extractActionUrl(inviteEmail);
     ok(inviteEmail.includes('invitee@email.example'), 'Email Delivery: invite email addressed to target user');
-    ok(inviteBody.delivery.actionUrl === `https://attestor.dev/invite?token=${inviteToken}`, 'Email Delivery: invite API action URL matches token');
+    ok(!JSON.stringify(inviteBody).includes(inviteToken), 'Email Delivery: invite API response does not expose emailed token');
     ok(inviteActionUrl === `https://attestor.dev/invite?token=${inviteToken}`, 'Email Delivery: invite email action URL matches token');
     ok(normalizedInviteEmail.includes(inviteToken), 'Email Delivery: invite email body contains the opaque token');
+
+    const inviteDeliveriesRes = await fetch(`${base}/api/v1/account/email/deliveries`, {
+      headers: { Cookie: accountAdminCookie! },
+    });
+    ok(inviteDeliveriesRes.status === 200, 'Email Delivery: invite delivery ledger status 200');
+    const inviteDeliveriesBody = await inviteDeliveriesRes.json() as any;
+    const inviteDeliveryRecord = inviteDeliveriesBody.records.find((record: any) => record.deliveryId === inviteBody.delivery.deliveryId);
+    ok(inviteDeliveryRecord?.actionUrl === 'https://attestor.dev/invite?token=redacted', 'Email Delivery: invite ledger action URL redacts bearer token');
+    ok(!JSON.stringify(inviteDeliveriesBody).includes(inviteToken), 'Email Delivery: invite delivery ledger does not expose emailed token');
 
     const acceptInviteRes = await fetch(`${base}/api/v1/account/users/invites/accept`, {
       method: 'POST',
@@ -343,14 +352,23 @@ async function main(): Promise<void> {
     ok(typeof resetIssueBody.delivery.deliveryId === 'string' && resetIssueBody.delivery.deliveryId.startsWith('edlv_'), 'Email Delivery: reset response includes delivery id');
     ok(resetIssueBody.delivery.tokenReturned === false, 'Email Delivery: reset response omits raw token');
     ok(!('resetToken' in resetIssueBody), 'Email Delivery: resetToken omitted in smtp mode');
-    ok(String(resetIssueBody.delivery.actionUrl).startsWith('https://attestor.dev/reset?token='), 'Email Delivery: reset action URL returned');
+    ok(resetIssueBody.delivery.actionUrl === 'https://attestor.dev/reset?token=redacted', 'Email Delivery: reset API action URL redacts bearer token');
 
     const resetEmail = await waitForMessage(messages, 2);
     const resetToken = extractOpaqueToken(resetEmail);
     const normalizedResetEmail = normalizeEmailPayload(resetEmail);
     ok(resetEmail.includes('invitee@email.example'), 'Email Delivery: password reset email addressed to target user');
-    ok(resetIssueBody.delivery.actionUrl === `https://attestor.dev/reset?token=${resetToken}`, 'Email Delivery: reset API action URL matches token');
+    ok(!JSON.stringify(resetIssueBody).includes(resetToken), 'Email Delivery: reset API response does not expose emailed token');
     ok(normalizedResetEmail.includes(resetToken), 'Email Delivery: reset email body contains the opaque token');
+
+    const resetDeliveriesRes = await fetch(`${base}/api/v1/account/email/deliveries`, {
+      headers: { Cookie: accountAdminCookie! },
+    });
+    ok(resetDeliveriesRes.status === 200, 'Email Delivery: reset delivery ledger status 200');
+    const resetDeliveriesBody = await resetDeliveriesRes.json() as any;
+    const resetDeliveryRecord = resetDeliveriesBody.records.find((record: any) => record.deliveryId === resetIssueBody.delivery.deliveryId);
+    ok(resetDeliveryRecord?.actionUrl === 'https://attestor.dev/reset?token=redacted', 'Email Delivery: reset ledger action URL redacts bearer token');
+    ok(!JSON.stringify(resetDeliveriesBody).includes(resetToken), 'Email Delivery: reset delivery ledger does not expose emailed token');
 
     const resetApplyRes = await fetch(`${base}/api/v1/auth/password/reset`, {
       method: 'POST',

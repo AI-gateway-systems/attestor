@@ -380,7 +380,11 @@ export function isHostedOidcConfigured(): boolean {
   return Boolean(loadHostedOidcConfig('http://localhost'));
 }
 
+function allowUnverifiedOidcEmailLinking(): boolean {
+  return process.env.ATTESTOR_HOSTED_OIDC_ALLOW_UNVERIFIED_EMAIL_LINK?.trim() === 'accept-the-risk';
+}
+
 export function hostedOidcAllowsAutomaticLinking(identity: HostedOidcCallbackIdentity): boolean {
   if (!identity.email) return false;
-  return identity.emailVerified !== false || envTruthy(process.env.ATTESTOR_HOSTED_OIDC_ALLOW_UNVERIFIED_EMAIL_LINK);
+  return identity.emailVerified === true || allowUnverifiedOidcEmailLinking();
 }
