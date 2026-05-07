@@ -95,10 +95,11 @@ docker run \
 | `ATTESTOR_TENANT_KEY_MAX_ACTIVE_PER_TENANT` | No | `2` | Max simultaneously active hosted API keys per tenant during rotation overlap |
 | `ATTESTOR_SECRET_ENVELOPE_PROVIDER` | No | None | Optional hosted secret-envelope provider for sealed tenant-key recovery (`vault_transit`) |
 | `ATTESTOR_TENANT_KEY_RECOVERY_ENABLED` | No | `false` | Enables audited break-glass tenant-key recovery when a secret-envelope provider is configured |
-| `ATTESTOR_VAULT_TRANSIT_BASE_URL` | No | None | Vault Transit base URL used when `ATTESTOR_SECRET_ENVELOPE_PROVIDER=vault_transit` |
+| `ATTESTOR_VAULT_TRANSIT_BASE_URL` | No | None | Vault Transit base URL used when `ATTESTOR_SECRET_ENVELOPE_PROVIDER=vault_transit`. Production-like runtimes require `https://` unless the URL targets localhost |
 | `ATTESTOR_VAULT_TRANSIT_TOKEN` | No | None | Vault token used for tenant-key recovery envelope seal/unseal requests |
 | `ATTESTOR_VAULT_TRANSIT_KEY_NAME` | No | None | Vault Transit key name used for hosted tenant-key recovery envelopes |
 | `ATTESTOR_VAULT_TRANSIT_MOUNT_PATH` | No | `transit` | Vault Transit mount path override |
+| `ATTESTOR_VAULT_TRANSIT_TIMEOUT_MS` | No | `30000` | Vault Transit seal/unseal request timeout in milliseconds |
 | `ATTESTOR_VAULT_NAMESPACE` | No | None | Optional Vault namespace header for enterprise Vault deployments |
 | `ATTESTOR_USAGE_LEDGER_PATH` | No | `.attestor/usage-ledger.json` | File-backed single-node usage ledger for hosted quota enforcement when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
 | `ATTESTOR_BILLING_ENTITLEMENT_STORE_PATH` | No | `.attestor/billing-entitlements.json` | File-backed hosted billing entitlement read model used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |

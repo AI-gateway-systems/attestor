@@ -16,7 +16,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DEFAULT_HOSTED_PLAN_ID, resolvePlanSpec } from './plan-catalog.js';
-import type { SecretEnvelopeRecord } from './secret-envelope.js';
+import { normalizeSecretEnvelopeRecord, type SecretEnvelopeRecord } from './secret-envelope.js';
 import { withFileLock, writeTextFileAtomic } from './file-store.js';
 import { hashSecretForLookup } from './secret-derivation.js';
 
@@ -106,7 +106,7 @@ function hashApiKey(apiKey: string): string {
 }
 
 function previewApiKey(apiKey: string): string {
-  return `${apiKey.slice(0, 8)}...${apiKey.slice(-4)}`;
+  return `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}`;
 }
 
 function defaultStore(): TenantKeyStoreFile {
@@ -124,7 +124,7 @@ function normalizeRecord(record: TenantKeyRecord): TenantKeyRecord {
     rotatedFromKeyId: record.rotatedFromKeyId ?? null,
     supersededByKeyId: record.supersededByKeyId ?? null,
     supersededAt: record.supersededAt ?? null,
-    recoveryEnvelope: record.recoveryEnvelope ?? null,
+    recoveryEnvelope: record.recoveryEnvelope ? normalizeSecretEnvelopeRecord(record.recoveryEnvelope) : null,
   };
 }
 

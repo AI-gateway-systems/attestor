@@ -1364,6 +1364,7 @@ app.post('/api/v1/admin/tenant-keys/:id/recover', async (c) => {
         tenantName: recovered.record.tenantName,
         provider: recovered.record.recoveryEnvelope?.provider ?? null,
         keyName: recovered.record.recoveryEnvelope?.keyName ?? null,
+        keyVersion: recovered.record.recoveryEnvelope?.keyVersion ?? null,
         reason: requestPayload.reason || null,
       },
     },

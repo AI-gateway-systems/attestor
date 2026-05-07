@@ -33,6 +33,7 @@ export function adminTenantKeyView(record: TenantKeyRecord) {
       enabled: Boolean(record.recoveryEnvelope),
       provider: record.recoveryEnvelope?.provider ?? null,
       keyName: record.recoveryEnvelope?.keyName ?? null,
+      keyVersion: record.recoveryEnvelope?.keyVersion ?? null,
       sealedAt: record.recoveryEnvelope?.sealedAt ?? null,
       breakGlassRecoverable: Boolean(record.recoveryEnvelope),
     },

@@ -1,11 +1,15 @@
 import { stableJsonStringify } from './json-stable.js';
+import { isProductionLikeRuntimeEnv } from './deployment-safety.js';
 
 export type SecretEnvelopeProvider = 'vault_transit';
+
+const DEFAULT_VAULT_TRANSIT_TIMEOUT_MS = 30_000;
 
 export interface SecretEnvelopeRecord {
   provider: SecretEnvelopeProvider;
   keyName: string;
   ciphertext: string;
+  keyVersion: number | null;
   contextBase64: string;
   sealedAt: string;
 }
@@ -74,6 +78,11 @@ function encodeContext(context: Record<string, unknown>): string {
   return Buffer.from(stableJsonStringify(context), 'utf8').toString('base64');
 }
 
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1' || normalized === '[::1]';
+}
+
 function normalizeVaultBaseUrl(raw: string): string {
   let url: URL;
   try {
@@ -83,6 +92,12 @@ function normalizeVaultBaseUrl(raw: string): string {
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
     throw new SecretEnvelopeError('MISCONFIGURED', 'ATTESTOR_VAULT_TRANSIT_BASE_URL must use http or https.');
+  }
+  if (url.protocol === 'http:' && isProductionLikeRuntimeEnv() && !isLoopbackHostname(url.hostname)) {
+    throw new SecretEnvelopeError(
+      'MISCONFIGURED',
+      'ATTESTOR_VAULT_TRANSIT_BASE_URL must use https in production-like runtimes unless it targets localhost.',
+    );
   }
   if (url.username || url.password) {
     throw new SecretEnvelopeError(
@@ -144,6 +159,28 @@ function vaultTransitRequestBody(payload: Record<string, unknown>): string {
   return JSON.stringify(payload);
 }
 
+function vaultTransitTimeoutMs(): number {
+  const raw = Number.parseInt(process.env.ATTESTOR_VAULT_TRANSIT_TIMEOUT_MS ?? '', 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_VAULT_TRANSIT_TIMEOUT_MS;
+}
+
+function vaultTransitKeyVersion(ciphertext: string): number | null {
+  const match = /^vault:v([1-9][0-9]*):/u.exec(ciphertext.trim());
+  if (!match) return null;
+  const version = Number.parseInt(match[1], 10);
+  return Number.isSafeInteger(version) ? version : null;
+}
+
+export function normalizeSecretEnvelopeRecord(record: SecretEnvelopeRecord): SecretEnvelopeRecord {
+  const keyVersion = typeof record.keyVersion === 'number' && Number.isSafeInteger(record.keyVersion) && record.keyVersion > 0
+    ? record.keyVersion
+    : null;
+  return {
+    ...record,
+    keyVersion,
+  };
+}
+
 async function vaultTransitRequest<T>(pathSegments: readonly string[], payload: Record<string, unknown>): Promise<T> {
   const config = vaultConfig();
   const headers: Record<string, string> = {
@@ -151,25 +188,38 @@ async function vaultTransitRequest<T>(pathSegments: readonly string[], payload: 
     'x-vault-token': config.token,
   };
   if (config.namespace) headers['x-vault-namespace'] = config.namespace;
+  const timeoutMs = vaultTransitTimeoutMs();
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
 
-  const response = await fetch(vaultTransitUrl(config, pathSegments), {
-    method: 'POST',
-    headers,
+  try {
     // Vault Transit decrypt sends only validated Vault ciphertext and base64 context back to Vault; plaintext is never loaded from disk here.
     // codeql[js/file-access-to-http]
-    body: vaultTransitRequestBody(payload),
-  });
-  const body = await response.json().catch(() => ({} as Record<string, unknown>));
-  if (!response.ok) {
-    const errors = Array.isArray((body as { errors?: unknown }).errors)
-      ? (body as { errors: unknown[] }).errors
-      : [];
-    const message = typeof errors[0] === 'string'
-      ? String(errors[0])
-      : `Vault Transit request failed with status ${response.status}.`;
-    throw new SecretEnvelopeError('PROVIDER_ERROR', message);
+    const response = await fetch(vaultTransitUrl(config, pathSegments), {
+      method: 'POST',
+      headers,
+      signal: controller.signal,
+      body: vaultTransitRequestBody(payload),
+    });
+    const body = await response.json().catch(() => ({} as Record<string, unknown>));
+    if (!response.ok) {
+      const errors = Array.isArray((body as { errors?: unknown }).errors)
+        ? (body as { errors: unknown[] }).errors
+        : [];
+      const message = typeof errors[0] === 'string'
+        ? String(errors[0])
+        : `Vault Transit request failed with status ${response.status}.`;
+      throw new SecretEnvelopeError('PROVIDER_ERROR', message);
+    }
+    return body as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new SecretEnvelopeError('PROVIDER_ERROR', `Vault Transit request timed out after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutHandle);
   }
-  return body as T;
 }
 
 export function getSecretEnvelopeStatus(): SecretEnvelopeStatus {
@@ -239,6 +289,7 @@ export async function sealSecretEnvelope(
       provider,
       keyName: config.keyName,
       ciphertext,
+      keyVersion: vaultTransitKeyVersion(ciphertext),
       contextBase64,
       sealedAt: new Date().toISOString(),
     };

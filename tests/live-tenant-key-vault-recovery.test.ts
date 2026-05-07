@@ -179,6 +179,7 @@ async function run(): Promise<void> {
     ok(createAccountBody.initialKey.apiKey.startsWith('atk_'), 'Admin account create with Vault seal: plaintext key returned once');
     ok(createAccountBody.initialKey.sealedStorage.enabled === true, 'Admin account create with Vault seal: sealed metadata present');
     ok(createAccountBody.initialKey.sealedStorage.provider === 'vault_transit', 'Admin account create with Vault seal: provider is vault_transit');
+    ok(createAccountBody.initialKey.sealedStorage.keyVersion === 1, 'Admin account create with Vault seal: Vault key version visible');
     ok(!existsSync(tenantKeyStorePath), 'Shared control-plane: no local tenant key store file created');
 
     const listKeysRes = await fetch(`${base}/api/v1/admin/tenant-keys`, {
@@ -189,6 +190,7 @@ async function run(): Promise<void> {
     ok(listKeysBody.keys.length === 1, 'Admin tenant key list: one key present');
     ok(listKeysBody.keys[0].sealedStorage.enabled === true, 'Admin tenant key list: sealed storage visible');
     ok(listKeysBody.keys[0].sealedStorage.keyName === 'attestor-tenant-keys', 'Admin tenant key list: key name visible');
+    ok(listKeysBody.keys[0].sealedStorage.keyVersion === 1, 'Admin tenant key list: Vault key version visible');
 
     const telemetryRes = await fetch(`${base}/api/v1/admin/telemetry`, {
       headers: { Authorization: 'Bearer admin-tenant-key-vault' },
