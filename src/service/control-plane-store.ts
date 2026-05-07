@@ -180,6 +180,7 @@ import {
 } from './email-delivery-event-store.js';
 import {
   assertTenantKeyRecoveryEnabled,
+  normalizeSecretEnvelopeRecord,
   recoverSecretEnvelope,
   sealSecretEnvelope,
 } from './secret-envelope.js';
@@ -651,7 +652,7 @@ function hashApiKey(apiKey: string): string {
 }
 
 function previewApiKey(apiKey: string): string {
-  return `${apiKey.slice(0, 8)}...${apiKey.slice(-4)}`;
+  return `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}`;
 }
 
 function compareIso(left: string, right: string): number {
@@ -748,7 +749,7 @@ function normalizeTenantKeyRecord(record: TenantKeyRecord): TenantKeyRecord {
     rotatedFromKeyId: record.rotatedFromKeyId ?? null,
     supersededByKeyId: record.supersededByKeyId ?? null,
     supersededAt: record.supersededAt ?? null,
-    recoveryEnvelope: record.recoveryEnvelope ?? null,
+    recoveryEnvelope: record.recoveryEnvelope ? normalizeSecretEnvelopeRecord(record.recoveryEnvelope) : null,
   };
 }
 

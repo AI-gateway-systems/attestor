@@ -1102,6 +1102,7 @@ export interface AdminTenantKeyRecord {
     enabled: boolean;
     provider: 'vault_transit' | null;
     keyName: string | null;
+    keyVersion: number | null;
     sealedAt: string | null;
     breakGlassRecoverable: boolean;
   };
