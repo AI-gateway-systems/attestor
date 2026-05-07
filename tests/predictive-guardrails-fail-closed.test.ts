@@ -85,11 +85,13 @@ function testConnectorGovernanceRejectsFinancialForbiddenPatterns(): void {
 function testConnectorGovernanceIgnoresStringLiterals(): void {
   validateReadOnlySql("SELECT * FROM finance.notes WHERE note LIKE '%INSERT INTO ledger%'");
   validateReadOnlySql("SELECT * FROM finance.notes WHERE note = 'pg_sleep(10)'");
+  validateReadOnlySql("SELECT * FROM finance.notes WHERE note = E'escaped \\' UPDATE text'");
+  validateReadOnlySql("SELECT * FROM finance.notes WHERE note = 'quoted '' DELETE text'");
   enforceAllowedSchemas(
     "SELECT * FROM finance.notes WHERE note = 'FROM public.secrets'",
     ['finance'],
   );
-  passed += 3;
+  passed += 5;
 }
 
 function testConnectorSchemaAllowlistRejectsCteAliasesUntilParserAware(): void {

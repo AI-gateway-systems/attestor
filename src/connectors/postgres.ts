@@ -73,11 +73,45 @@ function stripDollarQuotedStrings(sql: string): string {
   return sql.replace(/\$([A-Za-z_][A-Za-z0-9_]*)?\$[\s\S]*?\$\1\$/g, ' ');
 }
 
+function stripSingleQuotedStrings(sql: string): string {
+  let output = '';
+  let index = 0;
+  while (index < sql.length) {
+    if (sql[index] !== "'") {
+      output += sql[index];
+      index += 1;
+      continue;
+    }
+
+    output += ' ';
+    index += 1;
+    while (index < sql.length) {
+      const char = sql[index];
+      output += ' ';
+      if (char === "'") {
+        if (sql[index + 1] === "'") {
+          output += ' ';
+          index += 2;
+          continue;
+        }
+        index += 1;
+        break;
+      }
+      if (char === '\\' && index + 1 < sql.length) {
+        output += ' ';
+        index += 2;
+        continue;
+      }
+      index += 1;
+    }
+  }
+  return output;
+}
+
 export function sqlForGovernance(sql: string): string {
-  return stripDollarQuotedStrings(sql)
+  return stripSingleQuotedStrings(stripDollarQuotedStrings(sql))
     .replace(/--[^\n]*/g, ' ')
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(?:\b(?:E|U&))?'(?:''|\\.|[^'])*'/gi, ' ')
     .trim();
 }
 
