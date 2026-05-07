@@ -31,11 +31,17 @@ function testCommercialTruthSourcesStayLinked(): void {
   const operatingModel = readProjectFile('docs', '01-overview', 'operating-model.md');
   const visibilityGuide = readProjectFile('docs', '01-overview', 'hosted-account-visibility.md');
   const stripeBootstrap = readProjectFile('docs', '01-overview', 'stripe-commercial-bootstrap.md');
+  const pricingRoi = readProjectFile('docs', '01-overview', 'pricing-roi-calculator.md');
 
   includes(
     readme,
     'docs/01-overview/product-packaging.md',
     'Hosted product flow docs: README links to pricing truth source',
+  );
+  includes(
+    readme,
+    'docs/01-overview/pricing-roi-calculator.md',
+    'Hosted product flow docs: README links to pricing ROI calculator',
   );
   includes(
     readme,
@@ -101,6 +107,16 @@ function testCommercialTruthSourcesStayLinked(): void {
     packaging,
     'Hosted journey contract](hosted-journey-contract.md)',
     'Hosted product flow docs: product packaging links to canonical journey contract',
+  );
+  includes(
+    packaging,
+    'Pricing ROI calculator](pricing-roi-calculator.md)',
+    'Hosted product flow docs: product packaging links to ROI calculator',
+  );
+  includes(
+    pricingRoi,
+    'This page turns Attestor pricing into a simple buyer-facing sizing and ROI model.',
+    'Hosted product flow docs: ROI calculator declares its scope',
   );
   includes(
     contract,
@@ -283,14 +299,32 @@ function testFirstApiCallQuickstartStaysGrounded(): void {
 function testPricingAndTrialTruthsStayAnchored(): void {
   const packaging = readProjectFile('docs', '01-overview', 'product-packaging.md');
   const stripeBootstrap = readProjectFile('docs', '01-overview', 'stripe-commercial-bootstrap.md');
+  const pricingRoi = readProjectFile('docs', '01-overview', 'pricing-roi-calculator.md');
+  const contract = readProjectFile('src', 'service', 'hosted-journey-contract.ts');
 
-  includes(packaging, '| `community` | free |', 'Hosted product flow docs: community plan remains free');
-  includes(packaging, 'first `10` hosted runs', 'Hosted product flow docs: community hosted run quota is documented');
-  includes(packaging, '| `starter` | EUR `499` / month |', 'Hosted product flow docs: starter pricing is documented');
-  includes(packaging, 'with `14` days as the default bootstrap value', 'Hosted product flow docs: starter trial posture is documented');
-  includes(packaging, '| `pro` | EUR `1,999` / month |', 'Hosted product flow docs: pro pricing is documented');
-  includes(packaging, '| `enterprise` | from EUR `7,500` / month |', 'Hosted product flow docs: enterprise pricing posture is documented');
-  includes(stripeBootstrap, 'ATTESTOR_STRIPE_STARTER_TRIAL_DAYS=14', 'Hosted product flow docs: operator trial env var is documented');
+  includes(packaging, '`monthly_admission_runs`', 'Hosted product flow docs: billable admission meter is documented');
+  includes(packaging, '| `developer` | free | `500` admissions / month |', 'Hosted product flow docs: developer plan remains free');
+  includes(packaging, '| `trial` | free for `60` days | `5,000` admissions total |', 'Hosted product flow docs: shadow trial posture is documented');
+  includes(packaging, '| `starter` | USD `$299` / month or `$2,990` / year | `25,000` admissions / month |', 'Hosted product flow docs: starter pricing is documented');
+  includes(packaging, '| `pro` | USD `$1,499` / month or `$14,990` / year | `250,000` admissions / month |', 'Hosted product flow docs: pro pricing is documented');
+  includes(packaging, '| `scale` | USD `$5,999` / month, contract-led | `1,000,000` admissions / month |', 'Hosted product flow docs: scale pricing posture is documented');
+  includes(packaging, '| `enterprise` | from USD `$50,000` / year | custom, normally `5,000,000`+ admissions / month |', 'Hosted product flow docs: enterprise pricing posture is documented');
+  includes(packaging, 'plan ids: `developer`, `trial`, `starter`, `pro`, `scale`, `enterprise`', 'Hosted product flow docs: current shipped plan ids remain documented');
+  includes(packaging, 'legacy alias: `community` resolves to `developer`', 'Hosted product flow docs: legacy community alias is documented');
+  includes(packaging, 'usage meter name: `monthly_admission_runs`', 'Hosted product flow docs: current admission meter is documented');
+  includes(packaging, 'Developer is documented as shadow/warn only, but route-level mode restriction is not yet enforced by plan.', 'Hosted product flow docs: Developer mode enforcement gap is not overclaimed');
+  includes(packaging, 'The `trial` plan exists in the catalog, but signup still provisions Developer by default', 'Hosted product flow docs: trial lifecycle gap is not overclaimed');
+  includes(pricingRoi, '`daily_admissions`', 'Hosted product flow docs: ROI calculator sizes by daily admissions');
+  includes(pricingRoi, 'monthly_admissions = daily_admissions * business_days_per_month', 'Hosted product flow docs: ROI calculator includes monthly sizing formula');
+  includes(pricingRoi, 'roi_multiple = annual_avoided_loss / annual_subscription_cost', 'Hosted product flow docs: ROI calculator includes avoided-loss formula');
+  includes(pricingRoi, 'Attestor is not insurance and does not guarantee that every bad action is prevented', 'Hosted product flow docs: ROI calculator blocks guaranteed-savings overclaim');
+  includes(pricingRoi, 'When enforcement is required, do not recommend Developer.', 'Hosted product flow docs: ROI calculator blocks Developer enforcement overclaim');
+  includes(
+    contract,
+    "pricingRoiCalculator: 'docs/01-overview/pricing-roi-calculator.md'",
+    'Hosted product flow docs: ROI calculator is a machine-readable truth source',
+  );
+  includes(stripeBootstrap, 'ATTESTOR_STRIPE_PRICE_SCALE=price_', 'Hosted product flow docs: operator scale Stripe price env var is documented');
   includes(stripeBootstrap, 'POST /api/v1/billing/stripe/webhook', 'Hosted product flow docs: operator webhook route is documented');
 }
 
