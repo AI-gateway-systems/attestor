@@ -50,6 +50,12 @@ export interface StripeCustomerPortalReadiness {
   invoiceHistoryEnabled: boolean | null;
   subscriptionCancelEnabled: boolean | null;
   subscriptionUpdateEnabled: boolean | null;
+  subscriptionUpdateAllowedUpdates: string[];
+  subscriptionUpdateProductCount: number | null;
+  subscriptionUpdatePriceIds: string[];
+  subscriptionUpdateMissingPriceIds: string[];
+  subscriptionUpdateProrationBehavior: string | null;
+  subscriptionUpdateScheduleAtPeriodEndConditions: string[];
   issues: string[];
   warnings: string[];
 }
@@ -166,6 +172,16 @@ function priceInterval(price: Stripe.Price): string | null {
 
 function priceIntervalCount(price: Stripe.Price): number | null {
   return price.recurring?.interval_count ?? null;
+}
+
+function sortedUnique(values: Iterable<string>): string[] {
+  return Array.from(new Set(Array.from(values).filter((value) => value.trim() !== ''))).sort();
+}
+
+function requiredPortalPriceIds(env: Record<string, string | undefined>): string[] {
+  return sortedUnique(STRIPE_PRICE_EXPECTATIONS
+    .map((expectation) => envValue(env, expectation.envName))
+    .filter((value): value is string => value !== null));
 }
 
 async function evaluateAccount(stripe: StripeReadinessClient): Promise<StripeAccountReadiness> {
@@ -299,7 +315,10 @@ async function evaluatePrice(
   }
 }
 
-async function evaluateCustomerPortal(stripe: StripeReadinessClient): Promise<StripeCustomerPortalReadiness> {
+async function evaluateCustomerPortal(
+  stripe: StripeReadinessClient,
+  requiredPriceIds: string[],
+): Promise<StripeCustomerPortalReadiness> {
   const issues: string[] = [];
   const warnings: string[] = [];
   const configurations = await stripe.billingPortal.configurations.list({ active: true, is_default: true, limit: 10 });
@@ -315,6 +334,12 @@ async function evaluateCustomerPortal(stripe: StripeReadinessClient): Promise<St
       invoiceHistoryEnabled: null,
       subscriptionCancelEnabled: null,
       subscriptionUpdateEnabled: null,
+      subscriptionUpdateAllowedUpdates: [],
+      subscriptionUpdateProductCount: null,
+      subscriptionUpdatePriceIds: [],
+      subscriptionUpdateMissingPriceIds: requiredPriceIds,
+      subscriptionUpdateProrationBehavior: null,
+      subscriptionUpdateScheduleAtPeriodEndConditions: [],
       issues,
       warnings,
     };
@@ -324,6 +349,15 @@ async function evaluateCustomerPortal(stripe: StripeReadinessClient): Promise<St
   const invoiceHistoryEnabled = defaultConfiguration.features.invoice_history.enabled;
   const subscriptionCancelEnabled = defaultConfiguration.features.subscription_cancel.enabled;
   const subscriptionUpdateEnabled = defaultConfiguration.features.subscription_update.enabled;
+  const subscriptionUpdate = defaultConfiguration.features.subscription_update;
+  const subscriptionUpdateAllowedUpdates = sortedUnique(subscriptionUpdate.default_allowed_updates ?? []);
+  const subscriptionUpdateProducts = subscriptionUpdate.products ?? [];
+  const subscriptionUpdatePriceIds = sortedUnique(subscriptionUpdateProducts.flatMap((product) => product.prices ?? []));
+  const subscriptionUpdateMissingPriceIds = requiredPriceIds.filter((priceId) => !subscriptionUpdatePriceIds.includes(priceId));
+  const subscriptionUpdateProrationBehavior = subscriptionUpdate.proration_behavior ?? null;
+  const subscriptionUpdateScheduleAtPeriodEndConditions = sortedUnique(
+    subscriptionUpdate.schedule_at_period_end?.conditions?.map((condition) => condition.type) ?? [],
+  );
 
   if (paymentMethodUpdateEnabled !== true) {
     warnings.push('Default Stripe Customer Portal does not allow customers to update payment methods.');
@@ -334,6 +368,26 @@ async function evaluateCustomerPortal(stripe: StripeReadinessClient): Promise<St
   if (subscriptionCancelEnabled !== true && subscriptionUpdateEnabled !== true) {
     warnings.push('Default Stripe Customer Portal does not enable subscription cancel or update actions.');
   }
+  if (subscriptionUpdateEnabled !== true) {
+    issues.push('Default Stripe Customer Portal must allow subscription plan updates for Starter/Pro/Scale self-service changes.');
+  }
+  if (!subscriptionUpdateAllowedUpdates.includes('price')) {
+    issues.push('Default Stripe Customer Portal subscription updates must allow price changes.');
+  }
+  if (subscriptionUpdateAllowedUpdates.includes('quantity')) {
+    issues.push('Default Stripe Customer Portal subscription updates must not allow quantity changes; Attestor plans are quota tiers, not seat quantities.');
+  }
+  if (subscriptionUpdateMissingPriceIds.length > 0) {
+    issues.push(`Default Stripe Customer Portal subscription update products are missing configured price id(s): ${subscriptionUpdateMissingPriceIds.join(', ')}.`);
+  }
+  if (subscriptionUpdateProrationBehavior !== 'none') {
+    issues.push(`Default Stripe Customer Portal subscription update proration_behavior is ${subscriptionUpdateProrationBehavior ?? 'null'}, expected none.`);
+  }
+  for (const requiredCondition of ['decreasing_item_amount', 'shortening_interval']) {
+    if (!subscriptionUpdateScheduleAtPeriodEndConditions.includes(requiredCondition)) {
+      warnings.push(`Default Stripe Customer Portal does not schedule '${requiredCondition}' changes at period end.`);
+    }
+  }
 
   return {
     activeConfigurationCount: configurations.data.length,
@@ -343,6 +397,12 @@ async function evaluateCustomerPortal(stripe: StripeReadinessClient): Promise<St
     invoiceHistoryEnabled,
     subscriptionCancelEnabled,
     subscriptionUpdateEnabled,
+    subscriptionUpdateAllowedUpdates,
+    subscriptionUpdateProductCount: subscriptionUpdateProducts.length,
+    subscriptionUpdatePriceIds,
+    subscriptionUpdateMissingPriceIds,
+    subscriptionUpdateProrationBehavior,
+    subscriptionUpdateScheduleAtPeriodEndConditions,
     issues,
     warnings,
   };
@@ -368,10 +428,11 @@ export async function probeStripeLiveReadiness(
   if (envValue(env, 'ATTESTOR_STRIPE_PRICE_ENTERPRISE')) {
     warnings.push('ATTESTOR_STRIPE_PRICE_ENTERPRISE is configured. Keep Enterprise self-service checkout disabled unless intentionally enabled.');
   }
+  const portalPriceIds = requiredPortalPriceIds(env);
 
   const [account, customerPortal, prices] = await Promise.all([
     evaluateAccount(stripe),
-    evaluateCustomerPortal(stripe),
+    evaluateCustomerPortal(stripe, portalPriceIds),
     Promise.all(STRIPE_PRICE_EXPECTATIONS.map((expectation) => evaluatePrice(stripe, env, expectation, allowTestMode))),
   ]);
 
@@ -394,6 +455,14 @@ async function main(): Promise<void> {
   if (flag('print-required-prices')) {
     console.log(JSON.stringify({
       requiredPrices: requiredStripePriceManifest(),
+      requiredCustomerPortal: {
+        subscriptionUpdateEnabled: true,
+        defaultAllowedUpdates: ['price'],
+        forbiddenAllowedUpdates: ['quantity'],
+        prorationBehavior: 'none',
+        scheduleAtPeriodEndConditions: ['decreasing_item_amount', 'shortening_interval'],
+        priceEnvVars: STRIPE_PRICE_EXPECTATIONS.map((expectation) => expectation.envName),
+      },
       note: 'Create or update these live recurring Stripe prices, map the ids to the listed env vars, then run this probe with STRIPE_API_KEY.',
     }, null, 2));
     return;
