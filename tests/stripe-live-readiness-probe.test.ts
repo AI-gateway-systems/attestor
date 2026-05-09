@@ -88,7 +88,28 @@ function fakeStripe(overrides?: {
               payment_method_update: { enabled: true },
               invoice_history: { enabled: true },
               subscription_cancel: { enabled: true },
-              subscription_update: { enabled: true },
+              subscription_update: {
+                enabled: true,
+                default_allowed_updates: ['price'],
+                products: STRIPE_PRICE_EXPECTATIONS.map((expectation) => ({
+                  product: `prod_${expectation.planId}`,
+                  prices: [`price_${expectation.planId}_live`],
+                  adjustable_quantity: {
+                    enabled: false,
+                    minimum: 1,
+                    maximum: null,
+                  },
+                })),
+                proration_behavior: 'none',
+                schedule_at_period_end: {
+                  conditions: [
+                    { type: 'decreasing_item_amount' },
+                    { type: 'shortening_interval' },
+                  ],
+                },
+                billing_cycle_anchor: 'unchanged',
+                trial_update_behavior: 'end_trial',
+              },
             },
           }],
         }),
@@ -111,6 +132,9 @@ async function testHappyPath(): Promise<void> {
   ok(summary.ok === true, 'Stripe live readiness probe: ready account, prices, and portal pass');
   ok(summary.account.payoutsEnabled === true, 'Stripe live readiness probe: payout readiness is surfaced');
   ok(summary.customerPortal.defaultConfigurationId === 'bpc_ready', 'Stripe live readiness probe: default portal config is surfaced');
+  ok(summary.customerPortal.subscriptionUpdateAllowedUpdates.join(',') === 'price', 'Stripe live readiness probe: portal only allows price updates');
+  ok(summary.customerPortal.subscriptionUpdateMissingPriceIds.length === 0, 'Stripe live readiness probe: portal includes all configured plan prices');
+  ok(summary.customerPortal.subscriptionUpdateProrationBehavior === 'none', 'Stripe live readiness probe: portal proration behavior is surfaced');
   ok(summary.prices.every((price) => price.matchesExpected), 'Stripe live readiness probe: all required prices match expected commercial model');
 }
 
@@ -181,6 +205,53 @@ async function testFailClosedIssues(): Promise<void> {
   ok(summary.issues.some((issue) => issue.includes('Starter Stripe price amount')), 'Stripe live readiness probe: price mismatch is blocked');
 }
 
+async function testPortalPlanSwitchDriftFailsClosed(): Promise<void> {
+  const summary = await probeStripeLiveReadiness({
+    stripe: fakeStripe({
+      portalConfigurations: [{
+        id: 'bpc_drifted',
+        active: true,
+        features: {
+          payment_method_update: { enabled: true },
+          invoice_history: { enabled: true },
+          subscription_cancel: { enabled: true },
+          subscription_update: {
+            enabled: true,
+            default_allowed_updates: ['price', 'quantity'],
+            products: [{
+              product: 'prod_starter',
+              prices: ['price_starter_live'],
+              adjustable_quantity: {
+                enabled: true,
+                minimum: 1,
+                maximum: null,
+              },
+            }],
+            proration_behavior: 'create_prorations',
+            schedule_at_period_end: {
+              conditions: [],
+            },
+            billing_cycle_anchor: 'unchanged',
+            trial_update_behavior: 'end_trial',
+          },
+        },
+      }],
+    }),
+    env: {
+      STRIPE_API_KEY: 'sk_live_ready',
+      ATTESTOR_STRIPE_PRICE_STARTER: 'price_starter_live',
+      ATTESTOR_STRIPE_PRICE_PRO: 'price_pro_live',
+      ATTESTOR_STRIPE_PRICE_SCALE: 'price_scale_live',
+    },
+  });
+
+  ok(summary.ok === false, 'Stripe live readiness probe: portal plan-switch drift fails closed');
+  ok(summary.issues.some((issue) => issue.includes('must not allow quantity changes')), 'Stripe live readiness probe: quantity changes are blocked');
+  ok(summary.issues.some((issue) => issue.includes('price_pro_live') && issue.includes('price_scale_live')), 'Stripe live readiness probe: missing portal price ids are blocked');
+  ok(summary.issues.some((issue) => issue.includes('proration_behavior')), 'Stripe live readiness probe: unexpected portal proration is blocked');
+  ok(summary.warnings.some((warning) => warning.includes('decreasing_item_amount')), 'Stripe live readiness probe: downgrade scheduling drift is warned');
+}
+
 function testManifestCanPrintWithoutKey(): void {
   const manifest = requiredStripePriceManifest();
   ok(manifest.length === 3, 'Stripe live readiness probe: required price manifest covers Starter, Pro, and Scale');
@@ -202,7 +273,10 @@ function testManifestCanPrintWithoutKey(): void {
     },
   );
   ok(run.status === 0, 'Stripe live readiness probe: required-price manifest prints without Stripe API key');
-  const printed = JSON.parse(run.stdout) as { requiredPrices: Array<{ envName: string; expectedCurrency: string }> };
+  const printed = JSON.parse(run.stdout) as {
+    requiredPrices: Array<{ envName: string; expectedCurrency: string }>;
+    requiredCustomerPortal?: { subscriptionUpdateEnabled?: boolean };
+  };
   ok(
     printed.requiredPrices.map((entry) => entry.envName).join(',') === 'ATTESTOR_STRIPE_PRICE_STARTER,ATTESTOR_STRIPE_PRICE_PRO,ATTESTOR_STRIPE_PRICE_SCALE',
     'Stripe live readiness probe: printed manifest names required hosted price env vars',
@@ -211,11 +285,16 @@ function testManifestCanPrintWithoutKey(): void {
     printed.requiredPrices.every((entry) => entry.expectedCurrency === 'usd'),
     'Stripe live readiness probe: printed manifest preserves USD commercial model',
   );
+  ok(
+    printed.requiredCustomerPortal?.subscriptionUpdateEnabled === true,
+    'Stripe live readiness probe: printed manifest includes required Customer Portal posture',
+  );
 }
 
 async function main(): Promise<void> {
   await testHappyPath();
   await testFailClosedIssues();
+  await testPortalPlanSwitchDriftFailsClosed();
   testManifestCanPrintWithoutKey();
   console.log(`\nStripe live readiness probe tests: ${passed} passed, 0 failed`);
 }

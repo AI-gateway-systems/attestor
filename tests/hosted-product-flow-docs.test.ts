@@ -345,6 +345,8 @@ function testPricingAndTrialTruthsStayAnchored(): void {
     'Hosted product flow docs: ROI calculator is a machine-readable truth source',
   );
   includes(stripeBootstrap, 'ATTESTOR_STRIPE_PRICE_SCALE=price_', 'Hosted product flow docs: operator scale Stripe price env var is documented');
+  includes(stripeBootstrap, 'lets customers switch between the configured Starter, Pro, and Scale prices', 'Hosted product flow docs: Stripe readiness checks portal plan switching');
+  includes(stripeBootstrap, 'quantity changes are disabled in the Customer Portal', 'Hosted product flow docs: Stripe readiness checks portal quantity posture');
   includes(stripeBootstrap, 'npm run probe:stripe-webhook-config -- --print-required-events', 'Hosted product flow docs: operator webhook manifest command is documented');
   includes(stripeBootstrap, '`entitlements.active_entitlement_summary.updated`', 'Hosted product flow docs: operator webhook event list includes entitlement summary updates');
   includes(stripeBootstrap, 'POST /api/v1/billing/stripe/webhook', 'Hosted product flow docs: operator webhook route is documented');

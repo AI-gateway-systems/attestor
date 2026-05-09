@@ -73,6 +73,9 @@ This probe checks:
 - Stripe account details, charge capability, and payout capability are enabled
 - the Starter, Pro, and Scale price ids are active live monthly USD prices matching the commercial model
 - the default Stripe Customer Portal configuration is active
+- the default Stripe Customer Portal lets customers switch between the configured Starter, Pro, and Scale prices
+- quantity changes are disabled in the Customer Portal, because hosted plans are quota tiers rather than seat quantities
+- Customer Portal subscription updates use `proration_behavior=none`, with cheaper-plan and shorter-interval changes scheduled for the end of the billing period when Stripe exposes those conditions
 
 It cannot enter legal, tax, payout, or Customer Portal settings for you. Configure those in Stripe Dashboard, then rerun the probe until it returns `"ok": true`.
 
@@ -81,6 +84,8 @@ To print the expected price manifest without a Stripe API key:
 ```bash
 npm run probe:stripe-live-readiness -- --print-required-prices
 ```
+
+That command prints both the required price manifest and the required Customer Portal posture. Use it before changing Stripe Dashboard settings so the dashboard stays aligned with the repo plan catalog.
 
 ## When Your Bank Details Are Needed
 
