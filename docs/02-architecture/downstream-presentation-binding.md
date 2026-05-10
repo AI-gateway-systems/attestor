@@ -43,6 +43,8 @@ A downstream presentation binding carries:
 
 The point is not to create another proof format for its own sake. The point is to prevent an admitted decision from being copied into a different target, body, enforcement point, or replay attempt.
 
+Executable body material must be supplied as a digest reference such as `sha256:...`. If raw request body material is placed in `bodyDigest`, binding creation rejects it, and presentation evaluation holds fail-closed rather than treating raw material as proof.
+
 ## Package Surface
 
 The package surface is exported through `attestor/consequence-admission`.
@@ -113,6 +115,7 @@ The evaluator returns explicit failure reasons:
 - `target-uri-mismatch`
 - `target-ref-mismatch`
 - `method-mismatch`
+- `body-digest-invalid`
 - `body-digest-mismatch`
 - `body-digest-missing`
 - `replay-key-missing`
