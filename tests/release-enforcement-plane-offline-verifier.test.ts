@@ -39,6 +39,7 @@ function tokenDigest(token: string): string {
 }
 
 const POLICY_HASH = 'sha256:policy';
+const POLICY_VERSION = 'policy.release-offline-test.v1';
 const POLICY_IR_HASH = 'sha256:policy-ir';
 const COMPILED_POLICY_INDEX_VERSION = 'attestor.policy-index.test.v1';
 const COMPILED_POLICY_IR_VERSION = 'attestor.policy-ir.test.v1';
@@ -78,7 +79,7 @@ function makeDecision(input: {
     id: input.id,
     createdAt: '2026-04-18T08:00:00.000Z',
     status: 'accepted',
-    policyVersion: 'policy.release-offline-test.v1',
+    policyVersion: POLICY_VERSION,
     policyHash,
     policyProvenance:
       input.includePolicyProvenance === false
@@ -222,7 +223,11 @@ async function testLowRiskOfflineAllow(): Promise<void> {
     now: '2026-04-18T08:01:00.000Z',
     expected: {
       policyHash: POLICY_HASH,
+      policyVersion: POLICY_VERSION,
       policyIrHash: POLICY_IR_HASH,
+      policyProvenanceSource: 'compiled-admission-policy-index',
+      compiledPolicyIndexVersion: COMPILED_POLICY_INDEX_VERSION,
+      compiledPolicyIrVersion: COMPILED_POLICY_IR_VERSION,
     },
     replayLedgerEntry: null,
   });
@@ -237,7 +242,9 @@ async function testLowRiskOfflineAllow(): Promise<void> {
   equal(verified.verificationResult.status, 'valid', 'Offline verifier: object-model verification result is valid');
   equal(verified.verificationResult.releaseTokenId, 'rt_low_risk', 'Offline verifier: verification result binds token id');
   equal(verified.verificationResult.outputHash, 'sha256:output', 'Offline verifier: verification result carries output hash');
+  equal(verified.verificationResult.policyVersion, POLICY_VERSION, 'Offline verifier: verification result carries policy version');
   equal(verified.verificationResult.policyIrHash, POLICY_IR_HASH, 'Offline verifier: verification result carries compiled policy IR hash');
+  equal(verified.verificationResult.compiledPolicyIndexVersion, COMPILED_POLICY_INDEX_VERSION, 'Offline verifier: verification result carries compiled policy index version');
 }
 
 async function testHighRiskNeedsOnline(): Promise<void> {
@@ -537,6 +544,29 @@ async function testPolicyIrBindingMismatchFailsAsStalePolicy(): Promise<void> {
 
   equal(verified.status, 'invalid', 'Offline verifier: policy IR hash mismatch is invalid');
   deepEqual(verified.failureReasons, ['stale-policy'], 'Offline verifier: policy IR mismatch maps to stale policy');
+
+  const staleCompiledIndex = await verifyOfflineReleaseAuthorization({
+    request,
+    presentation: bearerPresentation({
+      token: issued.token,
+      tokenId: issued.tokenId,
+      decisionId: decision.id,
+    }),
+    verificationKey,
+    now: '2026-04-18T08:01:00.000Z',
+    expected: {
+      policyHash: POLICY_HASH,
+      policyVersion: POLICY_VERSION,
+      policyIrHash: POLICY_IR_HASH,
+      policyProvenanceSource: 'compiled-admission-policy-index',
+      compiledPolicyIndexVersion: 'attestor.policy-index.wrong.v1',
+      compiledPolicyIrVersion: COMPILED_POLICY_IR_VERSION,
+    },
+    replayLedgerEntry: null,
+  });
+
+  equal(staleCompiledIndex.status, 'invalid', 'Offline verifier: compiled policy index mismatch is invalid');
+  deepEqual(staleCompiledIndex.failureReasons, ['stale-policy'], 'Offline verifier: compiled policy index mismatch maps to stale policy');
 }
 
 async function testRequiredPolicyProvenanceMissingFailsClosed(): Promise<void> {
