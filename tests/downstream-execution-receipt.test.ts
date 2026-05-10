@@ -392,6 +392,79 @@ function testStatusSpecificEvidenceRequirements(): void {
   equal(skippedRecorded.outcome, 'recorded', 'Execution receipt: skipped with reason records');
 }
 
+function testRawResultMaterialMustBeDigestShaped(): void {
+  const admission = admittedPayment();
+  const replayDecision = consumedReplay({ admission });
+  const rawSuccessMarker = 'raw_customer_payment_result_must_not_escape';
+  const rawErrorMarker = 'raw_downstream_error_must_not_escape';
+  const rawReceiptMarker = 'raw_external_receipt_must_not_escape';
+  const rawResultHeld = recordConsequenceAdmissionDownstreamExecution({
+    admission,
+    replayDecision,
+    execution: {
+      status: 'succeeded',
+      downstreamSystem: 'supplier-payment-service',
+      executedAt: '2026-05-01T14:00:31.000Z',
+      resultDigest: rawSuccessMarker,
+    },
+  });
+  const rawErrorHeld = recordConsequenceAdmissionDownstreamExecution({
+    admission,
+    replayDecision,
+    execution: {
+      status: 'failed',
+      downstreamSystem: 'supplier-payment-service',
+      executedAt: '2026-05-01T14:00:31.000Z',
+      errorDigest: rawErrorMarker,
+    },
+  });
+  const rawReceiptHeld = recordConsequenceAdmissionDownstreamExecution({
+    admission,
+    replayDecision,
+    execution: {
+      status: 'succeeded',
+      downstreamSystem: 'supplier-payment-service',
+      executedAt: '2026-05-01T14:00:31.000Z',
+      externalReceiptDigest: rawReceiptMarker,
+    },
+  });
+  const serialized = JSON.stringify({ rawResultHeld, rawErrorHeld, rawReceiptHeld });
+
+  deepEqual(
+    rawResultHeld.failureReasons,
+    ['result-digest-invalid', 'success-result-missing'],
+    'Execution receipt: raw result material is rejected before recording',
+  );
+  deepEqual(
+    rawErrorHeld.failureReasons,
+    ['error-digest-invalid', 'failure-result-missing'],
+    'Execution receipt: raw error material is rejected before recording',
+  );
+  deepEqual(
+    rawReceiptHeld.failureReasons,
+    ['external-receipt-digest-invalid', 'success-result-missing'],
+    'Execution receipt: raw external receipt material is rejected before recording',
+  );
+  equal(rawResultHeld.receipt, null, 'Execution receipt: invalid result digest emits no receipt');
+  equal(rawErrorHeld.receipt, null, 'Execution receipt: invalid error digest emits no receipt');
+  equal(rawReceiptHeld.receipt, null, 'Execution receipt: invalid external receipt digest emits no receipt');
+  equal(
+    serialized.includes(rawSuccessMarker),
+    false,
+    'Execution receipt: raw result marker is not serialized',
+  );
+  equal(
+    serialized.includes(rawErrorMarker),
+    false,
+    'Execution receipt: raw error marker is not serialized',
+  );
+  equal(
+    serialized.includes(rawReceiptMarker),
+    false,
+    'Execution receipt: raw external receipt marker is not serialized',
+  );
+}
+
 function testDocsAndScriptsExposeExecutionReceipt(): void {
   const readme = readProjectFile('README.md');
   const receiptDoc = readProjectFile('docs', '02-architecture', 'downstream-execution-receipt.md');
@@ -433,6 +506,7 @@ testRecordsSuccessfulExecutionAfterReplayConsumption();
 testHoldsWithoutReplayConsumption();
 testTargetAndTimingMustMatch();
 testStatusSpecificEvidenceRequirements();
+testRawResultMaterialMustBeDigestShaped();
 testDocsAndScriptsExposeExecutionReceipt();
 
 console.log(`Downstream execution receipt tests: ${passed} passed, 0 failed`);
