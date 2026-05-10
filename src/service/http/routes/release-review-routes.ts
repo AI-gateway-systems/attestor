@@ -77,6 +77,12 @@ interface IssuedReleaseTokenResponse extends Record<string, unknown> {
   decisionId: string;
   ttlSeconds: number;
   override: boolean;
+  policyVersion: string | null;
+  policyHash: string;
+  policyIrHash: string | null;
+  policyProvenanceSource: ReleaseReviewerQueueDetail['policyProvenanceSource'];
+  compiledPolicyIndexVersion: string | null;
+  compiledPolicyIrVersion: string | null;
 }
 
 interface IssuedEvidencePackResponse extends Record<string, unknown> {
@@ -166,6 +172,12 @@ function buildIssuedReleaseTokenResponse(
     decisionId: issuedToken.claims.decision_id,
     ttlSeconds: issuedToken.claims.exp - issuedToken.claims.iat,
     override: issuedToken.claims.override,
+    policyVersion: issuedToken.claims.policy_version ?? null,
+    policyHash: issuedToken.claims.policy_hash,
+    policyIrHash: issuedToken.claims.policy_ir_hash ?? null,
+    policyProvenanceSource: issuedToken.claims.policy_provenance_source ?? null,
+    compiledPolicyIndexVersion: issuedToken.claims.compiled_policy_index_version ?? null,
+    compiledPolicyIrVersion: issuedToken.claims.compiled_policy_ir_version ?? null,
   };
 }
 

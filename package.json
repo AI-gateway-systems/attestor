@@ -86,6 +86,7 @@
     "test:release-authority-store": "tsx tests/release-authority-store.test.ts",
     "test:release-decision-log-store": "tsx tests/release-decision-log-store.test.ts",
     "test:release-reviewer-queue-store": "tsx tests/release-reviewer-queue-store.test.ts",
+    "test:release-review-site": "tsx tests/release-review-site.test.ts",
     "test:release-token-introspection-store": "tsx tests/release-token-introspection-store.test.ts",
     "test:release-evidence-pack-store": "tsx tests/release-evidence-pack-store.test.ts",
     "test:release-degraded-mode-grant-store": "tsx tests/release-degraded-mode-grant-store.test.ts",

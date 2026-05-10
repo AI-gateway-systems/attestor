@@ -16,6 +16,30 @@ function badgeClass(riskClass: string): string {
   return riskClass === 'R4' ? 'risk-highest' : riskClass === 'R3' ? 'risk-high' : 'risk-base';
 }
 
+interface PolicyProvenanceDisplay {
+  readonly policyVersion?: string | null;
+  readonly policyHash: string;
+  readonly policyIrHash?: string | null;
+  readonly policyProvenanceSource?: string | null;
+  readonly compiledPolicyIndexVersion?: string | null;
+  readonly compiledPolicyIrVersion?: string | null;
+}
+
+function optionalPolicyValue(value: string | null | undefined): string {
+  return value && value.trim().length > 0 ? value : 'none';
+}
+
+function renderPolicyProvenanceRows(policy: PolicyProvenanceDisplay): string {
+  return `
+    <div><dt>Policy version</dt><dd><code>${escapeHtml(optionalPolicyValue(policy.policyVersion))}</code></dd></div>
+    <div><dt>Policy hash</dt><dd><code>${escapeHtml(policy.policyHash)}</code></dd></div>
+    <div><dt>Policy IR hash</dt><dd><code>${escapeHtml(optionalPolicyValue(policy.policyIrHash))}</code></dd></div>
+    <div><dt>Source</dt><dd><code>${escapeHtml(optionalPolicyValue(policy.policyProvenanceSource))}</code></dd></div>
+    <div><dt>Compiled index</dt><dd><code>${escapeHtml(optionalPolicyValue(policy.compiledPolicyIndexVersion))}</code></dd></div>
+    <div><dt>Compiled IR</dt><dd><code>${escapeHtml(optionalPolicyValue(policy.compiledPolicyIrVersion))}</code></dd></div>
+  `;
+}
+
 function renderInboxItems(items: readonly ReleaseReviewerQueueListResult['items'][number][]): string {
   if (items.length === 0) {
     return `
@@ -42,6 +66,8 @@ function renderInboxItems(items: readonly ReleaseReviewerQueueListResult['items'
             <div><dt>Authority</dt><dd>${escapeHtml(item.authorityMode)} / ${item.minimumReviewerCount}</dd></div>
             <div><dt>Approvals</dt><dd>${item.approvalsRecorded} / ${item.minimumReviewerCount}</dd></div>
             <div><dt>Decision</dt><dd>${escapeHtml(item.decisionId)}</dd></div>
+            <div><dt>Policy</dt><dd><code>${escapeHtml(optionalPolicyValue(item.compiledPolicyIndexVersion ?? item.policyVersion))}</code></dd></div>
+            <div><dt>Policy hash</dt><dd><code>${escapeHtml(item.policyHash)}</code></dd></div>
           </dl>
           <p class="finding"><strong>Why it is waiting:</strong> ${escapeHtml(item.findingSummary)}</p>
           <p class="checklist"><strong>Next reviewer move:</strong> ${escapeHtml(item.checklistSummary)}</p>
@@ -190,6 +216,12 @@ export function renderReleaseReviewerQueueInboxPage(
       dd {
         margin: 6px 0 0;
         font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      code {
+        font-family: Consolas, "SFMono-Regular", monospace;
+        font-size: 0.92em;
+        overflow-wrap: anywhere;
       }
       .action {
         display: inline-flex;
@@ -276,7 +308,14 @@ function renderIssuedToken(detail: ReleaseReviewerQueueDetail): string {
     return '<p class="token">No release token has been issued yet.</p>';
   }
 
-  return `<p class="token"><strong>${escapeHtml(detail.issuedReleaseToken.tokenId)}</strong> Â· audience ${escapeHtml(detail.issuedReleaseToken.audience)} Â· expires ${escapeHtml(detail.issuedReleaseToken.expiresAt)}</p>`;
+  return `
+    <dl class="meta">
+      <div><dt>Token</dt><dd><code>${escapeHtml(detail.issuedReleaseToken.tokenId)}</code></dd></div>
+      <div><dt>Audience</dt><dd><code>${escapeHtml(detail.issuedReleaseToken.audience)}</code></dd></div>
+      <div><dt>Expires</dt><dd>${escapeHtml(detail.issuedReleaseToken.expiresAt)}</dd></div>
+      ${renderPolicyProvenanceRows(detail.issuedReleaseToken)}
+    </dl>
+  `;
 }
 
 function renderOverride(detail: ReleaseReviewerQueueDetail): string {
@@ -392,6 +431,12 @@ export function renderReleaseReviewerQueueDetailPage(
       dd {
         margin: 8px 0 0;
         font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      code {
+        font-family: Consolas, "SFMono-Regular", monospace;
+        font-size: 0.92em;
+        overflow-wrap: anywhere;
       }
       .mono {
         margin: 0;
@@ -435,6 +480,10 @@ export function renderReleaseReviewerQueueDetailPage(
             <div><dt>Approvals</dt><dd>${detail.approvalsRecorded} / ${detail.minimumReviewerCount}</dd></div>
           </dl>
           ${renderRowPreview(detail)}
+        </article>
+        <article class="panel">
+          <h2>Policy provenance</h2>
+          <dl class="meta">${renderPolicyProvenanceRows(detail)}</dl>
         </article>
         <article class="panel">
           <h2>Reviewer checklist</h2>

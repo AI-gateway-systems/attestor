@@ -89,6 +89,29 @@ function testReleaseReviewRouteUsesPublicReleaseLayerTypes(): void {
   assert.doesNotMatch(releaseReviewRoute, /release-kernel\//u);
 }
 
+function testReleaseReviewRouteTokenResponseCarriesPolicyProvenance(): void {
+  const releaseReviewRoute = readFileSync(
+    join(ROUTE_ROOT, 'release-review-routes.ts'),
+    'utf8',
+  );
+
+  assert.match(releaseReviewRoute, /policyVersion: issuedToken\.claims\.policy_version \?\? null/u);
+  assert.match(releaseReviewRoute, /policyHash: issuedToken\.claims\.policy_hash/u);
+  assert.match(releaseReviewRoute, /policyIrHash: issuedToken\.claims\.policy_ir_hash \?\? null/u);
+  assert.match(
+    releaseReviewRoute,
+    /policyProvenanceSource: issuedToken\.claims\.policy_provenance_source \?\? null/u,
+  );
+  assert.match(
+    releaseReviewRoute,
+    /compiledPolicyIndexVersion: issuedToken\.claims\.compiled_policy_index_version \?\? null/u,
+  );
+  assert.match(
+    releaseReviewRoute,
+    /compiledPolicyIrVersion: issuedToken\.claims\.compiled_policy_ir_version \?\? null/u,
+  );
+}
+
 function testWebhookRoutesAreSplitByProviderBoundary(): void {
   const webhookRoute = readFileSync(join(ROUTE_ROOT, 'webhook-routes.ts'), 'utf8');
   const emailWebhookRoute = readFileSync(join(ROUTE_ROOT, 'email-webhook-routes.ts'), 'utf8');
@@ -488,6 +511,7 @@ testAllServiceRoutesHaveClosedAnyDebt();
 testDirectStoreRouteDebtIsExplicitlyBounded();
 testRoutesDoNotExposeLegacyStateFunctionPorts();
 testReleaseReviewRouteUsesPublicReleaseLayerTypes();
+testReleaseReviewRouteTokenResponseCarriesPolicyProvenance();
 testWebhookRoutesAreSplitByProviderBoundary();
 testEmailWebhookRouteDelegatesProviderUseCase();
 testStripeWebhookRouteDelegatesIngressUseCase();
@@ -506,4 +530,4 @@ testAccountRouteUsesStateServicePort();
 testPipelineRoutesAreSplitByUseCaseBoundary();
 testPipelineRoutesDelegateUsageAndDeadLetterUseCases();
 
-console.log('Service route boundary tests: 22 passed, 0 failed');
+console.log('Service route boundary tests: 23 passed, 0 failed');
