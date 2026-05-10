@@ -494,8 +494,10 @@ async function run() {
       ok(secondApprovalBody.review.status === 'approved', 'Reviewer approve(second): review queue item closes as approved');
       ok(secondApprovalBody.review.authorityState === 'approved', 'Reviewer approve(second): authority state becomes approved');
       ok(typeof secondApprovalBody.releaseToken?.token === 'string', 'Reviewer approve(second): release token is issued after dual approval');
+      ok(typeof secondApprovalBody.releaseToken?.policyContext?.policyHash === 'string', 'Reviewer approve(second): release token response carries structured policy context');
       ok(typeof secondApprovalBody.evidencePack?.evidencePackId === 'string', 'Reviewer approve(second): durable evidence pack is exported after dual approval');
       ok(typeof secondApprovalBody.evidencePack?.exportPath === 'string', 'Reviewer approve(second): durable evidence pack export path returned');
+      ok(typeof secondApprovalBody.evidencePack?.policyContext?.policyHash === 'string', 'Reviewer approve(second): evidence pack response carries structured policy context');
       approvedReleaseToken = secondApprovalBody.releaseToken.token;
 
       const listAfterApprovalRes = await fetch(`${BASE}/api/v1/admin/release-reviews`, {
@@ -534,8 +536,10 @@ async function run() {
       ok(typeof overrideBody.releaseToken?.token === 'string', 'Reviewer override: short-lived release token issued');
       ok(overrideBody.releaseToken.override === true, 'Reviewer override: release token is flagged as override');
       ok(Number(overrideBody.releaseToken.ttlSeconds) <= 60, 'Reviewer override: release token is short-lived');
+      ok(typeof overrideBody.releaseToken.policyContext?.policyHash === 'string', 'Reviewer override: release token response carries structured policy context');
       ok(typeof overrideBody.evidencePack?.evidencePackId === 'string', 'Reviewer override: durable evidence pack is exported after break-glass release');
       ok(typeof overrideBody.evidencePack?.exportPath === 'string', 'Reviewer override: durable evidence pack export path returned');
+      ok(typeof overrideBody.evidencePack?.policyContext?.policyHash === 'string', 'Reviewer override: evidence pack response carries structured policy context');
       breakGlassReleaseToken = overrideBody.releaseToken.token;
       breakGlassEvidencePackId = overrideBody.evidencePack.evidencePackId;
       console.log(`    override=regulatory_deadline, releaseTokenIssued=${Boolean(overrideBody.releaseToken.tokenId)}`);
@@ -554,6 +558,9 @@ async function run() {
       ok(body.evidencePack.statement.predicateType === 'https://attestor.ai/attestation/release-evidence/v1', 'Release evidence bundle: Attestor release predicate exported');
       ok(body.evidencePack.statement.predicate.review.overrideReasonCode === 'regulatory_deadline', 'Release evidence bundle: override reason is preserved in the durable review summary');
       ok(body.evidencePack.statement.predicate.releaseToken.override === true, 'Release evidence bundle: override token summary is preserved');
+      ok(typeof body.evidencePack.evidencePack.policyContext?.policyHash === 'string', 'Release evidence bundle: evidence pack policy context is exported');
+      ok(typeof body.evidencePack.statement.predicate.decision.policyContext?.policyHash === 'string', 'Release evidence bundle: decision policy context is exported');
+      ok(typeof body.evidencePack.statement.predicate.releaseToken.policyContext?.policyHash === 'string', 'Release evidence bundle: token policy context is exported');
       ok(typeof body.evidencePack.verificationKey.keyId === 'string', 'Release evidence bundle: verification key metadata exported');
       ok(typeof body.evidencePack.bundleDigest === 'string', 'Release evidence bundle: bundle digest exported');
       console.log(`    evidencePack=${body.evidencePack.evidencePack.id}, predicate=${body.evidencePack.statement.predicateType}`);

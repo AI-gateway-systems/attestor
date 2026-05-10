@@ -7,6 +7,8 @@ import {
   type ReleaseDecision,
   type ReleaseDecisionLogPhase,
   type ReleaseEvidencePackIssuer,
+  type ReleaseEvidencePolicyContext,
+  type ReleaseEvidenceTokenPolicyContext,
   type ReleaseReviewerQueueDetail,
   type ReleaseReviewerQueueListOptions,
   type ReleaseReviewerQueueListResult,
@@ -83,6 +85,7 @@ interface IssuedReleaseTokenResponse extends Record<string, unknown> {
   policyProvenanceSource: ReleaseReviewerQueueDetail['policyProvenanceSource'];
   compiledPolicyIndexVersion: string | null;
   compiledPolicyIrVersion: string | null;
+  policyContext: ReleaseEvidenceTokenPolicyContext;
 }
 
 interface IssuedEvidencePackResponse extends Record<string, unknown> {
@@ -92,6 +95,7 @@ interface IssuedEvidencePackResponse extends Record<string, unknown> {
   predicateType: string;
   retentionClass: string;
   subjectCount: number;
+  policyContext: ReleaseEvidencePolicyContext;
 }
 
 function parsePositiveLimit(value: string | undefined): number | null {
@@ -164,6 +168,15 @@ function buildReviewActionResponse(
 function buildIssuedReleaseTokenResponse(
   issuedToken: IssuedReleaseToken,
 ): IssuedReleaseTokenResponse {
+  const policyContext: ReleaseEvidenceTokenPolicyContext = {
+    policyVersion: issuedToken.claims.policy_version ?? null,
+    policyHash: issuedToken.claims.policy_hash,
+    policyIrHash: issuedToken.claims.policy_ir_hash ?? null,
+    policyProvenanceSource: issuedToken.claims.policy_provenance_source ?? null,
+    compiledPolicyIndexVersion: issuedToken.claims.compiled_policy_index_version ?? null,
+    compiledPolicyIrVersion: issuedToken.claims.compiled_policy_ir_version ?? null,
+  };
+
   return {
     tokenId: issuedToken.tokenId,
     token: issuedToken.token,
@@ -172,12 +185,13 @@ function buildIssuedReleaseTokenResponse(
     decisionId: issuedToken.claims.decision_id,
     ttlSeconds: issuedToken.claims.exp - issuedToken.claims.iat,
     override: issuedToken.claims.override,
-    policyVersion: issuedToken.claims.policy_version ?? null,
-    policyHash: issuedToken.claims.policy_hash,
-    policyIrHash: issuedToken.claims.policy_ir_hash ?? null,
-    policyProvenanceSource: issuedToken.claims.policy_provenance_source ?? null,
-    compiledPolicyIndexVersion: issuedToken.claims.compiled_policy_index_version ?? null,
-    compiledPolicyIrVersion: issuedToken.claims.compiled_policy_ir_version ?? null,
+    policyVersion: policyContext.policyVersion,
+    policyHash: policyContext.policyHash,
+    policyIrHash: policyContext.policyIrHash,
+    policyProvenanceSource: policyContext.policyProvenanceSource,
+    compiledPolicyIndexVersion: policyContext.compiledPolicyIndexVersion,
+    compiledPolicyIrVersion: policyContext.compiledPolicyIrVersion,
+    policyContext,
   };
 }
 
@@ -191,6 +205,7 @@ function buildIssuedEvidencePackResponse(
     predicateType: issuedEvidencePack.statement.predicateType,
     retentionClass: issuedEvidencePack.evidencePack.retentionClass,
     subjectCount: issuedEvidencePack.statement.subject.length,
+    policyContext: issuedEvidencePack.evidencePack.policyContext,
   };
 }
 
