@@ -10,6 +10,12 @@ import {
   createFinanceFilingReleaseCandidateFromReport,
   finalizeFinanceFilingReleaseDecision,
 } from '../src/release-kernel/finance-record-release.js';
+import {
+  COMPILED_ADMISSION_POLICY_INDEX_VERSION,
+} from '../src/release-kernel/compiled-policy-index.js';
+import {
+  COMPILED_ADMISSION_POLICY_IR_VERSION,
+} from '../src/release-kernel/compiled-policy-ir.js';
 import { createReleaseDecisionEngine } from '../src/release-kernel/release-decision-engine.js';
 import { createInMemoryReleaseDecisionLogWriter } from '../src/release-kernel/release-decision-log.js';
 import {
@@ -179,6 +185,21 @@ async function run(): Promise<void> {
       (await store.get(first.detail.id))?.candidate.rowCount,
       1,
       'Shared reviewer queue: detail lookup reloads record JSON from PostgreSQL',
+    );
+    equal(
+      (await store.get(first.detail.id))?.policyProvenanceSource,
+      'compiled-admission-policy-index',
+      'Shared reviewer queue: detail lookup reloads policy provenance source',
+    );
+    equal(
+      (await store.get(first.detail.id))?.compiledPolicyIndexVersion,
+      COMPILED_ADMISSION_POLICY_INDEX_VERSION,
+      'Shared reviewer queue: detail lookup reloads compiled policy index version',
+    );
+    equal(
+      (await store.get(first.detail.id))?.compiledPolicyIrVersion,
+      COMPILED_ADMISSION_POLICY_IR_VERSION,
+      'Shared reviewer queue: detail lookup reloads compiled policy IR version',
     );
 
     const activeClaimedAt = new Date().toISOString();

@@ -7,7 +7,11 @@ import type {
   FinanceFilingReleaseReportLike,
   FinanceFilingRow,
 } from './finance-record-release.js';
-import type { ReleaseDecision, ReleaseFinding } from './object-model.js';
+import type {
+  ReleaseDecision,
+  ReleaseFinding,
+  ReleasePolicyProvenanceSource,
+} from './object-model.js';
 import type { IssuedReleaseToken } from './release-token.js';
 import type { ReleaseDecisionLogEntry } from './release-decision-log.js';
 import type { RiskClass } from './types.js';
@@ -70,6 +74,12 @@ export interface ReleaseReviewerIssuedTokenSummary {
   readonly tokenId: string;
   readonly expiresAt: string;
   readonly audience: string;
+  readonly policyVersion: string | null;
+  readonly policyHash: string;
+  readonly policyIrHash: string | null;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string | null;
+  readonly compiledPolicyIrVersion: string | null;
 }
 
 export interface ReleaseReviewerOverrideSummary {
@@ -91,6 +101,11 @@ export interface ReleaseReviewerQueueSummary {
   readonly decisionId: string;
   readonly releaseDecisionStatus: ReleaseDecision['status'];
   readonly policyVersion: string;
+  readonly policyHash: string;
+  readonly policyIrHash: string | null;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string | null;
+  readonly compiledPolicyIrVersion: string | null;
   readonly consequenceType: ReleaseDecision['consequenceType'];
   readonly consequenceLabel: string;
   readonly riskClass: RiskClass;
@@ -252,6 +267,22 @@ function requesterLabel(decision: ReleaseDecision): string {
 
 function targetDisplayName(decision: ReleaseDecision): string {
   return decision.target.displayName?.trim() || decision.target.id;
+}
+
+function policyIrHash(decision: ReleaseDecision): string | null {
+  return decision.policyProvenance?.compiledPolicyIrHash ?? null;
+}
+
+function policyProvenanceSource(decision: ReleaseDecision): ReleasePolicyProvenanceSource | null {
+  return decision.policyProvenance?.source ?? null;
+}
+
+function compiledPolicyIndexVersion(decision: ReleaseDecision): string | null {
+  return decision.policyProvenance?.compiledPolicyIndexVersion ?? null;
+}
+
+function compiledPolicyIrVersion(decision: ReleaseDecision): string | null {
+  return decision.policyProvenance?.compiledPolicyIrVersion ?? null;
 }
 
 function summarizeFindings(findings: readonly ReleaseFinding[]): string {
@@ -821,6 +852,11 @@ export function createFinanceReviewerQueueItem(
       decisionId: decision.id,
       releaseDecisionStatus: decision.status,
       policyVersion: decision.policyVersion,
+      policyHash: decision.policyHash,
+      policyIrHash: policyIrHash(decision),
+      policyProvenanceSource: policyProvenanceSource(decision),
+      compiledPolicyIndexVersion: compiledPolicyIndexVersion(decision),
+      compiledPolicyIrVersion: compiledPolicyIrVersion(decision),
       consequenceType: decision.consequenceType,
       consequenceLabel: consequenceTypeLabel(decision.consequenceType),
       riskClass: decision.riskClass,
@@ -982,6 +1018,12 @@ export function attachIssuedTokenToReviewerQueueRecord(
         tokenId: input.issuedToken.tokenId,
         expiresAt: input.issuedToken.expiresAt,
         audience: input.issuedToken.claims.aud,
+        policyVersion: input.issuedToken.claims.policy_version ?? null,
+        policyHash: input.issuedToken.claims.policy_hash,
+        policyIrHash: input.issuedToken.claims.policy_ir_hash ?? null,
+        policyProvenanceSource: input.issuedToken.claims.policy_provenance_source ?? null,
+        compiledPolicyIndexVersion: input.issuedToken.claims.compiled_policy_index_version ?? null,
+        compiledPolicyIrVersion: input.issuedToken.claims.compiled_policy_ir_version ?? null,
       },
     },
     releaseDecision: {
