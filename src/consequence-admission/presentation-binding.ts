@@ -96,6 +96,7 @@ export interface ConsequenceAdmissionPresentationBinding {
   readonly expiresAt: string;
   readonly proofRefIds: readonly string[];
   readonly acceptedConstraintIds: readonly string[];
+  readonly acceptedConstraintIdDigests: readonly string[];
   readonly canonical: string;
   readonly digest: string;
 }
@@ -175,6 +176,7 @@ export interface ConsequenceAdmissionPresentationBindingDescriptor {
   readonly canonicalUsesTargetDigest: true;
   readonly canonicalUsesReplayKeyDigest: true;
   readonly canonicalUsesNonceDigest: true;
+  readonly canonicalUsesConstraintIdDigests: true;
   readonly replayLedgerIncluded: false;
   readonly failClosed: true;
 }
@@ -325,7 +327,7 @@ function bindingCanonicalPayload(
     presentedAt: binding.presentedAt,
     expiresAt: binding.expiresAt,
     proofRefIds: binding.proofRefIds,
-    acceptedConstraintIds: binding.acceptedConstraintIds,
+    acceptedConstraintIdDigests: binding.acceptedConstraintIdDigests,
   } as unknown as CanonicalReleaseJsonValue;
 }
 
@@ -440,6 +442,10 @@ export function createConsequenceAdmissionPresentationBinding(
   }
   const replayKey = normalizeOptionalIdentifier(input.replayKey, 'replayKey');
   const nonce = normalizeOptionalIdentifier(input.nonce, 'nonce');
+  const acceptedConstraintIds = uniqueIdentifiers(
+    input.acceptedConstraintIds ?? [],
+    'acceptedConstraintIds[]',
+  );
   const target = Object.freeze({
     uri: normalizeOptionalIdentifier(input.target.uri, 'target.uri'),
     targetRef: normalizeOptionalIdentifier(input.target.targetRef, 'target.targetRef'),
@@ -471,10 +477,8 @@ export function createConsequenceAdmissionPresentationBinding(
       input.proofRefIds ?? proofRefIdsFor(input.admission),
       'proofRefIds[]',
     ),
-    acceptedConstraintIds: uniqueIdentifiers(
-      input.acceptedConstraintIds ?? [],
-      'acceptedConstraintIds[]',
-    ),
+    acceptedConstraintIds,
+    acceptedConstraintIdDigests: Object.freeze(acceptedConstraintIds.map(digestText)),
   } satisfies Omit<
     ConsequenceAdmissionPresentationBinding,
     'bindingId' | 'canonical' | 'digest'
@@ -685,6 +689,7 @@ ConsequenceAdmissionPresentationBindingDescriptor {
     canonicalUsesTargetDigest: true,
     canonicalUsesReplayKeyDigest: true,
     canonicalUsesNonceDigest: true,
+    canonicalUsesConstraintIdDigests: true,
     replayLedgerIncluded: false,
     failClosed: true,
   });

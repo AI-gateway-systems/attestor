@@ -132,6 +132,10 @@ function admittedPayment(): ConsequenceAdmissionResponse {
   });
 }
 
+const RAW_NARROW_CONSTRAINT_ID = 'constraint:max-amount';
+const RAW_NARROW_CONSTRAINT_SUMMARY =
+  'private-policy-threshold: payment amount must not exceed 250 EUR.';
+
 function narrowedPayment(): ConsequenceAdmissionResponse {
   return createConsequenceAdmissionResponse({
     request: paymentRequest(),
@@ -142,8 +146,8 @@ function narrowedPayment(): ConsequenceAdmissionResponse {
     checks: [passCheck('policy'), passCheck('authority'), passCheck('evidence')],
     constraints: [
       {
-        id: 'constraint:max-amount',
-        summary: 'Payment amount must not exceed 250 EUR.',
+        id: RAW_NARROW_CONSTRAINT_ID,
+        summary: RAW_NARROW_CONSTRAINT_SUMMARY,
         enforcedBy: 'supplier-payment-service',
       },
     ],
@@ -259,6 +263,11 @@ function testDescriptor(): void {
     descriptor.canonicalUsesNonceDigest,
     true,
     'Presentation binding: canonical payload binds nonces by digest',
+  );
+  equal(
+    descriptor.canonicalUsesConstraintIdDigests,
+    true,
+    'Presentation binding: canonical payload binds constraint acknowledgements by digest',
   );
   equal(descriptor.failClosed, true, 'Presentation binding: descriptor is fail-closed');
 }
@@ -513,7 +522,7 @@ function testNarrowPresentationRequiresConstraintAcknowledgement(): void {
     nonce: 'nonce:payment-adapter:001',
     presentedAt: '2026-05-01T12:00:05.000Z',
     expiresAt: '2026-05-01T12:01:05.000Z',
-    acceptedConstraintIds: ['constraint:max-amount'],
+    acceptedConstraintIds: [RAW_NARROW_CONSTRAINT_ID],
   });
   const allowed = evaluateConsequenceAdmissionPresentationBinding({
     admission,
@@ -525,6 +534,7 @@ function testNarrowPresentationRequiresConstraintAcknowledgement(): void {
     },
     now: '2026-05-01T12:00:30.000Z',
   });
+  const serializedDecisions = JSON.stringify({ held, allowed });
 
   deepEqual(
     held.failureReasons,
@@ -532,6 +542,26 @@ function testNarrowPresentationRequiresConstraintAcknowledgement(): void {
     'Presentation binding: unacknowledged narrow constraint holds at both presentation and downstream contract layers',
   );
   equal(allowed.outcome, 'allow', 'Presentation binding: acknowledged narrow constraint allows');
+  equal(
+    acknowledged.acceptedConstraintIdDigests[0],
+    digestText(RAW_NARROW_CONSTRAINT_ID),
+    'Presentation binding: accepted constraint ids are digest-indexed',
+  );
+  equal(
+    acknowledged.canonical.includes(RAW_NARROW_CONSTRAINT_ID),
+    false,
+    'Presentation binding: canonical payload omits raw accepted constraint ids',
+  );
+  equal(
+    serializedDecisions.includes(RAW_NARROW_CONSTRAINT_ID),
+    false,
+    'Presentation binding: decision serialization omits raw constraint ids',
+  );
+  equal(
+    serializedDecisions.includes(RAW_NARROW_CONSTRAINT_SUMMARY),
+    false,
+    'Presentation binding: decision serialization omits raw constraint summaries',
+  );
 }
 
 function testDocsAndScriptsExposePresentationBinding(): void {
@@ -567,6 +597,16 @@ function testDocsAndScriptsExposePresentationBinding(): void {
     bindingDoc,
     'canonical payload binds targets, replay keys, and nonces by digest',
     'Presentation binding: doc states target digest canonical binding',
+  );
+  includes(
+    bindingDoc,
+    '`acceptedConstraintIdDigests`',
+    'Presentation binding: doc names digest constraint acknowledgement field',
+  );
+  includes(
+    bindingDoc,
+    'digest-only `constraintRefs`',
+    'Presentation binding: doc states nested downstream constraint refs are digest-only',
   );
   includes(
     contractDoc,

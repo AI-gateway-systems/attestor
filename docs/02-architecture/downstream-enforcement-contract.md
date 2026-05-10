@@ -78,6 +78,20 @@ The payment adapter only proceeds if the admission is allowed, not fail-closed, 
 
 If the AI repeats the same request or changes the target service, the contract holds.
 
+## Constraint Privacy Boundary
+
+`narrow` constraints can contain private policy thresholds, recipient sets, review limits, or other customer-control detail. The downstream decision therefore does not echo raw constraint `summary`, `enforcedBy`, or constraint id values.
+
+The evaluator still checks acknowledgement against the raw constraint ids it receives at runtime, but the exported decision carries `constraintRefs` with digest-only references:
+
+```text
+constraintRefs:
+  - idDigest: sha256:...
+    constraintDigest: sha256:...
+```
+
+Operators that need the full constraint text should read the original admission inside the customer's trusted control plane. Receipts, logs, dashboards, and presentation decisions should keep only the digest references.
+
 ## Example: Narrowed Refund
 
 An AI-assisted support flow proposes a refund. Attestor returns `narrow` with a constraint:

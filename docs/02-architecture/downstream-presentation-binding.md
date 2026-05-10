@@ -53,6 +53,12 @@ Replay reuse checks support `usedReplayKeyDigests`, where each observed replay k
 
 The runtime binding still carries the target, replay key, and nonce so the customer enforcement point can compare and consume them. The canonical payload binds targets, replay keys, and nonces by digest, so the stable `bindingId`, `digest`, and `canonical` fields do not retain those raw runtime values.
 
+## Constraint Acknowledgement Boundary
+
+`narrow` acknowledgement uses raw constraint ids only as local runtime input. The presentation binding keeps `acceptedConstraintIds` for the enforcement point comparison, but the canonical payload uses `acceptedConstraintIdDigests`.
+
+This keeps stable proof material from retaining private constraint names or policy-control details. The nested downstream decision also returns digest-only `constraintRefs`, not raw constraint summaries.
+
 ## Package Surface
 
 The package surface is exported through `attestor/consequence-admission`.
