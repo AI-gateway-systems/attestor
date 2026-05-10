@@ -329,6 +329,23 @@ async function testHighRiskActiveIntrospectionAllows(): Promise<void> {
   equal(verified.verificationResult.introspection?.active, true, 'Online verifier: verification result embeds active introspection snapshot');
   equal(verified.verificationResult.policyIrHash, POLICY_IR_HASH, 'Online verifier: final verification result carries policy IR hash');
   equal(verified.verificationResult.introspection?.policyIrHash, POLICY_IR_HASH, 'Online verifier: introspection snapshot carries policy IR hash');
+  deepEqual(
+    verified.verificationResult.policyContext,
+    {
+      policyHash: POLICY_HASH,
+      policyVersion: 'policy.release-online-test.v1',
+      policyIrHash: POLICY_IR_HASH,
+      policyProvenanceSource: 'compiled-admission-policy-index',
+      compiledPolicyIndexVersion: COMPILED_POLICY_INDEX_VERSION,
+      compiledPolicyIrVersion: COMPILED_POLICY_IR_VERSION,
+    },
+    'Online verifier: final verification result exposes structured policy context',
+  );
+  deepEqual(
+    verified.verificationResult.introspection?.policyContext,
+    verified.verificationResult.policyContext,
+    'Online verifier: introspection snapshot exposes the same structured policy context',
+  );
   equal(verified.freshness?.introspectionCache.status, 'fresh', 'Online verifier: active live introspection creates fresh cache state');
 }
 

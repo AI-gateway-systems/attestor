@@ -46,6 +46,15 @@ export const ENFORCEMENT_RECEIPT_SPEC_VERSION =
 
 export type VerificationStatus = 'valid' | 'invalid' | 'indeterminate';
 
+export interface ReleaseEnforcementPolicyContext {
+  readonly policyHash: string | null;
+  readonly policyVersion: string | null;
+  readonly policyIrHash: string | null;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string | null;
+  readonly compiledPolicyIrVersion: string | null;
+}
+
 export interface EnforcementRequest {
   readonly version: typeof ENFORCEMENT_REQUEST_SPEC_VERSION;
   readonly id: string;
@@ -161,6 +170,7 @@ export interface IntrospectionSnapshot {
   readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
   readonly compiledPolicyIndexVersion: string | null;
   readonly compiledPolicyIrVersion: string | null;
+  readonly policyContext: ReleaseEnforcementPolicyContext;
 }
 
 export interface VerificationResult {
@@ -185,6 +195,7 @@ export interface VerificationResult {
   readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
   readonly compiledPolicyIndexVersion: string | null;
   readonly compiledPolicyIrVersion: string | null;
+  readonly policyContext: ReleaseEnforcementPolicyContext;
   readonly failureReasons: readonly EnforcementFailureReason[];
   readonly introspection: IntrospectionSnapshot | null;
 }
@@ -232,6 +243,7 @@ export interface EnforcementReceipt {
   readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
   readonly compiledPolicyIndexVersion: string | null;
   readonly compiledPolicyIrVersion: string | null;
+  readonly policyContext: ReleaseEnforcementPolicyContext;
   readonly verificationStatus: VerificationStatus;
   readonly failureReasons: readonly EnforcementFailureReason[];
   readonly receiptDigest: string | null;
@@ -251,6 +263,7 @@ export interface EnforcementReceiptDigestMaterial {
   readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
   readonly compiledPolicyIndexVersion: string | null;
   readonly compiledPolicyIrVersion: string | null;
+  readonly policyContext: ReleaseEnforcementPolicyContext;
   readonly verificationStatus: VerificationStatus;
   readonly failureReasons: readonly EnforcementFailureReason[];
 }
@@ -432,6 +445,24 @@ function normalizeFailureReasons(
     return Object.freeze([]);
   }
   return Object.freeze(Array.from(new Set(reasons)).sort());
+}
+
+function buildPolicyContext(input: {
+  readonly policyHash: string | null;
+  readonly policyVersion: string | null;
+  readonly policyIrHash: string | null;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string | null;
+  readonly compiledPolicyIrVersion: string | null;
+}): ReleaseEnforcementPolicyContext {
+  return Object.freeze({
+    policyHash: input.policyHash,
+    policyVersion: input.policyVersion,
+    policyIrHash: input.policyIrHash,
+    policyProvenanceSource: input.policyProvenanceSource,
+    compiledPolicyIndexVersion: input.compiledPolicyIndexVersion,
+    compiledPolicyIrVersion: input.compiledPolicyIrVersion,
+  });
 }
 
 function normalizeCoveredComponents(
@@ -690,6 +721,25 @@ export function createReleasePresentation(
 export function createIntrospectionSnapshot(
   input: CreateIntrospectionSnapshotInput,
 ): IntrospectionSnapshot {
+  const policyHash = normalizeOptionalIdentifier(input.policyHash, 'introspectionSnapshot.policyHash');
+  const policyVersion = normalizeOptionalIdentifier(
+    input.policyVersion,
+    'introspectionSnapshot.policyVersion',
+  );
+  const policyIrHash = normalizeOptionalIdentifier(
+    input.policyIrHash,
+    'introspectionSnapshot.policyIrHash',
+  );
+  const policyProvenanceSource = input.policyProvenanceSource ?? null;
+  const compiledPolicyIndexVersion = normalizeOptionalIdentifier(
+    input.compiledPolicyIndexVersion,
+    'introspectionSnapshot.compiledPolicyIndexVersion',
+  );
+  const compiledPolicyIrVersion = normalizeOptionalIdentifier(
+    input.compiledPolicyIrVersion,
+    'introspectionSnapshot.compiledPolicyIrVersion',
+  );
+
   return Object.freeze({
     version: INTROSPECTION_SNAPSHOT_SPEC_VERSION,
     checkedAt: normalizeIsoTimestamp(input.checkedAt, 'introspectionSnapshot.checkedAt'),
@@ -713,18 +763,20 @@ export function createIntrospectionSnapshot(
     clientId: normalizeOptionalIdentifier(input.clientId, 'introspectionSnapshot.clientId'),
     consequenceType: input.consequenceType ?? null,
     riskClass: input.riskClass ?? null,
-    policyHash: normalizeOptionalIdentifier(input.policyHash, 'introspectionSnapshot.policyHash'),
-    policyVersion: normalizeOptionalIdentifier(input.policyVersion, 'introspectionSnapshot.policyVersion'),
-    policyIrHash: normalizeOptionalIdentifier(input.policyIrHash, 'introspectionSnapshot.policyIrHash'),
-    policyProvenanceSource: input.policyProvenanceSource ?? null,
-    compiledPolicyIndexVersion: normalizeOptionalIdentifier(
-      input.compiledPolicyIndexVersion,
-      'introspectionSnapshot.compiledPolicyIndexVersion',
-    ),
-    compiledPolicyIrVersion: normalizeOptionalIdentifier(
-      input.compiledPolicyIrVersion,
-      'introspectionSnapshot.compiledPolicyIrVersion',
-    ),
+    policyHash,
+    policyVersion,
+    policyIrHash,
+    policyProvenanceSource,
+    compiledPolicyIndexVersion,
+    compiledPolicyIrVersion,
+    policyContext: buildPolicyContext({
+      policyHash,
+      policyVersion,
+      policyIrHash,
+      policyProvenanceSource,
+      compiledPolicyIndexVersion,
+      compiledPolicyIrVersion,
+    }),
   });
 }
 
@@ -738,6 +790,34 @@ export function createVerificationResult(
   if (input.status === 'valid' && failureReasons.length > 0) {
     throw new Error('Release enforcement-plane valid verification cannot carry failure reasons.');
   }
+  const policyHash =
+    normalizeOptionalIdentifier(input.policyHash, 'verificationResult.policyHash') ??
+    input.introspection?.policyHash ??
+    null;
+  const policyVersion =
+    normalizeOptionalIdentifier(input.policyVersion, 'verificationResult.policyVersion') ??
+    input.introspection?.policyVersion ??
+    null;
+  const policyIrHash =
+    normalizeOptionalIdentifier(input.policyIrHash, 'verificationResult.policyIrHash') ??
+    input.introspection?.policyIrHash ??
+    null;
+  const policyProvenanceSource =
+    input.policyProvenanceSource ?? input.introspection?.policyProvenanceSource ?? null;
+  const compiledPolicyIndexVersion =
+    normalizeOptionalIdentifier(
+      input.compiledPolicyIndexVersion,
+      'verificationResult.compiledPolicyIndexVersion',
+    ) ??
+    input.introspection?.compiledPolicyIndexVersion ??
+    null;
+  const compiledPolicyIrVersion =
+    normalizeOptionalIdentifier(
+      input.compiledPolicyIrVersion,
+      'verificationResult.compiledPolicyIrVersion',
+    ) ??
+    input.introspection?.compiledPolicyIrVersion ??
+    null;
 
   return Object.freeze({
     version: VERIFICATION_RESULT_SPEC_VERSION,
@@ -761,34 +841,20 @@ export function createVerificationResult(
       input.consequenceHash,
       'verificationResult.consequenceHash',
     ),
-    policyHash:
-      normalizeOptionalIdentifier(input.policyHash, 'verificationResult.policyHash') ??
-      input.introspection?.policyHash ??
-      null,
-    policyVersion:
-      normalizeOptionalIdentifier(input.policyVersion, 'verificationResult.policyVersion') ??
-      input.introspection?.policyVersion ??
-      null,
-    policyIrHash:
-      normalizeOptionalIdentifier(input.policyIrHash, 'verificationResult.policyIrHash') ??
-      input.introspection?.policyIrHash ??
-      null,
-    policyProvenanceSource:
-      input.policyProvenanceSource ?? input.introspection?.policyProvenanceSource ?? null,
-    compiledPolicyIndexVersion:
-      normalizeOptionalIdentifier(
-        input.compiledPolicyIndexVersion,
-        'verificationResult.compiledPolicyIndexVersion',
-      ) ??
-      input.introspection?.compiledPolicyIndexVersion ??
-      null,
-    compiledPolicyIrVersion:
-      normalizeOptionalIdentifier(
-        input.compiledPolicyIrVersion,
-        'verificationResult.compiledPolicyIrVersion',
-      ) ??
-      input.introspection?.compiledPolicyIrVersion ??
-      null,
+    policyHash,
+    policyVersion,
+    policyIrHash,
+    policyProvenanceSource,
+    compiledPolicyIndexVersion,
+    compiledPolicyIrVersion,
+    policyContext: buildPolicyContext({
+      policyHash,
+      policyVersion,
+      policyIrHash,
+      policyProvenanceSource,
+      compiledPolicyIndexVersion,
+      compiledPolicyIrVersion,
+    }),
     failureReasons,
     introspection: input.introspection ?? null,
   });
@@ -847,6 +913,7 @@ export function enforcementReceiptDigestMaterial(
     policyProvenanceSource: input.decision.verification.policyProvenanceSource,
     compiledPolicyIndexVersion: input.decision.verification.compiledPolicyIndexVersion,
     compiledPolicyIrVersion: input.decision.verification.compiledPolicyIrVersion,
+    policyContext: input.decision.verification.policyContext,
     verificationStatus: input.decision.verification.status,
     failureReasons: input.decision.failureReasons,
   });
@@ -880,6 +947,7 @@ export function createEnforcementReceipt(
     policyProvenanceSource: digestMaterial.policyProvenanceSource,
     compiledPolicyIndexVersion: digestMaterial.compiledPolicyIndexVersion,
     compiledPolicyIrVersion: digestMaterial.compiledPolicyIrVersion,
+    policyContext: digestMaterial.policyContext,
     verificationStatus: input.decision.verification.status,
     failureReasons: input.decision.failureReasons,
     receiptDigest: normalizeOptionalIdentifier(

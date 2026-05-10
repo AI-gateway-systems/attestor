@@ -245,6 +245,18 @@ async function testLowRiskOfflineAllow(): Promise<void> {
   equal(verified.verificationResult.policyVersion, POLICY_VERSION, 'Offline verifier: verification result carries policy version');
   equal(verified.verificationResult.policyIrHash, POLICY_IR_HASH, 'Offline verifier: verification result carries compiled policy IR hash');
   equal(verified.verificationResult.compiledPolicyIndexVersion, COMPILED_POLICY_INDEX_VERSION, 'Offline verifier: verification result carries compiled policy index version');
+  deepEqual(
+    verified.verificationResult.policyContext,
+    {
+      policyHash: POLICY_HASH,
+      policyVersion: POLICY_VERSION,
+      policyIrHash: POLICY_IR_HASH,
+      policyProvenanceSource: 'compiled-admission-policy-index',
+      compiledPolicyIndexVersion: COMPILED_POLICY_INDEX_VERSION,
+      compiledPolicyIrVersion: COMPILED_POLICY_IR_VERSION,
+    },
+    'Offline verifier: verification result exposes structured policy context',
+  );
 }
 
 async function testHighRiskNeedsOnline(): Promise<void> {
