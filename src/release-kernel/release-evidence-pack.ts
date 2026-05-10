@@ -6,6 +6,7 @@ import type {
   EvidenceArtifactReference,
   EvidencePack,
   ReleaseDecision,
+  ReleasePolicyProvenanceSource,
 } from './object-model.js';
 import { EVIDENCE_PACK_SPEC_VERSION, retentionClassForRiskClass } from './object-model.js';
 import { canonicalizeReleaseJson } from './release-canonicalization.js';
@@ -66,6 +67,9 @@ export interface ReleaseEvidenceDecisionSummary {
   readonly policyVersion: string;
   readonly policyHash: string;
   readonly policyIrHash: string | null;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string | null;
+  readonly compiledPolicyIrVersion: string | null;
   readonly targetId: string;
   readonly targetDisplayName: string | null;
   readonly requesterId: string;
@@ -106,8 +110,12 @@ export interface ReleaseEvidenceTokenSummary {
   readonly expiresAt: string;
   readonly override: boolean;
   readonly introspectionRequired: boolean;
+  readonly policyVersion: string | null;
   readonly policyHash: string;
   readonly policyIrHash: string | null;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string | null;
+  readonly compiledPolicyIrVersion: string | null;
 }
 
 export interface ReleaseEvidencePredicate {
@@ -222,6 +230,10 @@ function canonicalDigest(value: unknown): string {
   return taggedSha256Hex(canonicalizeReleaseJson(value as never));
 }
 
+function canonicalEqual(left: unknown, right: unknown): boolean {
+  return canonicalizeReleaseJson(left as never) === canonicalizeReleaseJson(right as never);
+}
+
 function resolveIssuedAt(issuedAt?: string): string {
   const resolved = issuedAt ? new Date(issuedAt) : new Date();
   if (Number.isNaN(resolved.getTime())) {
@@ -283,8 +295,12 @@ function summarizeReleaseToken(
     expiresAt: issuedToken.expiresAt,
     override: issuedToken.claims.override,
     introspectionRequired: issuedToken.claims.introspection_required,
+    policyVersion: issuedToken.claims.policy_version ?? null,
     policyHash: issuedToken.claims.policy_hash,
     policyIrHash: issuedToken.claims.policy_ir_hash ?? null,
+    policyProvenanceSource: issuedToken.claims.policy_provenance_source ?? null,
+    compiledPolicyIndexVersion: issuedToken.claims.compiled_policy_index_version ?? null,
+    compiledPolicyIrVersion: issuedToken.claims.compiled_policy_ir_version ?? null,
   };
 }
 
@@ -301,6 +317,9 @@ function summarizeDecision(
     policyVersion: decision.policyVersion,
     policyHash: decision.policyHash,
     policyIrHash: decision.policyProvenance?.compiledPolicyIrHash ?? null,
+    policyProvenanceSource: decision.policyProvenance?.source ?? null,
+    compiledPolicyIndexVersion: decision.policyProvenance?.compiledPolicyIndexVersion ?? null,
+    compiledPolicyIrVersion: decision.policyProvenance?.compiledPolicyIrVersion ?? null,
     targetId: decision.target.id,
     targetDisplayName: decision.target.displayName ?? null,
     requesterId: decision.requester.id,
@@ -389,6 +408,9 @@ function buildEvidencePack(
     policyVersion: decision.policyVersion,
     policyHash: decision.policyHash,
     policyIrHash: decision.policyProvenance?.compiledPolicyIrHash ?? null,
+    policyProvenanceSource: decision.policyProvenance?.source ?? null,
+    compiledPolicyIndexVersion: decision.policyProvenance?.compiledPolicyIndexVersion ?? null,
+    compiledPolicyIrVersion: decision.policyProvenance?.compiledPolicyIrVersion ?? null,
     retentionClass: releaseDecisionRetentionClass(decision),
     findings: Object.freeze(decision.findings.map((finding) => Object.freeze({ ...finding }))),
     artifacts,
@@ -594,6 +616,14 @@ export function verifyIssuedReleaseEvidencePack(
     statement.predicateType !== RELEASE_EVIDENCE_PACK_PREDICATE_TYPE
   ) {
     throw new Error('Release evidence pack statement type is not recognized.');
+  }
+
+  if (!canonicalEqual(statement, pack.statement)) {
+    throw new Error('Release evidence pack signed payload does not match the exported statement.');
+  }
+
+  if (!canonicalEqual(statement.predicate.evidencePack, pack.evidencePack)) {
+    throw new Error('Release evidence pack signed payload does not match the exported evidence pack.');
   }
 
   if (statement.predicate.evidencePack.id !== pack.evidencePack.id) {

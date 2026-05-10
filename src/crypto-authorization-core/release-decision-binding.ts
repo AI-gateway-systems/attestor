@@ -732,6 +732,27 @@ function validateEvidencePack(
   if (evidencePack.policyHash !== releaseDecision.policyHash) {
     throw new Error('Crypto release decision binding evidence pack policy hash does not match release decision.');
   }
+  if ((evidencePack.policyIrHash ?? null) !== (releaseDecision.policyProvenance?.compiledPolicyIrHash ?? null)) {
+    throw new Error('Crypto release decision binding evidence pack policy IR hash does not match release decision.');
+  }
+  if (
+    (evidencePack.policyProvenanceSource ?? null) !==
+    (releaseDecision.policyProvenance?.source ?? null)
+  ) {
+    throw new Error('Crypto release decision binding evidence pack policy provenance source does not match release decision.');
+  }
+  if (
+    (evidencePack.compiledPolicyIndexVersion ?? null) !==
+    (releaseDecision.policyProvenance?.compiledPolicyIndexVersion ?? null)
+  ) {
+    throw new Error('Crypto release decision binding evidence pack compiled policy index version does not match release decision.');
+  }
+  if (
+    (evidencePack.compiledPolicyIrVersion ?? null) !==
+    (releaseDecision.policyProvenance?.compiledPolicyIrVersion ?? null)
+  ) {
+    throw new Error('Crypto release decision binding evidence pack compiled policy IR version does not match release decision.');
+  }
 
   const evidenceDigests = new Set(evidencePack.artifacts.map((artifact) => artifact.digest));
   for (const artifact of requiredArtifacts) {

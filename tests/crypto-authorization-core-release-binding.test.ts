@@ -291,6 +291,10 @@ function evidencePackFor(binding: CryptoReleaseDecisionBinding): EvidencePack {
     consequenceHash: binding.releaseDecision.consequenceHash,
     policyVersion: binding.releaseDecision.policyVersion,
     policyHash: binding.releaseDecision.policyHash,
+    policyIrHash: binding.releaseDecision.policyProvenance?.compiledPolicyIrHash ?? null,
+    policyProvenanceSource: binding.releaseDecision.policyProvenance?.source ?? null,
+    compiledPolicyIndexVersion: binding.releaseDecision.policyProvenance?.compiledPolicyIndexVersion ?? null,
+    compiledPolicyIrVersion: binding.releaseDecision.policyProvenance?.compiledPolicyIrVersion ?? null,
     retentionClass: 'regulated',
     findings: binding.releaseDecision.findings,
     artifacts: binding.evidence.requiredArtifacts,
@@ -441,6 +445,20 @@ function testEvidencePackBinding(): void {
         },
       }),
     /evidence pack consequence hash does not match/i,
+  );
+  passed += 1;
+
+  assert.throws(
+    () =>
+      createCryptoReleaseDecisionBinding({
+        ...parts,
+        releaseDecision: initial.releaseDecision,
+        evidencePack: {
+          ...evidencePack,
+          policyProvenanceSource: 'compiled-admission-policy-index',
+        },
+      }),
+    /policy provenance source does not match/i,
   );
   passed += 1;
 }
