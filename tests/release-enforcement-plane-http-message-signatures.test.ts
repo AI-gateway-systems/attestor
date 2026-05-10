@@ -21,9 +21,13 @@ import { verifyOfflineReleaseAuthorization } from '../src/release-enforcement-pl
 import { verifyOnlineReleaseAuthorization } from '../src/release-enforcement-plane/online-verifier.js';
 import {
   ATTESTOR_CONSEQUENCE_HASH_HEADER,
+  ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER,
+  ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER,
   ATTESTOR_OUTPUT_HASH_HEADER,
   ATTESTOR_POLICY_HASH_HEADER,
   ATTESTOR_POLICY_IR_HASH_HEADER,
+  ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER,
+  ATTESTOR_POLICY_VERSION_HEADER,
   ATTESTOR_RELEASE_TOKEN_DIGEST_HEADER,
   ATTESTOR_TARGET_ID_HEADER,
   DEFAULT_HTTP_AUTHORIZATION_ENVELOPE_COMPONENTS,
@@ -261,11 +265,19 @@ async function testEnvelopeCreationAndVerification(): Promise<void> {
   equal(envelope.headers[ATTESTOR_OUTPUT_HASH_HEADER], 'sha256:output', 'HTTP signatures: output hash header is present');
   equal(envelope.headers[ATTESTOR_CONSEQUENCE_HASH_HEADER], 'sha256:consequence', 'HTTP signatures: consequence hash header is present');
   equal(envelope.headers[ATTESTOR_POLICY_HASH_HEADER], POLICY_HASH, 'HTTP signatures: policy hash header is present');
+  equal(envelope.headers[ATTESTOR_POLICY_VERSION_HEADER], 'policy.release-http-signature-test.v1', 'HTTP signatures: policy version header is present');
   equal(envelope.headers[ATTESTOR_POLICY_IR_HASH_HEADER], POLICY_IR_HASH, 'HTTP signatures: policy IR hash header is present');
+  equal(envelope.headers[ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER], 'compiled-admission-policy-index', 'HTTP signatures: policy provenance source header is present');
+  equal(envelope.headers[ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER], COMPILED_POLICY_INDEX_VERSION, 'HTTP signatures: compiled policy index version header is present');
+  equal(envelope.headers[ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER], COMPILED_POLICY_IR_VERSION, 'HTTP signatures: compiled policy IR version header is present');
   ok(envelope.coveredComponents.includes('authorization'), 'HTTP signatures: Authorization is signed');
   ok(envelope.coveredComponents.includes('content-digest'), 'HTTP signatures: Content-Digest is signed');
   ok(envelope.coveredComponents.includes(ATTESTOR_POLICY_HASH_HEADER), 'HTTP signatures: policy hash is signed');
+  ok(envelope.coveredComponents.includes(ATTESTOR_POLICY_VERSION_HEADER), 'HTTP signatures: policy version is signed');
   ok(envelope.coveredComponents.includes(ATTESTOR_POLICY_IR_HASH_HEADER), 'HTTP signatures: policy IR hash is signed when present');
+  ok(envelope.coveredComponents.includes(ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER), 'HTTP signatures: policy provenance source is signed');
+  ok(envelope.coveredComponents.includes(ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER), 'HTTP signatures: compiled policy index version is signed');
+  ok(envelope.coveredComponents.includes(ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER), 'HTTP signatures: compiled policy IR version is signed');
   equal(envelope.presentation.mode, 'http-message-signature', 'HTTP signatures: envelope creates release presentation');
 
   const verified = await verifyHttpMessageSignature({

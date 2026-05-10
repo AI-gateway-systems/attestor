@@ -6,6 +6,7 @@ import type {
   ReleaseTokenIntrospectionStore,
   ReleaseTokenIntrospector,
 } from '../release-kernel/release-introspection.js';
+import type { ReleasePolicyProvenanceSource } from '../release-kernel/object-model.js';
 import type { ReleaseTokenVerificationKey } from '../release-kernel/release-token.js';
 import {
   createEnforcementRequest,
@@ -27,9 +28,13 @@ import {
 } from './online-verifier.js';
 import {
   ATTESTOR_CONSEQUENCE_HASH_HEADER,
+  ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER,
+  ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER,
   ATTESTOR_OUTPUT_HASH_HEADER,
   ATTESTOR_POLICY_HASH_HEADER,
   ATTESTOR_POLICY_IR_HASH_HEADER,
+  ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER,
+  ATTESTOR_POLICY_VERSION_HEADER,
   ATTESTOR_RELEASE_DECISION_ID_HEADER,
   ATTESTOR_RELEASE_TOKEN_ID_HEADER,
   ATTESTOR_TARGET_ID_HEADER,
@@ -125,7 +130,11 @@ export interface ReleaseEnforcementMiddlewareOptions {
   readonly outputHash?: ReleaseEnforcementResolver<string | null | undefined>;
   readonly consequenceHash?: ReleaseEnforcementResolver<string | null | undefined>;
   readonly policyHash?: ReleaseEnforcementResolver<string | null | undefined>;
+  readonly policyVersion?: ReleaseEnforcementResolver<string | null | undefined>;
   readonly policyIrHash?: ReleaseEnforcementResolver<string | null | undefined>;
+  readonly policyProvenanceSource?: ReleaseEnforcementResolver<ReleasePolicyProvenanceSource | string | null | undefined>;
+  readonly compiledPolicyIndexVersion?: ReleaseEnforcementResolver<string | null | undefined>;
+  readonly compiledPolicyIrVersion?: ReleaseEnforcementResolver<string | null | undefined>;
   readonly releaseTokenId?: ReleaseEnforcementResolver<string | null | undefined>;
   readonly releaseDecisionId?: ReleaseEnforcementResolver<string | null | undefined>;
   readonly idempotencyKey?: ReleaseEnforcementResolver<string | null | undefined>;
@@ -430,9 +439,21 @@ async function defaultInputForHttpRequest(
   const policyHash =
     normalizeIdentifier(await resolveOption(options.policyHash, context)) ??
     headerValue(context.request.headers, ATTESTOR_POLICY_HASH_HEADER);
+  const policyVersion =
+    normalizeIdentifier(await resolveOption(options.policyVersion, context)) ??
+    headerValue(context.request.headers, ATTESTOR_POLICY_VERSION_HEADER);
   const policyIrHash =
     normalizeIdentifier(await resolveOption(options.policyIrHash, context)) ??
     headerValue(context.request.headers, ATTESTOR_POLICY_IR_HASH_HEADER);
+  const policyProvenanceSource =
+    normalizeIdentifier(await resolveOption(options.policyProvenanceSource, context)) ??
+    headerValue(context.request.headers, ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER);
+  const compiledPolicyIndexVersion =
+    normalizeIdentifier(await resolveOption(options.compiledPolicyIndexVersion, context)) ??
+    headerValue(context.request.headers, ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER);
+  const compiledPolicyIrVersion =
+    normalizeIdentifier(await resolveOption(options.compiledPolicyIrVersion, context)) ??
+    headerValue(context.request.headers, ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER);
 
   if (targetId === null || outputHash === null || consequenceHash === null) {
     return deniedResult({
@@ -521,10 +542,20 @@ async function defaultInputForHttpRequest(
     verificationKey,
     now: context.checkedAt,
     expected:
-      policyHash !== null || policyIrHash !== null
+      policyHash !== null ||
+      policyVersion !== null ||
+      policyIrHash !== null ||
+      policyProvenanceSource !== null ||
+      compiledPolicyIndexVersion !== null ||
+      compiledPolicyIrVersion !== null
         ? {
             policyHash: policyHash ?? undefined,
+            policyVersion: policyVersion ?? undefined,
             policyIrHash: policyIrHash ?? undefined,
+            policyProvenanceSource:
+              policyProvenanceSource as ReleasePolicyProvenanceSource | undefined,
+            compiledPolicyIndexVersion: compiledPolicyIndexVersion ?? undefined,
+            compiledPolicyIrVersion: compiledPolicyIrVersion ?? undefined,
           }
         : undefined,
     replayLedgerEntry: await resolveOption(options.replayLedgerEntry, context),
