@@ -50,6 +50,7 @@ export const CONSEQUENCE_ADMISSION_PRESENTATION_FAILURE_REASONS = [
   'target-uri-mismatch',
   'target-ref-mismatch',
   'method-mismatch',
+  'body-digest-invalid',
   'body-digest-mismatch',
   'body-digest-missing',
   'replay-key-missing',
@@ -162,8 +163,15 @@ export interface ConsequenceAdmissionPresentationBindingDescriptor {
   readonly executableOutcomes: readonly ['allow'];
   readonly heldOutcomes: readonly ['hold'];
   readonly cryptographicPresentationVerification: false;
+  readonly storesRawBodies: false;
+  readonly requiresBodyDigestReferences: true;
   readonly replayLedgerIncluded: false;
   readonly failClosed: true;
+}
+
+interface NormalizedDigestReference {
+  readonly digest: string | null;
+  readonly invalid: boolean;
 }
 
 function normalizeIdentifier(value: string | null | undefined, fieldName: string): string {
@@ -185,6 +193,24 @@ function normalizeOptionalIdentifier(
 ): string | null {
   if (value === undefined || value === null) return null;
   return normalizeIdentifier(value, fieldName);
+}
+
+function isDigestReference(value: string): boolean {
+  return value.startsWith('sha256:') && value.length > 'sha256:'.length;
+}
+
+function normalizeOptionalDigestReference(
+  value: string | null | undefined,
+  fieldName: string,
+): NormalizedDigestReference {
+  const normalized = normalizeOptionalIdentifier(value, fieldName);
+  if (normalized === null) {
+    return Object.freeze({ digest: null, invalid: false });
+  }
+  if (!isDigestReference(normalized)) {
+    return Object.freeze({ digest: null, invalid: true });
+  }
+  return Object.freeze({ digest: normalized, invalid: false });
 }
 
 function normalizeOptionalMethod(value: string | null | undefined): string | null {
@@ -317,7 +343,11 @@ function reasonFor(
   if (failureReasons.includes('target-uri-mismatch') || failureReasons.includes('target-ref-mismatch')) {
     return 'Downstream presentation binding held the consequence because the presented target does not match the enforcement point target.';
   }
-  if (failureReasons.includes('body-digest-mismatch') || failureReasons.includes('body-digest-missing')) {
+  if (
+    failureReasons.includes('body-digest-invalid') ||
+    failureReasons.includes('body-digest-mismatch') ||
+    failureReasons.includes('body-digest-missing')
+  ) {
     return 'Downstream presentation binding held the consequence because the action body is not bound to the admitted consequence.';
   }
   if (failureReasons.includes('downstream-contract-held')) {
@@ -367,6 +397,12 @@ export function createConsequenceAdmissionPresentationBinding(
       'Consequence admission presentation binding expiresAt must be after presentedAt.',
     );
   }
+  const bodyDigest = normalizeOptionalDigestReference(input.target.bodyDigest, 'target.bodyDigest');
+  if (bodyDigest.invalid) {
+    throw new Error(
+      'Consequence admission presentation binding target.bodyDigest must be a digest reference.',
+    );
+  }
 
   const base = Object.freeze({
     version: CONSEQUENCE_ADMISSION_PRESENTATION_BINDING_VERSION,
@@ -384,7 +420,7 @@ export function createConsequenceAdmissionPresentationBinding(
       uri: normalizeOptionalIdentifier(input.target.uri, 'target.uri'),
       targetRef: normalizeOptionalIdentifier(input.target.targetRef, 'target.targetRef'),
       method: normalizeOptionalMethod(input.target.method),
-      bodyDigest: normalizeOptionalIdentifier(input.target.bodyDigest, 'target.bodyDigest'),
+      bodyDigest: bodyDigest.digest,
     }),
     replayKey: normalizeOptionalIdentifier(input.replayKey, 'replayKey'),
     nonce: normalizeOptionalIdentifier(input.nonce, 'nonce'),
@@ -459,7 +495,11 @@ export function evaluateConsequenceAdmissionPresentationBinding(
     expected?.targetRef,
     'expected.targetRef',
   );
-  const expectedBodyDigest = normalizeOptionalIdentifier(
+  const presentationBodyDigest = normalizeOptionalDigestReference(
+    presentation.target.bodyDigest,
+    'presentation.target.bodyDigest',
+  );
+  const expectedBodyDigest = normalizeOptionalDigestReference(
     expected?.bodyDigest,
     'expected.bodyDigest',
   );
@@ -499,10 +539,16 @@ export function evaluateConsequenceAdmissionPresentationBinding(
     ...(expectedMethod !== null && presentation.target.method !== expectedMethod
       ? ['method-mismatch' as const]
       : []),
-    ...(requireBodyDigest && presentation.target.bodyDigest === null
+    ...(presentationBodyDigest.invalid || expectedBodyDigest.invalid
+      ? ['body-digest-invalid' as const]
+      : []),
+    ...(requireBodyDigest && presentationBodyDigest.digest === null
       ? ['body-digest-missing' as const]
       : []),
-    ...(expectedBodyDigest !== null && presentation.target.bodyDigest !== expectedBodyDigest
+    ...(!presentationBodyDigest.invalid &&
+      !expectedBodyDigest.invalid &&
+      expectedBodyDigest.digest !== null &&
+      presentationBodyDigest.digest !== expectedBodyDigest.digest
       ? ['body-digest-mismatch' as const]
       : []),
     ...(requireReplayKey && presentation.replayKey === null
@@ -582,6 +628,8 @@ ConsequenceAdmissionPresentationBindingDescriptor {
     executableOutcomes: ['allow'] as const,
     heldOutcomes: ['hold'] as const,
     cryptographicPresentationVerification: false,
+    storesRawBodies: false,
+    requiresBodyDigestReferences: true,
     replayLedgerIncluded: false,
     failClosed: true,
   });

@@ -215,6 +215,16 @@ function testDescriptor(): void {
     false,
     'Presentation binding: descriptor does not overclaim cryptographic verification',
   );
+  equal(
+    descriptor.storesRawBodies,
+    false,
+    'Presentation binding: descriptor does not store raw bodies',
+  );
+  equal(
+    descriptor.requiresBodyDigestReferences,
+    true,
+    'Presentation binding: descriptor requires digest references for bodies',
+  );
   equal(descriptor.failClosed, true, 'Presentation binding: descriptor is fail-closed');
 }
 
@@ -322,6 +332,60 @@ function testTargetBodyAndNonceMustMatch(): void {
   );
 }
 
+function testRawBodyDigestMaterialIsRejected(): void {
+  const admission = admittedPayment();
+  const rawBodyMarker = 'raw_payment_body_must_not_escape';
+
+  assert.throws(
+    () =>
+      createConsequenceAdmissionPresentationBinding({
+        admission,
+        contract: paymentContract(),
+        target: {
+          uri: 'https://payments.example.internal/supplier-payments',
+          method: 'POST',
+          bodyDigest: rawBodyMarker,
+        },
+        replayKey: 'payment:tenant_a:invoice_1938:attempt_raw',
+        nonce: 'nonce:payment-adapter:raw',
+        presentedAt: '2026-05-01T12:00:05.000Z',
+        expiresAt: '2026-05-01T12:01:05.000Z',
+      }),
+    /target\.bodyDigest must be a digest reference/,
+    'Presentation binding: raw body material cannot create a binding',
+  );
+  passed += 1;
+
+  const binding = paymentBinding(admission);
+  const rawPresentation = {
+    ...binding,
+    target: {
+      ...binding.target,
+      bodyDigest: rawBodyMarker,
+    },
+  };
+  const held = evaluateConsequenceAdmissionPresentationBinding({
+    admission,
+    contract: paymentContract(),
+    presentation: rawPresentation,
+    expected: EXPECTED,
+    now: '2026-05-01T12:00:30.000Z',
+  });
+  const serialized = JSON.stringify(held);
+
+  deepEqual(
+    held.failureReasons,
+    ['body-digest-invalid', 'body-digest-missing'],
+    'Presentation binding: raw body digest material holds without using it as proof',
+  );
+  equal(held.outcome, 'hold', 'Presentation binding: raw body digest material fails closed');
+  equal(
+    serialized.includes(rawBodyMarker),
+    false,
+    'Presentation binding: raw body marker is not serialized in the decision',
+  );
+}
+
 function testNarrowPresentationRequiresConstraintAcknowledgement(): void {
   const admission = narrowedPayment();
   const held = evaluateConsequenceAdmissionPresentationBinding({
@@ -404,6 +468,7 @@ testDescriptor();
 testMatchingPresentationAllows();
 testReplayAndExpiryHold();
 testTargetBodyAndNonceMustMatch();
+testRawBodyDigestMaterialIsRejected();
 testNarrowPresentationRequiresConstraintAcknowledgement();
 testDocsAndScriptsExposePresentationBinding();
 
