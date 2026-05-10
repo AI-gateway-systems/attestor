@@ -47,7 +47,13 @@ export const ATTESTOR_TARGET_ID_HEADER = 'attestor-target-id';
 export const ATTESTOR_OUTPUT_HASH_HEADER = 'attestor-output-hash';
 export const ATTESTOR_CONSEQUENCE_HASH_HEADER = 'attestor-consequence-hash';
 export const ATTESTOR_POLICY_HASH_HEADER = 'attestor-policy-hash';
+export const ATTESTOR_POLICY_VERSION_HEADER = 'attestor-policy-version';
 export const ATTESTOR_POLICY_IR_HASH_HEADER = 'attestor-policy-ir-hash';
+export const ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER = 'attestor-policy-provenance-source';
+export const ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER =
+  'attestor-compiled-policy-index-version';
+export const ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER =
+  'attestor-compiled-policy-ir-version';
 
 export const DEFAULT_HTTP_AUTHORIZATION_ENVELOPE_COMPONENTS = Object.freeze([
   '@method',
@@ -1002,8 +1008,29 @@ function signedEnvelopeHeaders(input: {
     [ATTESTOR_OUTPUT_HASH_HEADER]: input.issuedToken.claims.output_hash,
     [ATTESTOR_CONSEQUENCE_HASH_HEADER]: input.issuedToken.claims.consequence_hash,
     [ATTESTOR_POLICY_HASH_HEADER]: input.issuedToken.claims.policy_hash,
+    ...(input.issuedToken.claims.policy_version
+      ? { [ATTESTOR_POLICY_VERSION_HEADER]: input.issuedToken.claims.policy_version }
+      : {}),
     ...(input.issuedToken.claims.policy_ir_hash
       ? { [ATTESTOR_POLICY_IR_HASH_HEADER]: input.issuedToken.claims.policy_ir_hash }
+      : {}),
+    ...(input.issuedToken.claims.policy_provenance_source
+      ? {
+          [ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER]:
+            input.issuedToken.claims.policy_provenance_source,
+        }
+      : {}),
+    ...(input.issuedToken.claims.compiled_policy_index_version
+      ? {
+          [ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER]:
+            input.issuedToken.claims.compiled_policy_index_version,
+        }
+      : {}),
+    ...(input.issuedToken.claims.compiled_policy_ir_version
+      ? {
+          [ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER]:
+            input.issuedToken.claims.compiled_policy_ir_version,
+        }
       : {}),
   };
 
@@ -1036,14 +1063,19 @@ export async function createHttpAuthorizationEnvelope(
     headers,
     body: input.request.body,
   };
+  const policyProvenanceComponents = [
+    ATTESTOR_POLICY_VERSION_HEADER,
+    ATTESTOR_POLICY_IR_HASH_HEADER,
+    ATTESTOR_POLICY_PROVENANCE_SOURCE_HEADER,
+    ATTESTOR_COMPILED_POLICY_INDEX_VERSION_HEADER,
+    ATTESTOR_COMPILED_POLICY_IR_VERSION_HEADER,
+  ].filter((component) => headers[component] !== undefined);
   const coveredComponents =
     input.coveredComponents ??
-    (input.issuedToken.claims.policy_ir_hash
-      ? Object.freeze([
-          ...DEFAULT_HTTP_AUTHORIZATION_ENVELOPE_COMPONENTS,
-          ATTESTOR_POLICY_IR_HASH_HEADER,
-        ] as const)
-      : DEFAULT_HTTP_AUTHORIZATION_ENVELOPE_COMPONENTS);
+    Object.freeze([
+      ...DEFAULT_HTTP_AUTHORIZATION_ENVELOPE_COMPONENTS,
+      ...policyProvenanceComponents,
+    ] as const);
   const signature = await createHttpMessageSignature({
     message,
     privateJwk: input.privateJwk,
