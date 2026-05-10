@@ -40,6 +40,8 @@ npm run bootstrap:stripe-commercial
 
 For sandbox setup, use `sk_test_...` and then run the readiness probe with `--allow-test-mode=true`.
 
+Restricted live keys are supported for the catalog, meter, portal, and webhook bootstrap path. The full readiness probe also reads Stripe account onboarding state, so that restricted key must include account KYC basic read permission or the probe will fail before it can report `chargesEnabled`, `payoutsEnabled`, and `detailsSubmitted`.
+
 If the webhook endpoint is created during this run, Stripe returns the webhook signing secret once in the JSON output. Store it immediately as `STRIPE_WEBHOOK_SECRET`. If the endpoint already exists, reveal or rotate the secret in Stripe Dashboard and store that value instead.
 
 ### Manual Shape The Script Enforces

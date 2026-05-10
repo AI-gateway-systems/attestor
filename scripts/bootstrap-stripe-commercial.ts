@@ -8,6 +8,15 @@ import {
 
 type PaidPlanId = 'starter' | 'pro' | 'scale';
 
+type BootstrapAccountSummary = {
+  id: string | null;
+  chargesEnabled: boolean | null;
+  payoutsEnabled: boolean | null;
+  detailsSubmitted: boolean | null;
+  readAvailable: boolean;
+  readWarning: string | null;
+};
+
 const PLAN_PRODUCTS: Record<PaidPlanId, { name: string; description: string }> = {
   starter: {
     name: 'Attestor Starter',
@@ -44,6 +53,38 @@ function requireStripeApiKey(): string {
     throw new Error('STRIPE_API_KEY must be set to bootstrap Stripe commercial billing.');
   }
   return apiKey;
+}
+
+function redactStripeApiKeys(message: string): string {
+  return message.replace(/\b[rs]k_(?:test|live)_[A-Za-z0-9]+\b/g, (match) => `${match.slice(0, 8)}_[redacted]`);
+}
+
+function accountIdFromStripeError(message: string): string | null {
+  return message.match(/\baccount '([^']+)'/)?.[1] ?? null;
+}
+
+async function tryRetrieveAccount(stripe: Stripe): Promise<BootstrapAccountSummary> {
+  try {
+    const account = await stripe.accounts.retrieve();
+    return {
+      id: account.id,
+      chargesEnabled: account.charges_enabled ?? null,
+      payoutsEnabled: account.payouts_enabled ?? null,
+      detailsSubmitted: account.details_submitted ?? null,
+      readAvailable: true,
+      readWarning: null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      id: accountIdFromStripeError(message),
+      chargesEnabled: null,
+      payoutsEnabled: null,
+      detailsSubmitted: null,
+      readAvailable: false,
+      readWarning: redactStripeApiKeys(message),
+    };
+  }
 }
 
 function normalizeUrl(value: string): string {
@@ -291,8 +332,9 @@ async function ensureWebhookEndpoint(stripe: Stripe): Promise<{ endpoint: Stripe
 }
 
 async function main(): Promise<void> {
-  const stripe = new Stripe(requireStripeApiKey());
-  const account = await stripe.accounts.retrieve();
+  const apiKey = requireStripeApiKey();
+  const stripe = new Stripe(apiKey);
+  const account = await tryRetrieveAccount(stripe);
   const meter = await ensureAdmissionMeter(stripe);
   const products = {} as Record<PaidPlanId, Stripe.Product>;
   const basePrices = {} as Record<PaidPlanId, Stripe.Price>;
@@ -329,10 +371,12 @@ async function main(): Promise<void> {
   const manifest = {
     account: {
       id: account.id,
-      livemode: !requireStripeApiKey().startsWith('sk_test_'),
-      chargesEnabled: account.charges_enabled ?? null,
-      payoutsEnabled: account.payouts_enabled ?? null,
-      detailsSubmitted: account.details_submitted ?? null,
+      livemode: !apiKey.includes('_test_'),
+      chargesEnabled: account.chargesEnabled,
+      payoutsEnabled: account.payoutsEnabled,
+      detailsSubmitted: account.detailsSubmitted,
+      readAvailable: account.readAvailable,
+      readWarning: account.readWarning,
     },
     env: {
       ATTESTOR_STRIPE_PRICE_STARTER: basePrices.starter.id,
