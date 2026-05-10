@@ -172,6 +172,18 @@ function testIntrospectionSnapshot(): ReturnType<typeof createIntrospectionSnaps
   equal(snapshot.riskClass, 'R4', 'Enforcement object model: introspection can carry risk binding');
   equal(snapshot.policyIrHash, 'sha256:policy-ir', 'Enforcement object model: introspection can carry policy IR binding');
   equal(snapshot.policyProvenanceSource, 'compiled-admission-policy-index', 'Enforcement object model: introspection can carry policy provenance source');
+  deepEqual(
+    snapshot.policyContext,
+    {
+      policyHash: 'sha256:policy',
+      policyVersion: 'policy.object-model-test.v1',
+      policyIrHash: 'sha256:policy-ir',
+      policyProvenanceSource: 'compiled-admission-policy-index',
+      compiledPolicyIndexVersion: 'attestor.policy-index.test.v1',
+      compiledPolicyIrVersion: 'attestor.policy-ir.test.v1',
+    },
+    'Enforcement object model: introspection exposes structured policy context',
+  );
 
   return snapshot;
 }
@@ -207,6 +219,18 @@ function testVerificationDecisionAndReceipt(): void {
   equal(verification.outputHash, 'sha256:output', 'Enforcement object model: verification binds output hash');
   equal(verification.policyIrHash, 'sha256:policy-ir', 'Enforcement object model: verification binds policy IR hash');
   equal(verification.compiledPolicyIndexVersion, 'attestor.policy-index.test.v1', 'Enforcement object model: verification binds compiled policy index version');
+  deepEqual(
+    verification.policyContext,
+    {
+      policyHash: 'sha256:policy',
+      policyVersion: 'policy.object-model-test.v1',
+      policyIrHash: 'sha256:policy-ir',
+      policyProvenanceSource: 'compiled-admission-policy-index',
+      compiledPolicyIndexVersion: 'attestor.policy-index.test.v1',
+      compiledPolicyIrVersion: 'attestor.policy-ir.test.v1',
+    },
+    'Enforcement object model: verification exposes structured policy context',
+  );
   deepEqual(verification.failureReasons, [], 'Enforcement object model: valid verification has no failure reasons');
 
   const decision = createEnforcementDecision({
@@ -238,6 +262,11 @@ function testVerificationDecisionAndReceipt(): void {
   equal(receipt.policyIrHash, 'sha256:policy-ir', 'Enforcement object model: receipt inherits policy IR hash from verification');
   equal(receipt.policyProvenanceSource, 'compiled-admission-policy-index', 'Enforcement object model: receipt preserves policy provenance source');
   equal(receipt.compiledPolicyIndexVersion, 'attestor.policy-index.test.v1', 'Enforcement object model: receipt preserves compiled policy index version');
+  deepEqual(
+    receipt.policyContext,
+    verification.policyContext,
+    'Enforcement object model: receipt preserves structured policy context',
+  );
   equal(receipt.receiptDigest, createEnforcementReceiptDigest({ decision }), 'Enforcement object model: receipt digest binds policy provenance material');
 }
 
