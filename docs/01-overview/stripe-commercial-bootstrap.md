@@ -18,7 +18,31 @@ Customers do not need to understand your payout setup. They only need a clear pl
 
 ## What You Must Set Up As The Operator
 
-### 1. Create The Live Stripe Prices And Meter
+### 1. Bootstrap The Stripe Catalog, Meter, Portal, And Webhook
+
+The preferred operator path is the repo bootstrap script. It creates or reuses:
+
+- the Starter, Pro, and Scale Stripe products
+- the monthly base prices for those products
+- the shared `attestor_admission_overage` Billing Meter
+- the metered monthly overage price for each paid plan
+- the default Customer Portal configuration for plan switching
+- the Stripe webhook endpoint and supported billing events
+
+Run it with the Stripe account you want to configure:
+
+```bash
+STRIPE_API_KEY=sk_live_... \
+ATTESTOR_PUBLIC_BASE_URL=https://<host> \
+ATTESTOR_BILLING_PORTAL_RETURN_URL=https://<host>/settings/billing \
+npm run bootstrap:stripe-commercial
+```
+
+For sandbox setup, use `sk_test_...` and then run the readiness probe with `--allow-test-mode=true`.
+
+If the webhook endpoint is created during this run, Stripe returns the webhook signing secret once in the JSON output. Store it immediately as `STRIPE_WEBHOOK_SECRET`. If the endpoint already exists, reveal or rotate the secret in Stripe Dashboard and store that value instead.
+
+### Manual Shape The Script Enforces
 
 Create recurring Stripe prices for:
 
@@ -97,7 +121,7 @@ This probe checks:
 - quantity changes are disabled in the Customer Portal, because hosted plans are quota tiers rather than seat quantities
 - Customer Portal subscription updates use `proration_behavior=none`, with cheaper-plan and shorter-interval changes scheduled for the end of the billing period when Stripe exposes those conditions
 
-It cannot enter legal, tax, payout, or Customer Portal settings for you. Configure those in Stripe Dashboard, then rerun the probe until it returns `"ok": true`.
+It cannot enter legal, tax, or payout identity details for you. Configure those in Stripe Dashboard, then rerun the probe until it returns `"ok": true`.
 
 To print the expected price manifest without a Stripe API key:
 
