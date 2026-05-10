@@ -110,6 +110,24 @@ function testReleaseReviewRouteTokenResponseCarriesPolicyProvenance(): void {
     releaseReviewRoute,
     /compiledPolicyIrVersion: issuedToken\.claims\.compiled_policy_ir_version \?\? null/u,
   );
+  assert.match(releaseReviewRoute, /policyContext: ReleaseEvidenceTokenPolicyContext/u);
+  assert.match(releaseReviewRoute, /policyVersion: policyContext\.policyVersion/u);
+  assert.match(releaseReviewRoute, /policyHash: policyContext\.policyHash/u);
+  assert.match(releaseReviewRoute, /policyContext,/u);
+}
+
+function testReleaseReviewRouteEvidenceResponseCarriesPolicyContext(): void {
+  const releaseReviewRoute = readFileSync(
+    join(ROUTE_ROOT, 'release-review-routes.ts'),
+    'utf8',
+  );
+
+  assert.match(releaseReviewRoute, /type ReleaseEvidencePolicyContext/u);
+  assert.match(releaseReviewRoute, /policyContext: ReleaseEvidencePolicyContext/u);
+  assert.match(
+    releaseReviewRoute,
+    /policyContext: issuedEvidencePack\.evidencePack\.policyContext/u,
+  );
 }
 
 function testWebhookRoutesAreSplitByProviderBoundary(): void {
@@ -512,6 +530,7 @@ testDirectStoreRouteDebtIsExplicitlyBounded();
 testRoutesDoNotExposeLegacyStateFunctionPorts();
 testReleaseReviewRouteUsesPublicReleaseLayerTypes();
 testReleaseReviewRouteTokenResponseCarriesPolicyProvenance();
+testReleaseReviewRouteEvidenceResponseCarriesPolicyContext();
 testWebhookRoutesAreSplitByProviderBoundary();
 testEmailWebhookRouteDelegatesProviderUseCase();
 testStripeWebhookRouteDelegatesIngressUseCase();
@@ -530,4 +549,4 @@ testAccountRouteUsesStateServicePort();
 testPipelineRoutesAreSplitByUseCaseBoundary();
 testPipelineRoutesDelegateUsageAndDeadLetterUseCases();
 
-console.log('Service route boundary tests: 23 passed, 0 failed');
+console.log('Service route boundary tests: 24 passed, 0 failed');
