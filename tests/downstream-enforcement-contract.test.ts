@@ -163,6 +163,16 @@ function testDescriptor(): void {
     descriptor.failureReasons.includes('narrow-constraints-unacknowledged'),
     'Downstream contract: narrow constraint failure is explicit',
   );
+  equal(
+    descriptor.decisionExposesRawConstraints,
+    false,
+    'Downstream contract: descriptor declares raw constraints are not exposed',
+  );
+  equal(
+    descriptor.decisionConstraintReferenceMode,
+    'digests-only',
+    'Downstream contract: descriptor declares digest-only constraint refs',
+  );
 }
 
 function testMatchingAdmissionAllowsDownstreamAction(): void {
@@ -235,6 +245,7 @@ function testContractFailsClosedOnNonExecutableDecision(): void {
 }
 
 function testNarrowRequiresConstraintAcknowledgement(): void {
+  const rawConstraintSummary = 'private-policy-threshold: payment amount must not exceed 250 EUR.';
   const narrowAdmission = createConsequenceAdmissionResponse({
     request: paymentRequest(),
     decidedAt: '2026-05-01T10:00:03.000Z',
@@ -244,7 +255,7 @@ function testNarrowRequiresConstraintAcknowledgement(): void {
     constraints: [
       {
         id: 'constraint:max-amount',
-        summary: 'Payment amount must not exceed 250 EUR.',
+        summary: rawConstraintSummary,
         enforcedBy: 'supplier-payment-service',
       },
     ],
@@ -274,6 +285,7 @@ function testNarrowRequiresConstraintAcknowledgement(): void {
       acceptedConstraintIds: ['constraint:max-amount'],
     },
   });
+  const serializedDecisions = JSON.stringify({ held, allowed });
 
   equal(held.outcome, 'hold', 'Downstream contract: narrow without constraint acknowledgement holds');
   deepEqual(
@@ -282,6 +294,34 @@ function testNarrowRequiresConstraintAcknowledgement(): void {
     'Downstream contract: narrow constraint reason is precise',
   );
   equal(allowed.outcome, 'allow', 'Downstream contract: acknowledged narrow constraint allows bounded action');
+  equal(
+    Object.prototype.hasOwnProperty.call(allowed, 'constraints'),
+    false,
+    'Downstream contract: decision does not carry raw constraint objects',
+  );
+  equal(
+    allowed.constraintRefs.length,
+    1,
+    'Downstream contract: decision carries one redacted constraint ref',
+  );
+  ok(
+    allowed.constraintRefs[0]?.idDigest.startsWith('sha256:'),
+    'Downstream contract: constraint id is represented by digest',
+  );
+  ok(
+    allowed.constraintRefs[0]?.constraintDigest.startsWith('sha256:'),
+    'Downstream contract: constraint body is represented by digest',
+  );
+  equal(
+    serializedDecisions.includes(rawConstraintSummary),
+    false,
+    'Downstream contract: decision serialization omits raw constraint summary',
+  );
+  equal(
+    serializedDecisions.includes('constraint:max-amount'),
+    false,
+    'Downstream contract: decision serialization omits raw constraint id',
+  );
 }
 
 function testDomainAndPolicyScopeMustMatch(): void {
@@ -349,6 +389,16 @@ function testDocsAndScriptsExposeContract(): void {
     contractDoc,
     'Attestor is only a gateway if the downstream system refuses to act without an admissible Attestor decision.',
     'Downstream contract: doc opens with customer-side enforcement boundary',
+  );
+  includes(
+    contractDoc,
+    'The downstream decision therefore does not echo raw constraint `summary`, `enforcedBy`, or constraint id values.',
+    'Downstream contract: doc states raw constraints stay out of decisions',
+  );
+  includes(
+    contractDoc,
+    '`constraintRefs`',
+    'Downstream contract: doc names digest-only constraint refs',
   );
   includes(
     taxonomyDoc,

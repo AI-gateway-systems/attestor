@@ -1,6 +1,10 @@
 import {
   createHash,
 } from 'node:crypto';
+import {
+  canonicalizeReleaseJson,
+  type CanonicalReleaseJsonValue,
+} from '../release-kernel/release-canonicalization.js';
 import type {
   ConsequenceAdmissionConsequenceKind,
   ConsequenceAdmissionConstraint,
@@ -109,6 +113,11 @@ export interface ConsequenceAdmissionDownstreamObservation {
   readonly acceptedConstraintIds?: readonly string[];
 }
 
+export interface ConsequenceAdmissionDownstreamConstraintRef {
+  readonly idDigest: string;
+  readonly constraintDigest: string;
+}
+
 export interface EvaluateConsequenceAdmissionDownstreamContractInput {
   readonly admission: ConsequenceAdmissionResponse;
   readonly contract: ConsequenceAdmissionDownstreamContract;
@@ -135,7 +144,7 @@ export interface ConsequenceAdmissionDownstreamDecision {
   readonly constraintsRequired: boolean;
   readonly constraintsSatisfied: boolean;
   readonly proofRefs: readonly ConsequenceAdmissionProofRef[];
-  readonly constraints: readonly ConsequenceAdmissionConstraint[];
+  readonly constraintRefs: readonly ConsequenceAdmissionDownstreamConstraintRef[];
   readonly failureReasons: readonly ConsequenceAdmissionDownstreamFailureReason[];
   readonly reasonCodes: readonly string[];
   readonly reason: string;
@@ -150,6 +159,8 @@ export interface ConsequenceAdmissionDownstreamContractDescriptor {
   readonly holdDecisions: readonly ['review', 'block'];
   readonly consequenceDomains: typeof CONSEQUENCE_ADMISSION_DOMAINS;
   readonly failureReasons: typeof CONSEQUENCE_ADMISSION_DOWNSTREAM_FAILURE_REASONS;
+  readonly decisionExposesRawConstraints: false;
+  readonly decisionConstraintReferenceMode: 'digests-only';
   readonly failClosed: true;
 }
 
@@ -223,6 +234,31 @@ function contractIdFor(
     failClosed: input.failClosed,
   });
   return `sha256:${createHash('sha256').update(payload).digest('hex')}`;
+}
+
+function digestCanonical(value: CanonicalReleaseJsonValue): string {
+  return `sha256:${createHash('sha256').update(canonicalizeReleaseJson(value)).digest('hex')}`;
+}
+
+function digestText(value: string): string {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+}
+
+function constraintRef(
+  constraint: ConsequenceAdmissionConstraint,
+): ConsequenceAdmissionDownstreamConstraintRef {
+  return Object.freeze({
+    idDigest: digestText(constraint.id),
+    constraintDigest: digestCanonical({
+      version: CONSEQUENCE_ADMISSION_DOWNSTREAM_CONTRACT_VERSION,
+      kind: 'constraint-reference',
+      constraint: {
+        id: constraint.id,
+        summary: constraint.summary,
+        enforcedBy: constraint.enforcedBy,
+      },
+    } as unknown as CanonicalReleaseJsonValue),
+  });
 }
 
 function executableDecision(decision: ConsequenceAdmissionDecision): boolean {
@@ -423,7 +459,7 @@ export function evaluateConsequenceAdmissionDownstreamContract(
     constraintsRequired,
     constraintsSatisfied,
     proofRefs: Object.freeze([...admission.proof]),
-    constraints: Object.freeze([...admission.constraints]),
+    constraintRefs: Object.freeze(admission.constraints.map(constraintRef)),
     failureReasons: failures,
     reasonCodes: Object.freeze([
       ...admission.reasonCodes,
@@ -447,6 +483,8 @@ ConsequenceAdmissionDownstreamContractDescriptor {
     holdDecisions: ['review', 'block'] as const,
     consequenceDomains: CONSEQUENCE_ADMISSION_DOMAINS,
     failureReasons: CONSEQUENCE_ADMISSION_DOWNSTREAM_FAILURE_REASONS,
+    decisionExposesRawConstraints: false,
+    decisionConstraintReferenceMode: 'digests-only',
     failClosed: true,
   });
 }

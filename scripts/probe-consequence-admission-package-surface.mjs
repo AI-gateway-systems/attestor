@@ -52,6 +52,14 @@ assert.equal(
   true,
 );
 assert.equal(
+  admission.consequenceAdmissionDownstreamContractDescriptor().decisionExposesRawConstraints,
+  false,
+);
+assert.equal(
+  admission.consequenceAdmissionDownstreamContractDescriptor().decisionConstraintReferenceMode,
+  'digests-only',
+);
+assert.equal(
   typeof admission.evaluateConsequenceAdmissionDownstreamContract,
   'function',
 );
@@ -221,6 +229,10 @@ assert.equal(
 );
 assert.equal(
   admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesTargetDigest,
+  true,
+);
+assert.equal(
+  admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesConstraintIdDigests,
   true,
 );
 assert.equal(
