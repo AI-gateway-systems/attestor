@@ -147,9 +147,27 @@ function activeIntrospectionClaimMismatch(
       (claims.compiled_policy_index_version ?? null) ||
     (introspection.compiled_policy_ir_version ?? null) !==
       (claims.compiled_policy_ir_version ?? null) ||
+    tokenPolicyClaimMismatch(claims, introspection) ||
     introspection.override !== claims.override ||
     introspection.authority_mode !== claims.authority_mode ||
     introspection.introspection_required !== claims.introspection_required
+  );
+}
+
+function tokenPolicyClaimMismatch(
+  claims: NonNullable<OfflineReleaseVerification['claims']>,
+  introspection: ActiveReleaseTokenIntrospectionResult,
+): boolean {
+  return (
+    introspection.token_policy.policy_hash !== claims.policy_hash ||
+    (introspection.token_policy.policy_version ?? null) !== (claims.policy_version ?? null) ||
+    (introspection.token_policy.policy_ir_hash ?? null) !== (claims.policy_ir_hash ?? null) ||
+    (introspection.token_policy.policy_provenance_source ?? null) !==
+      (claims.policy_provenance_source ?? null) ||
+    (introspection.token_policy.compiled_policy_index_version ?? null) !==
+      (claims.compiled_policy_index_version ?? null) ||
+    (introspection.token_policy.compiled_policy_ir_version ?? null) !==
+      (claims.compiled_policy_ir_version ?? null)
   );
 }
 
@@ -171,7 +189,8 @@ function activeIntrospectionPolicyMismatch(
     (introspection.compiled_policy_index_version ?? null) !==
       (claims.compiled_policy_index_version ?? null) ||
     (introspection.compiled_policy_ir_version ?? null) !==
-      (claims.compiled_policy_ir_version ?? null)
+      (claims.compiled_policy_ir_version ?? null) ||
+    tokenPolicyClaimMismatch(claims, introspection)
   );
 }
 

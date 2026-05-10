@@ -235,10 +235,30 @@ function activeIntrospectionFromIssued(
     ...(issued.claims.compiled_policy_ir_version
       ? { compiled_policy_ir_version: issued.claims.compiled_policy_ir_version }
       : {}),
+    token_policy: tokenPolicyFromIssued(issued),
     override: issued.claims.override,
     authority_mode: issued.claims.authority_mode,
     introspection_required: issued.claims.introspection_required,
     ...overrides,
+  };
+}
+
+function tokenPolicyFromIssued(
+  issued: IssuedReleaseToken,
+): ActiveReleaseTokenIntrospectionResult['token_policy'] {
+  return {
+    policy_hash: issued.claims.policy_hash,
+    ...(issued.claims.policy_version ? { policy_version: issued.claims.policy_version } : {}),
+    ...(issued.claims.policy_ir_hash ? { policy_ir_hash: issued.claims.policy_ir_hash } : {}),
+    ...(issued.claims.policy_provenance_source
+      ? { policy_provenance_source: issued.claims.policy_provenance_source }
+      : {}),
+    ...(issued.claims.compiled_policy_index_version
+      ? { compiled_policy_index_version: issued.claims.compiled_policy_index_version }
+      : {}),
+    ...(issued.claims.compiled_policy_ir_version
+      ? { compiled_policy_ir_version: issued.claims.compiled_policy_ir_version }
+      : {}),
   };
 }
 
@@ -684,6 +704,35 @@ async function testActivePolicyClaimMismatchFailsAsStalePolicy(): Promise<void> 
   equal(verified.status, 'invalid', 'Online verifier: active policy claim mismatch fails closed');
   ok(verified.failureReasons.includes('introspection-claim-mismatch'), 'Online verifier: policy mismatch is still a claim mismatch');
   ok(verified.failureReasons.includes('stale-policy'), 'Online verifier: policy mismatch is marked as stale policy');
+
+  const tokenPolicyMismatchIntrospector: ReleaseTokenIntrospector = {
+    async introspect() {
+      return activeIntrospectionFromIssued(issued, {
+        token_policy: {
+          ...tokenPolicyFromIssued(issued),
+          policy_ir_hash: 'sha256:wrong-token-policy-ir',
+        },
+      });
+    },
+  };
+  const tokenPolicyMismatch = await verifyOnlineReleaseAuthorization({
+    request,
+    presentation: mtlsPresentation({ issued, decisionId: decision.id }),
+    verificationKey,
+    now: '2026-04-18T09:01:00.000Z',
+    replayLedgerEntry: null,
+    introspector: tokenPolicyMismatchIntrospector,
+  });
+
+  equal(tokenPolicyMismatch.status, 'invalid', 'Online verifier: structured token policy mismatch fails closed');
+  ok(
+    tokenPolicyMismatch.failureReasons.includes('introspection-claim-mismatch'),
+    'Online verifier: token policy mismatch is a claim mismatch',
+  );
+  ok(
+    tokenPolicyMismatch.failureReasons.includes('stale-policy'),
+    'Online verifier: token policy mismatch is marked as stale policy',
+  );
 }
 
 async function testIntrospectionUnavailableFailsClosed(): Promise<void> {
