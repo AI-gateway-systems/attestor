@@ -36,6 +36,8 @@ A downstream execution receipt binds:
 
 It does not store raw payment responses, wallet transaction payloads, customer rows, downstream request bodies, target URLs, error bodies, operator identifiers, or idempotency keys.
 
+Result, external receipt, and error material must be supplied as digest references such as `sha256:...`. If raw downstream material is placed in a digest field, the receipt decision holds fail-closed and no receipt is emitted.
+
 ## Package Surface
 
 The package surface is exported through `attestor/consequence-admission`.
@@ -94,6 +96,9 @@ The evaluator returns explicit failure reasons:
 - `downstream-system-mismatch`
 - `executed-before-replay-consumption`
 - `completed-before-executed`
+- `result-digest-invalid`
+- `external-receipt-digest-invalid`
+- `error-digest-invalid`
 - `success-result-missing`
 - `failure-result-missing`
 - `skip-reason-missing`

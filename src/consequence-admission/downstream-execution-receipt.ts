@@ -37,6 +37,9 @@ export const CONSEQUENCE_ADMISSION_DOWNSTREAM_EXECUTION_RECEIPT_FAILURE_REASONS 
   'downstream-system-mismatch',
   'executed-before-replay-consumption',
   'completed-before-executed',
+  'result-digest-invalid',
+  'external-receipt-digest-invalid',
+  'error-digest-invalid',
   'success-result-missing',
   'failure-result-missing',
   'skip-reason-missing',
@@ -137,6 +140,11 @@ export interface ConsequenceAdmissionDownstreamExecutionReceiptDescriptor {
   readonly failClosed: true;
 }
 
+interface NormalizedDigestReference {
+  readonly digest: string | null;
+  readonly invalid: boolean;
+}
+
 function normalizeIdentifier(value: string | null | undefined, fieldName: string): string {
   if (typeof value !== 'string') {
     throw new Error(`Consequence admission downstream execution receipt ${fieldName} requires a string.`);
@@ -156,6 +164,24 @@ function normalizeOptionalIdentifier(
 ): string | null {
   if (value === undefined || value === null) return null;
   return normalizeIdentifier(value, fieldName);
+}
+
+function isDigestReference(value: string): boolean {
+  return value.startsWith('sha256:') && value.length > 'sha256:'.length;
+}
+
+function normalizeOptionalDigestReference(
+  value: string | null | undefined,
+  fieldName: string,
+): NormalizedDigestReference {
+  const normalized = normalizeOptionalIdentifier(value, fieldName);
+  if (normalized === null) {
+    return Object.freeze({ digest: null, invalid: false });
+  }
+  if (!isDigestReference(normalized)) {
+    return Object.freeze({ digest: null, invalid: true });
+  }
+  return Object.freeze({ digest: normalized, invalid: false });
 }
 
 function normalizeIsoTimestamp(value: string, fieldName: string): string {
@@ -280,6 +306,13 @@ function reasonFor(
   if (failureReasons.includes('replay-not-consumed')) {
     return 'Downstream execution receipt held because replay consumption did not close before the downstream consequence.';
   }
+  if (
+    failureReasons.includes('result-digest-invalid') ||
+    failureReasons.includes('external-receipt-digest-invalid') ||
+    failureReasons.includes('error-digest-invalid')
+  ) {
+    return 'Downstream execution receipt held because observed result material must be provided as digest references, not raw downstream data.';
+  }
   if (failureReasons.includes('success-result-missing')) {
     return 'Downstream execution receipt held because successful execution requires a result or external receipt digest.';
   }
@@ -326,18 +359,21 @@ export function recordConsequenceAdmissionDownstreamExecution(
     input.execution.downstreamSystem,
     'execution.downstreamSystem',
   );
-  const resultDigest = normalizeOptionalIdentifier(
+  const resultDigestRef = normalizeOptionalDigestReference(
     input.execution.resultDigest,
     'execution.resultDigest',
   );
-  const externalReceiptDigest = normalizeOptionalIdentifier(
+  const externalReceiptDigestRef = normalizeOptionalDigestReference(
     input.execution.externalReceiptDigest,
     'execution.externalReceiptDigest',
   );
-  const errorDigest = normalizeOptionalIdentifier(
+  const errorDigestRef = normalizeOptionalDigestReference(
     input.execution.errorDigest,
     'execution.errorDigest',
   );
+  const resultDigest = resultDigestRef.digest;
+  const externalReceiptDigest = externalReceiptDigestRef.digest;
+  const errorDigest = errorDigestRef.digest;
   const skipReasonCode = normalizeOptionalIdentifier(
     input.execution.skipReasonCode,
     'execution.skipReasonCode',
@@ -371,6 +407,9 @@ export function recordConsequenceAdmissionDownstreamExecution(
       : []),
     ...(executedAtMs < consumedAtMs ? ['executed-before-replay-consumption' as const] : []),
     ...(completedAtMs < executedAtMs ? ['completed-before-executed' as const] : []),
+    ...(resultDigestRef.invalid ? ['result-digest-invalid' as const] : []),
+    ...(externalReceiptDigestRef.invalid ? ['external-receipt-digest-invalid' as const] : []),
+    ...(errorDigestRef.invalid ? ['error-digest-invalid' as const] : []),
     ...(status === 'succeeded' && resultDigest === null && externalReceiptDigest === null
       ? ['success-result-missing' as const]
       : []),
