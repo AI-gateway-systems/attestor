@@ -465,8 +465,12 @@ function testDescriptorAndBoundaryTemplates(): void {
 
 function testCreatesBinding(): void {
   const suite = fixtureSuite();
-  const binding = createBinding(suite.releaseBinding, suite.policyScopeBinding);
-  const second = createBinding(suite.releaseBinding, suite.policyScopeBinding);
+  const releaseBinding = Object.freeze({
+    ...suite.releaseBinding,
+    releaseDecision: issueableReleaseDecision(suite.releaseBinding.releaseDecision),
+  });
+  const binding = createBinding(releaseBinding, suite.policyScopeBinding);
+  const second = createBinding(releaseBinding, suite.policyScopeBinding);
 
   equal(
     binding.version,
@@ -535,13 +539,38 @@ function testCreatesBinding(): void {
   );
   equal(
     binding.expectedBinding.releaseDecisionId,
-    suite.releaseBinding.releaseDecisionId,
+    releaseBinding.releaseDecisionId,
     'Crypto enforcement verification: expected binding carries release decision id',
   );
   equal(
     binding.expectedBinding.audience,
-    suite.releaseBinding.releaseTokenPosture.audience,
+    releaseBinding.releaseTokenPosture.audience,
     'Crypto enforcement verification: expected binding carries audience',
+  );
+  equal(
+    binding.expectedBinding.policyVersion,
+    releaseBinding.releaseDecision.policyVersion,
+    'Crypto enforcement verification: expected binding carries policy version',
+  );
+  equal(
+    binding.expectedBinding.policyIrHash,
+    POLICY_IR_HASH,
+    'Crypto enforcement verification: expected binding carries compiled policy IR hash',
+  );
+  equal(
+    binding.expectedBinding.policyProvenanceSource,
+    'compiled-admission-policy-index',
+    'Crypto enforcement verification: expected binding carries policy provenance source',
+  );
+  equal(
+    binding.expectedBinding.compiledPolicyIndexVersion,
+    COMPILED_POLICY_INDEX_VERSION,
+    'Crypto enforcement verification: expected binding carries compiled policy index version',
+  );
+  equal(
+    binding.expectedBinding.compiledPolicyIrVersion,
+    COMPILED_POLICY_IR_VERSION,
+    'Crypto enforcement verification: expected binding carries compiled policy IR version',
   );
   equal(
     binding.digest,

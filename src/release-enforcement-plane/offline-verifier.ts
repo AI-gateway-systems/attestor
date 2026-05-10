@@ -9,6 +9,7 @@ import {
 } from '../release-kernel/release-token.js';
 import {
   RELEASE_TOKEN_SPEC_VERSION,
+  type ReleasePolicyProvenanceSource,
   type ReleaseTokenClaims,
 } from '../release-kernel/object-model.js';
 import {
@@ -75,7 +76,11 @@ export interface OfflineVerifierExpectedBinding {
   readonly outputHash?: string;
   readonly consequenceHash?: string;
   readonly policyHash?: string;
+  readonly policyVersion?: string;
   readonly policyIrHash?: string;
+  readonly policyProvenanceSource?: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion?: string;
+  readonly compiledPolicyIrVersion?: string;
 }
 
 export interface OfflineHttpMessageSignatureVerificationContext {
@@ -129,6 +134,22 @@ export interface OfflineReleaseVerification {
   readonly failureReasons: readonly EnforcementFailureReason[];
 }
 
+interface ResolvedOfflineVerifierExpectedBinding {
+  readonly audience: string;
+  readonly releaseTokenId: string;
+  readonly releaseDecisionId: string;
+  readonly consequenceType: EnforcementRequest['enforcementPoint']['consequenceType'];
+  readonly riskClass: EnforcementRequest['enforcementPoint']['riskClass'];
+  readonly outputHash: string;
+  readonly consequenceHash: string;
+  readonly policyHash: string;
+  readonly policyVersion: string;
+  readonly policyIrHash: string;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string;
+  readonly compiledPolicyIrVersion: string;
+}
+
 function normalizeIsoTimestamp(value: string, fieldName: string): string {
   const timestamp = new Date(value);
   if (Number.isNaN(timestamp.getTime())) {
@@ -150,7 +171,7 @@ function uniqueFailureReasons(
 
 function expectedBindingForRequest(
   input: OfflineReleaseVerificationInput,
-): Required<OfflineVerifierExpectedBinding> {
+): ResolvedOfflineVerifierExpectedBinding {
   const request = input.request;
   return {
     audience: input.expected?.audience ?? request.targetId,
@@ -161,7 +182,11 @@ function expectedBindingForRequest(
     outputHash: input.expected?.outputHash ?? request.outputHash,
     consequenceHash: input.expected?.consequenceHash ?? request.consequenceHash,
     policyHash: input.expected?.policyHash ?? '',
+    policyVersion: input.expected?.policyVersion ?? '',
     policyIrHash: input.expected?.policyIrHash ?? '',
+    policyProvenanceSource: input.expected?.policyProvenanceSource ?? null,
+    compiledPolicyIndexVersion: input.expected?.compiledPolicyIndexVersion ?? '',
+    compiledPolicyIrVersion: input.expected?.compiledPolicyIrVersion ?? '',
   };
 }
 
@@ -262,12 +287,37 @@ function hasCompiledPolicyProvenance(claims: ReleaseTokenClaims): boolean {
 
 function policyProvenanceFailureReasons(
   profile: VerificationProfile,
-  expected: Required<OfflineVerifierExpectedBinding>,
+  expected: ResolvedOfflineVerifierExpectedBinding,
   claims: ReleaseTokenClaims,
 ): readonly EnforcementFailureReason[] {
   const reasons: EnforcementFailureReason[] = [];
 
+  if (expected.policyVersion && claims.policy_version !== expected.policyVersion) {
+    reasons.push('stale-policy');
+  }
+
   if (expected.policyIrHash && claims.policy_ir_hash !== expected.policyIrHash) {
+    reasons.push('stale-policy');
+  }
+
+  if (
+    expected.policyProvenanceSource !== null &&
+    claims.policy_provenance_source !== expected.policyProvenanceSource
+  ) {
+    reasons.push('stale-policy');
+  }
+
+  if (
+    expected.compiledPolicyIndexVersion &&
+    claims.compiled_policy_index_version !== expected.compiledPolicyIndexVersion
+  ) {
+    reasons.push('stale-policy');
+  }
+
+  if (
+    expected.compiledPolicyIrVersion &&
+    claims.compiled_policy_ir_version !== expected.compiledPolicyIrVersion
+  ) {
     reasons.push('stale-policy');
   }
 
