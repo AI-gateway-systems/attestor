@@ -117,7 +117,10 @@ export interface EvidencePack {
   readonly consequenceHash: string;
   readonly policyVersion: string;
   readonly policyHash: string;
-  readonly policyIrHash?: string | null;
+  readonly policyIrHash: string | null;
+  readonly policyProvenanceSource: ReleasePolicyProvenanceSource | null;
+  readonly compiledPolicyIndexVersion: string | null;
+  readonly compiledPolicyIrVersion: string | null;
   readonly retentionClass: EvidenceRetentionClass;
   readonly findings: readonly ReleaseFinding[];
   readonly artifacts: readonly EvidenceArtifactReference[];

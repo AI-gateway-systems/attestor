@@ -224,6 +224,21 @@ async function main(): Promise<void> {
     recordWithToken.releaseDecision.policyProvenance?.compiledPolicyIrHash ?? null,
     'Release evidence pack: durable evidence preserves the compiled policy IR hash from the release decision',
   );
+  equal(
+    issuedEvidencePack.evidencePack.policyProvenanceSource,
+    recordWithToken.releaseDecision.policyProvenance?.source ?? null,
+    'Release evidence pack: durable evidence preserves the policy provenance source from the release decision',
+  );
+  equal(
+    issuedEvidencePack.evidencePack.compiledPolicyIndexVersion,
+    recordWithToken.releaseDecision.policyProvenance?.compiledPolicyIndexVersion ?? null,
+    'Release evidence pack: durable evidence preserves the compiled policy index version from the release decision',
+  );
+  equal(
+    issuedEvidencePack.evidencePack.compiledPolicyIrVersion,
+    recordWithToken.releaseDecision.policyProvenance?.compiledPolicyIrVersion ?? null,
+    'Release evidence pack: durable evidence preserves the compiled policy IR version from the release decision',
+  );
   ok(issuedEvidencePack.evidencePack.artifacts.some((artifact) => artifact.kind === 'review-record'), 'Release evidence pack: review-record artifact is captured');
   ok(issuedEvidencePack.evidencePack.artifacts.some((artifact) => artifact.kind === 'signature'), 'Release evidence pack: release-token artifact is captured');
   equal(
@@ -247,9 +262,39 @@ async function main(): Promise<void> {
     'Release evidence pack: predicate token summary preserves the token policy IR hash',
   );
   equal(
+    issuedEvidencePack.statement.predicate.releaseToken?.policyProvenanceSource ?? null,
+    issuedToken.claims.policy_provenance_source ?? null,
+    'Release evidence pack: predicate token summary preserves the token policy provenance source',
+  );
+  equal(
+    issuedEvidencePack.statement.predicate.releaseToken?.compiledPolicyIndexVersion ?? null,
+    issuedToken.claims.compiled_policy_index_version ?? null,
+    'Release evidence pack: predicate token summary preserves the token compiled policy index version',
+  );
+  equal(
+    issuedEvidencePack.statement.predicate.releaseToken?.compiledPolicyIrVersion ?? null,
+    issuedToken.claims.compiled_policy_ir_version ?? null,
+    'Release evidence pack: predicate token summary preserves the token compiled policy IR version',
+  );
+  equal(
     issuedEvidencePack.statement.predicate.decision.policyIrHash,
     recordWithToken.releaseDecision.policyProvenance?.compiledPolicyIrHash ?? null,
     'Release evidence pack: predicate decision summary preserves the runtime policy IR hash',
+  );
+  equal(
+    issuedEvidencePack.statement.predicate.decision.policyProvenanceSource,
+    recordWithToken.releaseDecision.policyProvenance?.source ?? null,
+    'Release evidence pack: predicate decision summary preserves the runtime policy provenance source',
+  );
+  equal(
+    issuedEvidencePack.statement.predicate.decision.compiledPolicyIndexVersion,
+    recordWithToken.releaseDecision.policyProvenance?.compiledPolicyIndexVersion ?? null,
+    'Release evidence pack: predicate decision summary preserves the runtime compiled policy index version',
+  );
+  equal(
+    issuedEvidencePack.statement.predicate.decision.compiledPolicyIrVersion,
+    recordWithToken.releaseDecision.policyProvenance?.compiledPolicyIrVersion ?? null,
+    'Release evidence pack: predicate decision summary preserves the runtime compiled policy IR version',
   );
   equal(
     issuedEvidencePack.statement.predicate.review?.reviewId,
@@ -359,6 +404,52 @@ async function main(): Promise<void> {
   ok(
     tamperedSignatureError?.message.includes('DSSE signature'),
     'Release evidence pack: tampered DSSE envelope is rejected',
+  );
+
+  let mismatchedStatementError: Error | null = null;
+  try {
+    verifyIssuedReleaseEvidencePack({
+      issuedEvidencePack: {
+        ...issuedEvidencePack,
+        statement: {
+          ...issuedEvidencePack.statement,
+          predicate: {
+            ...issuedEvidencePack.statement.predicate,
+            decision: {
+              ...issuedEvidencePack.statement.predicate.decision,
+              policyIrHash: 'sha256:mismatched-exported-statement-policy-ir',
+            },
+          },
+        },
+      },
+      verificationKey: evidenceIssuer.exportVerificationKey(),
+    });
+  } catch (error) {
+    mismatchedStatementError = error as Error;
+  }
+  ok(
+    mismatchedStatementError?.message.includes('signed payload'),
+    'Release evidence pack: exported statement must match the signed DSSE payload',
+  );
+
+  let mismatchedEvidencePackError: Error | null = null;
+  try {
+    verifyIssuedReleaseEvidencePack({
+      issuedEvidencePack: {
+        ...issuedEvidencePack,
+        evidencePack: {
+          ...issuedEvidencePack.evidencePack,
+          policyIrHash: 'sha256:mismatched-exported-evidence-pack-policy-ir',
+        },
+      },
+      verificationKey: evidenceIssuer.exportVerificationKey(),
+    });
+  } catch (error) {
+    mismatchedEvidencePackError = error as Error;
+  }
+  ok(
+    mismatchedEvidencePackError?.message.includes('exported evidence pack'),
+    'Release evidence pack: exported evidence pack must match the signed DSSE payload',
   );
 
   let tamperedDigestError: Error | null = null;
