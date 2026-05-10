@@ -8,11 +8,18 @@ import {
   createFinanceFilingReleaseCandidateFromReport,
   finalizeFinanceFilingReleaseDecision,
 } from '../src/release-kernel/finance-record-release.js';
+import {
+  COMPILED_ADMISSION_POLICY_INDEX_VERSION,
+} from '../src/release-kernel/compiled-policy-index.js';
+import {
+  COMPILED_ADMISSION_POLICY_IR_VERSION,
+} from '../src/release-kernel/compiled-policy-ir.js';
 import { createReleaseDecisionEngine } from '../src/release-kernel/release-decision-engine.js';
 import { createInMemoryReleaseDecisionLogWriter } from '../src/release-kernel/release-decision-log.js';
 import {
   applyBreakGlassOverride,
   applyReviewerDecision,
+  attachIssuedTokenToReviewerQueueRecord,
   createFileBackedReleaseReviewerQueueStore,
   createFinanceReviewerQueueItem,
   createInMemoryReleaseReviewerQueueStore,
@@ -20,6 +27,8 @@ import {
   ReleaseReviewerQueueError,
   ReleaseReviewerQueueStoreError,
 } from '../src/release-kernel/reviewer-queue.js';
+import { createReleaseTokenIssuer } from '../src/release-kernel/release-token.js';
+import { generateKeyPair } from '../src/signing/keys.js';
 
 let passed = 0;
 
@@ -122,6 +131,27 @@ async function main(): Promise<void> {
 
   equal(item.detail.kind, 'finance.filing-export', 'Reviewer queue: queue item kind is finance filing export');
   equal(item.detail.riskClass, 'R4', 'Reviewer queue: risk class is preserved on the queue item');
+  equal(item.detail.policyHash, finalized.policyHash, 'Reviewer queue: detail exposes the bound policy hash');
+  equal(
+    item.detail.policyIrHash,
+    finalized.policyProvenance?.compiledPolicyIrHash ?? null,
+    'Reviewer queue: detail exposes the bound policy IR hash',
+  );
+  equal(
+    item.detail.policyProvenanceSource,
+    'compiled-admission-policy-index',
+    'Reviewer queue: detail exposes the policy provenance source',
+  );
+  equal(
+    item.detail.compiledPolicyIndexVersion,
+    COMPILED_ADMISSION_POLICY_INDEX_VERSION,
+    'Reviewer queue: detail exposes the compiled policy index version',
+  );
+  equal(
+    item.detail.compiledPolicyIrVersion,
+    COMPILED_ADMISSION_POLICY_IR_VERSION,
+    'Reviewer queue: detail exposes the compiled policy IR version',
+  );
   ok(item.detail.summary.includes('paused before consequence'), 'Reviewer queue: summary is reviewer-oriented');
   ok(item.detail.findings.length > 0, 'Reviewer queue: findings are preserved for the reviewer packet');
   equal(item.detail.candidate.rowCount, 2, 'Reviewer queue: row count preview is included');
@@ -241,6 +271,40 @@ async function main(): Promise<void> {
   equal(afterSecondApproval.record.detail.authorityState, 'approved', 'Reviewer queue: authority state becomes approved');
   equal(afterSecondApproval.record.releaseDecision.status, 'accepted', 'Reviewer queue: final review closure upgrades the release decision to accepted');
   ok(afterSecondApproval.record.detail.timeline.some((entry) => entry.phase === 'terminal-accept'), 'Reviewer queue: accepted review closure is reflected in the review timeline');
+  const signingKeys = generateKeyPair();
+  const tokenIssuer = createReleaseTokenIssuer({
+    issuer: 'attestor.test.release-review',
+    privateKeyPem: signingKeys.privateKeyPem,
+    publicKeyPem: signingKeys.publicKeyPem,
+  });
+  const issuedToken = await tokenIssuer.issue({
+    decision: afterSecondApproval.record.releaseDecision,
+    issuedAt: '2026-04-17T23:12:30.000Z',
+  });
+  const recordWithToken = attachIssuedTokenToReviewerQueueRecord({
+    record: afterSecondApproval.record,
+    issuedToken,
+  });
+  equal(
+    recordWithToken.detail.issuedReleaseToken?.policyIrHash ?? null,
+    issuedToken.claims.policy_ir_hash ?? null,
+    'Reviewer queue: issued token summary exposes the token policy IR hash',
+  );
+  equal(
+    recordWithToken.detail.issuedReleaseToken?.policyProvenanceSource ?? null,
+    issuedToken.claims.policy_provenance_source ?? null,
+    'Reviewer queue: issued token summary exposes the token policy provenance source',
+  );
+  equal(
+    recordWithToken.detail.issuedReleaseToken?.compiledPolicyIndexVersion ?? null,
+    issuedToken.claims.compiled_policy_index_version ?? null,
+    'Reviewer queue: issued token summary exposes the token compiled policy index version',
+  );
+  equal(
+    recordWithToken.detail.issuedReleaseToken?.compiledPolicyIrVersion ?? null,
+    issuedToken.claims.compiled_policy_ir_version ?? null,
+    'Reviewer queue: issued token summary exposes the token compiled policy IR version',
+  );
 
   const rejected = applyReviewerDecision({
     record: item,
