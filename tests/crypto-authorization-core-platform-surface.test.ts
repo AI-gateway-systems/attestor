@@ -51,6 +51,7 @@ function testCryptoAuthorizationCorePublicSurfaceDescriptor(): void {
       'canonicalReferences',
       'consequenceRiskMapping',
       'intelligenceRiskSignals',
+      'policyGapNarrowing',
       'eip712',
       'erc1271',
       'replayFreshness',
@@ -117,6 +118,11 @@ function testCryptoAuthorizationCoreBaseNamespaces(): void {
     cryptoAuthorizationCore.intelligenceRiskSignals.CRYPTO_INTELLIGENCE_RISK_SIGNALS_SPEC_VERSION,
     'attestor.crypto-intelligence-risk-signals.v1',
     'crypto platform surface: intelligence risk-signals namespace is bound',
+  );
+  equal(
+    cryptoAuthorizationCore.policyGapNarrowing.CRYPTO_POLICY_GAP_NARROWING_SPEC_VERSION,
+    'attestor.crypto-policy-gap-narrowing.v1',
+    'crypto platform surface: policy-gap narrowing namespace is bound',
   );
   equal(
     cryptoAuthorizationCore.eip712.CRYPTO_EIP712_AUTHORIZATION_ENVELOPE_SPEC_VERSION,

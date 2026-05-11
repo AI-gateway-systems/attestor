@@ -19,6 +19,10 @@ assert.equal(
   'attestor.crypto-intelligence-risk-signals.v1',
 );
 assert.equal(
+  cryptoCore.cryptoAuthorizationCore.policyGapNarrowing.CRYPTO_POLICY_GAP_NARROWING_SPEC_VERSION,
+  'attestor.crypto-policy-gap-narrowing.v1',
+);
+assert.equal(
   cryptoCore.cryptoAuthorizationCore.x402AgenticPayment.X402_AGENTIC_PAYMENT_ADAPTER_SPEC_VERSION,
   'attestor.crypto-x402-agentic-payment-adapter.v1',
 );
