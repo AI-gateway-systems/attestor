@@ -72,6 +72,15 @@ ok(
   descriptor.runtimeChecks.includes('fail-closed-integrator-assertions'),
   'descriptor includes fail-closed integrator assertions',
 );
+ok(
+  descriptor.runtimeChecks.includes('negative-fixture-coverage'),
+  'descriptor includes negative fixture coverage',
+);
+equal(
+  descriptor.negativeFixtureCount,
+  40,
+  'descriptor exposes negative conformance fixture count',
+);
 
 equal(
   schema.$schema,

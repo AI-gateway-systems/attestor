@@ -95,6 +95,14 @@ assert.equal(
   true,
 );
 assert.equal(
+  admission.cryptoAdmissionConformanceDescriptor().negativeFixtureCount,
+  40,
+);
+assert.equal(
+  admission.validateCryptoAdmissionNegativeConformanceFixtures().status,
+  'valid',
+);
+assert.equal(
   admission.cryptoAdapterReadinessManifestDescriptor().surfaces.includes('wallet-rpc'),
   true,
 );
