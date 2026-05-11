@@ -30,6 +30,10 @@
       "types": "./dist/crypto-execution-admission/index.d.ts",
       "default": "./dist/crypto-execution-admission/index.js"
     },
+    "./crypto-intelligence": {
+      "types": "./dist/crypto-intelligence/index.d.ts",
+      "default": "./dist/crypto-intelligence/index.js"
+    },
     "./consequence-admission": {
       "types": "./dist/consequence-admission/index.d.ts",
       "default": "./dist/consequence-admission/index.js"
@@ -204,6 +208,7 @@
     "test:crypto-authorization-core-intelligence-dashboard-summary": "tsx tests/crypto-authorization-core-intelligence-dashboard-summary.test.ts",
     "test:crypto-authorization-core-intelligence-performance-budget": "tsx tests/crypto-authorization-core-intelligence-performance-budget.test.ts",
     "test:crypto-authorization-core-platform-surface": "tsx tests/crypto-authorization-core-platform-surface.test.ts",
+    "test:crypto-intelligence-platform-surface": "tsx tests/crypto-intelligence-platform-surface.test.ts",
     "test:crypto-execution-admission": "tsx tests/crypto-execution-admission.test.ts",
     "test:crypto-execution-admission-wallet-rpc": "tsx tests/crypto-execution-admission-wallet-rpc.test.ts",
     "test:crypto-execution-admission-safe-guard": "tsx tests/crypto-execution-admission-safe-guard.test.ts",
@@ -320,6 +325,7 @@
     "test:release-enforcement-plane-package-surface": "node scripts/probe-release-enforcement-plane-package-surface.mjs",
     "test:crypto-authorization-core-erc4337-user-operation-adapter": "tsx tests/crypto-authorization-core-erc4337-user-operation-adapter.test.ts",
     "test:crypto-authorization-core-package-surface": "node scripts/probe-crypto-authorization-core-package-surface.mjs",
+    "test:crypto-intelligence-package-surface": "node scripts/probe-crypto-intelligence-package-surface.mjs",
     "test:crypto-execution-admission-package-surface": "node scripts/probe-crypto-execution-admission-package-surface.mjs",
     "test:consequence-admission-package-surface": "node scripts/probe-consequence-admission-package-surface.mjs"
   },

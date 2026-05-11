@@ -32,12 +32,13 @@ The repository currently contains a shared platform core with curated package su
 - `attestor/release-enforcement-plane`
 - `attestor/crypto-authorization-core`
 - `attestor/crypto-execution-admission`
+- `attestor/crypto-intelligence`
 
 These are repository and commercial/self-hosted import boundaries, not a public npm publication claim. `package.json` remains `private: true`; public npm distribution would require a separate release decision.
 
 The finance pack remains the deepest proven wedge today. It carries the strongest end-to-end path for AI-assisted financial reporting acceptance, governed SQL, deterministic checks, release decisions, signed proof, reviewer authority, verification kits, and downstream consequence gating.
 
-The crypto pack extends the same platform core into programmable-money authorization and execution admission. Its first public integration shape is packaged authorization/admission surfaces for external integrators, not a public hosted crypto HTTP route.
+The crypto pack extends the same platform core into programmable-money authorization, execution admission, and intelligence. Its first public integration shape is packaged authorization/admission/intelligence surfaces for external integrators, not a public hosted crypto HTTP route.
 
 The hosted path includes account signup, the first API key, tenant API-key calls, usage and entitlement visibility, Stripe checkout and portal handoff, signed webhook convergence, billing export/reconciliation, and focused readiness gates.
 
