@@ -124,6 +124,7 @@ function testVerifySuiteKeepsGateOrdering(): void {
   includes(text, 'npm run test:release-policy-control-plane-package-surface', 'Package runner: verify includes policy control-plane package probe');
   includes(text, 'npm run test:release-enforcement-plane-package-surface', 'Package runner: verify includes enforcement-plane package probe');
   includes(text, 'npm run test:crypto-authorization-core-package-surface', 'Package runner: verify includes crypto authorization package probe');
+  includes(text, 'npm run test:crypto-intelligence-package-surface', 'Package runner: verify includes crypto intelligence package probe');
   includes(text, 'npm run test:crypto-execution-admission-package-surface', 'Package runner: verify includes crypto execution-admission package probe');
   includes(text, 'npm run test:consequence-admission-package-surface', 'Package runner: verify includes consequence-admission package probe');
 

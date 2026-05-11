@@ -73,6 +73,7 @@ The public package surfaces already reflect that shared core:
 - `attestor/release-enforcement-plane`
 - `attestor/crypto-authorization-core`
 - `attestor/crypto-execution-admission`
+- `attestor/crypto-intelligence`
 - `attestor/consequence-admission`
 
 These are stable import boundaries inside one modular monolith. They are not a claim that every layer is already a separately operated service.
@@ -161,6 +162,7 @@ Current status:
 |---|---|
 | `attestor/crypto-authorization-core` | packaged for evaluation |
 | `attestor/crypto-execution-admission` | packaged for evaluation |
+| `attestor/crypto-intelligence` | packaged for evaluation |
 
 What the crypto pack already covers:
 
@@ -173,11 +175,13 @@ What the crypto pack already covers:
 - EIP-7702 delegation-aware adapter
 - x402 and custody/co-signer adapters
 - execution-admission planning, wallet RPC handoffs, Safe guard receipts, ERC-4337 bundler handoffs, modular-account handoffs, delegated-EOA handoffs, x402 resource-server middleware, custody policy callback contracts, intent-solver admission handoffs, uniform admission telemetry / signed receipts, JSON conformance fixtures, and a curated package surface for external integrators
+- crypto intelligence now packages risk signals, policy gaps, adapter readiness, operator risk inputs, dashboard summaries, conformance fixtures, privacy gates, and performance budgets through `attestor/crypto-intelligence` without raw wallet/payment payload drilldown or native screening claims
 
 Current crypto execution-admission posture:
 
 - the frozen execution-admission buildout is complete
-- current crypto intelligence work now adds risk signals, policy gaps, adapter readiness, operator risk inputs, and dashboard summaries through [Crypto intelligence buildout](crypto-intelligence-buildout.md) rather than extending the frozen authorization or execution-admission lists
+- the frozen crypto intelligence buildout is complete
+- future crypto hardening should build on [Crypto intelligence buildout](crypto-intelligence-buildout.md) and the packaged `attestor/crypto-intelligence` surface rather than reopening the frozen authorization, execution-admission, or intelligence lists
 
 ## Product Truth Versus First Slices
 
@@ -204,7 +208,7 @@ Active priority:
 - keep the README and architecture docs aligned with the trackers
 - preserve the completed consequence-admission contract, quickstart, and readiness gates before widening public API claims
 - keep the first consequence-admission facade explicit: callers choose `finance-pipeline-run` or `crypto-execution-plan`; Attestor does not guess the pack automatically
-- treat the frozen crypto execution-admission track as complete and route new crypto intelligence work through [Crypto intelligence buildout](crypto-intelligence-buildout.md)
+- treat the frozen crypto execution-admission and crypto intelligence tracks as complete, and route new crypto hardening through a new tracker or explicit follow-up scope rather than reopening those frozen lists
 - keep the hosted product flow truth sources, focused gates, and production probe aligned now that the hosted product flow hardening track is complete
 - avoid widening supporting hosted surfaces faster than their customer journey, billing, and readiness gates can stay honest
 

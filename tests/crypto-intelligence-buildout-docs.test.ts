@@ -41,6 +41,16 @@ function testTrackerIsLinkedFromCurrentTruthSources(): void {
     '"test:crypto-intelligence-buildout-docs"',
     'Crypto intelligence docs: package script exposes the docs guard',
   );
+  includes(
+    packageJson,
+    '"./crypto-intelligence"',
+    'Crypto intelligence docs: package export exposes the crypto intelligence subpath',
+  );
+  includes(
+    packageJson,
+    '"test:crypto-intelligence-package-surface"',
+    'Crypto intelligence docs: package script exposes the package surface probe',
+  );
 }
 
 function testTrackerPreservesScopeAndNonGoals(): void {
@@ -107,8 +117,8 @@ function testTrackerFreezesTheStepList(): void {
   const tracker = readProjectFile('docs', '02-architecture', 'crypto-intelligence-buildout.md');
 
   includes(tracker, '| Total frozen steps | 10 |', 'Crypto intelligence docs: step count is frozen');
-  includes(tracker, '| Completed | 9 |', 'Crypto intelligence docs: Steps 01 through 09 are complete');
-  includes(tracker, '| Not started | 1 |', 'Crypto intelligence docs: remaining steps are pending');
+  includes(tracker, '| Completed | 10 |', 'Crypto intelligence docs: all ten steps are complete');
+  includes(tracker, '| Not started | 0 |', 'Crypto intelligence docs: no frozen steps remain pending');
 
   const steps = [
     '| 01 | complete | Define crypto intelligence scope, research anchors, vocabulary, and guardrails |',
@@ -120,7 +130,7 @@ function testTrackerFreezesTheStepList(): void {
     '| 07 | complete | Add operator-supplied risk input contract |',
     '| 08 | complete | Add crypto intelligence dashboard summary |',
     '| 09 | complete | Add crypto intelligence performance budget and benchmarks |',
-    '| 10 | pending | Package and document the crypto intelligence surface |',
+    '| 10 | complete | Package and document the crypto intelligence surface |',
   ];
 
   for (const step of steps) {
@@ -147,13 +157,38 @@ function testTrackerStaysGroundedInExistingCryptoSurfaces(): void {
 
   includes(
     systemOverview,
-    'current crypto intelligence work now adds risk signals, policy gaps, adapter readiness, operator risk inputs, and dashboard summaries through [Crypto intelligence buildout](crypto-intelligence-buildout.md)',
+    'crypto intelligence now packages risk signals, policy gaps, adapter readiness, operator risk inputs, dashboard summaries, conformance fixtures, privacy gates, and performance budgets through `attestor/crypto-intelligence`',
     'Crypto intelligence docs: system overview points future crypto work to this tracker',
   );
   includes(
     tracker,
-    'Implement Step 10: package and document the crypto intelligence surface',
-    'Crypto intelligence docs: immediate next step is Step 10',
+    'The frozen crypto intelligence buildout track is complete',
+    'Crypto intelligence docs: immediate next step closes the frozen track',
+  );
+  includes(
+    tracker,
+    'src/crypto-intelligence/index.ts',
+    'Crypto intelligence docs: Step 10 evidence points to package index',
+  );
+  includes(
+    tracker,
+    'scripts/probe-crypto-intelligence-package-surface.mjs',
+    'Crypto intelligence docs: Step 10 evidence points to package boundary probe',
+  );
+  includes(
+    tracker,
+    'docs/02-architecture/crypto-intelligence-platform-surface.md',
+    'Crypto intelligence docs: Step 10 evidence points to platform surface docs',
+  );
+  includes(
+    tracker,
+    'Node package `exports` maps define explicit package entrypoints',
+    'Crypto intelligence docs: Step 10 research anchor covers Node package exports',
+  );
+  includes(
+    tracker,
+    'TypeScript `moduleResolution: "bundler"` supports package `exports` and `imports`',
+    'Crypto intelligence docs: Step 10 research anchor covers TypeScript package export resolution',
   );
   includes(
     tracker,

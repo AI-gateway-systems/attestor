@@ -56,13 +56,15 @@ Reviewed on 2026-05-11 before opening this track:
 - W3C PROV models provenance around entities, activities, and agents. Operator-supplied risk inputs should therefore bind source, method, dataset version, retrieval time, and evidence digest instead of relying on a raw provider response: [W3C PROV-O](https://www.w3.org/TR/prov-o/)
 - OFAC publishes sanctions list services and data formats, but Attestor must not claim native sanctions coverage. Customer-operated or third-party screening can only enter as scoped, digest-bound evidence with dataset version references: [OFAC sanctions list service](https://ofac.treasury.gov/sanctions-list-service)
 - Node's performance hooks and crypto hashing APIs provide stable local measurement and digest primitives, so Step 09 records aggregate p50/p95/max timing budgets for intelligence hot paths without persisting raw benchmark inputs: [Node.js perf_hooks](https://nodejs.org/api/perf_hooks.html), [Node.js crypto](https://nodejs.org/api/crypto.html)
+- Node package `exports` maps define explicit package entrypoints and keep unexported package subpaths private, so Step 10 exposes one `attestor/crypto-intelligence` boundary instead of freezing internal deep imports: [Node.js packages](https://nodejs.org/api/packages.html)
+- TypeScript `moduleResolution: "bundler"` supports package `exports` and `imports`, so the Step 10 surface can be type-checked through the same package-boundary model used by the rest of Attestor: [TypeScript moduleResolution](https://www.typescriptlang.org/tsconfig/#moduleResolution)
 
 ## Architecture Decision
 
 Start crypto intelligence as a new repository track above the packaged crypto surfaces:
 
 - canonical tracker: `docs/02-architecture/crypto-intelligence-buildout.md`
-- initial package location: existing `src/crypto-authorization-core` and `src/crypto-execution-admission` surfaces until a later step proves a dedicated subpath is needed
+- final package location: `attestor/crypto-intelligence`, backed by existing `src/crypto-authorization-core` and `src/crypto-execution-admission` source modules
 - first output shape: risk/readiness interpretation and policy-gap signals, not a new execution path
 - first guardrail: digest-first privacy and anti-overclaim tests before adding public UI or hosted route claims
 - extraction rule: standalone crypto-intelligence service waits until real customer-operated integrations prove latency, custody isolation, or operational separation requirements
@@ -84,10 +86,10 @@ Start crypto intelligence as a new repository track above the packaged crypto su
 | Metric | Value |
 |---|---|
 | Total frozen steps | 10 |
-| Completed | 9 |
+| Completed | 10 |
 | In progress | 0 |
-| Not started | 1 |
-| Current posture | Step 09 adds aggregate performance budgets and benchmark output for crypto intelligence hot paths: risk signals, policy gaps, operator risk inputs, dashboard aggregation, privacy scans, canonicalization/hashing, fixture validation, and telemetry safety scans. |
+| Not started | 0 |
+| Current posture | The crypto intelligence buildout track is complete for the current evaluation package: `attestor/crypto-intelligence` now groups risk signals, policy gaps, adapter readiness, conformance fixtures, privacy minimization, operator risk inputs, dashboard summaries, and aggregate performance budgets behind one package-boundary probe. |
 
 ## Frozen Step List
 
@@ -102,7 +104,7 @@ Start crypto intelligence as a new repository track above the packaged crypto su
 | 07 | complete | Add operator-supplied risk input contract | `src/crypto-authorization-core/operator-risk-input-contract.ts`, `tests/crypto-authorization-core-operator-risk-input-contract.test.ts`, `tests/crypto-authorization-core-platform-surface.test.ts`, `scripts/probe-crypto-authorization-core-package-surface.mjs`, `package.json` | Defines how customer-owned or third-party sanctions, screening, counterparty, route, liquidity, bridge, custody, market, and fraud signals enter crypto intelligence as digest-bound, scoped, fresh, provenance-bound evidence. The contract fails closed on stale evidence, missing digest references, missing scope, privacy-minimization failures, and any Attestor-native oracle claim. |
 | 08 | complete | Add crypto intelligence dashboard summary | `src/crypto-authorization-core/intelligence-dashboard-summary.ts`, `tests/crypto-authorization-core-intelligence-dashboard-summary.test.ts`, `tests/crypto-authorization-core-platform-surface.test.ts`, `scripts/probe-crypto-authorization-core-package-surface.mjs`, `package.json` | Exposes operator-facing counts, top surfaces, top failure reasons, missing evidence classes, readiness coverage, attention items, and digest-first proof links without raw payload drilldown, customer/provider material, compliance claims, or financial-impact overclaims. |
 | 09 | complete | Add crypto intelligence performance budget and benchmarks | `src/crypto-authorization-core/intelligence-performance-budget.ts`, `tests/crypto-authorization-core-intelligence-performance-budget.test.ts`, `scripts/benchmark-crypto-intelligence-performance.ts`, `tests/crypto-authorization-core-intelligence-privacy-minimization.test.ts`, `tests/crypto-authorization-core-platform-surface.test.ts`, `scripts/probe-crypto-authorization-core-package-surface.mjs`, `package.json` | Baselines risk-signal, policy-gap, operator-risk-input, dashboard-summary, privacy-scan, canonicalization/hash, negative-fixture, and telemetry-safety paths with p50/p95/max budgets. Benchmark output is digest-first, aggregate-only, fail-closed on budget breaches or insufficient samples, and does not store raw benchmark inputs. |
-| 10 | pending | Package and document the crypto intelligence surface | _pending_ | Should decide whether the intelligence layer stays under existing package surfaces or becomes a curated `attestor/crypto-intelligence` subpath, with package-boundary probes only after the contract is stable. |
+| 10 | complete | Package and document the crypto intelligence surface | `src/crypto-intelligence/index.ts`, `docs/02-architecture/crypto-intelligence-platform-surface.md`, `tests/crypto-intelligence-platform-surface.test.ts`, `scripts/probe-crypto-intelligence-package-surface.mjs`, `tests/crypto-intelligence-buildout-docs.test.ts`, `package.json`, `README.md`, `docs/02-architecture/system-overview.md`, `docs/01-overview/purpose.md` | Crypto intelligence now ships as the curated `attestor/crypto-intelligence` package subpath with namespace grouping for risk signals, policy gaps, adapter readiness, conformance fixtures, privacy minimization, operator risk inputs, dashboard summary, and performance budget. The package-boundary probe blocks internal `attestor/crypto-intelligence/*.js` deep imports. Standalone service extraction remains pending until customer-operated latency, custody isolation, or independent operational-scaling requirements justify it. |
 
 ## Completion Definition
 
@@ -119,4 +121,4 @@ This track is complete only when:
 
 ## Immediate Next Step
 
-Implement Step 10: package and document the crypto intelligence surface.
+The frozen crypto intelligence buildout track is complete. Next crypto work should build on `attestor/crypto-intelligence` rather than reopening the completed authorization, execution-admission, or intelligence tracks.
