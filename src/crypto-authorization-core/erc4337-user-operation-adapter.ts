@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { keccak_256 } from '@noble/hashes/sha3';
+import { keccak_256 } from '@noble/hashes/sha3.js';
 import {
   canonicalizeReleaseJson,
   type CanonicalReleaseJsonValue,

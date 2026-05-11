@@ -307,6 +307,7 @@
     "test:release-layer-package-surface": "node scripts/probe-release-layer-package-surface.mjs",
     "test:release-policy-control-plane-package-surface": "node scripts/probe-release-policy-control-plane-package-surface.mjs",
     "test:release-enforcement-plane-package-surface": "node scripts/probe-release-enforcement-plane-package-surface.mjs",
+    "test:crypto-authorization-core-erc4337-user-operation-adapter": "tsx tests/crypto-authorization-core-erc4337-user-operation-adapter.test.ts",
     "test:crypto-authorization-core-package-surface": "node scripts/probe-crypto-authorization-core-package-surface.mjs",
     "test:crypto-execution-admission-package-surface": "node scripts/probe-crypto-execution-admission-package-surface.mjs",
     "test:consequence-admission-package-surface": "node scripts/probe-consequence-admission-package-surface.mjs"
@@ -314,7 +315,7 @@
   "dependencies": {
     "@hono/node-server": "^2.0.1",
     "@napi-rs/keyring": "^1.3.0",
-    "@noble/hashes": "^1.8.0",
+    "@noble/hashes": "^2.2.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.217.0",
     "@opentelemetry/exporter-logs-otlp-proto": "^0.216.0",
