@@ -81,10 +81,10 @@ Start crypto intelligence as a new repository track above the packaged crypto su
 | Metric | Value |
 |---|---|
 | Total frozen steps | 10 |
-| Completed | 4 |
+| Completed | 5 |
 | In progress | 0 |
-| Not started | 6 |
-| Current posture | Step 04 adds a digest-first adapter readiness matrix and manifest across the existing crypto execution-admission surfaces. It reports readiness, blocked reasons, and missing evidence classes without raw wallet metadata, raw transaction payloads, custody callback bodies, provider error bodies, private policy thresholds, or solver route secrets. |
+| Not started | 5 |
+| Current posture | Step 05 adds negative crypto conformance fixtures for malformed, stale, malicious, contradictory, and privacy-unsafe evidence across every existing crypto execution-admission surface. The fixtures are fail-closed and expose only model-safe reason codes, evidence classes, and safe instructions. |
 
 ## Frozen Step List
 
@@ -94,7 +94,7 @@ Start crypto intelligence as a new repository track above the packaged crypto su
 | 02 | complete | Add crypto risk signal model and severity mapping | `src/crypto-authorization-core/intelligence-risk-signals.ts`, `tests/crypto-authorization-core-intelligence-risk-signals.test.ts`, `tests/crypto-authorization-core-platform-surface.test.ts`, `scripts/probe-crypto-authorization-core-package-surface.mjs`, `package.json` | Interprets account kind, chain, asset, amount, counterparty, bridge/route, allowance, delegation, custody, x402, solver, freshness, readiness, and velocity posture into deterministic model-safe signals without replacing the existing core risk mapper. |
 | 03 | complete | Add policy gap and safe narrowing candidate generation | `src/crypto-authorization-core/policy-gap-narrowing.ts`, `tests/crypto-authorization-core-policy-gap-narrowing.test.ts`, `tests/crypto-authorization-core-platform-surface.test.ts`, `scripts/probe-crypto-authorization-core-package-surface.mjs`, `package.json` | Converts missing policy dimensions and failed limits into model-safe gap classes and approval-required narrowing candidates while keeping private policy thresholds out of feedback. |
 | 04 | complete | Add adapter readiness matrix and manifest | `src/crypto-execution-admission/adapter-readiness-manifest.ts`, `tests/crypto-execution-admission-adapter-readiness-manifest.test.ts`, `tests/crypto-execution-admission-platform-surface.test.ts`, `scripts/probe-crypto-execution-admission-package-surface.mjs`, `package.json` | Summarizes readiness across wallet RPC, Safe guard, ERC-4337 bundler, modular account runtime, delegated EOA runtime, x402 resource server, custody policy engine, and intent solver surfaces using model-safe reason codes, evidence classes, plan digests, and explicit no-raw-payload privacy boundaries. |
-| 05 | pending | Expand negative conformance fixtures for crypto intelligence | _pending_ | Should add malformed, stale, malicious, contradictory, and privacy-unsafe fixtures for each supported crypto surface, including delegated EOA, x402, custody, ERC-4337, and intent-solver paths. |
+| 05 | complete | Expand negative conformance fixtures for crypto intelligence | `src/crypto-execution-admission/conformance-fixtures.ts`, `tests/crypto-execution-admission-negative-conformance-fixtures.test.ts`, `tests/crypto-execution-admission-conformance-fixtures.test.ts`, `scripts/probe-crypto-execution-admission-package-surface.mjs`, `package.json` | Adds 40 fail-closed negative fixtures: malformed, stale, malicious, contradictory, and privacy-unsafe cases for wallet RPC, Safe guard, ERC-4337 bundler, modular account runtime, delegated EOA runtime, x402 resource server, custody policy engine, and intent solver. |
 | 06 | pending | Harden crypto privacy and telemetry minimization | _pending_ | Should add regression gates that block raw wallet metadata, raw transaction payloads, custody callback bodies, provider error bodies, route secrets, private policy thresholds, and customer identifiers from intelligence outputs. |
 | 07 | pending | Add operator-supplied risk input contract | _pending_ | Should define how customer-owned or third-party risk, sanctions, screening, route, liquidity, and counterparty inputs are referenced by digest, scope, freshness, and provenance without becoming Attestor-native oracle claims. |
 | 08 | pending | Add crypto intelligence dashboard summary | _pending_ | Should expose operator-facing counts, top surfaces, top failure reasons, missing evidence classes, readiness coverage, and proof links without raw payload drilldown or financial-impact overclaims. |
@@ -116,4 +116,4 @@ This track is complete only when:
 
 ## Immediate Next Step
 
-Implement Step 05: expand negative conformance fixtures for crypto intelligence across the existing crypto execution surfaces.
+Implement Step 06: harden crypto privacy and telemetry minimization across intelligence outputs.

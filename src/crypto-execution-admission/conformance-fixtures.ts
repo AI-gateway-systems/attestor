@@ -13,6 +13,9 @@ import {
   type CryptoAdmissionTelemetrySignal,
   type CryptoAdmissionTelemetrySubject,
 } from './telemetry-receipts.js';
+import {
+  consequenceDataMinimizationMaterialSafetyFindings,
+} from '../consequence-admission/data-minimization-redaction-policy.js';
 import type {
   CryptoExecutionAdmissionOutcome,
   CryptoExecutionAdmissionPlan,
@@ -58,9 +61,21 @@ export const CRYPTO_ADMISSION_CONFORMANCE_RUNTIME_CHECKS = [
   'cloudevents-telemetry-shape',
   'signed-receipt-verification',
   'fail-closed-integrator-assertions',
+  'negative-fixture-coverage',
+  'negative-fixture-privacy-safety',
 ] as const;
 export type CryptoAdmissionConformanceRuntimeCheck =
   typeof CRYPTO_ADMISSION_CONFORMANCE_RUNTIME_CHECKS[number];
+
+export const CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_CLASSES = [
+  'malformed',
+  'stale',
+  'malicious',
+  'contradictory',
+  'privacy-unsafe',
+] as const;
+export type CryptoAdmissionNegativeConformanceClass =
+  typeof CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_CLASSES[number];
 
 export const CRYPTO_ADMISSION_CONFORMANCE_TELEMETRY_SIGNALS = [
   'admitted',
@@ -90,6 +105,34 @@ export interface CryptoAdmissionConformanceFixture {
   readonly externalIntegratorAssertions: readonly string[];
 }
 
+export interface CryptoAdmissionNegativeConformanceFixture {
+  readonly fixtureId: string;
+  readonly surface: CryptoAdmissionConformanceSurface;
+  readonly adapterKind: CryptoExecutionAdapterKind;
+  readonly negativeClass: CryptoAdmissionNegativeConformanceClass;
+  readonly standards: readonly string[];
+  readonly scenario: string;
+  readonly evidenceClass: string;
+  readonly expectedFindingCode: string;
+  readonly expectedPlanOutcome: Exclude<CryptoExecutionAdmissionOutcome, 'admit'>;
+  readonly expectedSignal: Exclude<
+    CryptoAdmissionTelemetrySignal,
+    'admitted' | 'receipt-issued'
+  >;
+  readonly expectedDownstreamAction:
+    | 'block-execution'
+    | 'collect-evidence'
+    | 'hold-for-review'
+    | 'reject-fixture';
+  readonly modelSafeFeedback: readonly string[];
+  readonly shouldFailClosed: true;
+  readonly rawPayloadStored: false;
+  readonly rawProviderResponseStored: false;
+  readonly customerIdentifiersStored: false;
+  readonly privatePolicyThresholdsStored: false;
+  readonly solverRouteSecretsStored: false;
+}
+
 export interface CryptoAdmissionConformanceFixtureSuite {
   readonly version: typeof CRYPTO_ADMISSION_CONFORMANCE_FIXTURES_SPEC_VERSION;
   readonly schemaDialect: typeof CRYPTO_ADMISSION_CONFORMANCE_SCHEMA_DIALECT;
@@ -108,6 +151,8 @@ export interface CryptoAdmissionConformanceDescriptor {
   readonly runtimeChecks: typeof CRYPTO_ADMISSION_CONFORMANCE_RUNTIME_CHECKS;
   readonly telemetrySignals: typeof CRYPTO_ADMISSION_CONFORMANCE_TELEMETRY_SIGNALS;
   readonly receiptClassifications: typeof CRYPTO_ADMISSION_RECEIPT_CLASSIFICATIONS;
+  readonly negativeFixtureClasses: typeof CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_CLASSES;
+  readonly negativeFixtureCount: number;
 }
 
 export type CryptoAdmissionConformanceFindingSeverity = 'error' | 'warning';
@@ -127,6 +172,27 @@ export interface CryptoAdmissionConformanceValidationResult {
   readonly findings: readonly CryptoAdmissionConformanceValidationFinding[];
 }
 
+export interface CryptoAdmissionNegativeConformanceValidationResult {
+  readonly status: 'valid' | 'invalid';
+  readonly fixtureCount: number;
+  readonly missingCoverage: readonly string[];
+  readonly findings: readonly CryptoAdmissionConformanceValidationFinding[];
+}
+
+interface NegativeConformanceCase {
+  readonly scenario: string;
+  readonly evidenceClass: string;
+  readonly expectedFindingCode: string;
+}
+
+interface NegativeConformanceSurfaceProfile {
+  readonly adapterKind: CryptoExecutionAdapterKind;
+  readonly standards: readonly string[];
+  readonly cases: Readonly<
+    Record<CryptoAdmissionNegativeConformanceClass, NegativeConformanceCase>
+  >;
+}
+
 const EXPECTED_SIGNAL_BY_OUTCOME: Readonly<
   Record<CryptoExecutionAdmissionOutcome, Exclude<CryptoAdmissionTelemetrySignal, 'receipt-issued'>>
 > = Object.freeze({
@@ -141,6 +207,282 @@ const EXPECTED_CLASSIFICATION_BY_OUTCOME: Readonly<
   admit: 'admitted',
   deny: 'blocked',
   'needs-evidence': 'missing-evidence',
+});
+
+const NEGATIVE_OUTCOME_BY_CLASS: Readonly<
+  Record<CryptoAdmissionNegativeConformanceClass, Exclude<CryptoExecutionAdmissionOutcome, 'admit'>>
+> = Object.freeze({
+  malformed: 'needs-evidence',
+  stale: 'needs-evidence',
+  malicious: 'deny',
+  contradictory: 'deny',
+  'privacy-unsafe': 'deny',
+});
+
+const NEGATIVE_ACTION_BY_CLASS: Readonly<
+  Record<
+    CryptoAdmissionNegativeConformanceClass,
+    CryptoAdmissionNegativeConformanceFixture['expectedDownstreamAction']
+  >
+> = Object.freeze({
+  malformed: 'collect-evidence',
+  stale: 'collect-evidence',
+  malicious: 'block-execution',
+  contradictory: 'hold-for-review',
+  'privacy-unsafe': 'reject-fixture',
+});
+
+const NEGATIVE_SURFACE_PROFILES: Readonly<
+  Record<CryptoAdmissionConformanceSurface, NegativeConformanceSurfaceProfile>
+> = Object.freeze({
+  'wallet-rpc': Object.freeze({
+    adapterKind: 'wallet-call-api',
+    standards: Object.freeze(['EIP-5792', 'ERC-7715', 'ERC-7902']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'Wallet RPC call bundle omits a parseable prepared-call structure.',
+        evidenceClass: 'prepared-call-bundle',
+        expectedFindingCode: 'wallet-rpc-call-bundle-malformed',
+      },
+      stale: {
+        scenario: 'Wallet capability evidence is older than the admitted wallet-call scope.',
+        evidenceClass: 'wallet-capabilities',
+        expectedFindingCode: 'wallet-rpc-capabilities-stale',
+      },
+      malicious: {
+        scenario: 'Wallet permission request attempts to expand spend or target scope.',
+        evidenceClass: 'wallet-permission-scope',
+        expectedFindingCode: 'wallet-rpc-permission-escalation',
+      },
+      contradictory: {
+        scenario: 'Wallet chain and prepared-call chain disagree.',
+        evidenceClass: 'wallet-chain-binding',
+        expectedFindingCode: 'wallet-rpc-chain-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'Wallet metadata includes data that must be rejected before feedback.',
+        evidenceClass: 'wallet-metadata-redaction',
+        expectedFindingCode: 'wallet-rpc-metadata-privacy-rejected',
+      },
+    }),
+  }),
+  'smart-account-guard': Object.freeze({
+    adapterKind: 'safe-guard',
+    standards: Object.freeze(['Safe Guard', 'Safe Module Guard', 'ERC-1271']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'Safe transaction hash evidence is not structurally valid.',
+        evidenceClass: 'safe-transaction-hash',
+        expectedFindingCode: 'safe-transaction-hash-malformed',
+      },
+      stale: {
+        scenario: 'Guard installation evidence is stale relative to the current Safe config.',
+        evidenceClass: 'guard-precheck',
+        expectedFindingCode: 'safe-guard-installation-stale',
+      },
+      malicious: {
+        scenario: 'Module path attempts to bypass the expected guard enforcement point.',
+        evidenceClass: 'module-guard-precheck',
+        expectedFindingCode: 'safe-module-guard-bypass',
+      },
+      contradictory: {
+        scenario: 'Safe owner or threshold evidence conflicts with the guard precheck.',
+        evidenceClass: 'safe-owner-threshold',
+        expectedFindingCode: 'safe-owner-threshold-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'Safe integration metadata contains material that must not enter telemetry.',
+        evidenceClass: 'safe-metadata-redaction',
+        expectedFindingCode: 'safe-metadata-privacy-rejected',
+      },
+    }),
+  }),
+  'account-abstraction-bundler': Object.freeze({
+    adapterKind: 'erc-4337-user-operation',
+    standards: Object.freeze(['ERC-4337', 'ERC-7562', 'ERC-1271']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'UserOperation evidence is not structurally parseable.',
+        evidenceClass: 'user-operation-hash',
+        expectedFindingCode: 'erc4337-user-operation-malformed',
+      },
+      stale: {
+        scenario: 'UserOperation validity or nonce evidence is stale.',
+        evidenceClass: 'simulate-validation-result',
+        expectedFindingCode: 'erc4337-validation-stale',
+      },
+      malicious: {
+        scenario: 'Paymaster, factory, or account validation attempts an unsafe execution path.',
+        evidenceClass: 'erc-7562-validation-scope',
+        expectedFindingCode: 'erc4337-validation-scope-malicious',
+      },
+      contradictory: {
+        scenario: 'EntryPoint, chain, or account evidence conflicts with the admitted plan.',
+        evidenceClass: 'entrypoint-chain-binding',
+        expectedFindingCode: 'erc4337-entrypoint-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'UserOperation metadata includes material that must be rejected before export.',
+        evidenceClass: 'user-operation-metadata-redaction',
+        expectedFindingCode: 'erc4337-metadata-privacy-rejected',
+      },
+    }),
+  }),
+  'modular-account-runtime': Object.freeze({
+    adapterKind: 'erc-6900-plugin',
+    standards: Object.freeze(['ERC-7579', 'ERC-6900', 'ERC-4337']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'Module or plugin manifest cannot be parsed into an approved runtime shape.',
+        evidenceClass: 'plugin-manifest-approval',
+        expectedFindingCode: 'modular-account-manifest-malformed',
+      },
+      stale: {
+        scenario: 'Module installation evidence is stale relative to runtime state.',
+        evidenceClass: 'module-installation-evidence',
+        expectedFindingCode: 'modular-account-installation-stale',
+      },
+      malicious: {
+        scenario: 'Module hook attempts to bypass validation or execution checks.',
+        evidenceClass: 'module-hook-precheck',
+        expectedFindingCode: 'modular-account-hook-bypass',
+      },
+      contradictory: {
+        scenario: 'Module type, selector, or plugin manifest evidence conflicts.',
+        evidenceClass: 'module-runtime-binding',
+        expectedFindingCode: 'modular-account-runtime-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'Module metadata includes material that must stay out of proof and telemetry.',
+        evidenceClass: 'module-metadata-redaction',
+        expectedFindingCode: 'modular-account-metadata-privacy-rejected',
+      },
+    }),
+  }),
+  'delegated-eoa-runtime': Object.freeze({
+    adapterKind: 'eip-7702-delegation',
+    standards: Object.freeze(['EIP-7702', 'EIP-5792', 'ERC-7902']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'Delegated EOA authorization tuple is not structurally valid.',
+        evidenceClass: 'authorization-list-tuple',
+        expectedFindingCode: 'eip7702-authorization-tuple-malformed',
+      },
+      stale: {
+        scenario: 'Delegation nonce or validity evidence is stale.',
+        evidenceClass: 'delegation-freshness',
+        expectedFindingCode: 'eip7702-delegation-stale',
+      },
+      malicious: {
+        scenario: 'Delegate code target is not approved for the admitted account scope.',
+        evidenceClass: 'delegate-code-approval',
+        expectedFindingCode: 'eip7702-delegate-code-malicious',
+      },
+      contradictory: {
+        scenario: 'Authorization tuple chain and wallet-call chain disagree.',
+        evidenceClass: 'delegated-chain-binding',
+        expectedFindingCode: 'eip7702-chain-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'Delegation metadata includes material that must not enter model feedback.',
+        evidenceClass: 'delegation-metadata-redaction',
+        expectedFindingCode: 'eip7702-metadata-privacy-rejected',
+      },
+    }),
+  }),
+  'agent-payment-http': Object.freeze({
+    adapterKind: 'x402-payment',
+    standards: Object.freeze(['x402-v2', 'HTTP 402', 'EIP-3009']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'x402 payment header or payment response cannot be decoded.',
+        evidenceClass: 'x402-payment-header',
+        expectedFindingCode: 'x402-payment-header-malformed',
+      },
+      stale: {
+        scenario: 'Payment requirement or facilitator verification is stale.',
+        evidenceClass: 'x402-payment-requirement',
+        expectedFindingCode: 'x402-payment-requirement-stale',
+      },
+      malicious: {
+        scenario: 'Facilitator, payee, or resource route attempts to change the admitted payment scope.',
+        evidenceClass: 'x402-facilitator-trust',
+        expectedFindingCode: 'x402-facilitator-or-payee-malicious',
+      },
+      contradictory: {
+        scenario: 'Amount, network, asset, or payer evidence conflicts across x402 handoff material.',
+        evidenceClass: 'x402-payment-verification',
+        expectedFindingCode: 'x402-payment-scope-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'x402 metadata includes material that must not be echoed to telemetry or proof.',
+        evidenceClass: 'x402-metadata-redaction',
+        expectedFindingCode: 'x402-metadata-privacy-rejected',
+      },
+    }),
+  }),
+  'custody-policy-engine': Object.freeze({
+    adapterKind: 'custody-cosigner',
+    standards: Object.freeze(['custody-policy-engine', 'co-signer-callback']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'Custody co-signer callback evidence cannot be parsed into a decision.',
+        evidenceClass: 'co-signer-response',
+        expectedFindingCode: 'custody-cosigner-callback-malformed',
+      },
+      stale: {
+        scenario: 'Custody policy decision is stale for the requested withdrawal.',
+        evidenceClass: 'custody-policy-decision',
+        expectedFindingCode: 'custody-policy-decision-stale',
+      },
+      malicious: {
+        scenario: 'Custody callback attempts to bypass quorum or approval policy.',
+        evidenceClass: 'custody-quorum-binding',
+        expectedFindingCode: 'custody-quorum-bypass',
+      },
+      contradictory: {
+        scenario: 'Provider status and Attestor custody policy outcome conflict.',
+        evidenceClass: 'custody-provider-status',
+        expectedFindingCode: 'custody-provider-status-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'Custody callback body includes material that must not be stored in outputs.',
+        evidenceClass: 'custody-callback-redaction',
+        expectedFindingCode: 'custody-callback-privacy-rejected',
+      },
+    }),
+  }),
+  'intent-solver': Object.freeze({
+    adapterKind: 'intent-settlement',
+    standards: Object.freeze(['ERC-7683', 'intent-settlement', 'solver-preflight']),
+    cases: Object.freeze({
+      malformed: {
+        scenario: 'Intent order or route commitment cannot be parsed.',
+        evidenceClass: 'solver-route-commitment',
+        expectedFindingCode: 'intent-solver-order-malformed',
+      },
+      stale: {
+        scenario: 'Settlement deadline, quote, or route freshness has expired.',
+        evidenceClass: 'settlement-preflight',
+        expectedFindingCode: 'intent-solver-settlement-stale',
+      },
+      malicious: {
+        scenario: 'Solver route attempts to substitute destination, asset, or settlement path.',
+        evidenceClass: 'solver-route-risk',
+        expectedFindingCode: 'intent-solver-route-malicious',
+      },
+      contradictory: {
+        scenario: 'Route commitment and settlement preflight conflict.',
+        evidenceClass: 'route-settlement-binding',
+        expectedFindingCode: 'intent-solver-route-contradiction',
+      },
+      'privacy-unsafe': {
+        scenario: 'Solver route metadata includes material that must not be disclosed.',
+        evidenceClass: 'solver-route-redaction',
+        expectedFindingCode: 'intent-solver-route-privacy-rejected',
+      },
+    }),
+  }),
 });
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -182,6 +524,57 @@ function pushError(
   });
 }
 
+function negativeFixture(input: {
+  readonly surface: CryptoAdmissionConformanceSurface;
+  readonly profile: NegativeConformanceSurfaceProfile;
+  readonly negativeClass: CryptoAdmissionNegativeConformanceClass;
+  readonly scenario: NegativeConformanceCase;
+}): CryptoAdmissionNegativeConformanceFixture {
+  const expectedPlanOutcome = NEGATIVE_OUTCOME_BY_CLASS[input.negativeClass];
+  const expectedSignal = EXPECTED_SIGNAL_BY_OUTCOME[expectedPlanOutcome] as Exclude<
+    CryptoAdmissionTelemetrySignal,
+    'admitted' | 'receipt-issued'
+  >;
+  return Object.freeze({
+    fixtureId: `${input.surface}-${input.negativeClass}-negative-v1`,
+    surface: input.surface,
+    adapterKind: input.profile.adapterKind,
+    negativeClass: input.negativeClass,
+    standards: input.profile.standards,
+    scenario: input.scenario.scenario,
+    evidenceClass: input.scenario.evidenceClass,
+    expectedFindingCode: input.scenario.expectedFindingCode,
+    expectedPlanOutcome,
+    expectedSignal,
+    expectedDownstreamAction: NEGATIVE_ACTION_BY_CLASS[input.negativeClass],
+    modelSafeFeedback: Object.freeze([
+      `negative-class:${input.negativeClass}`,
+      `finding:${input.scenario.expectedFindingCode}`,
+      `evidence:${input.scenario.evidenceClass}`,
+    ]),
+    shouldFailClosed: true,
+    rawPayloadStored: false,
+    rawProviderResponseStored: false,
+    customerIdentifiersStored: false,
+    privatePolicyThresholdsStored: false,
+    solverRouteSecretsStored: false,
+  });
+}
+
+export const CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_FIXTURES = Object.freeze(
+  CRYPTO_ADMISSION_CONFORMANCE_REQUIRED_SURFACES.flatMap((surface) => {
+    const profile = NEGATIVE_SURFACE_PROFILES[surface];
+    return CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_CLASSES.map((negativeClass) =>
+      negativeFixture({
+        surface,
+        profile,
+        negativeClass,
+        scenario: profile.cases[negativeClass],
+      }),
+    );
+  }),
+);
+
 function isRequiredSurface(value: unknown): value is CryptoAdmissionConformanceSurface {
   return typeof value === 'string' &&
     CRYPTO_ADMISSION_CONFORMANCE_REQUIRED_SURFACES.includes(
@@ -205,6 +598,13 @@ function isReceiptClassification(
   return typeof value === 'string' &&
     CRYPTO_ADMISSION_RECEIPT_CLASSIFICATIONS.includes(
       value as CryptoAdmissionReceiptClassification,
+    );
+}
+
+function isNegativeClass(value: unknown): value is CryptoAdmissionNegativeConformanceClass {
+  return typeof value === 'string' &&
+    CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_CLASSES.includes(
+      value as CryptoAdmissionNegativeConformanceClass,
     );
 }
 
@@ -678,6 +1078,120 @@ function fixtureSignerFrom(input: Record<string, unknown>): CryptoAdmissionConfo
   });
 }
 
+function validateNegativeFixture(
+  fixture: unknown,
+  index: number,
+  seenFixtureIds: Set<string>,
+  coverage: Set<string>,
+  findings: CryptoAdmissionConformanceValidationFinding[],
+): void {
+  const path = `negativeFixtures[${index}]`;
+  if (!isRecord(fixture)) {
+    pushError(findings, path, 'negative-fixture-not-object', 'Negative fixture must be an object.');
+    return;
+  }
+
+  const fixtureId = stringAt(fixture, 'fixtureId');
+  if (fixtureId == null || fixtureId.length === 0) {
+    pushError(findings, `${path}.fixtureId`, 'negative-fixture-id-required', 'Fixture id is required.');
+  } else if (seenFixtureIds.has(fixtureId)) {
+    pushError(findings, `${path}.fixtureId`, 'negative-fixture-id-duplicate', `Fixture id ${fixtureId} appears more than once.`);
+  } else {
+    seenFixtureIds.add(fixtureId);
+  }
+
+  const surface = fixture.surface;
+  const negativeClass = fixture.negativeClass;
+  if (!isRequiredSurface(surface)) {
+    pushError(findings, `${path}.surface`, 'negative-surface-unsupported', 'Negative fixture surface is unsupported.');
+  }
+  if (!isNegativeClass(negativeClass)) {
+    pushError(findings, `${path}.negativeClass`, 'negative-class-unsupported', 'Negative fixture class is unsupported.');
+  }
+  if (isRequiredSurface(surface) && isNegativeClass(negativeClass)) {
+    coverage.add(`${surface}:${negativeClass}`);
+    const expectedProfile = NEGATIVE_SURFACE_PROFILES[surface];
+    assertEqual(
+      findings,
+      fixture.adapterKind,
+      expectedProfile.adapterKind,
+      `${path}.adapterKind`,
+      'negative-adapter-kind-mismatch',
+      'Negative fixture adapter kind must match its required surface.',
+    );
+  }
+
+  if (fixture.shouldFailClosed !== true) {
+    pushError(findings, `${path}.shouldFailClosed`, 'negative-fixture-not-fail-closed', 'Negative fixture must fail closed.');
+  }
+  for (const flag of [
+    'rawPayloadStored',
+    'rawProviderResponseStored',
+    'customerIdentifiersStored',
+    'privatePolicyThresholdsStored',
+    'solverRouteSecretsStored',
+  ]) {
+    if (fixture[flag] !== false) {
+      pushError(findings, `${path}.${flag}`, 'negative-privacy-flag-not-false', `${flag} must be false.`);
+    }
+  }
+
+  const expectedPlanOutcome = fixture.expectedPlanOutcome;
+  const expectedSignal = fixture.expectedSignal;
+  if (!isPlanOutcome(expectedPlanOutcome) || expectedPlanOutcome === 'admit') {
+    pushError(findings, `${path}.expectedPlanOutcome`, 'negative-plan-outcome-invalid', 'Negative fixture cannot expect an admit outcome.');
+  }
+  if (!isTelemetrySignal(expectedSignal) || expectedSignal === 'admitted') {
+    pushError(findings, `${path}.expectedSignal`, 'negative-signal-invalid', 'Negative fixture cannot expect an admitted signal.');
+  }
+  if (
+    isPlanOutcome(expectedPlanOutcome) &&
+    expectedPlanOutcome !== 'admit' &&
+    isTelemetrySignal(expectedSignal)
+  ) {
+    assertEqual(
+      findings,
+      expectedSignal,
+      EXPECTED_SIGNAL_BY_OUTCOME[expectedPlanOutcome],
+      `${path}.expectedSignal`,
+      'negative-signal-outcome-mismatch',
+      'Negative fixture signal must match the expected fail-closed plan outcome.',
+    );
+  }
+
+  if (!hasStringArray(fixture, 'standards') || arrayAt(fixture, 'standards').length === 0) {
+    pushError(findings, `${path}.standards`, 'negative-standards-required', 'Negative fixture must name at least one standard.');
+  }
+  for (const field of ['scenario', 'evidenceClass', 'expectedFindingCode']) {
+    if (stringAt(fixture, field) == null) {
+      pushError(findings, `${path}.${field}`, 'negative-field-required', `${field} is required.`);
+    }
+  }
+  if (!hasStringArray(fixture, 'modelSafeFeedback') || arrayAt(fixture, 'modelSafeFeedback').length < 3) {
+    pushError(findings, `${path}.modelSafeFeedback`, 'negative-feedback-required', 'Negative fixture feedback must be model-safe and actionable.');
+  }
+
+  const safetyFindings = consequenceDataMinimizationMaterialSafetyFindings({
+    material: JSON.stringify({
+      fixtureId,
+      scenario: fixture.scenario,
+      evidenceClass: fixture.evidenceClass,
+      expectedFindingCode: fixture.expectedFindingCode,
+      modelSafeFeedback: fixture.modelSafeFeedback,
+      rawPayloadStored: fixture.rawPayloadStored,
+    }),
+    findingSubject: `negative fixture ${fixtureId ?? index}`,
+  });
+  for (const safetyFinding of safetyFindings) {
+    pushError(
+      findings,
+      path,
+      'negative-fixture-privacy-unsafe',
+      safetyFinding,
+    );
+  }
+}
+
 export function validateCryptoAdmissionConformanceFixtureSuite(
   suite: unknown,
 ): CryptoAdmissionConformanceValidationResult {
@@ -768,6 +1282,43 @@ export function validateCryptoAdmissionConformanceFixtureSuite(
   });
 }
 
+export function validateCryptoAdmissionNegativeConformanceFixtures(
+  fixtures: readonly unknown[] = CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_FIXTURES,
+): CryptoAdmissionNegativeConformanceValidationResult {
+  const findings: CryptoAdmissionConformanceValidationFinding[] = [];
+  const coverage = new Set<string>();
+  const seenFixtureIds = new Set<string>();
+
+  fixtures.forEach((fixture, index) =>
+    validateNegativeFixture(fixture, index, seenFixtureIds, coverage, findings),
+  );
+
+  const expectedCoverage = CRYPTO_ADMISSION_CONFORMANCE_REQUIRED_SURFACES.flatMap((surface) =>
+    CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_CLASSES.map(
+      (negativeClass) => `${surface}:${negativeClass}`,
+    ),
+  );
+  const missingCoverage = Object.freeze(
+    expectedCoverage.filter((entry) => !coverage.has(entry)),
+  );
+  for (const missing of missingCoverage) {
+    pushError(
+      findings,
+      '$.negativeFixtures',
+      'negative-fixture-coverage-missing',
+      `No negative conformance fixture covers ${missing}.`,
+    );
+  }
+
+  const errorCount = findings.filter((finding) => finding.severity === 'error').length;
+  return Object.freeze({
+    status: errorCount === 0 ? 'valid' : 'invalid',
+    fixtureCount: fixtures.length,
+    missingCoverage,
+    findings: Object.freeze(findings),
+  });
+}
+
 export function cryptoAdmissionConformanceDescriptor():
 CryptoAdmissionConformanceDescriptor {
   return Object.freeze({
@@ -779,5 +1330,7 @@ CryptoAdmissionConformanceDescriptor {
     runtimeChecks: CRYPTO_ADMISSION_CONFORMANCE_RUNTIME_CHECKS,
     telemetrySignals: CRYPTO_ADMISSION_CONFORMANCE_TELEMETRY_SIGNALS,
     receiptClassifications: CRYPTO_ADMISSION_RECEIPT_CLASSIFICATIONS,
+    negativeFixtureClasses: CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_CLASSES,
+    negativeFixtureCount: CRYPTO_ADMISSION_NEGATIVE_CONFORMANCE_FIXTURES.length,
   });
 }
