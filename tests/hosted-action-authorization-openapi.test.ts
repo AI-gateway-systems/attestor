@@ -25,6 +25,11 @@ type OpenApiDocument = {
     readonly complianceClaimed: boolean;
     readonly autoEnforceFromShadowReads: boolean;
     readonly rawPayloadStoredByShadowReads: boolean;
+    readonly rawToolPayloadStoredByShadowReads: boolean;
+    readonly providerBodiesExposedToModel: boolean;
+    readonly modelSafeFeedbackOnly: boolean;
+    readonly toolExecutionAuthorityGranted: boolean;
+    readonly unsafeRetryAuthorityGranted: boolean;
     readonly publicHostedCryptoRouteClaimed: boolean;
   };
 };
@@ -132,7 +137,16 @@ function testOpenApiContractPreservesShadowBoundaries(): void {
   equal(boundary.complianceClaimed, false, 'Hosted OpenAPI: compliance is not claimed');
   equal(boundary.autoEnforceFromShadowReads, false, 'Hosted OpenAPI: shadow reads cannot auto-enforce');
   equal(boundary.rawPayloadStoredByShadowReads, false, 'Hosted OpenAPI: shadow reads stay data-minimized');
+  equal(boundary.rawToolPayloadStoredByShadowReads, false, 'Hosted OpenAPI: shadow reads cannot store raw tool payloads');
+  equal(boundary.providerBodiesExposedToModel, false, 'Hosted OpenAPI: provider bodies are not model-facing');
+  equal(boundary.modelSafeFeedbackOnly, true, 'Hosted OpenAPI: admission feedback is model-safe only');
+  equal(boundary.toolExecutionAuthorityGranted, false, 'Hosted OpenAPI: admission responses do not grant tool execution authority');
+  equal(boundary.unsafeRetryAuthorityGranted, false, 'Hosted OpenAPI: unsafe retry authority is not granted');
   equal(boundary.publicHostedCryptoRouteClaimed, false, 'Hosted OpenAPI: hosted crypto route is not claimed');
+  includes(text, '"ModelSafeFeedback"', 'Hosted OpenAPI: model-safe feedback schema is documented');
+  includes(text, '"safeForModel"', 'Hosted OpenAPI: model-safe feedback flag is documented');
+  includes(text, '"safeInstruction"', 'Hosted OpenAPI: safe instruction boundary is documented');
+  includes(text, '"operatorOnlyReasonCodes"', 'Hosted OpenAPI: operator-only retry boundary is documented');
   includes(text, '"approvalRequired"', 'Hosted OpenAPI: approval boundary is documented');
   includes(text, '"autoEnforce"', 'Hosted OpenAPI: autoEnforce boundary is documented');
   includes(text, '"decisionSupportOnly"', 'Hosted OpenAPI: dashboard is decision support only');
