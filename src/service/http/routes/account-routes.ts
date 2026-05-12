@@ -618,11 +618,16 @@ app.get('/api/v1/auth/saml/metadata', (c) => {
 app.post('/api/v1/auth/saml/login', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const email = typeof body.email === 'string' ? body.email.trim() : '';
+  const authAttempt = authAttemptFor(c, email);
+  const samlLoginRateLimit = await maybeRateLimitAuthAttempt(c, authAttempt);
+  if (samlLoginRateLimit) return samlLoginRateLimit;
+
   try {
     const authorization = buildHostedSamlAuthorizationRequest({
       requestOrigin: c.req.url,
       emailHint: email || null,
     });
+    await recordAuthAttemptUse(authAttempt);
     return c.json({ authorization });
   } catch (err) {
     const message = accountRouteErrorMessage(err);
@@ -772,11 +777,16 @@ app.post('/api/v1/auth/saml/acs', async (c) => {
 app.post('/api/v1/auth/oidc/login', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const email = typeof body.email === 'string' ? body.email.trim() : '';
+  const authAttempt = authAttemptFor(c, email);
+  const oidcLoginRateLimit = await maybeRateLimitAuthAttempt(c, authAttempt);
+  if (oidcLoginRateLimit) return oidcLoginRateLimit;
+
   try {
     const authorization = await buildHostedOidcAuthorizationRequest({
       requestOrigin: c.req.url,
       emailHint: email || null,
     });
+    await recordAuthAttemptUse(authAttempt);
     return c.json({
       authorization: {
         mode: authorization.mode,
