@@ -26,10 +26,13 @@ The OpenAPI contract is an integration truth source, not a maturity claim.
 It keeps these constraints explicit:
 
 - the published admission route is `POST /api/v1/admissions`
+- admission feedback is model-safe feedback only: reason codes, missing field names, evidence kind names, operator-only reason codes, and safe instruction
+- admission responses do not grant tool execution authority or unsafe retry authority
 - shadow reads are read-only and served with `cache-control: no-store`
 - failure responses use RFC 9457-style problem details with Attestor fail-closed fields
 - shadow reads do not activate policy, approve candidates, infer business impact, or auto-enforce
-- shadow reads do not return raw prompts, raw tool payloads, raw evidence ids, customer records, payment secrets, wallet material, or downstream response bodies
+- shadow reads do not return raw prompts, raw tool payloads, raw evidence ids, customer records, provider bodies, payment secrets, wallet material, or downstream response bodies
+- protected adapters verify Attestor admission before execution and record digest-only tool invocation evidence rather than raw tool payloads or raw results
 - no public hosted crypto HTTP route is claimed by this contract
 
 ## Research Posture

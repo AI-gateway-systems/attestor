@@ -447,6 +447,7 @@
           "allowed",
           "failClosed",
           "reasonCodes",
+          "feedback",
           "digest"
         ],
         "properties": {
@@ -465,9 +466,63 @@
               "type": "string"
             }
           },
+          "feedback": {
+            "$ref": "#/components/schemas/ModelSafeFeedback"
+          },
           "digest": {
             "type": "string",
             "pattern": "^sha256:"
+          }
+        }
+      },
+      "ModelSafeFeedback": {
+        "type": "object",
+        "description": "Model-facing feedback is deliberately data-minimized: reason codes, missing field names, evidence kinds, operator-only reasons, and safe instruction only. It is not a raw prompt, raw tool payload, provider body, or downstream execution grant.",
+        "required": [
+          "safeForModel",
+          "reasonCodes",
+          "missingFields",
+          "requiredEvidenceKinds",
+          "operatorOnlyReasonCodes",
+          "safeInstruction"
+        ],
+        "properties": {
+          "disclosureLevel": {
+            "enum": [
+              "minimal",
+              "actionable",
+              "diagnostic"
+            ]
+          },
+          "safeForModel": {
+            "const": true
+          },
+          "reasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missingFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requiredEvidenceKinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "operatorOnlyReasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "safeInstruction": {
+            "type": "string"
           }
         }
       },
@@ -823,6 +878,11 @@
     "complianceClaimed": false,
     "autoEnforceFromShadowReads": false,
     "rawPayloadStoredByShadowReads": false,
+    "rawToolPayloadStoredByShadowReads": false,
+    "providerBodiesExposedToModel": false,
+    "modelSafeFeedbackOnly": true,
+    "toolExecutionAuthorityGranted": false,
+    "unsafeRetryAuthorityGranted": false,
     "publicHostedCryptoRouteClaimed": false
   }
 }

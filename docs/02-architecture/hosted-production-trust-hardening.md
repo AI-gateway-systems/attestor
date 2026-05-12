@@ -27,6 +27,9 @@ Reviewed on 2026-05-11 before opening this track:
 - Stripe webhook signature guidance warns that signature verification depends on the exact raw payload and signed header. Hosted Stripe webhook routes must therefore pass the unmodified request body into the verifier before parsing or projecting billing state: [Stripe webhook signatures](https://docs.stripe.com/webhooks/signature)
 - BullMQ retry and stalled-job guidance treats attempts, backoff, and stalled recovery as explicit worker policy. Hosted async jobs therefore keep retry, backoff, stalled limit, tenant execution lease, and dead-letter recovery as first-class controls: [BullMQ retrying failing jobs](https://docs.bullmq.io/guide/retrying-failing-jobs), [BullMQ stalled jobs](https://docs.bullmq.io/guide/jobs/stalled)
 - OWASP API4:2023 treats unbounded repeated work as a resource-consumption risk. Provider callbacks, async queue admission, retry loops, and dead-letter recovery must therefore be bounded by dedupe, quota, rate, retry, and privacy-safe evidence: [OWASP API4:2023](https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/)
+- OWASP Top 10 for Agentic Applications 2026 treats tool misuse and excessive agent authority as first-order risks for agent systems. Hosted model feedback, tool wrappers, retries, and recommendation reads must therefore separate model-readable guidance from executable authority: [OWASP Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
+- NIST AI RMF frames trustworthy AI risk work as govern, map, measure, and manage functions. Attestor's LLM/agent boundary therefore needs machine-readable controls plus tests, not only prose warnings: [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework)
+- OpenAI agent safety guidance recommends structured outputs, tool approvals, guardrails, evals, and isolating untrusted data from tool-driving agent behavior. Attestor's boundary follows the same pattern by exposing structured safe feedback and keeping tool authority outside model-visible text: [OpenAI Safety in building agents](https://platform.openai.com/docs/guides/agent-builder-safety)
 
 ## Step List
 
@@ -35,7 +38,7 @@ Reviewed on 2026-05-11 before opening this track:
 | 01 | complete | Hosted API Authorization Matrix | `src/service/hosted-api-authorization-matrix.ts`, `tests/hosted-api-authorization-matrix.test.ts`, `src/service/http/routes/pipeline-async-routes.ts`, `docs/01-overview/hosted-journey-contract.md`, `package.json` | Adds a machine-readable route authorization matrix for public metadata, credential challenge, account plane, tenant runtime, signed webhooks, shadow control, and operator admin routes. Also fixes the confirmed async job status BOLA edge by requiring the job tenant to match the current tenant before returning status. |
 | 02 | complete | Sensitive Business Flow Abuse Guard | `src/service/hosted-sensitive-business-flow-abuse-guard.ts`, `tests/hosted-sensitive-business-flow-abuse-guard.test.ts`, `src/service/http/routes/account-routes.ts`, `package.json` | Adds a machine-readable abuse-control profile for checkout, portal, API-key issue/rotate/status/revoke, tenant admin, signup/bootstrap, auth challenges, tenant execution, provider webhooks, and release-bound export. Also wires SAML and OIDC login initiation through the shared auth abuse budget. |
 | 03 | complete | Webhook And Async Reconciliation Hardening | `src/service/hosted-webhook-async-reconciliation-hardening.ts`, `tests/hosted-webhook-async-reconciliation-hardening.test.ts`, `src/service/account-store.ts`, `src/service/control-plane-store.ts`, `src/service/application/stripe-webhook-billing-processor.ts`, `package.json` | Adds a machine-readable reconciliation profile for Stripe ingress, billing convergence, email provider webhooks, tenant async execution, and dead-letter recovery. Also adds provider-event ordering guards so older Stripe subscription and invoice events are finalized as ignored instead of overwriting fresher state. |
-| 04 | not started | LLM/Agent Tool-Use Boundary Guard | TBD | Ensure hosted action-authorization, shadow, recommendation, and model-safe feedback paths cannot leak private prompts, raw tool payloads, provider bodies, or unsafe retry authority. |
+| 04 | complete | LLM/Agent Tool-Use Boundary Guard | `src/service/hosted-llm-agent-tool-boundary-guard.ts`, `tests/hosted-llm-agent-tool-boundary-guard.test.ts`, `docs/api/attestor-action-authorization.openapi.json`, `tests/hosted-action-authorization-openapi.test.ts`, `package.json` | Adds a machine-readable boundary profile across model-safe admission feedback, agent retry authority, shadow recommendation reads, protected adapter execution, and proof/dashboard/problem-detail surfaces. Also extends the OpenAPI contract with model-safe feedback and explicit no-tool-authority/no-unsafe-retry boundary flags. |
 | 05 | not started | Production Runtime Health Contract | TBD | Define route, worker, queue, storage, webhook, and degraded-mode readiness contracts aligned with readiness/liveness/startup semantics. |
 | 06 | not started | Release Provenance And SLSA Alignment | TBD | Tie build, SBOM, package surface, proof packet, and release evidence into verifiable provenance and tamper-evident artifacts. |
 | 07 | not started | Observability Privacy And Incident Evidence | TBD | Add privacy-safe operational evidence, alert context, incident packet shape, low-cardinality telemetry guard, and no-raw-customer-data checks. |
@@ -45,7 +48,7 @@ Reviewed on 2026-05-11 before opening this track:
 
 ## Current Posture
 
-Steps 01-03 are complete in code and test coverage. Steps 04-09 remain implementation work. Step 10 remains blocked until a working deployment target is available.
+Steps 01-04 are complete in code and test coverage. Steps 05-09 remain implementation work. Step 10 remains blocked until a working deployment target is available.
 
 ## Step 02 Evidence
 
@@ -65,3 +68,13 @@ The webhook and async reconciliation guard is repo-side hardening, not a product
 - `src/service/account-store.ts` and `src/service/control-plane-store.ts` now persist provider-created timestamps for subscription and invoice event lanes and reject stale provider events before they can regress account or billing state.
 - `src/service/application/stripe-webhook-billing-processor.ts` now finalizes stale Stripe subscription and invoice events as ignored with deterministic reasons instead of syncing tenant plan, entitlement, or applied audit records from older event material.
 - Async production readiness is still separate from deployment: Redis-backed queue/worker readiness, deployment env, service restart, and runtime smoke tests remain Step 10 work on a working deployment target.
+
+## Step 04 Evidence
+
+The LLM/agent tool-use boundary guard is repo-side hardening, not a production rollout claim.
+
+- `src/service/hosted-llm-agent-tool-boundary-guard.ts` declares the boundary profile across model-safe feedback, retry authority, shadow recommendation reads, protected adapter execution, and proof/dashboard/problem-detail surfaces.
+- `tests/hosted-llm-agent-tool-boundary-guard.test.ts` verifies source evidence, validation evidence, controls, data-minimization descriptors, retry boundaries, adapter boundaries, OpenAPI exposure, package-runner exposure, and secret-safe output.
+- `docs/api/attestor-action-authorization.openapi.json` now documents `ModelSafeFeedback` and explicit boundary flags: model-safe feedback only, no tool execution authority, no unsafe retry authority, no provider bodies exposed to model, and no raw tool payload storage from shadow reads.
+- `tests/hosted-action-authorization-openapi.test.ts` keeps the public action-authorization contract aligned with those model, tool, retry, and shadow-read boundaries.
+- Production readiness is still separate from this repo-side guard: deployment env, service restart, readiness probes, webhook smoke tests, and hosted product smoke tests remain Step 10 work on a working deployment target.
