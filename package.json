@@ -411,6 +411,7 @@
     "fast-xml-builder": "^1.2.0",
     "fast-xml-parser": "^5.7.2",
     "follow-redirects": "^1.16.0",
+    "protobufjs": "8.2.0",
     "uuid": "^14.0.0"
   },
   "engines": {
