@@ -80,6 +80,13 @@ The output is digest-first and data-minimized. It must not contain raw prompts,
 provider bodies, customer identifiers, payment details, wallet material,
 credentials, private thresholds, or downstream error bodies.
 
+Generated artifact review is supplied by the
+[Action Surface Integration Artifacts](action-surface-integration-artifacts.md)
+layer. That layer can prepare SDK, gateway proxy, MCP tool gateway, sidecar,
+provider connector, credential isolation, Policy Twin, and red-team replay
+drafts, but the readiness contract still treats them as untrusted until customer
+review and downstream control evidence are present.
+
 ## Credential Isolation
 
 Credential isolation is the difference between advisory guidance and a practical
@@ -139,7 +146,7 @@ path to enforcement.
 shadow capture
   -> Policy Foundry candidate and readiness
   -> Integration Mode Readiness
-  -> generated adapter/proxy/gateway artifacts
+  -> Action Surface Integration Artifacts
   -> customer review
   -> scoped enforcement only after downstream verification closes
 ```
