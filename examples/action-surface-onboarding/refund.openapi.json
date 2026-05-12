@@ -1,0 +1,72 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Refund Action Surface Example",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/refunds": {
+      "post": {
+        "operationId": "issueRefund",
+        "tags": ["refunds"],
+        "summary": "Issue a customer refund after policy, authority, and evidence review.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["orderId", "amount"],
+                "properties": {
+                  "orderId": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "object",
+                    "required": ["value", "currency"],
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string",
+                        "enum": ["USD", "EUR"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Refund request accepted for processing."
+          }
+        }
+      }
+    },
+    "/refunds/{refundId}/approve": {
+      "post": {
+        "operationId": "approveRefund",
+        "tags": ["refunds"],
+        "summary": "Approve a queued refund after human review.",
+        "parameters": [
+          {
+            "name": "refundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refund approval recorded."
+          }
+        }
+      }
+    }
+  }
+}

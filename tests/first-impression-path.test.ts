@@ -58,10 +58,12 @@ function testReadmeHasAFirstImpressionPath(): void {
   includes(readme, 'AI action authorization infrastructure', 'README: positions Attestor as infrastructure, not a generic tool');
   includes(readme, '## Try It In 60 Seconds', 'README: exposes a fast first run near the top');
   includes(readme, 'npm run example:admission', 'README: shows the first runnable command');
+  includes(readme, 'npm run example:action-surface-onboarding', 'README: shows the first onboarding packet command');
   includes(readme, 'one proposed consequence admitted with proof references', 'README: explains admitted proof refs');
   includes(readme, 'one proposed consequence blocked fail-closed', 'README: explains blocked fail-closed path');
   includes(readme, 'a customer-side gate that only proceeds when Attestor allows it', 'README: explains downstream gate behavior');
   includes(readme, 'a non-bypassable gateway demo where a payment adapter cannot dispatch without verifier allow', 'README: explains non-bypassable adapter behavior');
+  includes(readme, 'an action-surface onboarding packet rendered from a safe OpenAPI example without deploying anything', 'README: explains safe onboarding packet example');
   includes(readme, '## Decision Model', 'README: makes the decision vocabulary prominent');
   includes(readme, 'Admission responses also carry model-safe feedback.', 'README: exposes safe retry feedback near the decision model');
   includes(readme, 'sameRequestReplayAllowed', 'README: makes replay unsafe for model repair');
@@ -88,10 +90,12 @@ function testTryFirstDocKeepsTheBoundaryHonest(): void {
 
   includes(doc, 'npm run example:admission', 'Try-first doc: includes the runnable command');
   includes(doc, 'npm run example:non-bypassable-gateway', 'Try-first doc: includes the non-bypassable gateway command');
+  includes(doc, 'npm run example:action-surface-onboarding', 'Try-first doc: includes the action-surface onboarding example command');
   includes(doc, 'one is admitted', 'Try-first doc: explains admitted path');
   includes(doc, 'one is blocked fail-closed', 'Try-first doc: explains blocked path');
   includes(doc, 'proposed consequence -> Attestor admission decision -> proof refs -> downstream gate', 'Try-first doc: explains the operating shape');
   includes(doc, 'not the generic hosted `POST /api/v1/admissions` route', 'Try-first doc: separates local demo from generic hosted route');
+  includes(doc, 'not an apply step for the generated action-surface onboarding packet', 'Try-first doc: separates onboarding packet from apply');
   includes(doc, 'not a public hosted crypto route', 'Try-first doc: does not invent a hosted crypto route');
   includes(doc, 'not a wallet, custody platform, agent runtime, or orchestration layer', 'Try-first doc: keeps Attestor role narrow');
   includes(doc, 'does not auto-detect packs from payload shape', 'Try-first doc: rejects automatic pack detection');
@@ -125,6 +129,7 @@ function testPackageScriptsProtectThePath(): void {
 
   includes(packageJson.scripts['example:admission'], 'examples/first-useful-admission-demo.ts', 'Package: exposes the admission example');
   includes(packageJson.scripts['example:non-bypassable-gateway'], 'examples/non-bypassable-gateway-demo.ts', 'Package: exposes the non-bypassable gateway example');
+  includes(packageJson.scripts['example:action-surface-onboarding'], 'examples/action-surface-onboarding/refund.openapi.json', 'Package: exposes the action-surface onboarding example');
   includes(packageJson.scripts['test:first-impression-path'], 'tests/first-impression-path.test.ts', 'Package: exposes the first impression guard');
   includes(packageJson.scripts.test, 'scripts/run-suite.mjs test', 'Package: npm test delegates to the suite runner');
   includes(packageJson.scripts.verify, 'scripts/run-suite.mjs verify', 'Package: verify delegates to the suite runner');
