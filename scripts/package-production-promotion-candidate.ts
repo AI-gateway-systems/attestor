@@ -766,7 +766,7 @@ export async function packageProductionPromotionCandidate(options?: {
     },
     attestation: {
       localSignature: null,
-      githubVerificationCommand: 'gh attestation verify production-promotion-candidate.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml',
+      githubVerificationCommand: 'gh attestation verify production-promotion-candidate.tar.gz -R AI-gateway-systems/attestor --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml',
       nonClaim: 'GitHub artifact attestation is not produced by the local packager.',
     },
   }), 'utf8');
@@ -807,7 +807,7 @@ export async function packageProductionPromotionCandidate(options?: {
     },
     attestation: {
       localSignature,
-      githubVerificationCommand: 'gh attestation verify production-promotion-candidate.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml',
+      githubVerificationCommand: 'gh attestation verify production-promotion-candidate.tar.gz -R AI-gateway-systems/attestor --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml',
       nonClaim: 'The local packager creates an Attestor Ed25519 attestation. GitHub artifact attestation is only claimed after a GitHub Actions attestation verifies this exact archive.',
     },
   };

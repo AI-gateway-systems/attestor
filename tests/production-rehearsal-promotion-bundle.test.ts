@@ -194,7 +194,7 @@ function manifest(root: string, options?: {
       owner: 'operator@example.invalid',
     },
     source: {
-      repository: '0xlamarr-labs/attestor',
+      repository: 'AI-gateway-systems/attestor',
       commit: '62cf89b',
       tag: 'v0.2-production-candidate',
       release: 'v0.2-production-candidate',

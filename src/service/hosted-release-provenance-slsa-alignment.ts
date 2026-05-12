@@ -132,7 +132,7 @@ export const HOSTED_RELEASE_PROVENANCE_SLSA_GUARDS: readonly HostedReleaseProven
     provenanceBoundary:
       'The archive is produced after rendering proof surface, proof showcase, SBOM, evaluation docs, and security material in the release workflow.',
     verificationBoundary:
-      'The documented reviewer command uses `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`.',
+      'The documented reviewer command uses `gh attestation verify evaluation-artifacts.tar.gz -R AI-gateway-systems/attestor --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml`.',
     nonClaimBoundary:
       'A verified archive proves provenance for the selected evaluation release artifacts; it does not prove customer-operated deployment provenance or live production readiness.',
     implementationEvidence: [

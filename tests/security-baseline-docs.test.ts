@@ -152,7 +152,7 @@ function testAttestationPlanKeepsPermissionsAndClaimsScoped(): void {
   includes(plan, 'attestations: write', 'Security baseline: plan scopes future attestation permission');
   includes(plan, 'id-token: write', 'Security baseline: plan scopes future OIDC permission');
   includes(plan, 'release-provenance.yml', 'Security baseline: plan points at the concrete workflow file');
-  includes(plan, 'gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor', 'Security baseline: plan documents reviewer verification');
+  includes(plan, 'gh attestation verify evaluation-artifacts.tar.gz -R AI-gateway-systems/attestor', 'Security baseline: plan documents reviewer verification');
   includes(plan, 'does not claim full production supply-chain provenance', 'Security baseline: plan stays honest about scope');
   excludes(plan, /\bfull production supply-chain provenance is complete\b/iu, 'Security baseline: plan must not overclaim provenance scope');
 }
