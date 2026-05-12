@@ -145,9 +145,10 @@ declared API/tool/workflow surfaces + shadow events
   -> Action Surface Manifest Intake
   -> Action Surface Declaration Ingestors
   -> Action Surface Profiler
+  -> Action Surface Integration Artifacts
   -> Policy Foundry
   -> Integration Mode Readiness
-  -> generated verifier/proxy/adapter review
+  -> customer review of verifier/proxy/adapter drafts
   -> scoped enforcement only after downstream checks close
 ```
 
