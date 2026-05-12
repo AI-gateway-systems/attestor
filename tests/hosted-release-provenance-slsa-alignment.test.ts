@@ -181,9 +181,9 @@ function testReleaseWorkflowAndAttestationPlanMatchContract(): void {
   excludes(securityScan, /attestations:\s*write|id-token:\s*write/iu, 'Hosted release provenance SLSA evidence: security scan workflow remains read-only');
   includes(plan, 'SLSA v1.2-aligned release provenance', 'Hosted release provenance SLSA docs: plan names SLSA alignment');
   includes(plan, 'does not claim full production supply-chain provenance', 'Hosted release provenance SLSA docs: plan avoids production overclaim');
-  includes(plan, '--signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml', 'Hosted release provenance SLSA docs: verifier pins signer workflow');
+  includes(plan, '--signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml', 'Hosted release provenance SLSA docs: verifier pins signer workflow');
   includes(productionRehearsal, 'gh attestation verify .attestor/rehearsal/release-provenance/evaluation-artifacts.tar.gz', 'Hosted release provenance SLSA evidence: rehearsal verifies release artifact provenance');
-  includes(productionRehearsal, '--signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml', 'Hosted release provenance SLSA evidence: rehearsal pins signer workflow');
+  includes(productionRehearsal, '--signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml', 'Hosted release provenance SLSA evidence: rehearsal pins signer workflow');
 }
 
 function testSupplyChainAndPackageSurfaceEvidence(): void {

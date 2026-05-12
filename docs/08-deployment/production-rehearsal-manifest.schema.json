@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/0xlamarr-labs/attestor/docs/08-deployment/production-rehearsal-manifest.schema.json",
+  "$id": "https://github.com/AI-gateway-systems/attestor/docs/08-deployment/production-rehearsal-manifest.schema.json",
   "title": "Attestor Production Rehearsal Manifest",
   "type": "object",
   "additionalProperties": false,

@@ -105,7 +105,7 @@ function expectedWebhookUrl(): string | null {
 }
 
 function portalReturnUrl(): string {
-  const value = arg('portal-return-url') ?? env('ATTESTOR_BILLING_PORTAL_RETURN_URL') ?? 'https://github.com/0xlamarr-labs/attestor';
+  const value = arg('portal-return-url') ?? env('ATTESTOR_BILLING_PORTAL_RETURN_URL') ?? 'https://github.com/AI-gateway-systems/attestor';
   return normalizeUrl(value);
 }
 
@@ -284,8 +284,8 @@ async function ensurePortalConfiguration(options: {
     login_page: { enabled: false },
     business_profile: {
       headline: 'Manage your Attestor subscription.',
-      privacy_policy_url: 'https://github.com/0xlamarr-labs/attestor',
-      terms_of_service_url: 'https://github.com/0xlamarr-labs/attestor',
+      privacy_policy_url: 'https://github.com/AI-gateway-systems/attestor',
+      terms_of_service_url: 'https://github.com/AI-gateway-systems/attestor',
     },
     metadata: {
       attestor_managed: 'true',

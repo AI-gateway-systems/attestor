@@ -166,8 +166,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh attestation verify .attestor/rehearsal/release-provenance/evaluation-artifacts.tar.gz \
-            -R 0xlamarr-labs/attestor \
-            --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml
+            -R AI-gateway-systems/attestor \
+            --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml
 
       - name: Verify repo gate
         run: npm run verify

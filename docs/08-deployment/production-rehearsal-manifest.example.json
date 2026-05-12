@@ -12,7 +12,7 @@
     "owner": "replace-with-operator"
   },
   "source": {
-    "repository": "0xlamarr-labs/attestor",
+    "repository": "AI-gateway-systems/attestor",
     "commit": "0000000",
     "tag": "v0.1.2-evaluation",
     "release": "v0.1.2-evaluation",
@@ -180,7 +180,7 @@
     {
       "id": "verify-release-provenance",
       "phase": "provenance",
-      "command": "gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml",
+      "command": "gh attestation verify evaluation-artifacts.tar.gz -R AI-gateway-systems/attestor --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml",
       "required": true,
       "stopOnFailure": true,
       "expectedArtifacts": [

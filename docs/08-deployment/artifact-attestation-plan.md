@@ -76,9 +76,9 @@ Those permissions stay in the dedicated release-provenance workflow only, not in
 After downloading `evaluation-artifacts.tar.gz` from a `Release Provenance` run, a reviewer can verify the attestation with:
 
 ```bash
-gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor
-gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml
-gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml --format json
+gh attestation verify evaluation-artifacts.tar.gz -R AI-gateway-systems/attestor
+gh attestation verify evaluation-artifacts.tar.gz -R AI-gateway-systems/attestor --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml
+gh attestation verify evaluation-artifacts.tar.gz -R AI-gateway-systems/attestor --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml --format json
 ```
 
 ## Non-Claims

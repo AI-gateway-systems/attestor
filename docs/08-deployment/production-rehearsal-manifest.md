@@ -57,7 +57,7 @@ The template composes existing commands before adding new machinery:
 - `npm run rehearse:production-backup-restore-dr`
 - `npm run rehearse:production-observability-alerting`
 - `npm run package:production-promotion-candidate`
-- `gh attestation verify evaluation-artifacts.tar.gz -R 0xlamarr-labs/attestor --signer-workflow 0xlamarr-labs/attestor/.github/workflows/release-provenance.yml`
+- `gh attestation verify evaluation-artifacts.tar.gz -R AI-gateway-systems/attestor --signer-workflow AI-gateway-systems/attestor/.github/workflows/release-provenance.yml`
 
 The manifest now covers the full production rehearsal chain through Step 10. A filled manifest must still be bound to a real target environment before its evidence can be packaged as a production-promotion candidate.
 

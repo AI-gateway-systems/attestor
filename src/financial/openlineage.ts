@@ -17,8 +17,8 @@ import type { FinancialRunReport } from './types.js';
  * Points to in-repo schema files. These are not externally hosted —
  * the URL is a stable reference to the schema definition in the repository.
  */
-const SCHEMA_BASE = 'https://raw.githubusercontent.com/0xlamarr-labs/attestor/master/schemas/openlineage';
-const PRODUCER = 'https://github.com/0xlamarr-labs/attestor';
+const SCHEMA_BASE = 'https://raw.githubusercontent.com/AI-gateway-systems/attestor/master/schemas/openlineage';
+const PRODUCER = 'https://github.com/AI-gateway-systems/attestor';
 
 /** Standard OpenLineage facet metadata fields. */
 interface FacetMeta {

@@ -109,7 +109,7 @@ function testExampleManifestKeepsProductionTruthBoundaries(): void {
   const manifest = readJson<RehearsalManifest>('docs', '08-deployment', 'production-rehearsal-manifest.example.json');
 
   equal(manifest.schemaVersion, 'attestor.production-rehearsal.manifest.v1', 'Production rehearsal manifest: example uses v1 schema');
-  equal(manifest.source.repository, '0xlamarr-labs/attestor', 'Production rehearsal manifest: example is bound to the Attestor repo');
+  equal(manifest.source.repository, 'AI-gateway-systems/attestor', 'Production rehearsal manifest: example is bound to the Attestor repo');
   ok(/^[a-f0-9]{7,40}$/u.test(manifest.source.commit), 'Production rehearsal manifest: source commit field is commit-shaped');
   equal(manifest.runtime.profile, 'production-shared', 'Production rehearsal manifest: example targets the shared production profile');
   equal(manifest.runtime.requireSharedAuthority, true, 'Production rehearsal manifest: shared authority is explicitly required');
