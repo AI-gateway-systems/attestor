@@ -97,6 +97,7 @@ This is AI action authorization infrastructure: not a chatbot feature, not a pro
 ```bash
 npm install
 npm run example:admission
+npm run example:action-surface-onboarding
 ```
 
 You will see:
@@ -106,6 +107,7 @@ You will see:
 - a customer-side gate that only proceeds when Attestor allows it
 - a non-bypassable gateway demo where a payment adapter cannot dispatch without verifier allow
 - an agent retry wrapper demo where model-safe feedback becomes one bounded correction attempt
+- an action-surface onboarding packet rendered from a safe OpenAPI example without deploying anything
 
 For a guided first run, see [Try Attestor first](docs/01-overview/try-attestor-first.md).
 
@@ -123,6 +125,9 @@ npm run example:non-bypassable-gateway
 
 # Agent retry wrapper demo
 npm run example:agent-retry-wrapper
+
+# 60-second action-surface onboarding packet from a safe OpenAPI example
+npm run example:action-surface-onboarding
 
 # Render a review-required action-surface onboarding packet
 npm run render:action-surface-onboarding-packet -- --openapi=path/to/openapi.yaml

@@ -66,7 +66,17 @@ manifest text
 
 ## Local Renderer
 
-The fastest local entry point is:
+The fastest local entry point uses the bundled refund OpenAPI example:
+
+```bash
+npm run example:action-surface-onboarding
+```
+
+That command renders from
+`examples/action-surface-onboarding/refund.openapi.json` and writes the same
+review-required packet as the generic renderer.
+
+For customer-owned metadata, pass a manifest directly:
 
 ```bash
 npm run render:action-surface-onboarding-packet -- --openapi=path/to/openapi.yaml
