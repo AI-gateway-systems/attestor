@@ -109,6 +109,8 @@ ATTESTOR_AGENT_LOOP_GUARD_REQUIRE_SHARED=true
 
 If `ATTESTOR_AGENT_LOOP_GUARD_REDIS_URL` is not set, the service wrapper can use the shared `REDIS_URL` resolved by the runtime. The dedicated hash key prevents raw tenant, actor, action, downstream, and previous-admission identifiers from becoming Redis key material.
 
+A configured Redis URL is not treated as shared storage evidence by itself. The service status reports `shared-durable` only after the wrapper has successfully executed the Redis shared counter path for a guard evaluation.
+
 Production deployments should preserve these semantics:
 
 - tenant-bound keys

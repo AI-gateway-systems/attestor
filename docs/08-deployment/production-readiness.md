@@ -114,7 +114,7 @@ Current `production-shared` blockers can include:
 - activation receipt history still file-backed
 - retry attempt ledger still an in-memory reference implementation
 - presentation replay ledger still an in-memory reference implementation
-- agent-loop abuse guard counters still in-memory
+- agent-loop abuse guard counters still in-memory or Redis configured but not yet proven reachable
 - audit/dashboard source history still derived from evaluation stores
 
 This gate prevents a green HA or observability packet from being read as proof that the consequence-admission storage path is production shared. See [Production storage path](../02-architecture/production-storage-path.md).

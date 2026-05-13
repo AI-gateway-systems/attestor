@@ -5,6 +5,7 @@ import {
   type GenericAdmissionEnvelope,
 } from '../src/consequence-admission/index.js';
 import {
+  agentLoopAbuseGuardStorageMode,
   configureAgentLoopAbuseGuard,
   createServiceAgentLoopAbuseGuard,
   getAgentLoopAbuseGuardStatus,
@@ -151,6 +152,33 @@ async function testSharedRequiredFailsClosedWithoutRedis(): Promise<void> {
   passed += 1;
 }
 
+async function testConfiguredRedisUrlDoesNotClaimSharedBeforeConnection(): Promise<void> {
+  await resetSharedAgentLoopAbuseGuardForTests();
+  clearEnv();
+  configureAgentLoopAbuseGuard({
+    redisUrl: 'redis://127.0.0.1:1',
+    redisMode: 'configured-only',
+  });
+
+  try {
+    const status = getAgentLoopAbuseGuardStatus();
+
+    equal(
+      status.backend,
+      'memory',
+      'Agent loop shared guard: configured Redis URL does not claim connected backend',
+    );
+    equal(status.shared, false, 'Agent loop shared guard: shared=false until Redis is proven reachable');
+    equal(
+      agentLoopAbuseGuardStorageMode(),
+      'in-memory-reference',
+      'Agent loop shared guard: storage mode stays in-memory until successful Redis probe',
+    );
+  } finally {
+    configureAgentLoopAbuseGuard({ redisUrl: null, redisMode: null });
+  }
+}
+
 async function testSharedActorWindowCoordinatesAcrossInstances(redisUrl: string): Promise<void> {
   await resetSharedAgentLoopAbuseGuardForTests();
   clearEnv();
@@ -250,6 +278,7 @@ async function main(): Promise<void> {
   let redis: { readonly url: string; readonly stop: () => Promise<void> } | null = null;
   try {
     await testSharedRequiredFailsClosedWithoutRedis();
+    await testConfiguredRedisUrlDoesNotClaimSharedBeforeConnection();
     redis = await startRedis();
     await testSharedActorWindowCoordinatesAcrossInstances(redis.url);
     await testSharedCorrectionSignatureBudgetCoordinatesAcrossInstances(redis.url);

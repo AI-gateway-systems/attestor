@@ -106,10 +106,10 @@ return {0, actorNext, retryNext, signatureCount + 1, recordCount + 1}
 
 let configuredRedisUrl: string | null = null;
 let configuredRedisMode: string | null = null;
-let configuredBackend: 'memory' | 'redis' = 'memory';
 let redisClient: IORedis | null = null;
 let redisConnectPromise: Promise<IORedis | null> | null = null;
 let lastRedisConnectionError: string | null = null;
+let redisSharedPathVerified = false;
 
 export interface ServiceAgentLoopAbuseGuard {
   readonly version: typeof CONSEQUENCE_ADMISSION_AGENT_LOOP_ABUSE_GUARD_VERSION;
@@ -391,13 +391,12 @@ async function connectRedisClient(): Promise<IORedis | null> {
       await nextClient.connect();
       await nextClient.ping();
       redisClient = nextClient;
-      configuredBackend = 'redis';
       lastRedisConnectionError = null;
       return nextClient;
     } catch (error) {
       try { nextClient?.disconnect(); } catch {}
       redisClient = null;
-      configuredBackend = 'memory';
+      redisSharedPathVerified = false;
       lastRedisConnectionError = error instanceof Error ? error.message : String(error);
       return null;
     } finally {
@@ -427,10 +426,13 @@ export function configureAgentLoopAbuseGuard(options?: {
   const changed = nextRedisUrl !== configuredRedisUrl || nextRedisMode !== configuredRedisMode;
   configuredRedisUrl = nextRedisUrl;
   configuredRedisMode = nextRedisMode;
-  configuredBackend = nextRedisUrl ? 'redis' : 'memory';
   if (changed && redisClient) {
     try { redisClient.disconnect(); } catch {}
     redisClient = null;
+  }
+  if (changed) {
+    redisSharedPathVerified = false;
+    lastRedisConnectionError = null;
   }
 }
 
@@ -440,10 +442,13 @@ export function getAgentLoopAbuseGuardStatus(): {
   readonly shared: boolean;
   readonly requiresShared: boolean;
 } {
+  const backend = redisSharedPathVerified && redisClient?.status === 'ready'
+    ? 'redis'
+    : 'memory';
   return {
-    backend: configuredBackend,
+    backend,
     configuredRedisMode,
-    shared: configuredBackend === 'redis',
+    shared: backend === 'redis',
     requiresShared: requiresSharedAgentLoopAbuseGuard(),
   };
 }
@@ -527,6 +532,8 @@ async function evaluateRedisGuard(input: {
     retryAttempt && containsNonRetryableCorrection(retryAttempt.correctionReasonCodes) ? '1' : '0',
     String(receivedAtMs),
   ) as [number, number, number, number, number] | null;
+
+  redisSharedPathVerified = true;
 
   const code = Array.isArray(scriptResult) ? Number(scriptResult[0]) : 6;
   if (code === 1) {
@@ -678,6 +685,7 @@ export async function shutdownAgentLoopAbuseGuard(): Promise<void> {
     redisClient = null;
   }
   redisConnectPromise = null;
+  redisSharedPathVerified = false;
 }
 
 export async function resetSharedAgentLoopAbuseGuardForTests(): Promise<void> {
@@ -689,6 +697,6 @@ export async function resetSharedAgentLoopAbuseGuardForTests(): Promise<void> {
   await shutdownAgentLoopAbuseGuard();
   configuredRedisUrl = null;
   configuredRedisMode = null;
-  configuredBackend = 'memory';
+  redisSharedPathVerified = false;
   lastRedisConnectionError = null;
 }
