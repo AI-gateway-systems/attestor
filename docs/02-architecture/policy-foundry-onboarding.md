@@ -404,6 +404,16 @@ as digests with evidence digests and no-go reasons. It does not store raw
 customer identity data, grant authority, activate enforcement, or prove that a
 customer's identity provider is configured correctly.
 
+The Review-Only Integration Patch Pack is the first customer-facing draft patch
+packet for this path. It lives in
+`src/consequence-admission/policy-foundry-review-only-patch-pack.ts`, is covered
+by `tests/policy-foundry-review-only-patch-pack.test.ts`, and is exposed through
+`test:policy-foundry-review-only-patch-pack`. It turns generated integration
+artifacts into SDK, verifier, gateway, MCP, sidecar/ext_authz, provider
+connector, credential-boundary, Policy Twin, and red-team replay review drafts.
+It does not apply patches, deploy infrastructure, issue credentials, activate
+enforcement, or prove non-bypassability.
+
 ```text
 coverageScore
 coverageDimensions
@@ -436,6 +446,12 @@ approverCount
 delegateCount
 tenantScopeDigest
 missingRelations
+reviewOnlyPatchPack
+patchCount
+targetKinds
+artifactKinds
+reviewMaterialOnly
+appliesPatches: false
 readinessScore
 sampleSize
 actorDistributionHealth
@@ -513,7 +529,8 @@ evidence replay, active questions, action-surface review handoff, synthetic
 onboarding red-team fixture generation, and the first onboarding session
 contract plus the first coverage score, minimum viable gate planner, and
 schema-bound candidate registry, counterexample ledger, and Policy Twin v2
-summary plus authority relationship context contracts. It does not yet have a live
+summary plus authority relationship context and review-only patch pack
+contracts. It does not yet have a live
 adversarial replay executor, UI workflow, or full commercial entitlement
 contract for Foundry capabilities. The deeper self-onboarding track is tracked in
 [Policy Foundry Self-Onboarding Deepening](policy-foundry-self-onboarding-deepening.md).

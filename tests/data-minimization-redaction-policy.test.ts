@@ -72,6 +72,9 @@ function testDescriptorCoversCriticalSurfaces(): void {
   const authorityRelationshipContext = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'policy-foundry-authority-relationship-context'
   );
+  const reviewOnlyPatchPack = descriptor.surfaces.find((surface) =>
+    surface.surfaceKind === 'policy-foundry-review-only-patch-pack'
+  );
   const externalReview = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'external-review-packet'
   );
@@ -158,6 +161,11 @@ function testDescriptorCoversCriticalSurfaces(): void {
   ok(
     authorityRelationshipContext?.allowedUnits.includes('tenant-scope'),
     'Data minimization policy: authority relationship context allows tenant scope',
+  );
+  ok(reviewOnlyPatchPack, 'Data minimization policy: review-only patch pack surface is present');
+  ok(
+    reviewOnlyPatchPack?.allowedUnits.includes('artifact-reference'),
+    'Data minimization policy: review-only patch pack allows artifact references',
   );
   ok(externalReview, 'Data minimization policy: external review packet surface is present');
   ok(
@@ -359,6 +367,11 @@ function testDocsAndScriptsExposePolicy(): void {
     doc,
     'policy-foundry-authority-relationship-context',
     'Data minimization policy: doc lists authority relationship context surface',
+  );
+  includes(
+    doc,
+    'policy-foundry-review-only-patch-pack',
+    'Data minimization policy: doc lists review-only patch pack surface',
   );
   includes(
     doc,

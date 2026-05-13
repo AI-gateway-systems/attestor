@@ -114,6 +114,11 @@ function testPolicyFoundryArchitectureIsGrounded(): void {
   );
   includes(
     doc,
+    'src/consequence-admission/policy-foundry-review-only-patch-pack.ts',
+    'Policy Foundry docs: review-only patch pack contract evidence is named',
+  );
+  includes(
+    doc,
     'GET /api/v1/shadow/policy-foundry/active-questions',
     'Policy Foundry docs: active question route is named',
   );
@@ -304,6 +309,16 @@ function testPackageScriptIsExposed(): void {
     pkg.scripts['test:policy-foundry-authority-relationship-context'] ?? '',
     'tsx tests/policy-foundry-authority-relationship-context.test.ts',
     'Package: Policy Foundry authority relationship context test command is stable',
+  );
+  includes(
+    JSON.stringify(pkg.scripts),
+    'test:policy-foundry-review-only-patch-pack',
+    'Package: Policy Foundry review-only patch pack test is exposed',
+  );
+  includes(
+    pkg.scripts['test:policy-foundry-review-only-patch-pack'] ?? '',
+    'tsx tests/policy-foundry-review-only-patch-pack.test.ts',
+    'Package: Policy Foundry review-only patch pack test command is stable',
   );
 }
 
