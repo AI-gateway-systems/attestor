@@ -13,6 +13,7 @@ export type ProductionStoragePathComponentId =
   | 'shadow-policy-simulations'
   | 'shadow-policy-candidates'
   | 'shadow-activation-receipts'
+  | 'policy-foundry-hosted-wizard-state'
   | 'retry-attempt-ledger'
   | 'presentation-replay-ledger'
   | 'agent-loop-abuse-guard'
@@ -202,6 +203,17 @@ readonly ProductionStoragePathComponent[] {
       migrationTarget: 'shared-authority-control-plane',
       note:
         'Activation receipts close the customer-side loop and need shared receipt history before production-shared.',
+    }),
+    component({
+      component: 'policy-foundry-hosted-wizard-state',
+      plane: 'consequence-admission-plane',
+      label: 'Policy Foundry hosted wizard resume state',
+      currentMode: current('policy-foundry-hosted-wizard-state', 'file-backed-evaluation'),
+      requiredModeForProduction: 'shared-durable',
+      tenantScoped: true,
+      migrationTarget: 'shared-control-plane',
+      note:
+        'Hosted onboarding resume state needs shared TTL/session storage before multi-node production can resume wizard sessions truthfully.',
     }),
     component({
       component: 'retry-attempt-ledger',

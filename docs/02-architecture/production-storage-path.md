@@ -36,6 +36,7 @@ For `local-dev` and `single-node-durable`, that is acceptable. For
 - shadow policy simulation reports
 - shadow policy candidates
 - shadow activation receipts
+- Policy Foundry hosted wizard resume state
 - retry attempt ledger
 - presentation replay ledger
 - agent loop abuse guard
@@ -78,6 +79,7 @@ the following move to shared authority/control-plane storage:
 - shadow simulation history
 - policy candidate lifecycle
 - activation receipt history
+- Policy Foundry hosted wizard resume state
 - retry attempt ledger
 - presentation replay ledger
 - agent-loop abuse guard counters and correction signatures
@@ -87,6 +89,9 @@ the following move to shared authority/control-plane storage:
 The shared control plane and release authority already have PostgreSQL-backed
 paths. This gate keeps the newer consequence-admission surfaces from being
 mistaken for production shared storage before their own shared path exists.
+The current Policy Foundry wizard state is a digest-only file-backed evaluation
+store; it is useful for local resume tests, but it is an explicit
+`production-shared` blocker until backed by shared TTL/session storage.
 
 ## Runtime Surface
 

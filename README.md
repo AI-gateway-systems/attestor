@@ -213,6 +213,8 @@ That state is tenant-bound, TTL-limited, and digest-only: it stores compact task
 state, no-go state, evidence digests, status, and safe next steps, not raw
 manifests, raw tenant ids, caller session refs, credentials, or shadow payloads.
 It is not shared production wizard storage and does not activate enforcement.
+The production storage path now inventories this hosted wizard resume state as a
+separate `production-shared` blocker until shared TTL/session storage exists.
 
 For an already deployed hosted runtime, the opt-in Policy Foundry production
 smoke probe is:
@@ -397,7 +399,7 @@ Onboarding automation:
 
 - [Action surface manifest intake](docs/02-architecture/action-surface-manifest-intake.md), [Action surface declaration ingestors](docs/02-architecture/action-surface-declaration-ingestors.md), and [Action surface profiler](docs/02-architecture/action-surface-profiler.md) turn customer-owned metadata and shadow events into a data-minimized action-surface map.
 - [Action surface integration artifacts](docs/02-architecture/action-surface-integration-artifacts.md), [Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md), action-surface review handoff, red-team fixture bundle, local adversarial replay executor, live downstream replay evidence, and hosted onboarding workflow contract reduce adoption friction with review-required plans. The hosted route can bind sandbox/staging live replay evidence into review output, but these contracts do not deploy infrastructure, issue credentials, activate enforcement, execute production traffic, or make a non-bypassable claim by themselves.
-- [Policy Foundry onboarding](docs/02-architecture/policy-foundry-onboarding.md) and [Integration mode readiness](docs/02-architecture/integration-mode-readiness.md) turn shadow traffic into policy candidates, readiness/no-go evidence, active questions, Policy Twin work, reviewed outcome feedback, drift/policy-debt findings, commercial-boundary review material, billing-entitlement review material, local adversarial replay reports, live downstream replay reports, hosted workflow steps, and reviewed paths toward scoped enforcement. The path where customers self-attest readiness controls is not allowed.
+- [Policy Foundry onboarding](docs/02-architecture/policy-foundry-onboarding.md) and [Integration mode readiness](docs/02-architecture/integration-mode-readiness.md) turn shadow traffic into policy candidates, readiness/no-go evidence, active questions, Policy Twin work, reviewed outcome feedback, drift/policy-debt findings, commercial-boundary review material, billing-entitlement review material, local adversarial replay reports, live downstream replay reports, hosted workflow steps, hosted wizard storage readiness gating, and reviewed paths toward scoped enforcement. The path where customers self-attest readiness controls is not allowed.
 
 Runtime and packs:
 

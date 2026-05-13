@@ -110,6 +110,12 @@ standard certifies Attestor:
   https://docs.stripe.com/billing/entitlements,
   https://openfeature.dev/docs/reference/concepts/evaluation-context, and
   https://launchdarkly.com/docs/home/releases/progressive-rollouts
+- Hosted wizard resume state should be server-side, tenant-bound, TTL-limited,
+  and visible to readiness. OWASP session management and Kubernetes readiness
+  guidance are engineering anchors for keeping that state out of client-held
+  authority and exposing missing shared storage as a runtime blocker:
+  https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+  and https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/
 
 ## Core Versus Packs
 
@@ -629,6 +635,9 @@ store raw manifests, raw tenant ids, caller session refs, shadow payloads, or
 the full review packet. It is not shared production workflow storage and does
 not apply patches, issue credentials, deploy infrastructure, execute production
 traffic, activate enforcement, or prove production readiness.
+The `production-shared` readiness gate now inventories this wizard state as a
+separate storage surface. It remains blocked until the resume state is backed by
+shared TTL/session storage rather than the local file-backed evaluation store.
 
 The Policy Foundry production smoke probe lives in
 `scripts/probe-policy-foundry-production-smoke.ts`, is covered by
@@ -870,8 +879,10 @@ billing-provider entitlement enforcement for hosted Foundry commercial
 capability and production workflow requests and non-mutating live downstream
 replay evidence for sandbox/staging harnesses. It also has an opt-in
 Policy Foundry production smoke probe for already deployed hosted environments.
-It does not yet have shared production wizard storage, production traffic
-execution, or production rollout automation, and a smoke probe pass is not a
-production-readiness claim.
+Shared production wizard storage is now explicitly tracked as a
+`productionStoragePath` blocker, but the shared implementation is still not
+present. Production traffic execution and production rollout automation also
+remain outside this track, and a smoke probe pass is not a production-readiness
+claim.
 The deeper self-onboarding track is tracked in
 [Policy Foundry Self-Onboarding Deepening](policy-foundry-self-onboarding-deepening.md).
