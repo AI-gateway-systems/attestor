@@ -82,13 +82,18 @@ the following move to shared authority/control-plane storage:
 - Policy Foundry hosted wizard resume state
 - retry attempt ledger
 - presentation replay ledger
-- agent-loop abuse guard counters and correction signatures
+- agent-loop abuse guard counters and correction signatures unless the service
+  wrapper has successfully connected to shared Redis and reports
+  `shared-durable`
 - source history for audit evidence export
 - source history for the business-risk dashboard
 
 The shared control plane and release authority already have PostgreSQL-backed
 paths. This gate keeps the newer consequence-admission surfaces from being
 mistaken for production shared storage before their own shared path exists.
+For the agent-loop abuse guard specifically, a configured Redis URL is not
+enough evidence; readiness uses the service wrapper's Redis-evaluated storage
+mode.
 The current Policy Foundry wizard state is a digest-only file-backed evaluation
 store; it is useful for local resume tests, but it is an explicit
 `production-shared` blocker until backed by shared TTL/session storage.
