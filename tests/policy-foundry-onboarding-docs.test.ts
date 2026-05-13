@@ -169,6 +169,16 @@ function testPolicyFoundryArchitectureIsGrounded(): void {
   );
   includes(
     doc,
+    'scripts/probe-policy-foundry-production-smoke.ts',
+    'Policy Foundry docs: production smoke probe evidence is named',
+  );
+  includes(
+    doc,
+    'tests/policy-foundry-production-smoke-probe.test.ts',
+    'Policy Foundry docs: production smoke probe test evidence is named',
+  );
+  includes(
+    doc,
     'scripts/render-policy-foundry-self-onboarding.ts',
     'Policy Foundry docs: self-onboarding renderer evidence is named',
   );
@@ -251,6 +261,16 @@ function testReadmeNamesPolicyFoundryWithoutOverclaiming(): void {
     readme,
     'persistent hosted wizard state',
     'README: persistent hosted wizard state is named without production overclaim',
+  );
+  includes(
+    readme,
+    'For an already deployed hosted runtime, the opt-in Policy Foundry production',
+    'README: production smoke probe is named without production overclaim',
+  );
+  includes(
+    readme,
+    'activate enforcement, execute production traffic, or prove production',
+    'README: production smoke probe limitation is explicit',
   );
   includes(
     readme,
@@ -549,6 +569,26 @@ function testPackageScriptIsExposed(): void {
     pkg.scripts['test:policy-foundry-hosted-wizard-state'] ?? '',
     'tsx tests/policy-foundry-hosted-wizard-state.test.ts',
     'Package: Policy Foundry hosted wizard state test command is stable',
+  );
+  includes(
+    JSON.stringify(pkg.scripts),
+    'test:policy-foundry-production-smoke-probe',
+    'Package: Policy Foundry production smoke probe test is exposed',
+  );
+  includes(
+    pkg.scripts['test:policy-foundry-production-smoke-probe'] ?? '',
+    'tsx tests/policy-foundry-production-smoke-probe.test.ts',
+    'Package: Policy Foundry production smoke probe test command is stable',
+  );
+  includes(
+    JSON.stringify(pkg.scripts),
+    'probe:policy-foundry-production-smoke',
+    'Package: Policy Foundry production smoke probe is exposed',
+  );
+  includes(
+    pkg.scripts['probe:policy-foundry-production-smoke'] ?? '',
+    'tsx scripts/probe-policy-foundry-production-smoke.ts',
+    'Package: Policy Foundry production smoke probe command is stable',
   );
 }
 

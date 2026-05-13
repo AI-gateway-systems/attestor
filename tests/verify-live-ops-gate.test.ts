@@ -73,11 +73,14 @@ function testExternalLiveCannotJoinByAccident(): void {
   excludes(fullWithoutExternal, 'test:live-snowflake', 'Live/ops gate: full mode excludes Snowflake without external gate');
   excludes(fullWithoutExternal, 'test:live-vsac', 'Live/ops gate: full mode excludes VSAC without external gate');
   excludes(fullWithoutExternal, 'test:live-cypress', 'Live/ops gate: full mode excludes Cypress without external gate');
+  excludes(fullWithoutExternal, 'probe:policy-foundry-production-smoke', 'Live/ops gate: full mode excludes Policy Foundry production smoke without external gate');
   includes(fullWithExternal, 'test:live-snowflake', 'Live/ops gate: full mode can include Snowflake when explicitly enabled');
   includes(fullWithExternal, 'test:live-vsac', 'Live/ops gate: full mode can include VSAC when explicitly enabled');
   includes(fullWithExternal, 'test:live-cypress', 'Live/ops gate: full mode can include Cypress when explicitly enabled');
+  includes(fullWithExternal, 'probe:policy-foundry-production-smoke', 'Live/ops gate: full mode can include Policy Foundry production smoke when explicitly enabled');
   equal(externalWithoutGate.length, 0, 'Live/ops gate: external mode resolves no commands without opt-in');
   includes(externalWithGate, 'test:live-snowflake', 'Live/ops gate: external mode includes Snowflake when opted in');
+  includes(externalWithGate, 'probe:policy-foundry-production-smoke', 'Live/ops gate: external mode includes Policy Foundry production smoke when opted in');
 }
 
 function testPackageAndWorkflowExposeBoundaries(): void {
@@ -94,6 +97,7 @@ function testPackageAndWorkflowExposeBoundaries(): void {
   includes(workflow, 'ATTESTOR_RUN_EXTERNAL_LIVE_TESTS: "true"', 'Live/ops gate: workflow opts external live tests in explicitly');
   includes(workflow, 'environment:', 'Live/ops gate: external live job uses a GitHub Environment');
   includes(productionReadiness, 'External live checks are opt-in', 'Live/ops gate: production docs explain external live boundary');
+  includes(productionReadiness, 'Policy Foundry production smoke', 'Live/ops gate: production docs mention Policy Foundry production smoke boundary');
 }
 
 testLocalAndOpsGatesAreExplicit();
