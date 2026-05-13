@@ -69,6 +69,9 @@ function testDescriptorCoversCriticalSurfaces(): void {
   const policyTwinSummary = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'policy-foundry-policy-twin-summary'
   );
+  const authorityRelationshipContext = descriptor.surfaces.find((surface) =>
+    surface.surfaceKind === 'policy-foundry-authority-relationship-context'
+  );
   const externalReview = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'external-review-packet'
   );
@@ -146,6 +149,15 @@ function testDescriptorCoversCriticalSurfaces(): void {
   ok(
     policyTwinSummary?.allowedUnits.includes('counts'),
     'Data minimization policy: Policy Twin summary allows counts',
+  );
+  ok(authorityRelationshipContext, 'Data minimization policy: authority relationship context surface is present');
+  ok(
+    authorityRelationshipContext?.allowedUnits.includes('digests'),
+    'Data minimization policy: authority relationship context allows digests',
+  );
+  ok(
+    authorityRelationshipContext?.allowedUnits.includes('tenant-scope'),
+    'Data minimization policy: authority relationship context allows tenant scope',
   );
   ok(externalReview, 'Data minimization policy: external review packet surface is present');
   ok(
@@ -342,6 +354,11 @@ function testDocsAndScriptsExposePolicy(): void {
     doc,
     'policy-foundry-policy-twin-summary',
     'Data minimization policy: doc lists Policy Twin summary surface',
+  );
+  includes(
+    doc,
+    'policy-foundry-authority-relationship-context',
+    'Data minimization policy: doc lists authority relationship context surface',
   );
   includes(
     doc,

@@ -393,6 +393,17 @@ promotion block status, and rollout recommendation. It is decision support only:
 it does not replace the underlying simulation, resolve blockers, activate
 enforcement, or prove production readiness.
 
+The Authority Relationship Context is the first digest-only authority graph
+packet for this path. It lives in
+`src/consequence-admission/policy-foundry-authority-relationship-context.ts`,
+is covered by `tests/policy-foundry-authority-relationship-context.test.ts`,
+and is exposed through
+`test:policy-foundry-authority-relationship-context`. It records owner,
+approver, delegate, reviewer, tenant, service-account, and scope relationships
+as digests with evidence digests and no-go reasons. It does not store raw
+customer identity data, grant authority, activate enforcement, or prove that a
+customer's identity provider is configured correctly.
+
 ```text
 coverageScore
 coverageDimensions
@@ -418,6 +429,13 @@ decisionImpact
 reviewLoadImpact
 reviewLoadDeltaCount
 reviewLoadReductionRate
+authorityRelationshipContext
+relationshipCount
+ownerCount
+approverCount
+delegateCount
+tenantScopeDigest
+missingRelations
 readinessScore
 sampleSize
 actorDistributionHealth
@@ -495,7 +513,7 @@ evidence replay, active questions, action-surface review handoff, synthetic
 onboarding red-team fixture generation, and the first onboarding session
 contract plus the first coverage score, minimum viable gate planner, and
 schema-bound candidate registry, counterexample ledger, and Policy Twin v2
-summary contracts. It does not yet have a live
+summary plus authority relationship context contracts. It does not yet have a live
 adversarial replay executor, UI workflow, or full commercial entitlement
 contract for Foundry capabilities. The deeper self-onboarding track is tracked in
 [Policy Foundry Self-Onboarding Deepening](policy-foundry-self-onboarding-deepening.md).

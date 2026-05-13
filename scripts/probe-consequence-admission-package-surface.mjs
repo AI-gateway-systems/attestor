@@ -435,6 +435,26 @@ assert.equal(
   typeof admission.createPolicyFoundryPolicyTwinSummary,
   'function',
 );
+assert.equal(
+  admission.POLICY_FOUNDRY_AUTHORITY_RELATIONSHIP_CONTEXT_VERSION,
+  'attestor.policy-foundry-authority-relationship-context.v1',
+);
+assert.equal(
+  admission.policyFoundryAuthorityRelationshipContextDescriptor().dataMinimizationSurfaceKind,
+  'policy-foundry-authority-relationship-context',
+);
+assert.equal(
+  admission.policyFoundryAuthorityRelationshipContextDescriptor().digestOnly,
+  true,
+);
+assert.equal(
+  admission.policyFoundryAuthorityRelationshipContextDescriptor().authorityDecisionAllowed,
+  false,
+);
+assert.equal(
+  typeof admission.createPolicyFoundryAuthorityRelationshipContext,
+  'function',
+);
 
 let blockedInternalPath = false;
 try {

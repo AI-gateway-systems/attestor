@@ -2107,6 +2107,7 @@ export * from './policy-foundry-gate-planner.js';
 export * from './policy-foundry-candidate-registry.js';
 export * from './policy-foundry-counterexample-ledger.js';
 export * from './policy-foundry-policy-twin-summary.js';
+export * from './policy-foundry-authority-relationship-context.js';
 export * from './integration-mode-readiness.js';
 export * from './shadow-policy-promotion-draft.js';
 export * from './shadow-policy-promotion-packet.js';
