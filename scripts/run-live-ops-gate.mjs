@@ -60,6 +60,7 @@ export const liveOpsGroups = Object.freeze({
     'test:live-snowflake',
     'test:live-vsac',
     'test:live-cypress',
+    'probe:policy-foundry-production-smoke',
   ]),
 });
 
@@ -109,7 +110,7 @@ export function runLiveOpsGate(mode, options = {}) {
   console.log(`[live-ops:${mode}] ${commands.length} commands`);
 
   if (mode === 'full' && !includeExternal) {
-    console.log(`[live-ops:${mode}] external live tests skipped; set ${externalGateEnv}=true to include Snowflake, VSAC, and Cypress.`);
+    console.log(`[live-ops:${mode}] external live tests skipped; set ${externalGateEnv}=true to include Snowflake, VSAC, Cypress, and Policy Foundry production smoke probes.`);
   }
 
   for (const [index, item] of commands.entries()) {

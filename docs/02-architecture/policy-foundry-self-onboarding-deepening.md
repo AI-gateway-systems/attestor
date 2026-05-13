@@ -50,6 +50,9 @@ preserve these boundaries:
 - Terraform plan/apply separation, Kubernetes dry-run guarantees, and
   Envoy/OPA external authorization patterns show why live replay evidence must
   stay non-mutating, dry-run bounded, and separate from approval or execution.
+- Kubernetes readiness/liveness probe guidance and Google SRE black-box
+  monitoring patterns show why deployed smoke probes should verify externally
+  observable behavior without claiming full production readiness.
 
 These sources are engineering anchors only. They do not certify Attestor.
 
@@ -76,6 +79,8 @@ These sources are engineering anchors only. They do not certify Attestor.
 | Step 17 | complete | Add Persistent Hosted Wizard State | File-backed evaluation store and tenant-bound resume route for digest-only hosted wizard state |
 | Step 18 | complete | Add Billing-Provider Entitlement Enforcement | Hosted Foundry route gates commercial plan/capability and production workflow requests against billing-provider entitlement state without paywalling safety minimums |
 | Step 19 | complete | Add Live Downstream Replay Evidence | Non-mutating sandbox/staging replay evidence contract with dry-run proof, no-go reasons, and digest-only outputs |
+| Step 20 | complete | Wire Live Replay Into Hosted Runtime | Hosted route and review surface bind live replay evidence and block failed replay before scoped rollout review |
+| Step 21 | complete | Add Policy Foundry Production Smoke Probe | Opt-in deployed-runtime smoke probe for health, readiness, hosted workflow, hosted view, live replay evidence, failed replay blocking, and secret-safe output |
 
 ## Step 01 Scope
 
@@ -570,6 +575,31 @@ customer infrastructure by itself, store raw payloads, issue credentials, deploy
 infrastructure, activate enforcement, execute production traffic, or prove
 production readiness.
 
+## Step 21 Scope
+
+Step 21 adds the Policy Foundry production smoke probe.
+
+The probe runs only against an already deployed hosted runtime when supplied
+with `ATTESTOR_BASE_URL` and `ATTESTOR_API_KEY`:
+
+```text
+deployed hosted runtime
++ /api/v1/health
++ /api/v1/ready
++ hosted workflow route
++ hosted HTML view route
++ passing live downstream replay evidence
++ failed live downstream replay evidence
+-> secret-safe smoke result
+```
+
+It is exposed through `probe:policy-foundry-production-smoke`, covered by
+`test:policy-foundry-production-smoke-probe`, and included only in the
+external-live opt-in gate. It verifies that hosted Policy Foundry routes can
+return digest-bound review evidence and fail closed on failed live replay. It
+does not deploy infrastructure, issue credentials, activate enforcement,
+execute production traffic, or prove production readiness.
+
 ## Protected Principles
 
 - customer authority
@@ -594,7 +624,7 @@ contracts, or shared product positioning are touched.
 
 ## Current Status
 
-Step 01 through Step 12 are complete. Step 13 through Step 20 are also complete
+Step 01 through Step 12 are complete. Step 13 through Step 21 are also complete
 repo-side: the repo-side self-onboarding deepening list now includes the local
 adversarial replay executor, hosted workflow contract, stateless hosted workflow
 route wrapper, compact hosted review surface, hosted UI flow renderer, and
@@ -602,6 +632,7 @@ local file-backed persistent hosted wizard state, plus hosted route
 billing-provider entitlement enforcement for commercial Foundry requests and
 non-mutating live downstream replay evidence for sandbox/staging harnesses. The
 hosted route now binds that live replay evidence into workflow/review output and
-blocks failed replay before scoped rollout review. Shared production wizard
-storage, production smoke tests, and any production traffic execution remain
-outside this tracker.
+blocks failed replay before scoped rollout review. The track also includes an
+opt-in production smoke probe for an already deployed hosted runtime. Shared
+production wizard storage and any production traffic execution remain outside
+this tracker, and smoke evidence is not a production-readiness claim.

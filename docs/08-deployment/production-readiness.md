@@ -39,13 +39,14 @@ runs `npm run verify`, then the local live/integration checks and the ops
 render/probe checks. This proves the repo-side live and deployment-shaped
 paths that can be exercised without customer secrets.
 
-External live checks are opt-in. Snowflake, VSAC, and ONC Cypress validation
-must run through `npm run verify:external-live` with
-`ATTESTOR_RUN_EXTERNAL_LIVE_TESTS=true` in an explicit live environment. In
-GitHub Actions, use the `Full Verify` workflow's `external-live` mode and a
-protected GitHub Environment that holds those credentials. Do not treat a
-green `verify` or default `verify:full` run as proof that external cloud,
-healthcare, or customer-operated substrates were reached.
+External live checks are opt-in. Snowflake, VSAC, ONC Cypress validation, and
+Policy Foundry production smoke probes must run through
+`npm run verify:external-live` with `ATTESTOR_RUN_EXTERNAL_LIVE_TESTS=true` in
+an explicit live environment. In GitHub Actions, use the `Full Verify`
+workflow's `external-live` mode and a protected GitHub Environment that holds
+those credentials. Do not treat a green `verify` or default `verify:full` run
+as proof that external cloud, healthcare, hosted Policy Foundry, or
+customer-operated substrates were reached.
 
 ## Runtime Profile Gate
 

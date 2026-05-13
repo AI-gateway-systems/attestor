@@ -619,6 +619,19 @@ the full review packet. It is not shared production workflow storage and does
 not apply patches, issue credentials, deploy infrastructure, execute production
 traffic, activate enforcement, or prove production readiness.
 
+The Policy Foundry production smoke probe lives in
+`scripts/probe-policy-foundry-production-smoke.ts`, is covered by
+`tests/policy-foundry-production-smoke-probe.test.ts`, and is exposed through
+`probe:policy-foundry-production-smoke` and
+`test:policy-foundry-production-smoke-probe`. It is an opt-in deployed-runtime
+smoke probe for an existing hosted environment with `ATTESTOR_BASE_URL` and
+`ATTESTOR_API_KEY`. It checks `/api/v1/health`, `/api/v1/ready`, the hosted
+workflow route, the hosted HTML view route, passing live downstream replay
+evidence, and failed live downstream replay blocking. It emits digest references
+and secret-safe output only. It does not deploy infrastructure, issue
+credentials, activate enforcement, execute production traffic, or prove
+production readiness.
+
 The hosted billing-provider entitlement enforcement helper lives in
 `src/service/policy-foundry-billing-entitlement-enforcement.ts`, is covered by
 `tests/policy-foundry-billing-entitlement-enforcement.test.ts`, and is exposed
@@ -843,8 +856,10 @@ that surface. It also has a local file-backed evaluation store for persistent
 hosted wizard state and tenant-bound resume, plus route-level
 billing-provider entitlement enforcement for hosted Foundry commercial
 capability and production workflow requests and non-mutating live downstream
-replay evidence for sandbox/staging harnesses. It does not yet have shared
-production wizard storage, deployment wiring, production smoke tests,
-production traffic execution, or production rollout automation.
+replay evidence for sandbox/staging harnesses. It also has an opt-in
+Policy Foundry production smoke probe for already deployed hosted environments.
+It does not yet have shared production wizard storage, production traffic
+execution, or production rollout automation, and a smoke probe pass is not a
+production-readiness claim.
 The deeper self-onboarding track is tracked in
 [Policy Foundry Self-Onboarding Deepening](policy-foundry-self-onboarding-deepening.md).

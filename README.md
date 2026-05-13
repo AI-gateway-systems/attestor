@@ -148,6 +148,9 @@ npm run verify:cert -- .attestor/showcase/latest/evidence/kit.json
 
 # Local verification gate
 npm run verify
+
+# Opt-in deployed Policy Foundry smoke probe, requires ATTESTOR_BASE_URL and ATTESTOR_API_KEY
+npm run probe:policy-foundry-production-smoke
 ```
 
 `npm run proof:surface` writes `.attestor/proof-surface/latest/` with `.attestor/proof-surface/latest/manifest.json`, a machine-readable bundle, markdown summary, and one unified proof output per runnable scenario.
@@ -207,6 +210,21 @@ That state is tenant-bound, TTL-limited, and digest-only: it stores compact task
 state, no-go state, evidence digests, status, and safe next steps, not raw
 manifests, raw tenant ids, caller session refs, credentials, or shadow payloads.
 It is not shared production wizard storage and does not activate enforcement.
+
+For an already deployed hosted runtime, the opt-in Policy Foundry production
+smoke probe is:
+
+```bash
+ATTESTOR_BASE_URL=https://your-attestor-host \
+ATTESTOR_API_KEY=... \
+npm run probe:policy-foundry-production-smoke
+```
+
+It checks health, readiness, hosted workflow rendering, hosted HTML rendering,
+passing live downstream replay evidence, and failed live replay blocking with
+secret-safe output. It does not deploy infrastructure, issue credentials,
+activate enforcement, execute production traffic, or prove production
+readiness.
 
 Minimal request shape:
 
