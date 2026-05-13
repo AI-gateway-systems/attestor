@@ -13,6 +13,9 @@ import type {
   PolicyFoundryCommercialBoundary,
 } from './policy-foundry-commercial-boundary.js';
 import type {
+  PolicyFoundryLiveDownstreamReplay,
+} from './policy-foundry-live-downstream-replay.js';
+import type {
   PolicyFoundrySelfOnboardingCliPacket,
 } from './policy-foundry-self-onboarding-cli.js';
 
@@ -56,6 +59,7 @@ export const POLICY_FOUNDRY_HOSTED_ONBOARDING_WORKFLOW_NO_GO_REASONS = [
   'source-packet-missing',
   'adversarial-replay-missing',
   'adversarial-replay-failed',
+  'live-downstream-replay-failed',
   'commercial-boundary-blocked',
   'auto-enforce-requested',
   'credential-issuance-requested',
@@ -83,6 +87,7 @@ export interface CreatePolicyFoundryHostedOnboardingWorkflowInput {
   readonly tenantId?: string | null;
   readonly selfOnboardingPacket?: PolicyFoundrySelfOnboardingCliPacket | null;
   readonly adversarialReplay?: PolicyFoundryAdversarialReplayExecutor | null;
+  readonly liveDownstreamReplay?: PolicyFoundryLiveDownstreamReplay | null;
   readonly commercialBoundary?: PolicyFoundryCommercialBoundary | null;
   readonly reviewedStepIds?: readonly string[] | null;
   readonly customerApprovalRecorded?: boolean | null;
@@ -113,6 +118,7 @@ export interface PolicyFoundryHostedOnboardingWorkflowSourceDigests {
   readonly redTeamFixtureDigest: string | null;
   readonly reviewOnlyPatchPackDigest: string | null;
   readonly adversarialReplayDigest: string | null;
+  readonly liveDownstreamReplayDigest: string | null;
   readonly commercialBoundaryDigest: string | null;
 }
 
@@ -235,6 +241,7 @@ function workflowId(input: CreatePolicyFoundryHostedOnboardingWorkflowInput): st
   const seed = [
     input.selfOnboardingPacket?.digest ?? 'no-packet',
     input.adversarialReplay?.digest ?? 'no-replay',
+    input.liveDownstreamReplay?.digest ?? 'no-live-downstream-replay',
     input.commercialBoundary?.digest ?? 'no-commercial-boundary',
   ].join('\n');
   return `hosted_foundry_${createHash('sha256').update(seed).digest('hex').slice(0, 24)}`;
@@ -252,6 +259,7 @@ PolicyFoundryHostedOnboardingWorkflowSourceDigests {
     redTeamFixtureDigest: packet?.sourceDigests.redTeamFixtureDigest ?? null,
     reviewOnlyPatchPackDigest: packet?.sourceDigests.reviewOnlyPatchPackDigest ?? null,
     adversarialReplayDigest: input.adversarialReplay?.digest ?? null,
+    liveDownstreamReplayDigest: input.liveDownstreamReplay?.digest ?? null,
     commercialBoundaryDigest: input.commercialBoundary?.digest ?? null,
   });
 }
@@ -262,6 +270,7 @@ readonly PolicyFoundryHostedOnboardingWorkflowNoGoReason[] {
   if (!input.selfOnboardingPacket) reasons.add('source-packet-missing');
   if (!input.adversarialReplay) reasons.add('adversarial-replay-missing');
   if (input.adversarialReplay?.status === 'failed') reasons.add('adversarial-replay-failed');
+  if (input.liveDownstreamReplay?.status === 'failed') reasons.add('live-downstream-replay-failed');
   if ((input.commercialBoundary?.noGoReasons.length ?? 0) > 0) reasons.add('commercial-boundary-blocked');
   if (input.autoEnforceRequested === true) reasons.add('auto-enforce-requested');
   if (input.credentialIssuanceRequested === true) reasons.add('credential-issuance-requested');
@@ -291,7 +300,7 @@ readonly string[] {
     case 'customer-approval':
       return Object.freeze(['human-approval-required', 'approval-not-evidence-substitute']);
     case 'scoped-rollout-review':
-      return Object.freeze(['scoped-rollout-review-only', 'production-readiness-not-proven']);
+      return Object.freeze(['scoped-rollout-review-only', 'live-replay-evidence-digest', 'production-readiness-not-proven']);
   }
 }
 
@@ -339,7 +348,7 @@ function sourceDigestForStep(
     case 'customer-approval':
       return digests.reviewHandoffDigest;
     case 'scoped-rollout-review':
-      return digests.commercialBoundaryDigest ?? digests.gatePlannerDigest;
+      return digests.liveDownstreamReplayDigest ?? digests.commercialBoundaryDigest ?? digests.gatePlannerDigest;
   }
 }
 
@@ -364,6 +373,7 @@ function stepStatus(input: {
     input.stepId === 'scoped-rollout-review' &&
     input.noGoReasons.some((reason) =>
       reason === 'commercial-boundary-blocked' ||
+      reason === 'live-downstream-replay-failed' ||
       reason === 'auto-enforce-requested' ||
       reason === 'credential-issuance-requested' ||
       reason === 'infrastructure-deploy-requested' ||
@@ -438,8 +448,9 @@ function nextSafeStep(input: {
   }
   if (input.noGoReasons.some((reason) =>
     reason.endsWith('-requested') ||
-    reason === 'commercial-boundary-blocked' ||
-    reason === 'adversarial-replay-failed'
+      reason === 'commercial-boundary-blocked' ||
+      reason === 'live-downstream-replay-failed' ||
+      reason === 'adversarial-replay-failed'
   )) {
     return 'Keep the hosted workflow in review-only mode and resolve the no-go reason before continuing.';
   }

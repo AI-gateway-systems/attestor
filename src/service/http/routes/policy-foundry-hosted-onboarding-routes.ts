@@ -9,11 +9,14 @@ import {
   POLICY_FOUNDRY_COMMERCIAL_CAPABILITIES,
   POLICY_FOUNDRY_COMMERCIAL_PLANS,
   POLICY_FOUNDRY_HOSTED_ONBOARDING_REVIEWED_STEP_IDS,
+  POLICY_FOUNDRY_LIVE_DOWNSTREAM_REPLAY_ENVIRONMENTS,
+  POLICY_FOUNDRY_LIVE_DOWNSTREAM_REPLAY_EXECUTION_MODES,
   createConsequenceAdmissionProblem,
   createPolicyFoundryAdversarialReplayExecutor,
   createPolicyFoundryCommercialBoundary,
   createPolicyFoundryHostedOnboardingWorkflow,
   createPolicyFoundryHostedReviewSurface,
+  createPolicyFoundryLiveDownstreamReplay,
   createPolicyFoundrySelfOnboardingCliPacket,
   type ActionSurfaceDeclaration,
   type ActionSurfaceDeclaredCredentialPosture,
@@ -26,6 +29,9 @@ import {
   type PolicyFoundryCommercialCapability,
   type PolicyFoundryCommercialPlan,
   type PolicyFoundryHostedOnboardingReviewedStepId,
+  type PolicyFoundryLiveDownstreamReplayEnvironment,
+  type PolicyFoundryLiveDownstreamReplayExecutionMode,
+  type PolicyFoundryLiveDownstreamReplayObservation,
   type ShadowAdmissionEvent,
 } from '../../../consequence-admission/index.js';
 import { renderPolicyFoundryHostedUiFlow } from '../../policy-foundry-hosted-ui.js';
@@ -70,6 +76,7 @@ type HostedPolicyFoundryOnboardingRequestBody = {
   readonly downstreamSystem?: unknown;
   readonly credentialPosture?: unknown;
   readonly adversarialReplayObservations?: unknown;
+  readonly liveDownstreamReplayObservations?: unknown;
   readonly commercialPlan?: unknown;
   readonly requestedCapabilities?: unknown;
   readonly requestedProductionWorkflowCount?: unknown;
@@ -316,14 +323,41 @@ function optionalExecutionMode(value: unknown): PolicyFoundryAdversarialReplayEx
   return normalized as PolicyFoundryAdversarialReplayExecutionMode;
 }
 
-function requiredObservedOutcome(value: unknown): PolicyFoundryAdversarialReplayObservedOutcome {
-  const normalized = optionalString(value, 'adversarialReplayObservations[].observedOutcome');
+function optionalLiveDownstreamExecutionMode(value: unknown):
+PolicyFoundryLiveDownstreamReplayExecutionMode | null {
+  const normalized = optionalString(value, 'liveDownstreamReplayObservations[].executionMode');
+  if (normalized === null) return null;
+  if (!(POLICY_FOUNDRY_LIVE_DOWNSTREAM_REPLAY_EXECUTION_MODES as readonly string[]).includes(normalized)) {
+    throw new Error(
+      `Policy Foundry hosted onboarding route liveDownstreamReplayObservations[].executionMode must be one of: ${POLICY_FOUNDRY_LIVE_DOWNSTREAM_REPLAY_EXECUTION_MODES.join(', ')}.`,
+    );
+  }
+  return normalized as PolicyFoundryLiveDownstreamReplayExecutionMode;
+}
+
+function optionalLiveDownstreamEnvironment(value: unknown):
+PolicyFoundryLiveDownstreamReplayEnvironment | null {
+  const normalized = optionalString(value, 'liveDownstreamReplayObservations[].environment');
+  if (normalized === null) return null;
+  if (!(POLICY_FOUNDRY_LIVE_DOWNSTREAM_REPLAY_ENVIRONMENTS as readonly string[]).includes(normalized)) {
+    throw new Error(
+      `Policy Foundry hosted onboarding route liveDownstreamReplayObservations[].environment must be one of: ${POLICY_FOUNDRY_LIVE_DOWNSTREAM_REPLAY_ENVIRONMENTS.join(', ')}.`,
+    );
+  }
+  return normalized as PolicyFoundryLiveDownstreamReplayEnvironment;
+}
+
+function requiredObservedOutcome(
+  value: unknown,
+  fieldPrefix = 'adversarialReplayObservations',
+): PolicyFoundryAdversarialReplayObservedOutcome {
+  const normalized = optionalString(value, `${fieldPrefix}[].observedOutcome`);
   if (normalized === null) {
-    throw new Error('Policy Foundry hosted onboarding route adversarialReplayObservations[].observedOutcome is required.');
+    throw new Error(`Policy Foundry hosted onboarding route ${fieldPrefix}[].observedOutcome is required.`);
   }
   if (!(POLICY_FOUNDRY_ADVERSARIAL_REPLAY_OBSERVED_OUTCOMES as readonly string[]).includes(normalized)) {
     throw new Error(
-      `Policy Foundry hosted onboarding route adversarialReplayObservations[].observedOutcome must be one of: ${POLICY_FOUNDRY_ADVERSARIAL_REPLAY_OBSERVED_OUTCOMES.join(', ')}.`,
+      `Policy Foundry hosted onboarding route ${fieldPrefix}[].observedOutcome must be one of: ${POLICY_FOUNDRY_ADVERSARIAL_REPLAY_OBSERVED_OUTCOMES.join(', ')}.`,
     );
   }
   return normalized as PolicyFoundryAdversarialReplayObservedOutcome;
@@ -366,6 +400,72 @@ function normalizeReplayObservations(
         credentialMaterialUsed: optionalBoolean(
           observation.credentialMaterialUsed,
           'adversarialReplayObservations[].credentialMaterialUsed',
+          false,
+        ),
+      });
+    }));
+}
+
+function normalizeLiveDownstreamReplayObservations(
+  value: unknown,
+): readonly PolicyFoundryLiveDownstreamReplayObservation[] | null {
+  if (value === undefined || value === null) return null;
+  return Object.freeze(arrayFromBody(value, 'liveDownstreamReplayObservations', MAX_HOSTED_REPLAY_OBSERVATIONS)
+    .map((observation) => {
+      if (!isRecord(observation)) {
+        throw new Error('Policy Foundry hosted onboarding route liveDownstreamReplayObservations entries must be objects.');
+      }
+      const caseId = optionalString(observation.caseId, 'liveDownstreamReplayObservations[].caseId');
+      if (!caseId) {
+        throw new Error('Policy Foundry hosted onboarding route liveDownstreamReplayObservations[].caseId is required.');
+      }
+      return Object.freeze({
+        caseId,
+        observedOutcome: requiredObservedOutcome(observation.observedOutcome, 'liveDownstreamReplayObservations'),
+        observedAt: optionalString(observation.observedAt, 'liveDownstreamReplayObservations[].observedAt'),
+        executionMode: optionalLiveDownstreamExecutionMode(observation.executionMode),
+        environment: optionalLiveDownstreamEnvironment(observation.environment),
+        evidenceDigest: optionalString(observation.evidenceDigest, 'liveDownstreamReplayObservations[].evidenceDigest'),
+        dryRunProofDigest: optionalString(observation.dryRunProofDigest, 'liveDownstreamReplayObservations[].dryRunProofDigest'),
+        downstreamReceiptDigest: optionalString(observation.downstreamReceiptDigest, 'liveDownstreamReplayObservations[].downstreamReceiptDigest'),
+        reasonCodes: normalizeStringArray(
+          observation.reasonCodes,
+          'liveDownstreamReplayObservations[].reasonCodes',
+          64,
+        ),
+        rawPayloadStored: optionalBoolean(
+          observation.rawPayloadStored,
+          'liveDownstreamReplayObservations[].rawPayloadStored',
+          false,
+        ),
+        downstreamMutationAttempted: optionalBoolean(
+          observation.downstreamMutationAttempted,
+          'liveDownstreamReplayObservations[].downstreamMutationAttempted',
+          false,
+        ),
+        credentialMaterialUsed: optionalBoolean(
+          observation.credentialMaterialUsed,
+          'liveDownstreamReplayObservations[].credentialMaterialUsed',
+          false,
+        ),
+        productionTrafficAttempted: optionalBoolean(
+          observation.productionTrafficAttempted,
+          'liveDownstreamReplayObservations[].productionTrafficAttempted',
+          false,
+        ),
+        dryRunConfirmed: optionalBoolean(
+          observation.dryRunConfirmed,
+          'liveDownstreamReplayObservations[].dryRunConfirmed',
+          false,
+        ),
+        sandboxBoundaryVerified: optionalBoolean(
+          observation.sandboxBoundaryVerified,
+          'liveDownstreamReplayObservations[].sandboxBoundaryVerified',
+          false,
+        ),
+        unapprovedNetworkEgress: optionalBoolean(
+          observation.unapprovedNetworkEgress,
+          'liveDownstreamReplayObservations[].unapprovedNetworkEgress',
           false,
         ),
       });
@@ -487,6 +587,15 @@ async function createHostedPolicyFoundryOnboardingMaterial(
       fixtureBundle: selfOnboardingPacket.redTeamFixtures,
       observations: replayObservations,
     });
+  const liveDownstreamReplayObservations =
+    normalizeLiveDownstreamReplayObservations(body.liveDownstreamReplayObservations);
+  const liveDownstreamReplay = liveDownstreamReplayObservations === null
+    ? null
+    : createPolicyFoundryLiveDownstreamReplay({
+      generatedAt,
+      fixtureBundle: selfOnboardingPacket.redTeamFixtures,
+      observations: liveDownstreamReplayObservations,
+    });
   const commercialBoundary = createPolicyFoundryCommercialBoundary({
     generatedAt,
     plan: billingEntitlementEnforcement.commercialPlanForBoundary,
@@ -508,6 +617,7 @@ async function createHostedPolicyFoundryOnboardingMaterial(
     tenantId: tenant.tenantId,
     selfOnboardingPacket,
     adversarialReplay,
+    liveDownstreamReplay,
     commercialBoundary,
     reviewedStepIds: normalizeReviewedStepIds(body.reviewedStepIds),
     customerApprovalRecorded:
@@ -551,6 +661,7 @@ async function createHostedPolicyFoundryOnboardingMaterial(
     billingEntitlementEnforcement,
     selfOnboardingPacket,
     adversarialReplay,
+    liveDownstreamReplay,
     commercialBoundary,
     workflow,
     reviewSurface,

@@ -7,10 +7,12 @@ import {
   createPolicyFoundryCommercialBoundary,
   createPolicyFoundryHostedOnboardingWorkflow,
   createPolicyFoundryHostedReviewSurface,
+  createPolicyFoundryLiveDownstreamReplay,
   createPolicyFoundrySelfOnboardingCliPacket,
   policyFoundryHostedReviewSurfaceDescriptor,
   type ActionSurfaceOnboardingRedTeamFixtureBundle,
   type PolicyFoundryAdversarialReplayObservation,
+  type PolicyFoundryLiveDownstreamReplayObservation,
   type PolicyFoundrySelfOnboardingCliPacket,
 } from '../src/consequence-admission/index.js';
 
@@ -98,6 +100,29 @@ function passingObservations(
     rawPayloadStored: false,
     downstreamMutationAttempted: false,
     credentialMaterialUsed: false,
+  }));
+}
+
+function passingLiveObservations(
+  bundle: ActionSurfaceOnboardingRedTeamFixtureBundle,
+): readonly PolicyFoundryLiveDownstreamReplayObservation[] {
+  return bundle.cases.map((entry) => ({
+    caseId: entry.caseId,
+    observedOutcome: entry.expectedOutcome,
+    observedAt: '2026-05-13T11:01:30.000Z',
+    executionMode: 'gateway-proxy-sandbox',
+    environment: 'sandbox',
+    evidenceDigest: digest(`live:${entry.caseId}`),
+    dryRunProofDigest: digest(`dry-run:${entry.caseId}`),
+    downstreamReceiptDigest: digest(`receipt:${entry.caseId}`),
+    reasonCodes: [`fixture:${entry.kind}`, 'dry-run:confirmed'],
+    rawPayloadStored: false,
+    downstreamMutationAttempted: false,
+    credentialMaterialUsed: false,
+    productionTrafficAttempted: false,
+    dryRunConfirmed: true,
+    sandboxBoundaryVerified: true,
+    unapprovedNetworkEgress: false,
   }));
 }
 
@@ -205,10 +230,16 @@ function testReviewSurfaceCanRepresentRolloutReviewWithoutProductionClaim(): voi
     fixtureBundle: packet.redTeamFixtures,
     observations: passingObservations(packet.redTeamFixtures),
   });
+  const liveDownstreamReplay = createPolicyFoundryLiveDownstreamReplay({
+    generatedAt: '2026-05-13T11:06:30.000Z',
+    fixtureBundle: packet.redTeamFixtures,
+    observations: passingLiveObservations(packet.redTeamFixtures),
+  });
   const workflow = createPolicyFoundryHostedOnboardingWorkflow({
     generatedAt: '2026-05-13T11:07:00.000Z',
     selfOnboardingPacket: packet,
     adversarialReplay: replay,
+    liveDownstreamReplay,
     reviewedStepIds: ['surface-map', 'active-questions', 'coverage-review', 'gate-plan', 'adversarial-replay', 'patch-review'],
     customerApprovalRecorded: true,
   });
@@ -222,7 +253,54 @@ function testReviewSurfaceCanRepresentRolloutReviewWithoutProductionClaim(): voi
   equal(surface.productionReady, false, 'Hosted review surface: rollout review is not production readiness');
   equal(surface.activatesEnforcement, false, 'Hosted review surface: rollout review does not activate enforcement');
   equal(surface.executesProductionTraffic, false, 'Hosted review surface: rollout review does not execute traffic');
+  ok(
+    surface.evidenceCards.some((card) => card.evidenceKind === 'liveDownstreamReplayDigest'),
+    'Hosted review surface: live downstream replay evidence card is present',
+  );
   ok(surface.digest.startsWith('sha256:'), 'Hosted review surface: digest is generated');
+}
+
+function testReviewSurfaceBlocksFailedLiveDownstreamReplay(): void {
+  const packet = selfOnboardingPacket();
+  const replay = createPolicyFoundryAdversarialReplayExecutor({
+    generatedAt: '2026-05-13T11:08:00.000Z',
+    fixtureBundle: packet.redTeamFixtures,
+    observations: passingObservations(packet.redTeamFixtures),
+  });
+  const liveDownstreamReplay = createPolicyFoundryLiveDownstreamReplay({
+    generatedAt: '2026-05-13T11:08:30.000Z',
+    fixtureBundle: packet.redTeamFixtures,
+    observations: passingLiveObservations(packet.redTeamFixtures).map((entry, index) =>
+      index === 0
+        ? { ...entry, downstreamMutationAttempted: true }
+        : entry
+    ),
+  });
+  const workflow = createPolicyFoundryHostedOnboardingWorkflow({
+    generatedAt: '2026-05-13T11:09:00.000Z',
+    selfOnboardingPacket: packet,
+    adversarialReplay: replay,
+    liveDownstreamReplay,
+    customerApprovalRecorded: true,
+  });
+  const surface = createPolicyFoundryHostedReviewSurface({
+    workflow,
+  });
+
+  equal(surface.status, 'blocked', 'Hosted review surface: failed live downstream replay blocks status');
+  ok(
+    surface.noGoCards.some((card) => card.reason === 'live-downstream-replay-failed'),
+    'Hosted review surface: failed live downstream replay no-go is present',
+  );
+  ok(
+    surface.taskCards.some((task) => task.stepId === 'scoped-rollout-review' && task.status === 'blocked'),
+    'Hosted review surface: scoped rollout task is blocked by failed live replay',
+  );
+  includes(
+    surface.nextSafeStep,
+    'review-only mode',
+    'Hosted review surface: failed live replay keeps workflow review-only',
+  );
 }
 
 function testDescriptorDocsAndPackageSurface(): void {
@@ -267,6 +345,7 @@ function testDescriptorDocsAndPackageSurface(): void {
 testReviewSurfaceSummarizesCurrentWorkWithoutRawInputs();
 testReviewSurfaceShowsBlockersBeforeCurrentWork();
 testReviewSurfaceCanRepresentRolloutReviewWithoutProductionClaim();
+testReviewSurfaceBlocksFailedLiveDownstreamReplay();
 testDescriptorDocsAndPackageSurface();
 
 ok(passed > 0, 'Policy Foundry hosted review surface tests executed');

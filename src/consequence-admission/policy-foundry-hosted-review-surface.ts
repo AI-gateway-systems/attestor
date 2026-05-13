@@ -210,6 +210,8 @@ function noGoInstruction(reason: PolicyFoundryHostedOnboardingWorkflowNoGoReason
       return 'Run local synthetic adversarial replay before using the workflow for approval.';
     case 'adversarial-replay-failed':
       return 'Keep the workflow blocked until failed replay cases are fixed and rerun.';
+    case 'live-downstream-replay-failed':
+      return 'Keep rollout review blocked until sandbox or staging downstream replay passes without mutation, credential, or production traffic no-go evidence.';
     case 'commercial-boundary-blocked':
       return 'Reduce requested capability scope or resolve plan boundary review before activation.';
     case 'auto-enforce-requested':
@@ -254,6 +256,8 @@ function evidenceLabel(kind: string): string {
       return 'Review-only patch pack';
     case 'adversarialReplayDigest':
       return 'Adversarial replay report';
+    case 'liveDownstreamReplayDigest':
+      return 'Live downstream replay report';
     case 'commercialBoundaryDigest':
       return 'Commercial boundary';
     default:

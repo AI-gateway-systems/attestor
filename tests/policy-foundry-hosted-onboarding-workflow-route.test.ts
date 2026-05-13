@@ -175,6 +175,47 @@ function baseRequestBody() {
   };
 }
 
+type RedTeamCase = {
+  readonly caseId: string;
+  readonly kind: string;
+  readonly expectedOutcome: string;
+};
+
+function passingReplayObservations(cases: readonly RedTeamCase[]) {
+  return cases.map((entry) => ({
+    caseId: entry.caseId,
+    observedOutcome: entry.expectedOutcome,
+    observedAt: '2026-05-13T09:02:00.000Z',
+    executionMode: 'synthetic-local',
+    evidenceDigest: digest(entry.caseId),
+    reasonCodes: [`fixture:${entry.kind}`],
+    rawPayloadStored: false,
+    downstreamMutationAttempted: false,
+    credentialMaterialUsed: false,
+  }));
+}
+
+function passingLiveDownstreamReplayObservations(cases: readonly RedTeamCase[]) {
+  return cases.map((entry) => ({
+    caseId: entry.caseId,
+    observedOutcome: entry.expectedOutcome,
+    observedAt: '2026-05-13T09:02:30.000Z',
+    executionMode: 'gateway-proxy-sandbox',
+    environment: 'sandbox',
+    evidenceDigest: digest(`live:${entry.caseId}`),
+    dryRunProofDigest: digest(`dry-run:${entry.caseId}`),
+    downstreamReceiptDigest: digest(`receipt:${entry.caseId}`),
+    reasonCodes: [`fixture:${entry.kind}`, 'dry-run:confirmed'],
+    rawPayloadStored: false,
+    downstreamMutationAttempted: false,
+    credentialMaterialUsed: false,
+    productionTrafficAttempted: false,
+    dryRunConfirmed: true,
+    sandboxBoundaryVerified: true,
+    unapprovedNetworkEgress: false,
+  }));
+}
+
 async function testHostedRouteRendersStatelessReviewWorkflow(): Promise<void> {
   const app = createApp();
   const response = await app.request(HOSTED_POLICY_FOUNDRY_ONBOARDING_WORKFLOW_ROUTE, {
@@ -219,6 +260,7 @@ async function testHostedRouteRendersStatelessReviewWorkflow(): Promise<void> {
       readonly hostedUiImplemented: boolean;
     };
     readonly adversarialReplay: null;
+    readonly liveDownstreamReplay: null;
     readonly commercialBoundary: {
       readonly plan: string;
       readonly noGoReasons: readonly string[];
@@ -248,6 +290,7 @@ async function testHostedRouteRendersStatelessReviewWorkflow(): Promise<void> {
   equal(body.selfOnboardingPacket.rawPayloadStored, false, 'Policy Foundry hosted route: self-onboarding packet is raw-free');
   equal(body.selfOnboardingPacket.productionReady, false, 'Policy Foundry hosted route: self-onboarding packet is not production-ready');
   equal(body.adversarialReplay, null, 'Policy Foundry hosted route: omitted replay observations stay missing');
+  equal(body.liveDownstreamReplay, null, 'Policy Foundry hosted route: omitted live downstream replay observations stay missing');
   equal(body.workflow.status, 'customer-action-required', 'Policy Foundry hosted route: missing replay requires action');
   equal(body.workflow.hostedRouteImplemented, false, 'Policy Foundry hosted route: workflow contract still does not claim its own route');
   equal(body.workflow.hostedUiImplemented, false, 'Policy Foundry hosted route: hosted UI is not claimed');
@@ -417,25 +460,11 @@ async function testHostedRouteCanAcceptPassingReplayObservations(): Promise<void
   const firstBody = await first.json() as {
     readonly selfOnboardingPacket: {
       readonly redTeamFixtures: {
-        readonly cases: readonly {
-          readonly caseId: string;
-          readonly kind: string;
-          readonly expectedOutcome: string;
-        }[];
+        readonly cases: readonly RedTeamCase[];
       };
     };
   };
-  const observations = firstBody.selfOnboardingPacket.redTeamFixtures.cases.map((entry) => ({
-    caseId: entry.caseId,
-    observedOutcome: entry.expectedOutcome,
-    observedAt: '2026-05-13T09:02:00.000Z',
-    executionMode: 'synthetic-local',
-    evidenceDigest: digest(entry.caseId),
-    reasonCodes: [`fixture:${entry.kind}`],
-    rawPayloadStored: false,
-    downstreamMutationAttempted: false,
-    credentialMaterialUsed: false,
-  }));
+  const observations = passingReplayObservations(firstBody.selfOnboardingPacket.redTeamFixtures.cases);
   const second = await app.request(HOSTED_POLICY_FOUNDRY_ONBOARDING_WORKFLOW_ROUTE, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -482,6 +511,150 @@ async function testHostedRouteCanAcceptPassingReplayObservations(): Promise<void
   equal(secondBody.workflow.productionReady, false, 'Policy Foundry hosted route: passing replay still does not prove production readiness');
   equal(secondBody.reviewSurface.noGoCards.some((card) => card.reason === 'adversarial-replay-missing'), false, 'Policy Foundry hosted route: review surface clears replay-missing no-go');
   equal(secondBody.reviewSurface.productionReady, false, 'Policy Foundry hosted route: review surface still does not prove production readiness');
+}
+
+async function testHostedRouteBindsPassingLiveDownstreamReplay(): Promise<void> {
+  const app = createApp();
+  const first = await app.request(HOSTED_POLICY_FOUNDRY_ONBOARDING_WORKFLOW_ROUTE, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(baseRequestBody()),
+  });
+  const firstBody = await first.json() as {
+    readonly selfOnboardingPacket: {
+      readonly redTeamFixtures: {
+        readonly cases: readonly RedTeamCase[];
+      };
+    };
+  };
+  const replayObservations =
+    passingReplayObservations(firstBody.selfOnboardingPacket.redTeamFixtures.cases);
+  const liveDownstreamReplayObservations =
+    passingLiveDownstreamReplayObservations(firstBody.selfOnboardingPacket.redTeamFixtures.cases);
+  const second = await app.request(HOSTED_POLICY_FOUNDRY_ONBOARDING_WORKFLOW_ROUTE, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      ...baseRequestBody(),
+      adversarialReplayObservations: replayObservations,
+      liveDownstreamReplayObservations,
+      reviewedStepIds: ['surface-map', 'adversarial-replay', 'patch-review'],
+      customerApprovalRecorded: true,
+    }),
+  });
+  const secondBody = await second.json() as {
+    readonly liveDownstreamReplay: {
+      readonly status: string;
+      readonly liveDownstreamObservationCount: number;
+      readonly productionReady: boolean;
+      readonly executesProductionTraffic: boolean;
+    };
+    readonly workflow: {
+      readonly sourceDigests: { readonly liveDownstreamReplayDigest: string | null };
+      readonly noGoReasons: readonly string[];
+      readonly productionReady: boolean;
+      readonly executesProductionTraffic: boolean;
+    };
+    readonly reviewSurface: {
+      readonly evidenceCards: readonly { readonly evidenceKind: string }[];
+      readonly noGoCards: readonly { readonly reason: string }[];
+      readonly productionReady: boolean;
+    };
+  };
+
+  equal(second.status, 200, 'Policy Foundry hosted route: live downstream replay request succeeds');
+  equal(secondBody.liveDownstreamReplay.status, 'passed', 'Policy Foundry hosted route: live downstream replay passes');
+  equal(
+    secondBody.liveDownstreamReplay.liveDownstreamObservationCount,
+    liveDownstreamReplayObservations.length,
+    'Policy Foundry hosted route: live downstream replay observations are counted',
+  );
+  equal(secondBody.liveDownstreamReplay.productionReady, false, 'Policy Foundry hosted route: live downstream replay does not prove production readiness');
+  equal(secondBody.liveDownstreamReplay.executesProductionTraffic, false, 'Policy Foundry hosted route: live downstream replay does not execute production traffic');
+  ok(
+    secondBody.workflow.sourceDigests.liveDownstreamReplayDigest?.startsWith('sha256:'),
+    'Policy Foundry hosted route: live downstream replay digest is bound into workflow',
+  );
+  ok(
+    !secondBody.workflow.noGoReasons.includes('live-downstream-replay-failed'),
+    'Policy Foundry hosted route: passing live downstream replay has no live no-go',
+  );
+  equal(secondBody.workflow.productionReady, false, 'Policy Foundry hosted route: workflow still does not prove production readiness');
+  equal(secondBody.workflow.executesProductionTraffic, false, 'Policy Foundry hosted route: workflow still does not execute production traffic');
+  ok(
+    secondBody.reviewSurface.evidenceCards.some((card) => card.evidenceKind === 'liveDownstreamReplayDigest'),
+    'Policy Foundry hosted route: review surface exposes live downstream replay evidence digest card',
+  );
+  equal(secondBody.reviewSurface.noGoCards.some((card) => card.reason === 'live-downstream-replay-failed'), false, 'Policy Foundry hosted route: review surface has no live replay no-go for passing report');
+  equal(secondBody.reviewSurface.productionReady, false, 'Policy Foundry hosted route: review surface still does not prove production readiness');
+}
+
+async function testHostedRouteBlocksFailedLiveDownstreamReplay(): Promise<void> {
+  const app = createApp();
+  const first = await app.request(HOSTED_POLICY_FOUNDRY_ONBOARDING_WORKFLOW_ROUTE, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(baseRequestBody()),
+  });
+  const firstBody = await first.json() as {
+    readonly selfOnboardingPacket: {
+      readonly redTeamFixtures: {
+        readonly cases: readonly RedTeamCase[];
+      };
+    };
+  };
+  const liveObservations =
+    passingLiveDownstreamReplayObservations(firstBody.selfOnboardingPacket.redTeamFixtures.cases)
+      .map((entry, index) =>
+        index === 0
+          ? { ...entry, productionTrafficAttempted: true }
+          : entry
+      );
+  const second = await app.request(HOSTED_POLICY_FOUNDRY_ONBOARDING_WORKFLOW_ROUTE, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      ...baseRequestBody(),
+      adversarialReplayObservations:
+        passingReplayObservations(firstBody.selfOnboardingPacket.redTeamFixtures.cases),
+      liveDownstreamReplayObservations: liveObservations,
+      customerApprovalRecorded: true,
+    }),
+  });
+  const secondBody = await second.json() as {
+    readonly liveDownstreamReplay: {
+      readonly status: string;
+      readonly noGoReasons: readonly string[];
+    };
+    readonly workflow: {
+      readonly status: string;
+      readonly noGoReasons: readonly string[];
+      readonly blockedStepIds: readonly string[];
+    };
+    readonly reviewSurface: {
+      readonly noGoCards: readonly { readonly reason: string }[];
+    };
+  };
+
+  equal(second.status, 200, 'Policy Foundry hosted route: failed live replay request returns review material');
+  equal(secondBody.liveDownstreamReplay.status, 'failed', 'Policy Foundry hosted route: failed live downstream replay is explicit');
+  ok(
+    secondBody.liveDownstreamReplay.noGoReasons.includes('production-traffic-attempted'),
+    'Policy Foundry hosted route: live downstream replay records production traffic no-go',
+  );
+  equal(secondBody.workflow.status, 'blocked', 'Policy Foundry hosted route: failed live downstream replay blocks workflow');
+  ok(
+    secondBody.workflow.noGoReasons.includes('live-downstream-replay-failed'),
+    'Policy Foundry hosted route: workflow records failed live downstream replay no-go',
+  );
+  ok(
+    secondBody.workflow.blockedStepIds.includes('scoped-rollout-review'),
+    'Policy Foundry hosted route: failed live downstream replay blocks scoped rollout review',
+  );
+  ok(
+    secondBody.reviewSurface.noGoCards.some((card) => card.reason === 'live-downstream-replay-failed'),
+    'Policy Foundry hosted route: review surface exposes failed live replay no-go',
+  );
 }
 
 async function testHostedRouteKeepsTenantScopedShadowEvents(): Promise<void> {
@@ -743,6 +916,8 @@ try {
   await testHostedRouteRendersHtmlViewFromSameWorkflow();
   await testHostedRoutePersistsAndResumesWizardState();
   await testHostedRouteCanAcceptPassingReplayObservations();
+  await testHostedRouteBindsPassingLiveDownstreamReplay();
+  await testHostedRouteBlocksFailedLiveDownstreamReplay();
   await testHostedRouteKeepsTenantScopedShadowEvents();
   await testHostedRouteRejectsInvalidReplayOutcome();
   await testHostedRouteBlocksUnsafeAutomationRequests();
