@@ -203,7 +203,7 @@ function testDescriptorDocsAndPackageSurfaceStayAligned(): void {
   includes(readme, 'npm run policy-foundry:self-onboard', 'README: self-onboarding command is named');
   includes(readme, 'session, coverage, blockers, gate plan, handoff, red-team fixtures', 'README: self-onboarding output is described');
   includes(tracker, 'complete | Add One-Command Self-Onboarding CLI', 'Deepening tracker: Step 09 is complete');
-  includes(tracker, 'Step 10 is the next implementation step', 'Deepening tracker: Step 10 is next');
+  includes(tracker, 'Step 11 is the next implementation step', 'Deepening tracker: Step 11 is next');
   equal(
     pkg.scripts['policy-foundry:self-onboard'],
     'tsx scripts/render-policy-foundry-self-onboarding.ts',

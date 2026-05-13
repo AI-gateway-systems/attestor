@@ -124,6 +124,11 @@ function testPolicyFoundryArchitectureIsGrounded(): void {
   );
   includes(
     doc,
+    'src/consequence-admission/policy-foundry-outcome-feedback-loop.ts',
+    'Policy Foundry docs: outcome feedback loop contract evidence is named',
+  );
+  includes(
+    doc,
     'scripts/render-policy-foundry-self-onboarding.ts',
     'Policy Foundry docs: self-onboarding renderer evidence is named',
   );
@@ -156,6 +161,11 @@ function testReadmeNamesPolicyFoundryWithoutOverclaiming(): void {
     readme,
     'customers self-attest readiness controls',
     'README: readiness evidence cannot be self-attested',
+  );
+  includes(
+    readme,
+    'reviewed outcome feedback',
+    'README: outcome feedback is named without automation overclaim',
   );
   includes(
     readme,
@@ -207,6 +217,8 @@ function testOnboardingResearchAnchorsAreRecorded(): void {
     'Zanzibar and OpenFGA',
     'Terraform',
     'Kubernetes dry-run',
+    'OpenTelemetry-style correlated signals',
+    'NIST AI RMF monitor/manage discipline',
   ]) {
     includes(doc, anchor, `Policy Foundry docs: research anchor ${anchor} is recorded`);
   }
@@ -346,6 +358,16 @@ function testPackageScriptIsExposed(): void {
     pkg.scripts['policy-foundry:self-onboard'] ?? '',
     'tsx scripts/render-policy-foundry-self-onboarding.ts',
     'Package: Policy Foundry self-onboarding renderer command is stable',
+  );
+  includes(
+    JSON.stringify(pkg.scripts),
+    'test:policy-foundry-outcome-feedback-loop',
+    'Package: Policy Foundry outcome feedback loop test is exposed',
+  );
+  includes(
+    pkg.scripts['test:policy-foundry-outcome-feedback-loop'] ?? '',
+    'tsx tests/policy-foundry-outcome-feedback-loop.test.ts',
+    'Package: Policy Foundry outcome feedback loop test command is stable',
   );
 }
 

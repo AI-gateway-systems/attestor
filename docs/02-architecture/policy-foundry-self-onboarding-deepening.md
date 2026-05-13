@@ -33,6 +33,9 @@ preserve these boundaries:
 - Stripe CLI, OpenAPI Generator, Terraform `plan`, and Kubernetes dry-run
   patterns show that one-command onboarding should render reviewable output,
   not silently apply infrastructure, credentials, or enforcement.
+- OPA decision logs, OpenTelemetry signals, NIST AI RMF monitor/manage, and
+  IAM Recommender observed-usage recommendations show that outcome feedback
+  should be structured scoring input, not automatic authority.
 
 These sources are engineering anchors only. They do not certify Attestor.
 
@@ -49,7 +52,7 @@ These sources are engineering anchors only. They do not certify Attestor.
 | Step 07 | complete | Add Authority Relationship Context | Capture approver, owner, tenant, delegation, and scope context without storing raw customer identity data |
 | Step 08 | complete | Add Review-Only Integration Patch Pack | Render SDK/gateway/MCP/sidecar/provider draft patches as review material only |
 | Step 09 | complete | Add One-Command Self-Onboarding CLI | Render session, coverage, blockers, patch pack, handoff, and red-team fixtures from customer-owned manifests and shadow data |
-| Step 10 | not started | Add Outcome Feedback Loop | Feed reviewed decisions and downstream receipts back into scoring through digest-first, data-minimized signals |
+| Step 10 | complete | Add Outcome Feedback Loop | Feed reviewed decisions and downstream receipts back into scoring through digest-first, data-minimized signals |
 | Step 11 | not started | Add Drift And Policy Debt Detector | Detect new surfaces, stale policies, verifier coverage drift, actor concentration, and policy/shadow mismatch |
 | Step 12 | not started | Add Commercial Boundary Contract | Separate evaluation, Starter, Pro, Scale, and Enterprise Foundry capabilities without paywalling safety minimums |
 
@@ -260,6 +263,34 @@ readiness overrides. It writes digest-bound review files for the customer to
 inspect. It does not apply patches, deploy infrastructure, issue credentials,
 activate enforcement, or prove production readiness.
 
+## Step 10 Scope
+
+Step 10 adds `attestor.policy-foundry-outcome-feedback-loop.v1`.
+
+The outcome feedback loop is the digest-first return path from reviewed
+decisions and downstream receipts into Policy Foundry scoring review:
+
+```text
+reviewed decision digests
+downstream execution receipt digests
+-> aggregate outcome signals
+-> scoring review input
+```
+
+It exposes:
+
+- reviewer agreement rate
+- downstream success, failure, and skipped receipt rates
+- missing receipt count
+- feedback completeness rate
+- scoring adjustments for coverage dimensions
+- no-go reasons for invalid digests, disagreement, failures, and missing
+  receipts
+
+The feedback loop is scoring input only. It does not train a model, mutate
+scores automatically, approve a policy, activate enforcement, or prove
+production readiness.
+
 ## Protected Principles
 
 - customer authority
@@ -284,5 +315,5 @@ contracts, or shared product positioning are touched.
 
 ## Current Status
 
-Step 01 through Step 09 are complete. Step 10 is the next implementation step. The
-rest of the list remains open.
+Step 01 through Step 10 are complete. Step 11 is the next implementation step.
+The rest of the list remains open.

@@ -495,6 +495,26 @@ assert.equal(
   typeof admission.createPolicyFoundrySelfOnboardingCliPacket,
   'function',
 );
+assert.equal(
+  admission.POLICY_FOUNDRY_OUTCOME_FEEDBACK_LOOP_VERSION,
+  'attestor.policy-foundry-outcome-feedback-loop.v1',
+);
+assert.equal(
+  admission.policyFoundryOutcomeFeedbackLoopDescriptor().dataMinimizationSurfaceKind,
+  'policy-foundry-outcome-feedback-loop',
+);
+assert.equal(
+  admission.policyFoundryOutcomeFeedbackLoopDescriptor().automaticScoreMutationAllowed,
+  false,
+);
+assert.equal(
+  admission.policyFoundryOutcomeFeedbackLoopDescriptor().llmTrainingAllowed,
+  false,
+);
+assert.equal(
+  typeof admission.createPolicyFoundryOutcomeFeedbackLoop,
+  'function',
+);
 
 let blockedInternalPath = false;
 try {
