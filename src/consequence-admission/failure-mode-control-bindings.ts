@@ -335,7 +335,7 @@ const BINDING_PROFILES = {
     requiredAuthority: ['hold-owner-authority'],
     requiredAuditRecords: ['no-go-hold-decision'],
     replayRequired: true,
-    limitation: 'Binding defines no-go dominance; a unified hold ledger remains a later implementation step.',
+    limitation: 'Unified no-go condition ledger is implemented for supplied hold records; source-of-truth customer system integrations remain required.',
   },
   'scope-explosion': {
     invariantIds: [

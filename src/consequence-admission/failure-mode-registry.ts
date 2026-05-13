@@ -472,11 +472,13 @@ Object.freeze([
     ],
     defaultDecision: 'block',
     repositoryEvidence: [
+      evidence('code', 'src/consequence-admission/no-go-condition-ledger.ts', 'fraud/legal/compliance/security hold ledger'),
+      evidence('test', 'tests/no-go-condition-ledger.test.ts', 'active hold and natural-language bypass block'),
       evidence('code', 'src/consequence-admission/policy-foundry-drift-policy-debt-detector.ts', 'noGoReasons'),
       evidence('code', 'src/consequence-admission/policy-foundry-live-downstream-replay.ts', 'noGoReasons'),
       evidence('test', 'tests/policy-foundry-live-downstream-replay.test.ts', 'no-go reasons block scoped rollout review'),
     ],
-    limitation: 'No-go reasons are present in multiple contracts; a unified hold ledger is still a later step.',
+    limitation: 'Unified no-go condition ledger exists for supplied hold records; live fraud, legal, compliance, security, privacy, and risk system integrations still need customer setup.',
   }),
   entry({
     id: 'scope-explosion',
