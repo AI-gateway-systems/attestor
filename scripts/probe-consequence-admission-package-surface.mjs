@@ -475,6 +475,26 @@ assert.equal(
   typeof admission.createPolicyFoundryReviewOnlyPatchPack,
   'function',
 );
+assert.equal(
+  admission.POLICY_FOUNDRY_SELF_ONBOARDING_CLI_VERSION,
+  'attestor.policy-foundry-self-onboarding-cli.v1',
+);
+assert.equal(
+  admission.policyFoundrySelfOnboardingCliDescriptor().dataMinimizationSurfaceKind,
+  'policy-foundry-self-onboarding-cli',
+);
+assert.equal(
+  admission.policyFoundrySelfOnboardingCliDescriptor().appliesPatches,
+  false,
+);
+assert.equal(
+  admission.policyFoundrySelfOnboardingCliDescriptor().reviewMaterialOnly,
+  true,
+);
+assert.equal(
+  typeof admission.createPolicyFoundrySelfOnboardingCliPacket,
+  'function',
+);
 
 let blockedInternalPath = false;
 try {

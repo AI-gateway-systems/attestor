@@ -80,6 +80,14 @@ standard certifies Attestor:
 - Zanzibar and OpenFGA show why relationship context matters next to ABAC:
   https://research.google/pubs/zanzibar-googles-consistent-global-authorization-system/
   and https://openfga.dev/docs/concepts
+- One-command onboarding should preserve a preview/review boundary rather than
+  applying changes directly. The CLI design follows the same separation used by
+  Stripe CLI local tooling, OpenAPI Generator output generation, Terraform
+  `plan`, and Kubernetes dry-run/server-side apply:
+  https://docs.stripe.com/stripe-cli,
+  https://openapi-generator.tech/docs/usage,
+  https://developer.hashicorp.com/terraform/cli/commands/plan, and
+  https://kubernetes.io/docs/reference/kubectl/generated/kubectl_apply/
 
 ## Core Versus Packs
 
@@ -414,6 +422,20 @@ connector, credential-boundary, Policy Twin, and red-team replay review drafts.
 It does not apply patches, deploy infrastructure, issue credentials, activate
 enforcement, or prove non-bypassability.
 
+The One-Command Self-Onboarding CLI is the first end-to-end local renderer for
+this path. Its contract lives in
+`src/consequence-admission/policy-foundry-self-onboarding-cli.ts`, the renderer
+lives in `scripts/render-policy-foundry-self-onboarding.ts`, is covered by
+`tests/policy-foundry-self-onboarding-cli.test.ts`, and is exposed through
+`npm run policy-foundry:self-onboard` plus
+`test:policy-foundry-self-onboarding-cli`. It turns customer-owned manifests,
+declarations, shadow events, and reviewed readiness overrides into one
+digest-bound packet containing the onboarding packet, onboarding session,
+coverage score, gate planner, review handoff, synthetic red-team fixtures, and
+review-only patch pack. It writes review material only; it does not apply
+patches, deploy infrastructure, issue credentials, activate enforcement, or
+prove production readiness.
+
 ```text
 coverageScore
 coverageDimensions
@@ -452,6 +474,11 @@ targetKinds
 artifactKinds
 reviewMaterialOnly
 appliesPatches: false
+selfOnboardingCli
+selfOnboardingStatus
+selfOnboardingBlockers
+selfOnboardingOutputFiles
+selfOnboardingNextSafeStep
 readinessScore
 sampleSize
 actorDistributionHealth
@@ -529,7 +556,8 @@ evidence replay, active questions, action-surface review handoff, synthetic
 onboarding red-team fixture generation, and the first onboarding session
 contract plus the first coverage score, minimum viable gate planner, and
 schema-bound candidate registry, counterexample ledger, and Policy Twin v2
-summary plus authority relationship context and review-only patch pack
+summary plus authority relationship context, review-only patch pack, and
+one-command self-onboarding CLI
 contracts. It does not yet have a live
 adversarial replay executor, UI workflow, or full commercial entitlement
 contract for Foundry capabilities. The deeper self-onboarding track is tracked in

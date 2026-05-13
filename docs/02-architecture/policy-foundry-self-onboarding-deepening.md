@@ -30,6 +30,9 @@ preserve these boundaries:
   needs a verifier/gateway/sidecar control, not only an advisory API call.
 - OpenFGA and Zanzibar show why authority relationships matter next to ABAC
   attributes.
+- Stripe CLI, OpenAPI Generator, Terraform `plan`, and Kubernetes dry-run
+  patterns show that one-command onboarding should render reviewable output,
+  not silently apply infrastructure, credentials, or enforcement.
 
 These sources are engineering anchors only. They do not certify Attestor.
 
@@ -45,7 +48,7 @@ These sources are engineering anchors only. They do not certify Attestor.
 | Step 06 | complete | Add Policy Twin v2 Summary | Produce a clearer backtest packet for admit/review/block impact, review-load delta, no-go reasons, and rollout recommendation |
 | Step 07 | complete | Add Authority Relationship Context | Capture approver, owner, tenant, delegation, and scope context without storing raw customer identity data |
 | Step 08 | complete | Add Review-Only Integration Patch Pack | Render SDK/gateway/MCP/sidecar/provider draft patches as review material only |
-| Step 09 | not started | Add One-Command Self-Onboarding CLI | Render session, coverage, blockers, patch pack, handoff, and red-team fixtures from customer-owned manifests and shadow data |
+| Step 09 | complete | Add One-Command Self-Onboarding CLI | Render session, coverage, blockers, patch pack, handoff, and red-team fixtures from customer-owned manifests and shadow data |
 | Step 10 | not started | Add Outcome Feedback Loop | Feed reviewed decisions and downstream receipts back into scoring through digest-first, data-minimized signals |
 | Step 11 | not started | Add Drift And Policy Debt Detector | Detect new surfaces, stale policies, verifier coverage drift, actor concentration, and policy/shadow mismatch |
 | Step 12 | not started | Add Commercial Boundary Contract | Separate evaluation, Starter, Pro, Scale, and Enterprise Foundry capabilities without paywalling safety minimums |
@@ -230,6 +233,33 @@ The patch pack is review material only. It does not apply patches, deploy
 infrastructure, issue credentials, activate enforcement, or prove
 non-bypassability.
 
+## Step 09 Scope
+
+Step 09 adds `attestor.policy-foundry-self-onboarding-cli.v1`.
+
+The one-command self-onboarding CLI composes the existing review-gated pieces:
+
+```text
+action-surface onboarding packet
+onboarding session
+coverage score
+gate planner
+review handoff
+synthetic red-team fixtures
+review-only patch pack
+```
+
+The renderer is exposed as:
+
+```text
+npm run policy-foundry:self-onboard
+```
+
+It accepts customer-owned manifests, declarations, shadow events, and reviewed
+readiness overrides. It writes digest-bound review files for the customer to
+inspect. It does not apply patches, deploy infrastructure, issue credentials,
+activate enforcement, or prove production readiness.
+
 ## Protected Principles
 
 - customer authority
@@ -254,5 +284,5 @@ contracts, or shared product positioning are touched.
 
 ## Current Status
 
-Step 01 through Step 08 are complete. Step 09 is the next implementation step. The
+Step 01 through Step 09 are complete. Step 10 is the next implementation step. The
 rest of the list remains open.
