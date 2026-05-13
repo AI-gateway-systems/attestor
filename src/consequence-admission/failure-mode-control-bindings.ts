@@ -387,7 +387,7 @@ const BINDING_PROFILES = {
     requiredAuthority: ['review-owner'],
     requiredAuditRecords: ['review-packet-digest', 'reviewer-decision-boundary'],
     replayRequired: true,
-    limitation: 'Binding requires focused packets; reviewer-load scoring is implemented as a deterministic guard, but live reviewer capacity still needs customer telemetry.',
+    limitation: 'Binding requires focused packets; reviewer-load and aggregate reviewer-behavior scoring are implemented as deterministic guard signals, but live reviewer capacity still needs customer telemetry.',
   },
   'model-tool-config-drift': {
     invariantIds: [

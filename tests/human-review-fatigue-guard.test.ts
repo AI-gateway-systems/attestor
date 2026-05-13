@@ -59,6 +59,13 @@ function testCompactFocusedPacketPasses(): void {
       approvalRequired: true,
       rawPayloadStored: false,
       autoEnforceRequested: false,
+      reviewDecisionCount: 12,
+      approvedDecisionCount: 9,
+      distinctReviewerCount: 3,
+      medianDecisionSeconds: 45,
+      minimumDecisionSeconds: 18,
+      consecutiveApprovalCount: 4,
+      reviewerBehaviorTelemetryPresent: true,
     },
   });
   const serialized = JSON.stringify(decision);
@@ -78,6 +85,7 @@ function testCompactFocusedPacketPasses(): void {
   );
   equal(decision.observed.totalReviewItems, 8, 'Human review fatigue guard: total items are counted');
   equal(decision.observed.lowPriorityRatio, 0.25, 'Human review fatigue guard: low priority ratio is normalized');
+  equal(decision.observed.approvalRatio, 0.75, 'Human review fatigue guard: behavior approval ratio is normalized');
   ok(decision.digest.startsWith('sha256:'), 'Human review fatigue guard: digest is generated');
   excludes(
     serialized,
@@ -214,6 +222,102 @@ function testNoisyPacketRequiresReview(): void {
   );
 }
 
+function testReviewerBehaviorAnomaliesRequireReview(): void {
+  const decision = evaluateConsequenceHumanReviewFatigue({
+    generatedAt: '2026-05-13T12:03:30.000Z',
+    reviewSurfaceKind: 'policy-foundry-hosted-review-surface',
+    metrics: {
+      totalReviewItems: 8,
+      lowPriorityItems: 1,
+      blockerItems: 0,
+      noGoItems: 0,
+      missingEvidenceItems: 0,
+      focusAreaCount: 3,
+      evidenceDigestCardCount: 5,
+      taskCount: 4,
+      findingCount: 2,
+      reviewerInstructionCount: 3,
+      estimatedReviewMinutes: 7,
+      blockersFirst: true,
+      hasNoGoSummary: true,
+      hasMissingEvidenceSummary: true,
+      hasReviewerFocusAreas: true,
+      hasNextSafeStep: true,
+      approvalRequired: true,
+      rawPayloadStored: false,
+      autoEnforceRequested: false,
+      reviewDecisionCount: 50,
+      approvedDecisionCount: 49,
+      distinctReviewerCount: 1,
+      medianDecisionSeconds: 3,
+      minimumDecisionSeconds: 1,
+      consecutiveApprovalCount: 30,
+      reviewerBehaviorTelemetryPresent: true,
+    },
+  });
+
+  equal(decision.outcome, 'review', 'Human review fatigue guard: behavior anomalies require review');
+  equal(decision.observed.approvalRatio, 0.98, 'Human review fatigue guard: approval ratio is derived');
+  includes(
+    decision.reasonCodes.join(','),
+    'reviewer-approval-rate-high',
+    'Human review fatigue guard: high approval-rate reason is emitted',
+  );
+  includes(
+    decision.reasonCodes.join(','),
+    'reviewer-decision-latency-too-low',
+    'Human review fatigue guard: low decision-latency reason is emitted',
+  );
+  includes(
+    decision.reasonCodes.join(','),
+    'reviewer-distinct-count-too-low',
+    'Human review fatigue guard: reviewer concentration reason is emitted',
+  );
+  includes(
+    decision.reasonCodes.join(','),
+    'reviewer-consecutive-approval-run-high',
+    'Human review fatigue guard: consecutive approval reason is emitted',
+  );
+}
+
+function testMissingReviewerBehaviorTelemetryRequiresReviewAfterEnoughDecisions(): void {
+  const decision = evaluateConsequenceHumanReviewFatigue({
+    generatedAt: '2026-05-13T12:03:45.000Z',
+    reviewSurfaceKind: 'release-reviewer-queue',
+    metrics: {
+      totalReviewItems: 6,
+      lowPriorityItems: 1,
+      blockerItems: 0,
+      noGoItems: 0,
+      missingEvidenceItems: 0,
+      focusAreaCount: 2,
+      evidenceDigestCardCount: 3,
+      taskCount: 3,
+      findingCount: 1,
+      reviewerInstructionCount: 2,
+      estimatedReviewMinutes: 5,
+      blockersFirst: true,
+      hasNoGoSummary: true,
+      hasMissingEvidenceSummary: true,
+      hasReviewerFocusAreas: true,
+      hasNextSafeStep: true,
+      approvalRequired: true,
+      rawPayloadStored: false,
+      autoEnforceRequested: false,
+      reviewDecisionCount: 12,
+      approvedDecisionCount: 8,
+      reviewerBehaviorTelemetryPresent: false,
+    },
+  });
+
+  equal(decision.outcome, 'review', 'Human review fatigue guard: missing behavior telemetry requires review');
+  includes(
+    decision.reasonCodes.join(','),
+    'reviewer-behavior-telemetry-missing',
+    'Human review fatigue guard: missing behavior telemetry reason is emitted',
+  );
+}
+
 function testUnsafeReviewPacketBlocks(): void {
   const decision = evaluateConsequenceHumanReviewFatigue({
     generatedAt: '2026-05-13T12:04:00.000Z',
@@ -296,6 +400,15 @@ function testDescriptorAndDocsStayAligned(): void {
     descriptor.reasonCodes.includes('no-go-summary-missing'),
     'Human review fatigue guard descriptor: no-go reason is declared',
   );
+  ok(
+    descriptor.reasonCodes.includes('reviewer-approval-rate-high'),
+    'Human review fatigue guard descriptor: reviewer behavior reason is declared',
+  );
+  equal(
+    descriptor.defaultMaxApprovalRatio,
+    0.95,
+    'Human review fatigue guard descriptor: approval ratio threshold is declared',
+  );
   equal(descriptor.storesRawReviewPacket, false, 'Human review fatigue guard descriptor: raw packet storage is false');
   includes(
     registry,
@@ -309,7 +422,7 @@ function testDescriptorAndDocsStayAligned(): void {
   );
   includes(
     bindings,
-    'reviewer-load scoring is implemented as a deterministic guard',
+    'reviewer-load and aggregate reviewer-behavior scoring are implemented as deterministic guard signals',
     'Human review fatigue guard bindings: limitation reflects implemented guard',
   );
   includes(
@@ -321,6 +434,11 @@ function testDescriptorAndDocsStayAligned(): void {
     docs,
     'test:human-review-fatigue-guard',
     'Human review fatigue guard docs: test command is documented',
+  );
+  includes(
+    docs,
+    'aggregate reviewer-behavior signals',
+    'Human review fatigue guard docs: behavior telemetry scope is documented',
   );
   includes(
     packageJson,
@@ -339,6 +457,8 @@ function run(): void {
   testNoGoWithoutSummaryBlocks();
   testMissingEvidenceOrFocusRequiresReview();
   testNoisyPacketRequiresReview();
+  testReviewerBehaviorAnomaliesRequireReview();
+  testMissingReviewerBehaviorTelemetryRequiresReviewAfterEnoughDecisions();
   testUnsafeReviewPacketBlocks();
   testMissingPacketBlocks();
   testDescriptorAndDocsStayAligned();

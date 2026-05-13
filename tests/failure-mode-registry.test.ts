@@ -184,6 +184,10 @@ function testCriticalFailureModesAreBoundToSafeDefaults(): void {
   );
 
   equal(reviewFatigue.defaultDecision, 'review', 'Failure registry: review fatigue remains a review hardening concern');
+  ok(
+    reviewFatigue.requiredControls.includes('aggregate-reviewer-behavior-telemetry'),
+    'Failure registry: review fatigue requires aggregate reviewer behavior telemetry',
+  );
   equal(supplyChain.defaultDecision, 'block', 'Failure registry: agentic supply-chain compromise blocks');
 }
 

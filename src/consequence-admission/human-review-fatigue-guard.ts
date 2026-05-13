@@ -39,6 +39,11 @@ export const CONSEQUENCE_HUMAN_REVIEW_FATIGUE_REASON_CODES = [
   'too-many-low-priority-items',
   'too-many-reviewer-instructions',
   'review-time-budget-exceeded',
+  'reviewer-behavior-telemetry-missing',
+  'reviewer-approval-rate-high',
+  'reviewer-decision-latency-too-low',
+  'reviewer-distinct-count-too-low',
+  'reviewer-consecutive-approval-run-high',
   'blockers-not-prioritized',
   'raw-payload-stored',
   'auto-enforce-requested',
@@ -70,6 +75,13 @@ export interface ConsequenceHumanReviewFatigueMetrics {
   readonly approvalRequired?: boolean | null;
   readonly rawPayloadStored?: boolean | null;
   readonly autoEnforceRequested?: boolean | null;
+  readonly reviewDecisionCount?: number | null;
+  readonly approvedDecisionCount?: number | null;
+  readonly distinctReviewerCount?: number | null;
+  readonly medianDecisionSeconds?: number | null;
+  readonly minimumDecisionSeconds?: number | null;
+  readonly consecutiveApprovalCount?: number | null;
+  readonly reviewerBehaviorTelemetryPresent?: boolean | null;
 }
 
 export interface ConsequenceHumanReviewFatigueThresholds {
@@ -77,6 +89,11 @@ export interface ConsequenceHumanReviewFatigueThresholds {
   readonly maxLowPriorityRatio?: number | null;
   readonly maxReviewerInstructionCount?: number | null;
   readonly maxEstimatedReviewMinutes?: number | null;
+  readonly minReviewDecisionCountForBehaviorSignals?: number | null;
+  readonly maxApprovalRatio?: number | null;
+  readonly minMedianDecisionSeconds?: number | null;
+  readonly minDistinctReviewers?: number | null;
+  readonly maxConsecutiveApprovals?: number | null;
 }
 
 export interface EvaluateConsequenceHumanReviewFatigueInput {
@@ -136,12 +153,25 @@ export interface ConsequenceHumanReviewFatigueDecision {
     readonly approvalRequired: boolean;
     readonly rawPayloadStored: boolean;
     readonly autoEnforceRequested: boolean;
+    readonly reviewDecisionCount: number;
+    readonly approvedDecisionCount: number;
+    readonly approvalRatio: number;
+    readonly distinctReviewerCount: number;
+    readonly medianDecisionSeconds: number;
+    readonly minimumDecisionSeconds: number;
+    readonly consecutiveApprovalCount: number;
+    readonly reviewerBehaviorTelemetryPresent: boolean;
   };
   readonly thresholds: {
     readonly maxReviewItems: number;
     readonly maxLowPriorityRatio: number;
     readonly maxReviewerInstructionCount: number;
     readonly maxEstimatedReviewMinutes: number;
+    readonly minReviewDecisionCountForBehaviorSignals: number;
+    readonly maxApprovalRatio: number;
+    readonly minMedianDecisionSeconds: number;
+    readonly minDistinctReviewers: number;
+    readonly maxConsecutiveApprovals: number;
   };
   readonly approvalRequired: true;
   readonly autoEnforce: false;
@@ -164,6 +194,11 @@ export interface ConsequenceHumanReviewFatigueGuardDescriptor {
   readonly defaultMaxLowPriorityRatio: number;
   readonly defaultMaxReviewerInstructionCount: number;
   readonly defaultMaxEstimatedReviewMinutes: number;
+  readonly defaultMinReviewDecisionCountForBehaviorSignals: number;
+  readonly defaultMaxApprovalRatio: number;
+  readonly defaultMinMedianDecisionSeconds: number;
+  readonly defaultMinDistinctReviewers: number;
+  readonly defaultMaxConsecutiveApprovals: number;
   readonly storesRawReviewPacket: false;
   readonly digestOnly: true;
   readonly approvalRequired: true;
@@ -176,6 +211,11 @@ const DEFAULT_MAX_REVIEW_ITEMS = 12;
 const DEFAULT_MAX_LOW_PRIORITY_RATIO = 0.5;
 const DEFAULT_MAX_REVIEWER_INSTRUCTION_COUNT = 5;
 const DEFAULT_MAX_ESTIMATED_REVIEW_MINUTES = 12;
+const DEFAULT_MIN_REVIEW_DECISION_COUNT_FOR_BEHAVIOR_SIGNALS = 10;
+const DEFAULT_MAX_APPROVAL_RATIO = 0.95;
+const DEFAULT_MIN_MEDIAN_DECISION_SECONDS = 8;
+const DEFAULT_MIN_DISTINCT_REVIEWERS = 2;
+const DEFAULT_MAX_CONSECUTIVE_APPROVALS = 20;
 
 function canonicalObject(value: CanonicalReleaseJsonValue): {
   readonly canonical: string;
@@ -210,6 +250,11 @@ function normalizePositiveCount(value: number | null | undefined, fallback: numb
 function normalizeRatio(value: number | null | undefined, fallback: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
   return Math.min(1, Math.max(0, value));
+}
+
+function normalizeNonNegativeNumber(value: number | null | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Number(Math.max(0, value).toFixed(4));
 }
 
 function normalizeBoolean(value: boolean | null | undefined): boolean {
@@ -258,6 +303,26 @@ export function evaluateConsequenceHumanReviewFatigue(
       input.thresholds?.maxEstimatedReviewMinutes,
       DEFAULT_MAX_ESTIMATED_REVIEW_MINUTES,
     ),
+    minReviewDecisionCountForBehaviorSignals: normalizePositiveCount(
+      input.thresholds?.minReviewDecisionCountForBehaviorSignals,
+      DEFAULT_MIN_REVIEW_DECISION_COUNT_FOR_BEHAVIOR_SIGNALS,
+    ),
+    maxApprovalRatio: normalizeRatio(
+      input.thresholds?.maxApprovalRatio,
+      DEFAULT_MAX_APPROVAL_RATIO,
+    ),
+    minMedianDecisionSeconds: normalizePositiveCount(
+      input.thresholds?.minMedianDecisionSeconds,
+      DEFAULT_MIN_MEDIAN_DECISION_SECONDS,
+    ),
+    minDistinctReviewers: normalizePositiveCount(
+      input.thresholds?.minDistinctReviewers,
+      DEFAULT_MIN_DISTINCT_REVIEWERS,
+    ),
+    maxConsecutiveApprovals: normalizePositiveCount(
+      input.thresholds?.maxConsecutiveApprovals,
+      DEFAULT_MAX_CONSECUTIVE_APPROVALS,
+    ),
   });
 
   const totalReviewItems = normalizeCount(metrics?.totalReviewItems);
@@ -271,8 +336,19 @@ export function evaluateConsequenceHumanReviewFatigue(
   const findingCount = normalizeCount(metrics?.findingCount);
   const reviewerInstructionCount = normalizeCount(metrics?.reviewerInstructionCount);
   const estimatedReviewMinutes = normalizeCount(metrics?.estimatedReviewMinutes);
+  const reviewDecisionCount = normalizeCount(metrics?.reviewDecisionCount);
+  const approvedDecisionCount = Math.min(
+    normalizeCount(metrics?.approvedDecisionCount),
+    reviewDecisionCount,
+  );
+  const distinctReviewerCount = normalizeCount(metrics?.distinctReviewerCount);
+  const medianDecisionSeconds = normalizeNonNegativeNumber(metrics?.medianDecisionSeconds);
+  const minimumDecisionSeconds = normalizeNonNegativeNumber(metrics?.minimumDecisionSeconds);
+  const consecutiveApprovalCount = normalizeCount(metrics?.consecutiveApprovalCount);
   const lowPriorityRatio =
     totalReviewItems > 0 ? Number((lowPriorityItems / totalReviewItems).toFixed(4)) : 0;
+  const approvalRatio =
+    reviewDecisionCount > 0 ? Number((approvedDecisionCount / reviewDecisionCount).toFixed(4)) : 0;
 
   const observed = Object.freeze({
     reviewPacketRefDigest: normalizeOptionalString(input.reviewPacketRef)
@@ -298,6 +374,16 @@ export function evaluateConsequenceHumanReviewFatigue(
     approvalRequired: metrics?.approvalRequired !== false,
     rawPayloadStored: normalizeBoolean(metrics?.rawPayloadStored),
     autoEnforceRequested: normalizeBoolean(metrics?.autoEnforceRequested),
+    reviewDecisionCount,
+    approvedDecisionCount,
+    approvalRatio,
+    distinctReviewerCount,
+    medianDecisionSeconds,
+    minimumDecisionSeconds,
+    consecutiveApprovalCount,
+    reviewerBehaviorTelemetryPresent: normalizeBoolean(
+      metrics?.reviewerBehaviorTelemetryPresent,
+    ),
   });
 
   const blockReasons: ConsequenceHumanReviewFatigueReasonCode[] = [];
@@ -335,6 +421,31 @@ export function evaluateConsequenceHumanReviewFatigue(
   }
   if (observed.estimatedReviewMinutes > thresholds.maxEstimatedReviewMinutes) {
     reviewReasons.push('review-time-budget-exceeded');
+  }
+  if (
+    observed.reviewDecisionCount >= thresholds.minReviewDecisionCountForBehaviorSignals
+  ) {
+    if (!observed.reviewerBehaviorTelemetryPresent) {
+      reviewReasons.push('reviewer-behavior-telemetry-missing');
+    }
+    if (observed.approvalRatio > thresholds.maxApprovalRatio) {
+      reviewReasons.push('reviewer-approval-rate-high');
+    }
+    if (
+      observed.medianDecisionSeconds > 0 &&
+      observed.medianDecisionSeconds < thresholds.minMedianDecisionSeconds
+    ) {
+      reviewReasons.push('reviewer-decision-latency-too-low');
+    }
+    if (
+      observed.distinctReviewerCount > 0 &&
+      observed.distinctReviewerCount < thresholds.minDistinctReviewers
+    ) {
+      reviewReasons.push('reviewer-distinct-count-too-low');
+    }
+    if (observed.consecutiveApprovalCount > thresholds.maxConsecutiveApprovals) {
+      reviewReasons.push('reviewer-consecutive-approval-run-high');
+    }
   }
 
   const outcome: ConsequenceHumanReviewFatigueOutcome =
@@ -395,7 +506,7 @@ export function evaluateConsequenceHumanReviewFatigue(
     activatesEnforcement: false,
     digestOnly: true,
     limitation:
-      'This guard checks deterministic review packet hygiene and reviewer-load signals. It is not a human-factors certification and does not prove live reviewer capacity or customer UX telemetry.',
+      'This guard checks deterministic review packet hygiene and aggregate reviewer-behavior signals. It is not a human-factors certification and does not prove live reviewer capacity, reviewer intent, or customer UX telemetry completeness.',
     canonical: canonical.canonical,
     digest: canonical.digest,
   });
@@ -413,6 +524,12 @@ ConsequenceHumanReviewFatigueGuardDescriptor {
     defaultMaxLowPriorityRatio: DEFAULT_MAX_LOW_PRIORITY_RATIO,
     defaultMaxReviewerInstructionCount: DEFAULT_MAX_REVIEWER_INSTRUCTION_COUNT,
     defaultMaxEstimatedReviewMinutes: DEFAULT_MAX_ESTIMATED_REVIEW_MINUTES,
+    defaultMinReviewDecisionCountForBehaviorSignals:
+      DEFAULT_MIN_REVIEW_DECISION_COUNT_FOR_BEHAVIOR_SIGNALS,
+    defaultMaxApprovalRatio: DEFAULT_MAX_APPROVAL_RATIO,
+    defaultMinMedianDecisionSeconds: DEFAULT_MIN_MEDIAN_DECISION_SECONDS,
+    defaultMinDistinctReviewers: DEFAULT_MIN_DISTINCT_REVIEWERS,
+    defaultMaxConsecutiveApprovals: DEFAULT_MAX_CONSECUTIVE_APPROVALS,
     storesRawReviewPacket: false,
     digestOnly: true,
     approvalRequired: true,
