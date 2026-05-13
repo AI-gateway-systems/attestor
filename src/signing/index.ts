@@ -18,4 +18,12 @@ export type { MultiQueryReviewerEndorsement, MultiQueryReviewerVerification } fr
 
 // PKI trust chain
 export { createCaCertificate, issueLeafCertificate, buildTrustChain, verifyTrustChain, generatePkiHierarchy } from './pki-chain.js';
+export {
+  PKI_TRUST_BINDING_SPEC_VERSION,
+  verifyPkiBoundCertificate,
+} from './verification-trust-binding.js';
+export type {
+  PkiTrustBindingVerification,
+  VerifyPkiBoundCertificateInput,
+} from './verification-trust-binding.js';
 export type { CaCertificate, LeafCertificate, TrustChain, ChainVerification } from './pki-chain.js';

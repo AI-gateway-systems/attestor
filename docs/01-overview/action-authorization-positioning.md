@@ -173,6 +173,10 @@ not a new probe. Duplicate retry attempts return the existing record.
 Conflicting idempotency keys, mismatched budget material, and exhausted ledger
 capacity hold fail-closed.
 
+The fourth layer is retry attempt ledger: it records bounded retry attempts as
+idempotent continuation evidence after admission feedback, retry budget, and
+retry binding have already constrained the correction path.
+
 This does not mean the model can keep probing until it gets an admit. Unsafe
 signals, policy blocks, adapter readiness gaps, custom-domain review, replay
 failures, and human rejection must route to customer review or operator control.
