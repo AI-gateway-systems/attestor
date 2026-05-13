@@ -20,6 +20,8 @@ That same pattern spans AI-output release, programmable-money authorization, dat
 
 The customer-facing operating model and decision vocabulary live in [Operating model](../01-overview/operating-model.md). Use that page when deciding how domain-native finance or crypto outcomes map to the shared `admit`, `narrow`, `review`, and `block` language.
 
+The deeper architecture decision lives in [AI Action Control Plane architecture](ai-action-control-plane-architecture.md). Use it when deciding whether a change belongs in the reference-monitor-style admission core, an enforcement point, an evidence/authority source, policy administration, a pack, or the hosted service composition root.
+
 The consequence domain vocabulary lives in [Consequence taxonomy](consequence-taxonomy.md). Use it when deciding whether a proposed AI action is a financial record, money movement, programmable-money path, data disclosure, authority change, external communication, regulated filing, system operation, decision-support artifact, or custom customer surface.
 
 The customer-side allow/hold contract lives in [Downstream enforcement contract](downstream-enforcement-contract.md). Use it when deciding what a downstream payment adapter, wallet adapter, record writer, message sender, action dispatcher, or HTTP handler must bind before it acts on an Attestor admission.
