@@ -2,7 +2,7 @@
 
 This document is the commercial truth source for Attestor plan structure, pricing, free evaluation, hosted trial posture, delivery paths, billable usage, add-on modules, and the production licensing boundary.
 
-Attestor is one product: a **policy-bound release and authorization platform for high-consequence systems**. Finance is the deepest proven wedge today. Crypto extends the same platform core and control model. Healthcare and other domains should be packaged as consequence packs on the same product, not as separate products.
+Attestor is one product: an **AI Action Control Plane for high-consequence systems**. Finance is the deepest proven wedge today. Crypto extends the same platform core and control model. Healthcare and other domains should be packaged as consequence packs on the same product, not as separate products.
 
 ## What Customers Buy
 
@@ -17,6 +17,8 @@ They are buying:
 - a hosted path and a customer-operated path, depending on control requirements
 
 Customer data, business workflows, models, agents, wallets, and operational systems stay in the customer's own environment. Attestor sits in front of the consequence boundary.
+
+The commercial pack boundary follows the architecture boundary: packs may add domain defaults, evidence shapes, policy templates, adapter projections, readiness signals, and replay examples, but they do not become separate decision engines or separate product identities by default. The technical truth source is [Domain pack boundary](../02-architecture/domain-pack-boundary.md).
 
 ## Pricing Principle
 
@@ -369,4 +371,4 @@ Do not describe Attestor as:
 
 Describe it as:
 
-**Attestor is one product: a policy-bound release and authorization platform for high-consequence systems, delivered through hosted and customer-operated paths, priced around admissions before consequence, with finance as the deepest proven wedge and crypto and healthcare as consequence packs on the same core.**
+**Attestor is one product: an AI Action Control Plane for high-consequence systems, delivered through hosted and customer-operated paths, priced around admissions before consequence, with finance as the deepest proven wedge and crypto and healthcare as consequence packs on the same core.**

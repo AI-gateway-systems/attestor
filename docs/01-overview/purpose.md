@@ -7,6 +7,7 @@ For the category framing, use [AI action authorization positioning](action-autho
 For the customer-facing operating model, use [Operating model](operating-model.md).
 For the architecture map, use [System overview](../02-architecture/system-overview.md).
 For the consequence domain vocabulary, use [Consequence taxonomy](../02-architecture/consequence-taxonomy.md).
+For the pack placement and non-claim boundary, use [Domain pack boundary](../02-architecture/domain-pack-boundary.md).
 For the customer-side allow/hold binding, use [Downstream enforcement contract](../02-architecture/downstream-enforcement-contract.md).
 For the customer-side verify/assert helper, use [Verifier helper](../02-architecture/verifier-helper.md).
 For bounded policy limits, use [Policy limit model](../02-architecture/policy-limit-model.md).
@@ -33,12 +34,15 @@ The repository currently contains a shared platform core with curated package su
 - `attestor/crypto-authorization-core`
 - `attestor/crypto-execution-admission`
 - `attestor/crypto-intelligence`
+- `attestor/consequence-admission`
 
 These are repository and commercial/self-hosted import boundaries, not a public npm publication claim. `package.json` remains `private: true`; public npm distribution would require a separate release decision.
 
 The finance pack remains the deepest proven wedge today. It carries the strongest end-to-end path for AI-assisted financial reporting acceptance, governed SQL, deterministic checks, release decisions, signed proof, reviewer authority, verification kits, and downstream consequence gating.
 
 The crypto pack extends the same platform core into programmable-money authorization, execution admission, and intelligence. Its first public integration shape is packaged authorization/admission/intelligence surfaces for external integrators, not a public hosted crypto HTTP route.
+
+The domain-pack boundary keeps finance, crypto, filing, general admission, and future packs as bounded extensions over the shared admission core. Packs may add domain defaults, evidence shapes, policy templates, adapter projections, readiness signals, and replay examples; they must not fork the shared decision vocabulary, failure-mode registry, control-binding contract, or replay layer.
 
 The hosted path includes account signup, the first API key, tenant API-key calls, usage and entitlement visibility, Stripe checkout and portal handoff, signed webhook convergence, billing export/reconciliation, and focused readiness gates.
 
