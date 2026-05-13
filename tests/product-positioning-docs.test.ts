@@ -41,6 +41,8 @@ function testTopLevelPositioningStaysAligned(): void {
   includes(readme, 'a treasury or wallet workflow prepares a programmable-money transaction', 'Product docs: README uses consequence-pack examples');
   includes(readme, 'Attestor is one product: an AI Action Control Plane with a shared authorization core and modular packs for specific consequence domains.', 'Product docs: README keeps one-product control-plane framing');
   includes(readme, 'The deeper architecture decision is [AI Action Control Plane architecture](docs/02-architecture/ai-action-control-plane-architecture.md).', 'Product docs: README links the control-plane ADR');
+  includes(readme, '[Domain pack boundary](docs/02-architecture/domain-pack-boundary.md)', 'Product docs: README links the domain-pack boundary');
+  includes(readme, 'The machine-readable domain-pack boundary is exported from `attestor/consequence-admission`.', 'Product docs: README names the packaged domain-pack boundary contract');
   includes(readme, 'This is not a claim that every customer workflow is already non-bypassable', 'Product docs: README keeps reference-monitor non-claim visible');
   includes(readme, 'AI action authorization infrastructure', 'Product docs: README names the infrastructure category');
   includes(readme, '## Consequence Packs', 'Product docs: README names consequence packs before architecture');
@@ -53,6 +55,9 @@ function testTopLevelPositioningStaysAligned(): void {
   includes(actionPositioning, 'Current implementation note: `POST /api/v1/admissions` already has the first mode ladder', 'Product docs: action authorization positioning bounds shadow implementation');
   includes(actionPositioning, 'Attestor returns bounded correction feedback so agents can retry safely without learning sensitive data or bypassing policy.', 'Product docs: action authorization positioning frames safe retry correctly');
   includes(purpose, 'Attestor is one product:', 'Product docs: purpose keeps one-product framing');
+  includes(purpose, '[Domain pack boundary](../02-architecture/domain-pack-boundary.md)', 'Product docs: purpose links domain pack boundary');
+  includes(purpose, '`attestor/consequence-admission`', 'Product docs: purpose names consequence admission package surface');
+  includes(purpose, 'The domain-pack boundary keeps finance, crypto, filing, general admission, and future packs as bounded extensions over the shared admission core.', 'Product docs: purpose keeps pack boundary explicit');
   includes(systemOverview, 'Attestor should be understood as one product:', 'Product docs: system overview keeps one-product framing');
   includes(systemOverview, 'an AI Action Control Plane for proposed AI actions before business consequences', 'Product docs: system overview keeps AI Action Control Plane framing');
   includes(systemOverview, 'The security target is reference-monitor-style', 'Product docs: system overview keeps reference-monitor-style boundary explicit');
@@ -61,6 +66,8 @@ function testTopLevelPositioningStaysAligned(): void {
   includes(systemOverview, '| PIP | Evidence, authority, tenant, recipient, freshness, policy-version, no-go, and runtime context providers |', 'Product docs: system overview names the PIP surface');
   includes(systemOverview, '| PAP | Release policy control plane and Policy Foundry surfaces |', 'Product docs: system overview names the PAP surface');
   includes(packaging, 'Attestor is one product:', 'Product docs: packaging keeps one-product framing');
+  includes(packaging, 'Attestor is one product: an **AI Action Control Plane for high-consequence systems**.', 'Product docs: packaging uses control-plane product category');
+  includes(packaging, '[Domain pack boundary](../02-architecture/domain-pack-boundary.md)', 'Product docs: packaging links domain pack boundary');
   includes(useCases, 'Attestor owns the control point before consequence:', 'Product docs: use-case bridge keeps control-point framing');
   includes(readme, 'docs/01-overview/what-you-can-do.md', 'Product docs: README links the use-case bridge');
   includes(readme, 'Read the architecture as a path, not a stack diagram:', 'Product docs: README avoids table-first architecture framing');
@@ -92,6 +99,7 @@ function testCoreAndPackStatusStayConsistent(): void {
   includes(readme, 'The PIP surfaces supply evidence, authority, tenant, recipient, freshness, policy-version, no-go, and context facts; they do not approve actions by themselves.', 'Product docs: README PIP role is concrete');
   includes(readme, 'The PAP surfaces control policy lifecycle through signed bundles, simulation, rollout, activation rules, reviewer constraints, and provenance checks.', 'Product docs: README PAP role is concrete');
   includes(readme, 'Pack-specific adapters live below this layer.', 'Product docs: README keeps adapter role below consequence packs');
+  includes(readme, 'keeps finance, crypto, filing, general admission, and future packs as bounded extensions over the shared admission core', 'Product docs: README keeps domain pack boundary summary');
   includes(readme, 'Money Movement', 'Product docs: README names Money Movement pack');
   includes(readme, 'Data Movement', 'Product docs: README names Data Movement pack');
   includes(readme, 'Authority Change', 'Product docs: README names Authority Change pack');
@@ -101,6 +109,7 @@ function testCoreAndPackStatusStayConsistent(): void {
   excludes(readme, /\| Layer \| Role \| Current status \|/u, 'Product docs: README should not use the old layer table');
   excludes(readme, /\| Pack \| What it means today \| Status \|/u, 'Product docs: README should not use the old pack table');
   excludes(readme, /Finance, crypto, data export, authority change, and future packs should not invent/u, 'Product docs: README should not use old finance-crypto-first pack wording');
+  excludes(readme, /separate product per domain/iu, 'Product docs: README should not imply domain products');
   excludes(readme, /a finance assistant prepares a report from live warehouse data/u, 'Product docs: README should not lead use cases with finance-only wording');
   excludes(readme, /a crypto workflow prepares a Safe transaction/u, 'Product docs: README should not lead use cases with crypto-only wording');
   includes(purpose, 'The finance pack remains the deepest proven wedge today.', 'Product docs: purpose keeps finance as strongest wedge');
