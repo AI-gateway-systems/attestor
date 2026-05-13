@@ -2,10 +2,12 @@ import type { Hono } from 'hono';
 import type {
   AttestationCertificate,
   CertificateVerification,
+  VerifyCertificateOptions,
 } from '../../../signing/certificate.js';
 import type {
   ChainVerification,
   TrustChain,
+  VerifyTrustChainOptions,
 } from '../../../signing/pki-chain.js';
 
 interface PublicKeyIdentity {
@@ -14,8 +16,16 @@ interface PublicKeyIdentity {
 }
 
 export interface PipelineVerificationRoutesDeps {
-  verifyCertificate(certificate: AttestationCertificate, publicKeyPem: string): CertificateVerification;
-  verifyTrustChain(chain: TrustChain, caPublicKeyPem: string): ChainVerification;
+  verifyCertificate(
+    certificate: AttestationCertificate,
+    publicKeyPem: string,
+    options?: VerifyCertificateOptions,
+  ): CertificateVerification;
+  verifyTrustChain(
+    chain: TrustChain,
+    caPublicKeyPem: string,
+    options?: VerifyTrustChainOptions,
+  ): ChainVerification;
   derivePublicKeyIdentity(publicKeyPem: string): PublicKeyIdentity;
 }
 
@@ -49,22 +59,24 @@ app.post('/api/v1/verify', async (c) => {
       }, 422);
     }
 
-    // 1. Verify certificate signature
-    const certResult = verifyCertificate(certificate, publicKeyPem);
-
-    // 2. Verify PKI trust chain if provided
+    // 1. Verify PKI trust chain if provided
     let chainVerification = null;
     let pkiBound = false;
+    let expectedFingerprint: string | null = null;
     if (hasPkiMaterial) {
       const chainResult = verifyTrustChain(trustChain, caPublicKeyPem);
+      expectedFingerprint = trustChain.leaf.subjectFingerprint;
 
-      // 3. CRITICAL: Bind certificate to chain leaf
+      // 2. CRITICAL: Bind certificate to chain leaf
       // The leaf's subject key must be the same key that signed the certificate
       const signerIdentity = derivePublicKeyIdentity(publicKeyPem);
       const leafMatchesCertificateKey = trustChain.leaf.subjectFingerprint === signerIdentity.fingerprint;
       const leafMatchesCertificateFingerprint = certificate.signing?.fingerprint === trustChain.leaf.subjectFingerprint;
 
-      pkiBound = chainResult.chainIntact && leafMatchesCertificateKey && leafMatchesCertificateFingerprint;
+      pkiBound =
+        chainResult.overall === 'valid' &&
+        leafMatchesCertificateKey &&
+        leafMatchesCertificateFingerprint;
 
       chainVerification = {
         caValid: chainResult.caValid,
@@ -73,6 +85,8 @@ app.post('/api/v1/verify', async (c) => {
         issuerMatch: chainResult.issuerMatch,
         caExpired: chainResult.caExpired,
         leafExpired: chainResult.leafExpired,
+        caRevoked: chainResult.caRevoked,
+        leafRevoked: chainResult.leafRevoked,
         // Certificate-to-leaf binding
         leafMatchesCertificateKey,
         leafMatchesCertificateFingerprint,
@@ -83,9 +97,18 @@ app.post('/api/v1/verify', async (c) => {
       };
     }
 
+    // 3. Verify certificate signature with PKI-derived signer pin when available.
+    const certResult = verifyCertificate(certificate, publicKeyPem, {
+      expectedFingerprint,
+    });
+
     // 4. Structured verification scope summary
     const pkiVerified = certResult.overall === 'valid' && pkiBound;
     const verificationMode = chainVerification ? 'pki' as const : 'legacy_ed25519' as const;
+    const overall = verificationMode === 'pki' && !pkiVerified ? 'invalid' : certResult.overall;
+    const explanation = verificationMode === 'pki' && !pkiVerified
+      ? `PKI trust binding failed: certificate=${certResult.overall}, chain=${chainVerification?.overall ?? 'missing'}, pki_bound=${pkiBound}`
+      : certResult.explanation;
     const trustBinding = {
       certificateSignature: certResult.signatureValid && certResult.fingerprintConsistent,
       chainValid: chainVerification?.chainIntact ?? false,
@@ -108,8 +131,8 @@ app.post('/api/v1/verify', async (c) => {
       signatureValid: certResult.signatureValid,
       fingerprintConsistent: certResult.fingerprintConsistent,
       schemaValid: certResult.schemaValid,
-      overall: certResult.overall,
-      explanation: certResult.explanation,
+      overall,
+      explanation,
       verificationMode,
       deprecationNotice,
       chainVerification,

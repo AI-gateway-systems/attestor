@@ -16,6 +16,8 @@ Certificates are JSON documents that bind the full authority chain, evidence anc
 
 **Verification is portable and offline — no platform access, no database, no API call. The default verifier path is PKI-first: kit verification requires trust chain material (CA → leaf → certificate binding). When chain material is absent, the CLI exits with code 2 (`PKI_REQUIRED`). Legacy flat Ed25519 verification (certificate JSON + signer public key only) remains available as an explicit override (`--allow-legacy-verify` or `ATTESTOR_ALLOW_LEGACY=true`).**
 
+For independent third-party trust, the verifier should pin the expected CA fingerprint out-of-band with `--trusted-ca-fingerprint` or `ATTESTOR_TRUSTED_CA_FINGERPRINT`. A kit-contained `caPublicKeyPem` can prove internal chain consistency, but it is not by itself an out-of-band trust root.
+
 ```bash
 # Generate a signing key pair
 npm run keygen
@@ -28,6 +30,9 @@ npm run verify:cert -- path/to/certificate.json path/to/public.pem
 
 # Verify a full verification kit
 npm run verify:cert -- path/to/kit.json
+
+# Verify a full kit against a pinned CA root
+npm run verify:cert -- path/to/kit.json --trusted-ca-fingerprint <ca-fingerprint>
 ```
 
 ## Verification Kit
@@ -49,12 +54,15 @@ PKI chain verification is now **mandatory** across both CLI and API.
 
 **CLI verify behavior:**
 - When PKI chain material is present in a kit: full CA → leaf → certificate binding verification
+- When a trusted CA fingerprint is supplied: the CA public key must match that pinned trust root
+- When a trusted CA fingerprint is absent: chain integrity is checked, but independent third-party trust is not claimed
 - When PKI chain material is absent: **exit code 2** (`PKI_REQUIRED`) — verification impossible
 - Legacy flat Ed25519 override: `--allow-legacy-verify` or `ATTESTOR_ALLOW_LEGACY=true`
 
 **API verify behavior (mandatory):**
 - `/api/v1/verify` requires `trustChain` + `caPublicKeyPem` alongside `certificate` + `publicKeyPem`
-- When trust chain is provided: full PKI verification with chain integrity, issuer linkage, certificate-to-leaf binding, and expiry
+- When trust chain is provided: full PKI verification with chain integrity, issuer linkage, certificate-to-leaf binding, expiry, and revocation inputs where supplied
+- If certificate signature verification succeeds but PKI binding fails, the response `overall` is `invalid`
 - When trust chain is absent: **422 rejection** with error message and hint
 - Legacy flat Ed25519 override: `ATTESTOR_ALLOW_LEGACY_API=true` (deprecated, will be removed)
 - Returns `verificationMode` (`'pki'` or `'legacy_ed25519'`), `chainVerification`, and `trustBinding`

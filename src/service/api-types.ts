@@ -139,7 +139,7 @@ export interface VerifyResponse {
   signatureValid: boolean;
   fingerprintConsistent: boolean;
   schemaValid: boolean;
-  overall: 'valid' | 'invalid' | 'schema_error';
+  overall: 'valid' | 'invalid' | 'expired' | 'revoked' | 'schema_error';
   explanation: string;
   chainVerification: {
     caValid: boolean;
@@ -148,6 +148,8 @@ export interface VerifyResponse {
     issuerMatch: boolean;
     caExpired: boolean;
     leafExpired: boolean;
+    caRevoked: boolean;
+    leafRevoked: boolean;
     leafMatchesCertificateKey: boolean;
     leafMatchesCertificateFingerprint: boolean;
     pkiBound: boolean;
