@@ -2113,6 +2113,7 @@ export * from './tool-result-poisoning-guard.js';
 export * from './approval-provenance-guard.js';
 export * from './stale-authority-policy-guard.js';
 export * from './recipient-tenant-boundary-replay.js';
+export * from './scope-explosion-guard.js';
 export * from './policy-foundry-counterexample-ledger.js';
 export * from './policy-foundry-policy-twin-summary.js';
 export * from './policy-foundry-authority-relationship-context.js';
