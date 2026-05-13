@@ -483,9 +483,9 @@ It stores session id, workflow digest, review-surface digest, task cards,
 no-go cards, evidence digest cards, status, safe next step, created/updated
 timestamps, expiry, and a created/updated event trail. It does not store raw
 manifests, raw tenant ids, caller session refs, shadow payloads, full packets,
-or raw review surfaces. It is local file-backed evaluation persistence only:
-shared production wizard storage, deployment wiring, live downstream replay,
-and production smoke tests remain separate unresolved tasks.
+or raw review surfaces. It is local file-backed evaluation persistence only.
+At this step, shared production wizard storage, live downstream replay wiring,
+and production smoke tests remained separate tasks.
 
 ## Step 18 Scope
 
@@ -545,6 +545,31 @@ itself, does not issue credentials, does not activate enforcement, does not
 deploy infrastructure, does not prove production readiness, and does not replace
 deployment wiring or smoke tests.
 
+## Step 20 Scope
+
+Step 20 wires `attestor.policy-foundry-live-downstream-replay.v1` into the
+hosted onboarding runtime material.
+
+The hosted route can now accept optional live downstream replay observations
+alongside local synthetic replay observations:
+
+```text
+hosted route request
++ self-onboarding packet
++ local adversarial replay observations
++ sandbox/staging live downstream replay observations
+-> hosted workflow
+-> hosted review surface
+-> digest-bound rollout review evidence
+```
+
+The workflow records the live downstream replay digest and the compact review
+surface exposes it as an evidence card. Failed live downstream replay is a
+workflow no-go and blocks scoped rollout review. The route still does not call
+customer infrastructure by itself, store raw payloads, issue credentials, deploy
+infrastructure, activate enforcement, execute production traffic, or prove
+production readiness.
+
 ## Protected Principles
 
 - customer authority
@@ -569,12 +594,14 @@ contracts, or shared product positioning are touched.
 
 ## Current Status
 
-Step 01 through Step 12 are complete. Step 13 through Step 19 are also complete
+Step 01 through Step 12 are complete. Step 13 through Step 20 are also complete
 repo-side: the repo-side self-onboarding deepening list now includes the local
 adversarial replay executor, hosted workflow contract, stateless hosted workflow
 route wrapper, compact hosted review surface, hosted UI flow renderer, and
 local file-backed persistent hosted wizard state, plus hosted route
 billing-provider entitlement enforcement for commercial Foundry requests and
-non-mutating live downstream replay evidence for sandbox/staging harnesses.
-Shared production wizard storage, deployment wiring, production smoke tests,
-and any production traffic execution remain outside this tracker.
+non-mutating live downstream replay evidence for sandbox/staging harnesses. The
+hosted route now binds that live replay evidence into workflow/review output and
+blocks failed replay before scoped rollout review. Shared production wizard
+storage, production smoke tests, and any production traffic execution remain
+outside this tracker.

@@ -6,10 +6,12 @@ import {
   createPolicyFoundryAdversarialReplayExecutor,
   createPolicyFoundryCommercialBoundary,
   createPolicyFoundryHostedOnboardingWorkflow,
+  createPolicyFoundryLiveDownstreamReplay,
   createPolicyFoundrySelfOnboardingCliPacket,
   policyFoundryHostedOnboardingWorkflowDescriptor,
   type ActionSurfaceOnboardingRedTeamFixtureBundle,
   type PolicyFoundryAdversarialReplayObservation,
+  type PolicyFoundryLiveDownstreamReplayObservation,
   type PolicyFoundrySelfOnboardingCliPacket,
 } from '../src/consequence-admission/index.js';
 
@@ -97,6 +99,29 @@ function passingObservations(
     rawPayloadStored: false,
     downstreamMutationAttempted: false,
     credentialMaterialUsed: false,
+  }));
+}
+
+function passingLiveObservations(
+  bundle: ActionSurfaceOnboardingRedTeamFixtureBundle,
+): readonly PolicyFoundryLiveDownstreamReplayObservation[] {
+  return bundle.cases.map((entry) => ({
+    caseId: entry.caseId,
+    observedOutcome: entry.expectedOutcome,
+    observedAt: '2026-05-13T10:01:30.000Z',
+    executionMode: 'gateway-proxy-sandbox',
+    environment: 'sandbox',
+    evidenceDigest: digest(`live:${entry.caseId}`),
+    dryRunProofDigest: digest(`dry-run:${entry.caseId}`),
+    downstreamReceiptDigest: digest(`receipt:${entry.caseId}`),
+    reasonCodes: [`fixture:${entry.kind}`, 'dry-run:confirmed'],
+    rawPayloadStored: false,
+    downstreamMutationAttempted: false,
+    credentialMaterialUsed: false,
+    productionTrafficAttempted: false,
+    dryRunConfirmed: true,
+    sandboxBoundaryVerified: true,
+    unapprovedNetworkEgress: false,
   }));
 }
 
@@ -208,6 +233,62 @@ function testPassingReplayStillDoesNotClaimUiOrProduction(): void {
   ok(workflow.digest.startsWith('sha256:'), 'Hosted onboarding workflow: digest is generated');
 }
 
+function testLiveDownstreamReplayDigestIsBoundWithoutProductionClaim(): void {
+  const packet = selfOnboardingPacket();
+  const replay = createPolicyFoundryAdversarialReplayExecutor({
+    generatedAt: '2026-05-13T10:08:00.000Z',
+    fixtureBundle: packet.redTeamFixtures,
+    observations: passingObservations(packet.redTeamFixtures),
+  });
+  const liveDownstreamReplay = createPolicyFoundryLiveDownstreamReplay({
+    generatedAt: '2026-05-13T10:08:30.000Z',
+    fixtureBundle: packet.redTeamFixtures,
+    observations: passingLiveObservations(packet.redTeamFixtures),
+  });
+  const workflow = createPolicyFoundryHostedOnboardingWorkflow({
+    generatedAt: '2026-05-13T10:09:00.000Z',
+    selfOnboardingPacket: packet,
+    adversarialReplay: replay,
+    liveDownstreamReplay,
+    reviewedStepIds: ['surface-map', 'adversarial-replay', 'patch-review'],
+    customerApprovalRecorded: true,
+  });
+
+  equal(liveDownstreamReplay.status, 'passed', 'Hosted onboarding workflow fixture: live downstream replay passes');
+  equal(workflow.sourceDigests.liveDownstreamReplayDigest, liveDownstreamReplay.digest, 'Hosted onboarding workflow: live downstream replay digest is bound');
+  equal(workflow.executesProductionTraffic, false, 'Hosted onboarding workflow: live replay evidence still does not execute production traffic');
+  equal(workflow.productionReady, false, 'Hosted onboarding workflow: live replay evidence still does not prove production readiness');
+}
+
+function testFailedLiveDownstreamReplayBlocksWorkflow(): void {
+  const packet = selfOnboardingPacket();
+  const replay = createPolicyFoundryAdversarialReplayExecutor({
+    generatedAt: '2026-05-13T10:10:00.000Z',
+    fixtureBundle: packet.redTeamFixtures,
+    observations: passingObservations(packet.redTeamFixtures),
+  });
+  const liveDownstreamReplay = createPolicyFoundryLiveDownstreamReplay({
+    generatedAt: '2026-05-13T10:10:30.000Z',
+    fixtureBundle: packet.redTeamFixtures,
+    observations: passingLiveObservations(packet.redTeamFixtures).map((entry, index) =>
+      index === 0
+        ? { ...entry, downstreamMutationAttempted: true }
+        : entry
+    ),
+  });
+  const workflow = createPolicyFoundryHostedOnboardingWorkflow({
+    generatedAt: '2026-05-13T10:11:00.000Z',
+    selfOnboardingPacket: packet,
+    adversarialReplay: replay,
+    liveDownstreamReplay,
+  });
+
+  equal(liveDownstreamReplay.status, 'failed', 'Hosted onboarding workflow fixture: live downstream replay fails');
+  equal(workflow.status, 'blocked', 'Hosted onboarding workflow: failed live downstream replay blocks workflow');
+  ok(workflow.noGoReasons.includes('live-downstream-replay-failed'), 'Hosted onboarding workflow: failed live downstream replay no-go is recorded');
+  ok(workflow.blockedStepIds.includes('scoped-rollout-review'), 'Hosted onboarding workflow: scoped rollout is blocked by failed live replay');
+}
+
 function testDescriptorDocsAndPackageSurface(): void {
   const descriptor = policyFoundryHostedOnboardingWorkflowDescriptor();
   const docs = readProjectFile('docs', '02-architecture', 'policy-foundry-onboarding.md');
@@ -252,6 +333,8 @@ testNoInputWorkflowStartsAtSourceIntake();
 testPacketWithoutReplayRequiresCustomerAction();
 testFailedReplayAndUnsafeRequestsBlockWorkflow();
 testPassingReplayStillDoesNotClaimUiOrProduction();
+testLiveDownstreamReplayDigestIsBoundWithoutProductionClaim();
+testFailedLiveDownstreamReplayBlocksWorkflow();
 testDescriptorDocsAndPackageSurface();
 
 ok(passed > 0, 'Policy Foundry hosted onboarding workflow tests executed');

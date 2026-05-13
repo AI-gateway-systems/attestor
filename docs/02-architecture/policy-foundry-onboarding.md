@@ -541,14 +541,15 @@ contract for this path. It lives in
 `src/consequence-admission/policy-foundry-hosted-onboarding-workflow.ts`, is
 covered by `tests/policy-foundry-hosted-onboarding-workflow.test.ts`, and is
 exposed through `test:policy-foundry-hosted-onboarding-workflow`. It turns the
-self-onboarding packet, local adversarial replay report, and commercial boundary
-context into digest-bound hosted workflow steps: source intake, surface map,
-active questions, coverage review, gate plan, adversarial replay, patch review,
-customer approval, and scoped rollout review. This is a hosted workflow
-contract, not a hosted UI implementation or hosted route. It does not deploy
-infrastructure, issue credentials, apply patches, execute production traffic,
-activate enforcement, enforce billing-provider entitlements, or prove production
-readiness.
+self-onboarding packet, local adversarial replay report, optional live
+downstream replay report, and commercial boundary context into digest-bound
+hosted workflow steps: source intake, surface map, active questions, coverage
+review, gate plan, adversarial replay, patch review, customer approval, and
+scoped rollout review. Failed live downstream replay blocks scoped rollout
+review. This is not a hosted UI implementation or hosted route; it is a hosted
+workflow contract. It does not deploy infrastructure, issue credentials, apply
+patches, execute production traffic, activate enforcement, enforce
+billing-provider entitlements, or prove production readiness.
 
 The first hosted route wrapper for that contract is:
 
@@ -561,14 +562,16 @@ It lives in
 by `tests/policy-foundry-hosted-onboarding-workflow-route.test.ts`, and is
 exposed through `test:policy-foundry-hosted-onboarding-workflow-route`. The
 route composes bounded manifests, declarations, tenant-scoped shadow events,
-optional local replay observations, billing-provider entitlement context, and
-commercial boundary context into one stateless review workflow. It returns
-tenant digests, not raw tenant ids. When the hosted runtime wires a billing
-entitlement resolver, the route uses the billing-provider effective plan rather
-than any request-body `commercialPlan` to evaluate commercial capabilities. It
-does not store raw payloads, issue credentials, apply patches, deploy
-infrastructure, execute production traffic, activate enforcement, or prove
-production readiness.
+optional local replay observations, optional live downstream replay
+observations, billing-provider entitlement context, and commercial boundary
+context into one stateless review workflow. It returns tenant digests, not raw
+tenant ids. When the hosted runtime wires a billing entitlement resolver, the
+route uses the billing-provider effective plan rather than any request-body
+`commercialPlan` to evaluate commercial capabilities. Live downstream replay
+observations remain digest-bound review evidence only; failed sandbox/staging
+replay blocks scoped rollout review. The route does not store raw payloads,
+issue credentials, apply patches, deploy infrastructure, execute production
+traffic, activate enforcement, or prove production readiness.
 
 The compact hosted review surface lives in
 `src/consequence-admission/policy-foundry-hosted-review-surface.ts`, is covered
