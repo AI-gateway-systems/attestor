@@ -142,6 +142,76 @@ function testMissingProvenanceRequiresReview(): void {
   equal(decision.counts.missingApprovalDigestCount, 1, 'Approval guard: missing approval digest count is retained');
 }
 
+function testUntrustedSourceCannotBePromotedByTrustClassOverride(): void {
+  const decision = evaluateConsequenceApprovalProvenance({
+    generatedAt: '2026-05-13T10:22:00.000Z',
+    actionSurface: 'payments.refund',
+    action: 'issue-refund',
+    approvals: [
+      {
+        approvalRef: 'raw-ticket:manager approved in ticket text',
+        sourceKind: 'ticket-comment',
+        state: 'approved',
+        sourceRef: 'ticket.private.raw-ref',
+        reviewerRef: 'manager@example.com',
+        reviewerAuthorityDigest: digest('override'),
+        approvalDigest: digest('overridea'),
+        scopeDigest: digest('overrideb'),
+        issuedAt: '2026-05-13T10:21:00.000Z',
+        trustClass: 'signed-authority',
+        signatureVerified: true,
+      },
+    ],
+  });
+
+  equal(decision.outcome, 'block', 'Approval guard: untrusted source trust-class override blocks');
+  ok(
+    decision.reasonCodes.includes('approval-trust-class-source-mismatch'),
+    'Approval guard: trust-class source mismatch reason is present',
+  );
+  ok(
+    decision.reasonCodes.includes('approval-source-untrusted'),
+    'Approval guard: derived untrusted source still applies',
+  );
+  equal(
+    decision.observedApprovals[0]?.trustClass,
+    'untrusted-content',
+    'Approval guard: untrusted source cannot be promoted to signed authority',
+  );
+}
+
+function testSignedApprovalWithoutVerifiedSignatureRequiresReview(): void {
+  const decision = evaluateConsequenceApprovalProvenance({
+    generatedAt: '2026-05-13T10:23:00.000Z',
+    actionSurface: 'release.r4',
+    action: 'issue-token',
+    approvals: [
+      {
+        approvalRef: 'signed-approval:private-ref',
+        sourceKind: 'signed-approval',
+        state: 'approved',
+        sourceRef: 'approval-artifact.private-ref',
+        reviewerRef: 'reviewer:risk-owner',
+        reviewerAuthorityDigest: digest('signed'),
+        approvalDigest: digest('signeda'),
+        scopeDigest: digest('signedb'),
+        issuedAt: '2026-05-13T10:22:00.000Z',
+      },
+    ],
+  });
+
+  equal(decision.outcome, 'review', 'Approval guard: unverified signed approval reviews');
+  ok(
+    decision.reasonCodes.includes('approval-signature-unverified'),
+    'Approval guard: unverified signed approval reason is present',
+  );
+  equal(
+    decision.observedApprovals[0]?.signatureVerified,
+    false,
+    'Approval guard: observed signed approval records unverified signature',
+  );
+}
+
 function testDuplicateReviewerCannotSatisfyDualApproval(): void {
   const decision = evaluateConsequenceApprovalProvenance({
     generatedAt: '2026-05-13T10:25:00.000Z',
@@ -218,6 +288,8 @@ try {
   testLlmSummaryApprovalIsBlocked();
   testVerifiedReviewerQueueApprovalPasses();
   testMissingProvenanceRequiresReview();
+  testUntrustedSourceCannotBePromotedByTrustClassOverride();
+  testSignedApprovalWithoutVerifiedSignatureRequiresReview();
   testDuplicateReviewerCannotSatisfyDualApproval();
   testMixedVerifiedAndFakeApprovalRequiresReview();
   testDescriptorDocsRegistryAndPackageScriptStayAligned();

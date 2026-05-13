@@ -124,6 +124,28 @@ function testOperationDataClassAndIrreversibleEscalationBlocks(): void {
   ok(decision.reasonCodes.includes('scope-blocked'), 'Scope guard: scope-blocked reason is present');
 }
 
+function testUnknownReversibilityRequiresReview(): void {
+  const decision = evaluateConsequenceScopeExplosion({
+    ...cleanInput(),
+    requestedScope: {
+      ...cleanInput().requestedScope,
+      reversibilityClass: 'unknown',
+    },
+  });
+
+  equal(decision.outcome, 'review', 'Scope guard: unknown reversibility requires review');
+  equal(decision.allowed, false, 'Scope guard: unknown reversibility is not allowed');
+  equal(decision.failClosed, true, 'Scope guard: unknown reversibility is fail-closed');
+  ok(
+    decision.reasonCodes.includes('reversibility-unknown'),
+    'Scope guard: unknown reversibility reason is present',
+  );
+  ok(
+    decision.observed.reviewDimensions.includes('reversibility'),
+    'Scope guard: reversibility is a review dimension when unknown',
+  );
+}
+
 function testTenantMismatchBlocks(): void {
   const decision = evaluateConsequenceScopeExplosion({
     ...cleanInput(),
@@ -182,6 +204,7 @@ try {
   testApprovedScopePasses();
   testAmountRecordRecipientExpansionNarrows();
   testOperationDataClassAndIrreversibleEscalationBlocks();
+  testUnknownReversibilityRequiresReview();
   testTenantMismatchBlocks();
   testMissingApprovedScopeReviews();
   testDescriptorDocsRegistryAndPackageScriptStayAligned();

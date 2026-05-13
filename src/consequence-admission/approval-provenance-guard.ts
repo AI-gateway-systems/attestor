@@ -73,6 +73,8 @@ export const CONSEQUENCE_APPROVAL_GUARD_REASON_CODES = [
   'approval-issued-at-invalid',
   'approval-expired',
   'approval-step-up-missing',
+  'approval-signature-unverified',
+  'approval-trust-class-source-mismatch',
   'approval-duplicate-reviewer',
   'approval-count-insufficient',
   'approval-provenance-pass',
@@ -94,6 +96,7 @@ export interface ConsequenceApprovalProvenanceClaim {
   readonly issuedAt?: string | null;
   readonly expiresAt?: string | null;
   readonly trustClass?: ConsequenceApprovalTrustClass | null;
+  readonly signatureVerified?: boolean | null;
   readonly stepUpVerified?: boolean | null;
 }
 
@@ -118,6 +121,7 @@ export interface ConsequenceApprovalObservedClaim {
   readonly scopeDigest?: string;
   readonly issuedAt?: string;
   readonly expiresAt?: string;
+  readonly signatureVerified: boolean;
   readonly stepUpVerified: boolean;
   readonly outcome: ConsequenceApprovalGuardOutcome;
   readonly reasonCodes: readonly ConsequenceApprovalGuardReasonCode[];
@@ -221,6 +225,17 @@ const UNTRUSTED_APPROVAL_CLASSES = new Set<ConsequenceApprovalTrustClass>([
   'unverified-tool-output',
 ]);
 
+function resolveTrustClass(
+  sourceKind: ConsequenceApprovalSourceKind,
+  suppliedTrustClass: ConsequenceApprovalTrustClass | null | undefined,
+): ConsequenceApprovalTrustClass {
+  const derivedTrustClass = TRUST_CLASS_BY_SOURCE_KIND[sourceKind];
+  if (!suppliedTrustClass) return derivedTrustClass;
+  if (UNTRUSTED_APPROVAL_CLASSES.has(derivedTrustClass)) return derivedTrustClass;
+  if (UNTRUSTED_APPROVAL_CLASSES.has(suppliedTrustClass)) return suppliedTrustClass;
+  return derivedTrustClass;
+}
+
 function canonicalObject(value: CanonicalReleaseJsonValue): {
   readonly canonical: string;
   readonly digest: string;
@@ -273,7 +288,9 @@ function evaluateClaim(input: {
   readonly requireStepUp: boolean;
 }): ConsequenceApprovalObservedClaim {
   const claim = input.claim;
-  const trustClass = claim.trustClass ?? TRUST_CLASS_BY_SOURCE_KIND[claim.sourceKind];
+  const derivedTrustClass = TRUST_CLASS_BY_SOURCE_KIND[claim.sourceKind];
+  const suppliedTrustClass = claim.trustClass ?? null;
+  const trustClass = resolveTrustClass(claim.sourceKind, suppliedTrustClass);
   const state = claim.state ?? 'pending';
   const issuedAt = normalizeTimestamp(claim.issuedAt ?? null);
   const expiresAt = normalizeTimestamp(claim.expiresAt ?? null);
@@ -282,10 +299,14 @@ function evaluateClaim(input: {
   const hasReviewerAuthority = isSha256Digest(claim.reviewerAuthorityDigest);
   const hasApprovalDigest = isSha256Digest(claim.approvalDigest);
   const hasScopeDigest = isSha256Digest(claim.scopeDigest);
+  const signatureVerified = claim.signatureVerified === true;
   const stepUpVerified = claim.stepUpVerified ?? false;
   const reasonCodes: ConsequenceApprovalGuardReasonCode[] = [];
 
   if (!hasSource) reasonCodes.push('approval-source-missing');
+  if (suppliedTrustClass && suppliedTrustClass !== derivedTrustClass) {
+    reasonCodes.push('approval-trust-class-source-mismatch');
+  }
   if (UNTRUSTED_APPROVAL_CLASSES.has(trustClass)) {
     if (trustClass === 'untrusted-content') reasonCodes.push('approval-source-untrusted');
     if (trustClass === 'model-generated') reasonCodes.push('approval-model-generated');
@@ -308,6 +329,9 @@ function evaluateClaim(input: {
   }
   if (input.requireStepUp && !stepUpVerified) {
     reasonCodes.push('approval-step-up-missing');
+  }
+  if (trustClass === 'signed-authority' && !signatureVerified) {
+    reasonCodes.push('approval-signature-unverified');
   }
 
   let outcome: ConsequenceApprovalGuardOutcome = 'pass';
@@ -346,6 +370,7 @@ function evaluateClaim(input: {
     ...(hasScopeDigest ? { scopeDigest: claim.scopeDigest as string } : {}),
     ...(issuedAt ? { issuedAt } : {}),
     ...(expiresAt ? { expiresAt } : {}),
+    signatureVerified,
     stepUpVerified,
     outcome,
     reasonCodes: uniqueReasonCodes(reasonCodes),

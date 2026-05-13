@@ -130,6 +130,42 @@ function testMissingTimestampOrIntegrityRequiresReview(): void {
   equal(decision.counts.missingIntegrityCount, 1, 'Tool result guard: missing integrity count is retained');
 }
 
+function testSignedAttestationWithoutVerifiedSignatureRequiresReview(): void {
+  const decision = evaluateConsequenceToolResultPoisoning({
+    generatedAt: '2026-05-13T09:12:00.000Z',
+    actionSurface: 'documents.export',
+    action: 'export-records',
+    allowedEvidenceClasses: ['document-record'],
+    toolResults: [
+      {
+        toolResultRef: 'signed-doc-private-ref',
+        toolKind: 'file-search',
+        sourceTrustClass: 'signed-attestation',
+        resultUse: 'evidence',
+        sourceRef: 'doc-store.private-ref',
+        sourceTimestamp: '2026-05-13T09:11:00.000Z',
+        integrityDigest: digest('9'),
+        evidenceDigest: digest('8'),
+        evidenceClass: 'document-record',
+        signatureVerified: false,
+        toolRisk: 'low',
+      },
+    ],
+  });
+
+  equal(decision.outcome, 'review', 'Tool result guard: unverified signed attestation reviews');
+  equal(decision.allowed, false, 'Tool result guard: unverified signed attestation is not allowed');
+  ok(
+    decision.reasonCodes.includes('tool-result-signature-unverified'),
+    'Tool result guard: unverified signature reason is present',
+  );
+  equal(
+    decision.observedResults[0]?.signatureVerified,
+    false,
+    'Tool result guard: observed signed attestation records unverified signature',
+  );
+}
+
 function testEvidenceClassMismatchRequiresReview(): void {
   const decision = evaluateConsequenceToolResultPoisoning({
     generatedAt: '2026-05-13T09:15:00.000Z',
@@ -218,6 +254,7 @@ try {
   testUntrustedToolResultCannotBecomePolicyAuthority();
   testProviderAuthoritativeEvidenceCanPass();
   testMissingTimestampOrIntegrityRequiresReview();
+  testSignedAttestationWithoutVerifiedSignatureRequiresReview();
   testEvidenceClassMismatchRequiresReview();
   testModelGeneratedEvidenceRequiresReview();
   testDescriptorDocsRegistryAndPackageScriptStayAligned();
