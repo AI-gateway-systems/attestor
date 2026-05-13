@@ -400,7 +400,7 @@ const BINDING_PROFILES = {
     requiredAuthority: ['current-runtime-owner'],
     requiredAuditRecords: ['decision-context-binding-record', 'drift-decision-record'],
     replayRequired: true,
-    limitation: 'Binding requires version context; it is not an independent model evaluation.',
+    limitation: 'Decision-context drift binding is implemented for supplied model/tool/policy/config evidence; it is not an independent model evaluation or runtime scanner.',
   },
   'multi-agent-delegation-confusion': {
     invariantIds: [
