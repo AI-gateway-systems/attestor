@@ -495,9 +495,11 @@ Object.freeze([
     repositoryEvidence: [
       evidence('code', 'src/consequence-admission/index.ts', 'narrow-required and scope missing reason codes'),
       evidence('code', 'src/consequence-admission/downstream-enforcement-contract.ts', 'accepted constraint acknowledgement'),
+      evidence('code', 'src/consequence-admission/scope-explosion-guard.ts', 'requested-vs-approved scope guard'),
       evidence('test', 'tests/downstream-enforcement-contract.test.ts', 'private constraint and downstream hold checks'),
+      evidence('test', 'tests/scope-explosion-guard.test.ts', 'amount, record, recipient, tenant, operation, data class, and reversibility scope checks'),
     ],
-    limitation: 'Narrowing exists, but a dedicated scope-explosion guard and replay set are still future work.',
+    limitation: 'A dedicated scope-explosion guard exists; customer policy, downstream verifier, and domain pack integrations still need to enforce returned constraints.',
   }),
   entry({
     id: 'duplicate-execution-replay',
