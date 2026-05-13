@@ -109,6 +109,11 @@ function testPolicyFoundryArchitectureIsGrounded(): void {
   );
   includes(
     doc,
+    'src/consequence-admission/policy-foundry-authority-relationship-context.ts',
+    'Policy Foundry docs: authority relationship context contract evidence is named',
+  );
+  includes(
+    doc,
     'GET /api/v1/shadow/policy-foundry/active-questions',
     'Policy Foundry docs: active question route is named',
   );
@@ -289,6 +294,16 @@ function testPackageScriptIsExposed(): void {
     pkg.scripts['test:policy-foundry-policy-twin-summary'] ?? '',
     'tsx tests/policy-foundry-policy-twin-summary.test.ts',
     'Package: Policy Foundry Policy Twin summary test command is stable',
+  );
+  includes(
+    JSON.stringify(pkg.scripts),
+    'test:policy-foundry-authority-relationship-context',
+    'Package: Policy Foundry authority relationship context test is exposed',
+  );
+  includes(
+    pkg.scripts['test:policy-foundry-authority-relationship-context'] ?? '',
+    'tsx tests/policy-foundry-authority-relationship-context.test.ts',
+    'Package: Policy Foundry authority relationship context test command is stable',
   );
 }
 
