@@ -57,6 +57,10 @@ preserve these boundaries:
   screenshot/visual-check guidance show why browser QA needs stable selectors,
   status/alert semantics, keyboard navigation, responsive layout, and real
   rendered-page inspection rather than HTML string checks alone.
+- OWASP session-management guidance and Kubernetes readiness probe guidance show
+  why hosted wizard resume state must be server-side, tenant-bound, bounded by
+  TTL, and visible to readiness as a separate production-shared storage
+  dependency instead of being hidden inside generic route success.
 
 These sources are engineering anchors only. They do not certify Attestor.
 
@@ -86,6 +90,7 @@ These sources are engineering anchors only. They do not certify Attestor.
 | Step 20 | complete | Wire Live Replay Into Hosted Runtime | Hosted route and review surface bind live replay evidence and block failed replay before scoped rollout review |
 | Step 21 | complete | Add Policy Foundry Production Smoke Probe | Opt-in deployed-runtime smoke probe for health, readiness, hosted workflow, hosted view, live replay evidence, failed replay blocking, and secret-safe output |
 | Step 22 | complete | Add Hosted UI Browser QA Harness | Local browser preview route plus UI hardening for status semantics, stable selectors, keyboard skip link, responsive layout, and long-digest wrapping |
+| Step 23 | complete | Add Hosted Wizard Storage Readiness Gate | Production storage path inventories hosted wizard resume state as a production-shared blocker until shared TTL/session storage exists |
 
 ## Step 01 Scope
 
@@ -428,8 +433,9 @@ can render current work, prefill from digest-bound sources, and show next safe
 steps. It must not apply patches, issue credentials, deploy infrastructure,
 execute production traffic, activate enforcement, or make a non-bypassable
 claim. The hosted workflow route wrapper exists as stateless review material,
-but persistent hosted wizard state and billing-provider entitlement enforcement
-remain separate unresolved tasks.
+while persistent hosted wizard state, billing-provider entitlement enforcement,
+live downstream replay wiring, production smoke probing, browser QA, and
+production storage-path tracking are handled by later slices.
 
 ## Step 15 Scope
 
@@ -495,7 +501,9 @@ timestamps, expiry, and a created/updated event trail. It does not store raw
 manifests, raw tenant ids, caller session refs, shadow payloads, full packets,
 or raw review surfaces. It is local file-backed evaluation persistence only.
 At this step, shared production wizard storage, live downstream replay wiring,
-and production smoke tests remained separate tasks.
+and production smoke tests remained separate tasks. Later slices wired live
+replay and smoke probing and added an explicit production storage-path blocker
+for the hosted wizard state.
 
 ## Step 18 Scope
 
@@ -630,6 +638,25 @@ production traffic. This is UI/browser evidence only. It does not deploy
 infrastructure, issue credentials, activate enforcement, execute production
 traffic, or prove production readiness.
 
+## Step 23 Scope
+
+Step 23 adds the hosted wizard state to the production storage-path truth gate.
+
+The local hosted wizard state from Step 17 remains useful for evaluation and
+tenant-bound resume tests, but multi-node hosted production needs shared
+server-side storage. The production storage path now inventories:
+
+```text
+Policy Foundry hosted wizard resume state
+current mode: file-backed-evaluation
+required production mode: shared-durable
+default production-shared decision: blocked
+```
+
+This step does not implement a shared database table or cache-backed session
+store. It prevents overclaim: `production-shared` cannot be ready while hosted
+wizard resume state is still local file-backed evaluation storage.
+
 ## Protected Principles
 
 - customer authority
@@ -654,7 +681,7 @@ contracts, or shared product positioning are touched.
 
 ## Current Status
 
-Step 01 through Step 12 are complete. Step 13 through Step 22 are also complete
+Step 01 through Step 12 are complete. Step 13 through Step 23 are also complete
 repo-side: the repo-side self-onboarding deepening list now includes the local
 adversarial replay executor, hosted workflow contract, stateless hosted workflow
 route wrapper, compact hosted review surface, hosted UI flow renderer, and
@@ -665,5 +692,7 @@ hosted route now binds that live replay evidence into workflow/review output and
 blocks failed replay before scoped rollout review. The track also includes an
 opt-in production smoke probe for an already deployed hosted runtime and a
 local browser QA preview harness for the hosted UI. Shared production wizard
-storage and any production traffic execution remain outside this tracker, and
-smoke/browser evidence is not a production-readiness claim.
+storage is tracked as a production storage-path blocker, but the shared
+implementation is still not present. Any production traffic execution remains
+outside this tracker, and smoke/browser/storage-path evidence is not a
+production-readiness claim.

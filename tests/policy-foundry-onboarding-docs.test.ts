@@ -174,6 +174,11 @@ function testPolicyFoundryArchitectureIsGrounded(): void {
   );
   includes(
     doc,
+    'productionStoragePath',
+    'Policy Foundry docs: hosted wizard storage production gate is named',
+  );
+  includes(
+    doc,
     'scripts/probe-policy-foundry-production-smoke.ts',
     'Policy Foundry docs: production smoke probe evidence is named',
   );
@@ -269,6 +274,11 @@ function testReadmeNamesPolicyFoundryWithoutOverclaiming(): void {
   );
   includes(
     readme,
+    'hosted wizard storage readiness gating',
+    'README: hosted wizard storage readiness gate is named without claiming shared storage',
+  );
+  includes(
+    readme,
     'preview:policy-foundry-hosted-ui',
     'README: local browser QA preview is named',
   );
@@ -343,6 +353,8 @@ function testOnboardingResearchAnchorsAreRecorded(): void {
     'Stripe entitlement-style feature boundaries',
     'OpenFeature context-bound evaluation',
     'LaunchDarkly progressive rollouts',
+    'OWASP session management',
+    'Kubernetes readiness',
   ]) {
     includes(doc, anchor, `Policy Foundry docs: research anchor ${anchor} is recorded`);
   }

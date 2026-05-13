@@ -31,6 +31,7 @@ Readonly<Record<ProductionStoragePathComponentId, ProductionStorageMode>>
     'shadow-policy-simulations': 'shared-durable',
     'shadow-policy-candidates': 'shared-durable',
     'shadow-activation-receipts': 'shared-durable',
+    'policy-foundry-hosted-wizard-state': 'shared-durable',
     'retry-attempt-ledger': 'shared-durable',
     'presentation-replay-ledger': 'shared-durable',
     'agent-loop-abuse-guard': 'shared-durable',
@@ -59,7 +60,7 @@ function testEvaluationProfiles(): void {
     releaseAuthorityMode: 'disabled',
   });
   equal(singleNode.readyForSelectedProfile, true, 'Production storage path: single-node durable remains evaluation acceptable');
-  equal(singleNode.components.length, 11, 'Production storage path: inventories every storage surface');
+  equal(singleNode.components.length, 12, 'Production storage path: inventories every storage surface');
 }
 
 function testProductionSharedBlocksCurrentEvaluationStores(): void {
@@ -83,6 +84,13 @@ function testProductionSharedBlocksCurrentEvaluationStores(): void {
   ok(
     production.blockers.some((blocker) => blocker.code === 'evaluation-store-not-shared'),
     'Production storage path: file-backed shadow stores are blockers',
+  );
+  ok(
+    production.blockers.some((blocker) =>
+      blocker.component === 'policy-foundry-hosted-wizard-state' &&
+      blocker.code === 'evaluation-store-not-shared'
+    ),
+    'Production storage path: hosted wizard state must not be omitted from production-shared blockers',
   );
   ok(
     production.blockers.some((blocker) => blocker.code === 'in-memory-reference-not-shared'),
@@ -154,6 +162,7 @@ function testDocsAndRuntimeWiring(): void {
   ok(docs.includes('# Production Storage Path'), 'Production storage path docs: document exists');
   ok(docs.includes('production-shared-blocked'), 'Production storage path docs: blocked state is documented');
   ok(docs.includes('file-backed evaluation stores'), 'Production storage path docs: evaluation store boundary is named');
+  ok(docs.includes('Policy Foundry hosted wizard resume state'), 'Production storage path docs: hosted wizard state is inventoried');
   ok(productionReadiness.includes('## Production Storage Path Gate'), 'Production readiness docs: storage gate section exists');
   ok(productionReadiness.includes('productionStoragePath'), 'Production readiness docs: readiness response field is documented');
   ok(coreRoutes.includes('checks.productionStoragePath'), 'Production storage path: ready route checks storage path');
