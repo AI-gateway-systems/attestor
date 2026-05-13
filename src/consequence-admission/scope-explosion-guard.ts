@@ -82,6 +82,7 @@ export const CONSEQUENCE_SCOPE_EXPLOSION_REASON_CODES = [
   'environment-out-of-scope',
   'downstream-system-out-of-scope',
   'data-class-out-of-scope',
+  'reversibility-unknown',
   'irreversible-action-not-approved',
   'scope-narrowing-required',
   'scope-review-required',
@@ -368,6 +369,12 @@ function evaluateScopeDiff(input: {
   if (requested.dataClass && approved.dataClasses?.length && !includesValue(approved.dataClasses, requested.dataClass)) {
     blockingDimensions.push('data-class');
     reasonCodes.push('data-class-out-of-scope');
+  }
+  if (
+    requested.reversibilityClass === 'unknown'
+  ) {
+    reviewDimensions.push('reversibility');
+    reasonCodes.push('reversibility-unknown');
   }
   if (
     requested.reversibilityClass === 'irreversible' &&

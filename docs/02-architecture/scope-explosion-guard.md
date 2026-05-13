@@ -47,10 +47,14 @@ The guard returns one of:
 
 - `pass`: requested scope is inside approved scope
 - `narrow`: requested scope exceeds approved scope but can be constrained before execution
-- `review`: requested or approved scope evidence is missing
+- `review`: requested or approved scope evidence is missing, or reversibility is unknown
 - `block`: tenant, operation, data class, or irreversible-action boundary is violated
 
 `narrow` returns explicit digest-only constraints. Review and block are fail-closed.
+
+Unknown reversibility is not treated as reversible. If an adapter cannot classify
+whether an action is reversible, compensating, partially reversible, or
+irreversible, the guard returns `review` with `reversibility-unknown`.
 
 ## Binding
 

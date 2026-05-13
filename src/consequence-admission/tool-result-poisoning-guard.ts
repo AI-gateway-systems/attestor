@@ -87,6 +87,7 @@ export const CONSEQUENCE_TOOL_RESULT_GUARD_REASON_CODES = [
   'tool-result-evidence-digest-missing',
   'tool-result-evidence-class-missing',
   'tool-result-evidence-class-not-allowed',
+  'tool-result-signature-unverified',
   'tool-result-untrusted-source',
   'tool-result-model-generated-source',
   'tool-result-customer-controlled-review',
@@ -289,6 +290,8 @@ function evaluateClaim(
   );
   const unsafeSource = UNTRUSTED_SOURCE_CLASSES.has(claim.sourceTrustClass);
   const trustedSource = TRUSTED_SOURCE_CLASSES.has(claim.sourceTrustClass);
+  const signedAttestation = claim.sourceTrustClass === 'signed-attestation';
+  const signatureVerified = claim.signatureVerified === true;
   const unsafeUse = UNSAFE_RESULT_USES.has(claim.resultUse);
 
   if (!hasSource) reasonCodes.push('tool-result-source-missing');
@@ -299,6 +302,9 @@ function evaluateClaim(
   if (!hasEvidenceClass) reasonCodes.push('tool-result-evidence-class-missing');
   if (hasEvidenceClass && !evidenceClassAllowed) {
     reasonCodes.push('tool-result-evidence-class-not-allowed');
+  }
+  if (signedAttestation && !signatureVerified) {
+    reasonCodes.push('tool-result-signature-unverified');
   }
   if (claim.sourceTrustClass === 'untrusted-external') {
     reasonCodes.push('tool-result-untrusted-source');
@@ -346,7 +352,7 @@ function evaluateClaim(
     ...(hasValidEvidenceDigest ? { evidenceDigest: claim.evidenceDigest as string } : {}),
     ...(claim.evidenceClass ? { evidenceClass: claim.evidenceClass } : {}),
     allowedEvidenceClasses,
-    signatureVerified: claim.signatureVerified ?? false,
+    signatureVerified,
     toolRisk,
     outcome,
     reasonCodes: uniqueReasonCodes(reasonCodes),

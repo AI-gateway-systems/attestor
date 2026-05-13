@@ -45,6 +45,7 @@ The guard evaluates:
 - scope digest
 - issued timestamp
 - optional expiry
+- signed approval verification state
 - required approval count
 - step-up requirement
 
@@ -78,6 +79,11 @@ Each passing approval must bind:
 - approval digest
 - action scope
 - issue time
+
+Untrusted source kinds cannot be promoted by a supplied `trustClass`. For
+example, a ticket comment or chat message remains untrusted even if an adapter
+labels it as `signed-authority`. Signed approval artifacts must also carry a
+verified signature state; otherwise they route to `review`.
 
 ## Untrusted Approval Sources
 
