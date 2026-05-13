@@ -44,7 +44,7 @@ These sources are engineering anchors only. They do not certify Attestor.
 | Step 05 | complete | Add Counterexample Ledger | Track supporting evidence, counterexamples, missing proof, high-risk auto-admits, actor concentration, and replay pressure per candidate |
 | Step 06 | complete | Add Policy Twin v2 Summary | Produce a clearer backtest packet for admit/review/block impact, review-load delta, no-go reasons, and rollout recommendation |
 | Step 07 | complete | Add Authority Relationship Context | Capture approver, owner, tenant, delegation, and scope context without storing raw customer identity data |
-| Step 08 | not started | Add Review-Only Integration Patch Pack | Render SDK/gateway/MCP/sidecar/provider draft patches as review material only |
+| Step 08 | complete | Add Review-Only Integration Patch Pack | Render SDK/gateway/MCP/sidecar/provider draft patches as review material only |
 | Step 09 | not started | Add One-Command Self-Onboarding CLI | Render session, coverage, blockers, patch pack, handoff, and red-team fixtures from customer-owned manifests and shadow data |
 | Step 10 | not started | Add Outcome Feedback Loop | Feed reviewed decisions and downstream receipts back into scoring through digest-first, data-minimized signals |
 | Step 11 | not started | Add Drift And Policy Debt Detector | Detect new surfaces, stale policies, verifier coverage drift, actor concentration, and policy/shadow mismatch |
@@ -208,6 +208,28 @@ The context is review material only. It does not store raw customer identity
 data, replace the customer's identity provider, grant authority, activate
 enforcement, or prove production readiness.
 
+## Step 08 Scope
+
+Step 08 adds `attestor.policy-foundry-review-only-patch-pack.v1`.
+
+The review-only patch pack turns generated integration artifacts into a
+digest-bound customer review packet:
+
+```text
+SDK snippet drafts
+verifier helper drafts
+gateway proxy config drafts
+MCP tool gateway config drafts
+sidecar/ext_authz config drafts
+provider connector plan drafts
+credential isolation drafts
+validation fixture drafts
+```
+
+The patch pack is review material only. It does not apply patches, deploy
+infrastructure, issue credentials, activate enforcement, or prove
+non-bypassability.
+
 ## Protected Principles
 
 - customer authority
@@ -232,5 +254,5 @@ contracts, or shared product positioning are touched.
 
 ## Current Status
 
-Step 01 through Step 07 are complete. Step 08 is the next implementation step. The
+Step 01 through Step 08 are complete. Step 09 is the next implementation step. The
 rest of the list remains open.

@@ -455,6 +455,26 @@ assert.equal(
   typeof admission.createPolicyFoundryAuthorityRelationshipContext,
   'function',
 );
+assert.equal(
+  admission.POLICY_FOUNDRY_REVIEW_ONLY_PATCH_PACK_VERSION,
+  'attestor.policy-foundry-review-only-patch-pack.v1',
+);
+assert.equal(
+  admission.policyFoundryReviewOnlyPatchPackDescriptor().dataMinimizationSurfaceKind,
+  'policy-foundry-review-only-patch-pack',
+);
+assert.equal(
+  admission.policyFoundryReviewOnlyPatchPackDescriptor().appliesPatches,
+  false,
+);
+assert.equal(
+  admission.policyFoundryReviewOnlyPatchPackDescriptor().reviewMaterialOnly,
+  true,
+);
+assert.equal(
+  typeof admission.createPolicyFoundryReviewOnlyPatchPack,
+  'function',
+);
 
 let blockedInternalPath = false;
 try {
