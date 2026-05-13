@@ -75,6 +75,9 @@ function testDescriptorCoversCriticalSurfaces(): void {
   const reviewOnlyPatchPack = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'policy-foundry-review-only-patch-pack'
   );
+  const selfOnboardingCli = descriptor.surfaces.find((surface) =>
+    surface.surfaceKind === 'policy-foundry-self-onboarding-cli'
+  );
   const externalReview = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'external-review-packet'
   );
@@ -166,6 +169,15 @@ function testDescriptorCoversCriticalSurfaces(): void {
   ok(
     reviewOnlyPatchPack?.allowedUnits.includes('artifact-reference'),
     'Data minimization policy: review-only patch pack allows artifact references',
+  );
+  ok(selfOnboardingCli, 'Data minimization policy: self-onboarding CLI surface is present');
+  ok(
+    selfOnboardingCli?.allowedUnits.includes('artifact-reference'),
+    'Data minimization policy: self-onboarding CLI allows artifact references',
+  );
+  ok(
+    selfOnboardingCli?.allowedUnits.includes('digests'),
+    'Data minimization policy: self-onboarding CLI allows source digests',
   );
   ok(externalReview, 'Data minimization policy: external review packet surface is present');
   ok(

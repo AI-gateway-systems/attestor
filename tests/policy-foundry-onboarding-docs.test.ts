@@ -119,6 +119,16 @@ function testPolicyFoundryArchitectureIsGrounded(): void {
   );
   includes(
     doc,
+    'src/consequence-admission/policy-foundry-self-onboarding-cli.ts',
+    'Policy Foundry docs: self-onboarding CLI contract evidence is named',
+  );
+  includes(
+    doc,
+    'scripts/render-policy-foundry-self-onboarding.ts',
+    'Policy Foundry docs: self-onboarding renderer evidence is named',
+  );
+  includes(
+    doc,
     'GET /api/v1/shadow/policy-foundry/active-questions',
     'Policy Foundry docs: active question route is named',
   );
@@ -195,6 +205,8 @@ function testOnboardingResearchAnchorsAreRecorded(): void {
     'Auth0 progressive profiling',
     'LaunchDarkly and OpenFeature',
     'Zanzibar and OpenFGA',
+    'Terraform',
+    'Kubernetes dry-run',
   ]) {
     includes(doc, anchor, `Policy Foundry docs: research anchor ${anchor} is recorded`);
   }
@@ -319,6 +331,21 @@ function testPackageScriptIsExposed(): void {
     pkg.scripts['test:policy-foundry-review-only-patch-pack'] ?? '',
     'tsx tests/policy-foundry-review-only-patch-pack.test.ts',
     'Package: Policy Foundry review-only patch pack test command is stable',
+  );
+  includes(
+    JSON.stringify(pkg.scripts),
+    'test:policy-foundry-self-onboarding-cli',
+    'Package: Policy Foundry self-onboarding CLI test is exposed',
+  );
+  includes(
+    pkg.scripts['test:policy-foundry-self-onboarding-cli'] ?? '',
+    'tsx tests/policy-foundry-self-onboarding-cli.test.ts',
+    'Package: Policy Foundry self-onboarding CLI test command is stable',
+  );
+  includes(
+    pkg.scripts['policy-foundry:self-onboard'] ?? '',
+    'tsx scripts/render-policy-foundry-self-onboarding.ts',
+    'Package: Policy Foundry self-onboarding renderer command is stable',
   );
 }
 

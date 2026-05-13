@@ -98,6 +98,7 @@ This is AI action authorization infrastructure: not a chatbot feature, not a pro
 npm install
 npm run example:admission
 npm run example:action-surface-onboarding
+npm run policy-foundry:self-onboard -- --openapi=examples/action-surface-onboarding/refund.openapi.json --default-domain=money-movement --downstream-system=refund-service --credential-posture=agent-held-static-secret
 ```
 
 You will see:
@@ -108,6 +109,7 @@ You will see:
 - a non-bypassable gateway demo where a payment adapter cannot dispatch without verifier allow
 - an agent retry wrapper demo where model-safe feedback becomes one bounded correction attempt
 - an action-surface onboarding packet rendered from a safe OpenAPI example without deploying anything
+- a Policy Foundry self-onboarding packet with session, coverage, blockers, gate plan, handoff, red-team fixtures, and review-only patch drafts
 
 For a guided first run, see [Try Attestor first](docs/01-overview/try-attestor-first.md).
 
@@ -131,6 +133,9 @@ npm run example:action-surface-onboarding
 
 # Render a review-required action-surface onboarding packet
 npm run render:action-surface-onboarding-packet -- --openapi=path/to/openapi.yaml
+
+# Render the one-command Policy Foundry self-onboarding review packet
+npm run policy-foundry:self-onboard -- --openapi=path/to/openapi.yaml
 
 # Local cross-pack proof surface
 npm run proof:surface
