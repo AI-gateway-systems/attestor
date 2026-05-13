@@ -78,6 +78,9 @@ function testDescriptorCoversCriticalSurfaces(): void {
   const selfOnboardingCli = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'policy-foundry-self-onboarding-cli'
   );
+  const outcomeFeedbackLoop = descriptor.surfaces.find((surface) =>
+    surface.surfaceKind === 'policy-foundry-outcome-feedback-loop'
+  );
   const externalReview = descriptor.surfaces.find((surface) =>
     surface.surfaceKind === 'external-review-packet'
   );
@@ -178,6 +181,15 @@ function testDescriptorCoversCriticalSurfaces(): void {
   ok(
     selfOnboardingCli?.allowedUnits.includes('digests'),
     'Data minimization policy: self-onboarding CLI allows source digests',
+  );
+  ok(outcomeFeedbackLoop, 'Data minimization policy: outcome feedback loop surface is present');
+  ok(
+    outcomeFeedbackLoop?.allowedUnits.includes('digests'),
+    'Data minimization policy: outcome feedback loop allows reviewed outcome digests',
+  );
+  ok(
+    outcomeFeedbackLoop?.allowedUnits.includes('counts'),
+    'Data minimization policy: outcome feedback loop allows aggregate counts',
   );
   ok(externalReview, 'Data minimization policy: external review packet surface is present');
   ok(

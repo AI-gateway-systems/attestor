@@ -88,6 +88,14 @@ standard certifies Attestor:
   https://openapi-generator.tech/docs/usage,
   https://developer.hashicorp.com/terraform/cli/commands/plan, and
   https://kubernetes.io/docs/reference/kubectl/generated/kubectl_apply/
+- Outcome feedback should remain structured telemetry and recommendation input,
+  not policy authority. The feedback loop follows OPA decision-log separation,
+  OpenTelemetry-style correlated signals, NIST AI RMF monitor/manage discipline,
+  and IAM Recommender-style observed-usage recommendations:
+  https://www.openpolicyagent.org/docs/management-decision-logs,
+  https://opentelemetry.io/docs/concepts/signals/,
+  https://www.nist.gov/itl/ai-risk-management-framework, and
+  https://docs.cloud.google.com/policy-intelligence/docs/role-recommendations-overview
 
 ## Core Versus Packs
 
@@ -436,6 +444,17 @@ review-only patch pack. It writes review material only; it does not apply
 patches, deploy infrastructure, issue credentials, activate enforcement, or
 prove production readiness.
 
+The Outcome Feedback Loop is the first reviewed-outcome return path for this
+track. It lives in
+`src/consequence-admission/policy-foundry-outcome-feedback-loop.ts`, is covered
+by `tests/policy-foundry-outcome-feedback-loop.test.ts`, and is exposed through
+`test:policy-foundry-outcome-feedback-loop`. It accepts reviewed decision
+digests and downstream execution receipt digests, then emits aggregate scoring
+signals for reviewer agreement, downstream success/failure, skipped receipts,
+and missing receipt coverage. It is scoring input only: it does not train a
+model, mutate scores automatically, approve policies, activate enforcement, or
+prove production readiness.
+
 ```text
 coverageScore
 coverageDimensions
@@ -479,6 +498,13 @@ selfOnboardingStatus
 selfOnboardingBlockers
 selfOnboardingOutputFiles
 selfOnboardingNextSafeStep
+outcomeFeedbackLoop
+reviewedDecisionCount
+downstreamReceiptCount
+reviewerAgreementRate
+downstreamSuccessRate
+feedbackCompletenessRate
+automaticScoreMutationAllowed: false
 readinessScore
 sampleSize
 actorDistributionHealth
@@ -557,7 +583,7 @@ onboarding red-team fixture generation, and the first onboarding session
 contract plus the first coverage score, minimum viable gate planner, and
 schema-bound candidate registry, counterexample ledger, and Policy Twin v2
 summary plus authority relationship context, review-only patch pack, and
-one-command self-onboarding CLI
+one-command self-onboarding CLI plus the first outcome feedback loop
 contracts. It does not yet have a live
 adversarial replay executor, UI workflow, or full commercial entitlement
 contract for Foundry capabilities. The deeper self-onboarding track is tracked in

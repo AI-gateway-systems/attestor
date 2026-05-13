@@ -169,7 +169,7 @@ function testDescriptorDocsAndPackageScriptStayAligned(): void {
   includes(doc, 'test:policy-foundry-authority-relationship-context', 'Policy Foundry docs: authority context test command is named');
   includes(tracker, 'Step 07', 'Deepening tracker: Step 07 is present');
   includes(tracker, 'complete | Add Authority Relationship Context', 'Deepening tracker: Step 07 is complete');
-  includes(tracker, 'Step 10 is the next implementation step', 'Deepening tracker: Step 10 is next after Step 09 completion');
+  includes(tracker, 'Step 11 is the next implementation step', 'Deepening tracker: Step 11 is next after Step 10 completion');
   includes(
     pkg.scripts['test:policy-foundry-authority-relationship-context'] ?? '',
     'tsx tests/policy-foundry-authority-relationship-context.test.ts',
