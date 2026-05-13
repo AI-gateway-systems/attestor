@@ -584,11 +584,13 @@ Object.freeze([
     ],
     defaultDecision: 'review',
     repositoryEvidence: [
+      evidence('code', 'src/consequence-admission/decision-context-drift-binding.ts', 'decision proof context binding'),
+      evidence('test', 'tests/decision-context-drift-binding.test.ts', 'model/tool/policy/config drift binding'),
       evidence('code', 'src/consequence-admission/policy-foundry-drift-policy-debt-detector.ts', 'drift and policy debt detector'),
       evidence('test', 'tests/policy-foundry-drift-policy-debt-detector.test.ts', 'blocker chains produce no-go status'),
       evidence('code', 'src/release-kernel/release-verification.ts', 'policy hash and version verification'),
     ],
-    limitation: 'Drift detection summarizes supplied evidence; it does not independently scan every customer runtime.',
+    limitation: 'Decision context drift binding now checks supplied model/tool/policy/config evidence; it does not independently scan every customer runtime or evaluate model quality.',
   }),
   entry({
     id: 'multi-agent-delegation-confusion',
