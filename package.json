@@ -158,6 +158,7 @@
     "test:scope-explosion-guard": "tsx tests/scope-explosion-guard.test.ts",
     "test:human-review-fatigue-guard": "tsx tests/human-review-fatigue-guard.test.ts",
     "test:decision-context-drift-binding": "tsx tests/decision-context-drift-binding.test.ts",
+    "test:no-go-condition-ledger": "tsx tests/no-go-condition-ledger.test.ts",
     "test:policy-foundry-counterexample-ledger": "tsx tests/policy-foundry-counterexample-ledger.test.ts",
     "test:policy-foundry-policy-twin-summary": "tsx tests/policy-foundry-policy-twin-summary.test.ts",
     "test:policy-foundry-authority-relationship-context": "tsx tests/policy-foundry-authority-relationship-context.test.ts",
