@@ -55,6 +55,8 @@ export interface AccountAccessContext {
 
 export const ANONYMOUS_TENANT_ID = '__attestor_anonymous__';
 export const LEGACY_ANONYMOUS_TENANT_ID = 'default';
+export const TENANT_CONTEXT_VERIFIED_HEADER = 'x-attestor-tenant-context-verified';
+export const TENANT_CONTEXT_VERIFIED_VALUE = 'true';
 
 /** Tenant registry: maps hashed API keys to tenants. */
 export const TENANT_ENV_KEY_CACHE_DEFAULT_TTL_MS = 30_000;
@@ -71,6 +73,18 @@ let loadedTenantKeyConfigDigest: string | null = null;
 let loadedTenantKeyConfigAtMs: number | null = null;
 let loadedTenantKeyConfigExpiresAtMs: number | null = null;
 let envTenantKeyCacheDisabledReason: string | null = null;
+
+const TENANT_CONTEXT_HEADER_NAMES = Object.freeze([
+  TENANT_CONTEXT_VERIFIED_HEADER,
+  'x-attestor-tenant-id',
+  'x-attestor-tenant-source',
+  'x-attestor-plan-id',
+  'x-attestor-monthly-run-quota',
+  'x-attestor-account-id',
+  'x-attestor-account-user-id',
+  'x-attestor-account-role',
+  'x-attestor-account-session-id',
+] as const);
 
 function tenantKeyEnvCacheTtlMs(): number {
   const raw = Number.parseInt(process.env.ATTESTOR_TENANT_KEY_ENV_CACHE_TTL_MS ?? '', 10);
@@ -151,6 +165,29 @@ export function isAnonymousTenantContext(
   tenant: Pick<TenantContext, 'tenantId' | 'source'>,
 ): boolean {
   return tenant.source === 'anonymous' || tenant.tenantId === ANONYMOUS_TENANT_ID;
+}
+
+export function anonymousTenantContext(authenticatedAt = new Date().toISOString()): TenantContext {
+  return {
+    tenantId: ANONYMOUS_TENANT_ID,
+    tenantName: 'anonymous',
+    authenticatedAt,
+    source: 'anonymous',
+    planId: SELF_HOST_PLAN_ID,
+    monthlyRunQuota: null,
+  };
+}
+
+export function clearTenantContextHeaders(headers: Headers): void {
+  for (const header of TENANT_CONTEXT_HEADER_NAMES) headers.delete(header);
+}
+
+export function markTenantContextVerified(headers: Headers): void {
+  headers.set(TENANT_CONTEXT_VERIFIED_HEADER, TENANT_CONTEXT_VERIFIED_VALUE);
+}
+
+export function hasVerifiedTenantContext(headers: Headers): boolean {
+  return headers.get(TENANT_CONTEXT_VERIFIED_HEADER) === TENANT_CONTEXT_VERIFIED_VALUE;
 }
 
 /**
@@ -270,6 +307,7 @@ export function tenantMiddleware() {
       c.req.path === '/api/v1/connectors' ||
       c.req.path === '/api/v1/metrics'
     ) {
+      clearTenantContextHeaders(c.req.raw.headers);
       return next();
     }
 
@@ -293,14 +331,8 @@ export function tenantMiddleware() {
     }
 
     // Propagate tenant context via internal headers (Hono-safe approach)
-    const resolved = tenant ?? {
-      tenantId: ANONYMOUS_TENANT_ID,
-      tenantName: 'anonymous',
-      authenticatedAt: new Date().toISOString(),
-      source: 'anonymous' as const,
-      planId: SELF_HOST_PLAN_ID,
-      monthlyRunQuota: null,
-    };
+    const resolved = tenant ?? anonymousTenantContext();
+    clearTenantContextHeaders(c.req.raw.headers);
     c.req.raw.headers.set('x-attestor-tenant-id', resolved.tenantId);
     c.req.raw.headers.set('x-attestor-tenant-source', resolved.source);
     c.req.raw.headers.set('x-attestor-plan-id', resolved.planId ?? SELF_HOST_PLAN_ID);
@@ -313,6 +345,7 @@ export function tenantMiddleware() {
       c.req.raw.headers.set('x-attestor-account-role', session.role);
       c.req.raw.headers.set('x-attestor-account-session-id', session.sessionId);
     }
+    markTenantContextVerified(c.req.raw.headers);
 
     if (isAuthRoute || isPublicInviteAcceptRoute) {
       await next();
