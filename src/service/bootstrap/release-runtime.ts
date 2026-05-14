@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, chmodSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { generatePkiHierarchy } from '../../signing/pki-chain.js';
-import { setKeylessCa } from '../../signing/keyless-signer.js';
+import { configureReleaseRuntimeKeylessCa } from '../../signing/keyless-signer.js';
 import {
   decisionLog,
   evidence,
@@ -1100,7 +1100,10 @@ export async function createReleaseRuntimeBootstrap(
     retiredVerificationKeys,
     persistence: pkiPersistence,
   } = resolveReleaseRuntimePki(runtimeProfile);
-  setKeylessCa(pki.ca);
+  configureReleaseRuntimeKeylessCa(pki.ca, {
+    allowReplace: true,
+    replacementReason: 'release-runtime-bootstrap',
+  });
   const releaseSigningProvider = assertReleaseSigningProviderAllowed({
     runtimeProfile,
     pkiPersistence,

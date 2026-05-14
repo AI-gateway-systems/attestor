@@ -30,7 +30,7 @@ try {
   includes(tracker, '# Attestor Audit Remediation Tracker', 'Tracker: title is present');
   includes(tracker, 'not a certification', 'Tracker: no-certification disclaimer is present');
   includes(tracker, '`origin/master` is the source of truth', 'Tracker: origin/master rule is present');
-  includes(tracker, 'Estimated remaining work after this tracker lands: about 11 to 19', 'Tracker: remaining estimate is explicit');
+  includes(tracker, 'Estimated remaining work after this tracker lands: about 10 to 18', 'Tracker: remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -64,6 +64,7 @@ try {
     '#318',
     '#319',
     '#320',
+    '#321',
   ]) {
     includes(tracker, pr, `Tracker: ${pr} is referenced`);
   }
@@ -118,6 +119,9 @@ try {
   includes(tracker, 'F-5.2 parent-directory fsync / orphan sweep | `partial`', 'Tracker: F5 file durability validation is partial');
   includes(tracker, 'F5-A5 non-atomic `saveKeyPair` | `fixed`', 'Tracker: F5 key persistence atomicity validation is fixed');
   includes(tracker, 'F5 File Durability And Key Atomicity Validation', 'Tracker: F5 file/key validation evidence is linked');
+  includes(tracker, 'F5-A7 module-level CA singleton / injection point | `fixed`', 'Tracker: F5 keyless CA injection boundary is fixed');
+  includes(tracker, 'F5-NEW-1 exported `setKeylessCa` runtime injection | `fixed`', 'Tracker: F5 setKeylessCa runtime injection is fixed');
+  includes(tracker, 'F5 Keyless CA Injection Boundary Validation', 'Tracker: F5 keyless CA injection evidence is linked');
   includes(tracker, 'F5-NEW-4 duplicate verify helper calls in CLI', 'Tracker: detailed F5 redo is tracked');
   includes(tracker, 'No `needs-revalidation` row can remain before starting F6', 'Tracker: F6 gate is explicit');
   excludes(tracker, /production ready|certified|fully complete/iu, 'Tracker: avoids production/certification overclaim wording');
@@ -128,6 +132,7 @@ try {
   includes(packageJson, '"test:f5-fingerprint-width-validation"', 'Package: F5 fingerprint width validation script is exposed');
   includes(packageJson, '"test:f5-canonicalization-validation"', 'Package: F5 canonicalization validation script is exposed');
   includes(packageJson, '"test:f5-file-store-key-atomicity-validation"', 'Package: F5 file/key atomicity validation script is exposed');
+  includes(packageJson, '"test:f5-keyless-ca-injection-boundary-validation"', 'Package: F5 keyless CA injection validation script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);

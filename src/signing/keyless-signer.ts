@@ -75,12 +75,62 @@ export interface KeylessSignerConfig {
   caValidityDays?: number;
 }
 
+export interface KeylessCaRuntimeConfiguration {
+  readonly source: 'release-runtime-bootstrap';
+  readonly caFingerprint: string;
+  readonly alreadyConfigured: boolean;
+  readonly replacedExisting: boolean;
+  readonly replacementReason: string | null;
+}
+
+export interface ConfigureReleaseRuntimeKeylessCaOptions {
+  readonly allowReplace?: boolean;
+  readonly replacementReason?: string;
+}
+
 // ─── CA Singleton (per-process) ─────────────────────────────────────────────
 
 let cachedCa: { keyPair: AttestorKeyPair; certificate: CaCertificate } | null = null;
 
-export function setKeylessCa(ca: { keyPair: AttestorKeyPair; certificate: CaCertificate }): void {
+function assertCaMatchesKeyPair(ca: { keyPair: AttestorKeyPair; certificate: CaCertificate }): void {
+  if (ca.certificate.type !== 'attestor.ca_certificate.v1' || ca.certificate.isCA !== true) {
+    throw new Error('Keyless CA runtime configuration requires an Attestor CA certificate.');
+  }
+  if (ca.certificate.publicKey !== ca.keyPair.publicKeyHex) {
+    throw new Error('Keyless CA runtime configuration public key mismatch.');
+  }
+  if (ca.certificate.fingerprint !== ca.keyPair.fingerprint) {
+    throw new Error('Keyless CA runtime configuration fingerprint mismatch.');
+  }
+}
+
+export function configureReleaseRuntimeKeylessCa(
+  ca: { keyPair: AttestorKeyPair; certificate: CaCertificate },
+  options: ConfigureReleaseRuntimeKeylessCaOptions = {},
+): KeylessCaRuntimeConfiguration {
+  assertCaMatchesKeyPair(ca);
+  const existingFingerprint = cachedCa?.certificate.fingerprint ?? null;
+  if (existingFingerprint !== null && existingFingerprint !== ca.certificate.fingerprint) {
+    if (options.allowReplace !== true) {
+      throw new Error(
+        `Refusing to replace configured keyless CA ${existingFingerprint} with ${ca.certificate.fingerprint} in-process.`,
+      );
+    }
+    if (typeof options.replacementReason !== 'string' || options.replacementReason.trim().length === 0) {
+      throw new Error('Keyless CA replacement requires a replacement reason.');
+    }
+  }
   cachedCa = ca;
+  return Object.freeze({
+    source: 'release-runtime-bootstrap',
+    caFingerprint: ca.certificate.fingerprint,
+    alreadyConfigured: existingFingerprint === ca.certificate.fingerprint,
+    replacedExisting: existingFingerprint !== null && existingFingerprint !== ca.certificate.fingerprint,
+    replacementReason:
+      existingFingerprint !== null && existingFingerprint !== ca.certificate.fingerprint
+        ? options.replacementReason!.trim()
+        : null,
+  });
 }
 
 function getOrCreateCa(config?: KeylessSignerConfig): { keyPair: AttestorKeyPair; certificate: CaCertificate } {
