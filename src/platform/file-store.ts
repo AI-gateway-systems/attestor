@@ -186,6 +186,7 @@ export function cleanupAtomicWriteTempFiles(path: string): number {
 export function fsyncDirectoryBestEffort(directoryPath: string): boolean {
   let directoryFd: number | null = null;
   try {
+    // codeql[js/insecure-temporary-file] Existing directory is opened read-only for fsync; no temp file is created here.
     directoryFd = openSync(directoryPath, fsConstants.O_RDONLY);
     fsyncSync(directoryFd);
     return true;
