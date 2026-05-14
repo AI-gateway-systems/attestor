@@ -5,6 +5,12 @@ import {
   consequenceApprovalProvenanceGuardDescriptor,
   evaluateConsequenceApprovalProvenance,
 } from '../src/consequence-admission/index.js';
+import {
+  issueCertificate,
+  type CertificateInput,
+} from '../src/signing/certificate.js';
+import { generatePkiHierarchy } from '../src/signing/pki-chain.js';
+import type { VerifyPkiBoundCertificateInput } from '../src/signing/verification-trust-binding.js';
 
 let passed = 0;
 
@@ -34,6 +40,45 @@ function readProjectFile(...segments: string[]): string {
 
 function digest(seed: string): string {
   return `sha256:${seed.repeat(64).slice(0, 64)}`;
+}
+
+function certificateInput(): CertificateInput {
+  return {
+    runIdentity: 'run_approval_pki_test',
+    decision: 'pass',
+    decisionSummary: 'Approval PKI test accepted.',
+    warrant: { status: 'fulfilled', obligationsFulfilled: 1, obligationsTotal: 1 },
+    escrow: { state: 'released' },
+    receipt: { status: 'issued' },
+    capsule: { authority: 'valid' },
+    evidenceChainRoot: 'root_approval_pki_test',
+    evidenceChainTerminal: 'terminal_approval_pki_test',
+    auditChainIntact: true,
+    auditEntryCount: 1,
+    sqlHash: 'sql_hash_approval_pki_test',
+    snapshotHash: 'snapshot_hash_approval_pki_test',
+    sqlGovernance: 'pass',
+    policy: 'pass',
+    guardrails: 'pass',
+    dataContracts: 'pass',
+    scorersRun: 1,
+    reviewRequired: false,
+    liveProofMode: 'live_runtime',
+    upstreamLive: true,
+    executionLive: true,
+    liveProofConsistent: true,
+  };
+}
+
+function pkiInput(): VerifyPkiBoundCertificateInput {
+  const pki = generatePkiHierarchy('Approval Guard CA', 'Approval Guard Signer', 'Approval Guard Reviewer');
+  return {
+    certificate: issueCertificate(certificateInput(), pki.signer.keyPair),
+    publicKeyPem: pki.signer.keyPair.publicKeyPem,
+    trustChain: pki.chains.signer,
+    caPublicKeyPem: pki.ca.keyPair.publicKeyPem,
+    trustedCaFingerprint: pki.ca.certificate.fingerprint,
+  };
 }
 
 function verifiedApproval(reviewerRef: string, seed: string) {
@@ -212,6 +257,41 @@ function testSignedApprovalWithoutVerifiedSignatureRequiresReview(): void {
   );
 }
 
+function testSignedApprovalRequiresPkiBoundProofToPass(): void {
+  const decision = evaluateConsequenceApprovalProvenance({
+    generatedAt: '2026-05-13T10:24:00.000Z',
+    actionSurface: 'release.r4',
+    action: 'issue-token',
+    approvals: [
+      {
+        approvalRef: 'signed-approval:private-ref',
+        sourceKind: 'signed-approval',
+        state: 'approved',
+        sourceRef: 'approval-artifact.private-ref',
+        reviewerRef: 'reviewer:risk-owner',
+        reviewerAuthorityDigest: digest('7'),
+        approvalDigest: digest('8'),
+        scopeDigest: digest('9'),
+        issuedAt: '2026-05-13T10:23:00.000Z',
+        signatureVerificationInput: pkiInput(),
+      },
+    ],
+  });
+
+  equal(decision.outcome, 'pass', 'Approval guard: PKI-bound signed approval passes');
+  equal(decision.allowed, true, 'Approval guard: PKI-bound signed approval is allowed');
+  equal(
+    decision.observedApprovals[0]?.signatureVerified,
+    true,
+    'Approval guard: PKI-bound signed approval verifies signature',
+  );
+  equal(
+    decision.observedApprovals[0]?.pkiVerified,
+    true,
+    'Approval guard: PKI binding is recorded as verified',
+  );
+}
+
 function testDuplicateReviewerCannotSatisfyDualApproval(): void {
   const decision = evaluateConsequenceApprovalProvenance({
     generatedAt: '2026-05-13T10:25:00.000Z',
@@ -269,6 +349,7 @@ function testDescriptorDocsRegistryAndPackageScriptStayAligned(): void {
   equal(descriptor.requiresScopeDigest, true, 'Approval descriptor: scope digest requirement is explicit');
   equal(descriptor.rejectsChatEmailTicketApproval, true, 'Approval descriptor: chat/email/ticket rejection is explicit');
   equal(descriptor.allowsModelSelfApproval, false, 'Approval descriptor: model self approval is false');
+  equal(descriptor.requiresPkiBoundSignedApproval, true, 'Approval descriptor: signed approvals require PKI binding');
   equal(descriptor.storesRawApprovalText, false, 'Approval descriptor: raw approval text storage is false');
   includes(doc, 'attestor.consequence-approval-provenance-guard.v1', 'Approval docs: version is named');
   includes(doc, 'src/consequence-admission/approval-provenance-guard.ts', 'Approval docs: source file is named');
@@ -290,6 +371,7 @@ try {
   testMissingProvenanceRequiresReview();
   testUntrustedSourceCannotBePromotedByTrustClassOverride();
   testSignedApprovalWithoutVerifiedSignatureRequiresReview();
+  testSignedApprovalRequiresPkiBoundProofToPass();
   testDuplicateReviewerCannotSatisfyDualApproval();
   testMixedVerifiedAndFakeApprovalRequiresReview();
   testDescriptorDocsRegistryAndPackageScriptStayAligned();

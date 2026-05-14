@@ -5,6 +5,12 @@ import {
   consequenceToolResultPoisoningGuardDescriptor,
   evaluateConsequenceToolResultPoisoning,
 } from '../src/consequence-admission/index.js';
+import {
+  issueCertificate,
+  type CertificateInput,
+} from '../src/signing/certificate.js';
+import { generatePkiHierarchy } from '../src/signing/pki-chain.js';
+import type { VerifyPkiBoundCertificateInput } from '../src/signing/verification-trust-binding.js';
 
 let passed = 0;
 
@@ -34,6 +40,45 @@ function readProjectFile(...segments: string[]): string {
 
 function digest(seed: string): string {
   return `sha256:${seed.repeat(64).slice(0, 64)}`;
+}
+
+function certificateInput(): CertificateInput {
+  return {
+    runIdentity: 'run_tool_result_pki_test',
+    decision: 'pass',
+    decisionSummary: 'Tool result PKI test accepted.',
+    warrant: { status: 'fulfilled', obligationsFulfilled: 1, obligationsTotal: 1 },
+    escrow: { state: 'released' },
+    receipt: { status: 'issued' },
+    capsule: { authority: 'valid' },
+    evidenceChainRoot: 'root_tool_result_pki_test',
+    evidenceChainTerminal: 'terminal_tool_result_pki_test',
+    auditChainIntact: true,
+    auditEntryCount: 1,
+    sqlHash: 'sql_hash_tool_result_pki_test',
+    snapshotHash: 'snapshot_hash_tool_result_pki_test',
+    sqlGovernance: 'pass',
+    policy: 'pass',
+    guardrails: 'pass',
+    dataContracts: 'pass',
+    scorersRun: 1,
+    reviewRequired: false,
+    liveProofMode: 'live_runtime',
+    upstreamLive: true,
+    executionLive: true,
+    liveProofConsistent: true,
+  };
+}
+
+function pkiInput(): VerifyPkiBoundCertificateInput {
+  const pki = generatePkiHierarchy('Tool Result Guard CA', 'Tool Result Guard Signer', 'Tool Result Guard Reviewer');
+  return {
+    certificate: issueCertificate(certificateInput(), pki.signer.keyPair),
+    publicKeyPem: pki.signer.keyPair.publicKeyPem,
+    trustChain: pki.chains.signer,
+    caPublicKeyPem: pki.ca.keyPair.publicKeyPem,
+    trustedCaFingerprint: pki.ca.certificate.fingerprint,
+  };
 }
 
 function testUntrustedToolResultCannotBecomePolicyAuthority(): void {
@@ -166,6 +211,43 @@ function testSignedAttestationWithoutVerifiedSignatureRequiresReview(): void {
   );
 }
 
+function testSignedAttestationRequiresPkiBoundProofToPass(): void {
+  const decision = evaluateConsequenceToolResultPoisoning({
+    generatedAt: '2026-05-13T09:13:00.000Z',
+    actionSurface: 'documents.export',
+    action: 'export-records',
+    allowedEvidenceClasses: ['document-record'],
+    toolResults: [
+      {
+        toolResultRef: 'signed-doc-private-ref',
+        toolKind: 'file-search',
+        sourceTrustClass: 'signed-attestation',
+        resultUse: 'evidence',
+        sourceRef: 'doc-store.private-ref',
+        sourceTimestamp: '2026-05-13T09:12:00.000Z',
+        integrityDigest: digest('7'),
+        evidenceDigest: digest('6'),
+        evidenceClass: 'document-record',
+        signatureVerificationInput: pkiInput(),
+        toolRisk: 'low',
+      },
+    ],
+  });
+
+  equal(decision.outcome, 'pass', 'Tool result guard: PKI-bound signed attestation passes');
+  equal(decision.allowed, true, 'Tool result guard: PKI-bound signed attestation is allowed');
+  equal(
+    decision.observedResults[0]?.signatureVerified,
+    true,
+    'Tool result guard: PKI-bound signature verifies',
+  );
+  equal(
+    decision.observedResults[0]?.pkiVerified,
+    true,
+    'Tool result guard: PKI binding is recorded as verified',
+  );
+}
+
 function testEvidenceClassMismatchRequiresReview(): void {
   const decision = evaluateConsequenceToolResultPoisoning({
     generatedAt: '2026-05-13T09:15:00.000Z',
@@ -236,6 +318,7 @@ function testDescriptorDocsRegistryAndPackageScriptStayAligned(): void {
   equal(descriptor.requiresTimestamp, true, 'Tool result descriptor: timestamp requirement is explicit');
   equal(descriptor.requiresIntegrityDigest, true, 'Tool result descriptor: integrity requirement is explicit');
   equal(descriptor.requiresAllowedEvidenceClass, true, 'Tool result descriptor: evidence class requirement is explicit');
+  equal(descriptor.requiresPkiBoundSignedAttestation, true, 'Tool result descriptor: signed attestations require PKI binding');
   equal(descriptor.storesRawToolOutput, false, 'Tool result descriptor: raw output storage is false');
   includes(doc, 'attestor.consequence-tool-result-poisoning-guard.v1', 'Tool result docs: version is named');
   includes(doc, 'src/consequence-admission/tool-result-poisoning-guard.ts', 'Tool result docs: source file is named');
@@ -255,6 +338,7 @@ try {
   testProviderAuthoritativeEvidenceCanPass();
   testMissingTimestampOrIntegrityRequiresReview();
   testSignedAttestationWithoutVerifiedSignatureRequiresReview();
+  testSignedAttestationRequiresPkiBoundProofToPass();
   testEvidenceClassMismatchRequiresReview();
   testModelGeneratedEvidenceRequiresReview();
   testDescriptorDocsRegistryAndPackageScriptStayAligned();

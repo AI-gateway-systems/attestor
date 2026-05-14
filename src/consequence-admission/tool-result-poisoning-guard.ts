@@ -7,6 +7,10 @@ import {
   CONSEQUENCE_FAILURE_CONTROL_BINDINGS,
   type ConsequenceFailureControlBinding,
 } from './failure-mode-control-bindings.js';
+import {
+  verifyPkiBoundCertificate,
+  type VerifyPkiBoundCertificateInput,
+} from '../signing/verification-trust-binding.js';
 
 export const CONSEQUENCE_TOOL_RESULT_POISONING_GUARD_VERSION =
   'attestor.consequence-tool-result-poisoning-guard.v1';
@@ -112,6 +116,7 @@ export interface ConsequenceToolResultClaim {
   readonly evidenceClass?: ConsequenceToolResultEvidenceClass | null;
   readonly allowedEvidenceClasses?: readonly ConsequenceToolResultEvidenceClass[] | null;
   readonly signatureVerified?: boolean | null;
+  readonly signatureVerificationInput?: VerifyPkiBoundCertificateInput | null;
   readonly toolRisk?: ConsequenceToolResultRiskLevel | null;
 }
 
@@ -135,6 +140,7 @@ export interface ConsequenceToolResultObservedClaim {
   readonly evidenceClass?: ConsequenceToolResultEvidenceClass;
   readonly allowedEvidenceClasses: readonly ConsequenceToolResultEvidenceClass[];
   readonly signatureVerified: boolean;
+  readonly pkiVerified: boolean;
   readonly toolRisk: ConsequenceToolResultRiskLevel;
   readonly outcome: ConsequenceToolResultGuardOutcome;
   readonly reasonCodes: readonly ConsequenceToolResultGuardReasonCode[];
@@ -199,6 +205,7 @@ export interface ConsequenceToolResultPoisoningGuardDescriptor {
   readonly requiresIntegrityDigest: true;
   readonly requiresEvidenceDigest: true;
   readonly requiresAllowedEvidenceClass: true;
+  readonly requiresPkiBoundSignedAttestation: true;
   readonly storesRawToolOutput: false;
   readonly digestOnly: true;
   readonly approvalRequired: true;
@@ -261,6 +268,17 @@ function normalizeTimestamp(value: string | null | undefined): string | null {
   return parsed.toISOString();
 }
 
+function verifyPkiSignatureInput(
+  input: VerifyPkiBoundCertificateInput | null | undefined,
+): boolean {
+  if (!input) return false;
+  try {
+    return verifyPkiBoundCertificate(input).pkiVerified;
+  } catch {
+    return false;
+  }
+}
+
 function binding(): ConsequenceFailureControlBinding {
   const found = CONSEQUENCE_FAILURE_CONTROL_BINDINGS.find(
     (item) => item.failureModeId === 'tool-result-poisoning',
@@ -291,7 +309,10 @@ function evaluateClaim(
   const unsafeSource = UNTRUSTED_SOURCE_CLASSES.has(claim.sourceTrustClass);
   const trustedSource = TRUSTED_SOURCE_CLASSES.has(claim.sourceTrustClass);
   const signedAttestation = claim.sourceTrustClass === 'signed-attestation';
-  const signatureVerified = claim.signatureVerified === true;
+  const pkiVerified = signedAttestation
+    ? verifyPkiSignatureInput(claim.signatureVerificationInput)
+    : false;
+  const signatureVerified = signedAttestation ? pkiVerified : claim.signatureVerified === true;
   const unsafeUse = UNSAFE_RESULT_USES.has(claim.resultUse);
 
   if (!hasSource) reasonCodes.push('tool-result-source-missing');
@@ -353,6 +374,7 @@ function evaluateClaim(
     ...(claim.evidenceClass ? { evidenceClass: claim.evidenceClass } : {}),
     allowedEvidenceClasses,
     signatureVerified,
+    pkiVerified,
     toolRisk,
     outcome,
     reasonCodes: uniqueReasonCodes(reasonCodes),
@@ -465,6 +487,7 @@ export function consequenceToolResultPoisoningGuardDescriptor(): ConsequenceTool
     requiresIntegrityDigest: true,
     requiresEvidenceDigest: true,
     requiresAllowedEvidenceClass: true,
+    requiresPkiBoundSignedAttestation: true,
     storesRawToolOutput: false,
     digestOnly: true,
     approvalRequired: true,
