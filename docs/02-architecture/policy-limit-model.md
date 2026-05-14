@@ -35,7 +35,7 @@ proposed consequence
 The current shared vocabulary covers:
 
 - `amount`: maximum value for money or value-like consequences
-- `velocity`: maximum count over a time window
+- `velocity`: maximum count over a time window; production policies can require the measurement to come from a `shared-durable-counter`
 - `recipient-allowlist`: approved payees, counterparties, accounts, or destinations
 - `asset-allowlist`: approved tokens, currencies, instruments, or asset identifiers
 - `data-scope`: allowed data domains and optional record cap
@@ -76,6 +76,8 @@ Maximum amount is 250 EUR.
 If the recipient is not allowlisted, the evaluation returns `block`.
 
 If the amount is 1000 EUR or more, the evaluation returns `review` even if the recipient is valid.
+
+For production-shared velocity limits, the measurement source matters. A caller-supplied count can be useful in evaluation, but it is not the same as a shared counter. If a velocity limit sets `requireSharedCounter: true`, observations from `operator-asserted`, `single-process-counter`, or `unknown` sources breach fail-closed. Only `shared-durable-counter` satisfies that requirement.
 
 ## Example: Crypto Approval
 

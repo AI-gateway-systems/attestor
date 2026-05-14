@@ -7,6 +7,7 @@ import {
   createConsequenceAdmissionRequest,
   createConsequenceAdmissionResponse,
   createConsequenceAdmissionRetryAttemptLedger,
+  createConsequenceAdmissionRetryAttemptLedgerInMemoryStore,
   evaluateConsequenceAdmissionRetryBudget,
   type ConsequenceAdmissionRequest,
   type ConsequenceAdmissionResponse,
@@ -150,6 +151,16 @@ function testDescriptorAndContractSurface(): void {
     false,
     'Retry attempt ledger: descriptor avoids production shared-store overclaiming',
   );
+  equal(
+    descriptor.sharedStoreContractIncluded,
+    true,
+    'Retry attempt ledger: descriptor exposes shared-store contract',
+  );
+  equal(
+    descriptor.sharedStoreAtomicRecordRequired,
+    true,
+    'Retry attempt ledger: descriptor requires atomic record semantics',
+  );
 }
 
 function testRecordsAllowedRetryWithoutRawPayload(): void {
@@ -192,6 +203,11 @@ function testRecordsAllowedRetryWithoutRawPayload(): void {
     'Retry attempt ledger: record declares raw payload is not stored',
   );
   equal(ledger.snapshot().recordCount, 1, 'Retry attempt ledger: snapshot records one attempt');
+  equal(
+    ledger.storeDescriptor.storeKind,
+    'in-memory-reference',
+    'Retry attempt ledger: default store remains the in-memory reference implementation',
+  );
 }
 
 function testDuplicateAttemptReturnsExistingRecord(): void {
@@ -273,6 +289,83 @@ function testIdempotencyKeyConflictHolds(): void {
   );
   equal(conflict.failClosed, true, 'Retry attempt ledger: idempotency conflict is fail-closed');
   equal(ledger.snapshot().recordCount, 1, 'Retry attempt ledger: conflict does not append');
+}
+
+function testSharedStoreContractCoordinatesAcrossLedgerInstances(): void {
+  const previousAdmission = heldAdmission();
+  const sharedStore = createConsequenceAdmissionRetryAttemptLedgerInMemoryStore({
+    storeId: 'retry-attempt-ledger:shared-contract-test',
+  });
+  const ledgerA = createConsequenceAdmissionRetryAttemptLedger({
+    ledgerId: 'ledger:retry:shared',
+    store: sharedStore,
+  });
+  const ledgerB = createConsequenceAdmissionRetryAttemptLedger({
+    ledgerId: 'ledger:retry:shared',
+    store: sharedStore,
+  });
+  const retry = retryRequest({
+    previousAdmission,
+    attemptNumber: 1,
+    attemptedAt: '2026-05-02T08:01:00.000Z',
+    idempotencyKey: 'retry:refund:shared-store',
+  });
+  const conflictingRetry = retryRequest({
+    previousAdmission,
+    attemptNumber: 2,
+    attemptedAt: '2026-05-02T08:01:30.000Z',
+    idempotencyKey: 'retry:refund:shared-store',
+  });
+  const retryBudget = evaluateConsequenceAdmissionRetryBudget({
+    previousAdmission,
+    retryAttempt: retry.retryAttempt!,
+  });
+
+  const first = ledgerA.record({
+    previousAdmission,
+    retryAttempt: retry.retryAttempt!,
+    retryBudget,
+  });
+  const duplicate = ledgerB.record({
+    previousAdmission,
+    retryAttempt: retry.retryAttempt!,
+    retryBudget,
+  });
+  const conflict = ledgerB.record({
+    previousAdmission,
+    retryAttempt: conflictingRetry.retryAttempt!,
+    retryBudget: evaluateConsequenceAdmissionRetryBudget({
+      previousAdmission,
+      retryAttempt: conflictingRetry.retryAttempt!,
+    }),
+  });
+
+  equal(first.outcome, 'recorded', 'Retry attempt ledger: first shared-store record succeeds');
+  equal(
+    duplicate.outcome,
+    'duplicate',
+    'Retry attempt ledger: second ledger instance returns duplicate for same attempt',
+  );
+  equal(
+    conflict.outcome,
+    'held',
+    'Retry attempt ledger: second ledger instance holds conflicting idempotency key',
+  );
+  deepEqual(
+    conflict.failureReasons,
+    ['idempotency-key-conflict'],
+    'Retry attempt ledger: shared idempotency conflict reason is precise',
+  );
+  equal(
+    ledgerB.snapshot().recordCount,
+    1,
+    'Retry attempt ledger: shared store snapshot is visible across instances',
+  );
+  equal(
+    sharedStore.descriptor.productionReady,
+    false,
+    'Retry attempt ledger: in-memory shared-store contract test does not claim production readiness',
+  );
 }
 
 function testBudgetHeldAttemptIsStillRecordedAsEvidence(): void {
@@ -430,6 +523,7 @@ testDescriptorAndContractSurface();
 testRecordsAllowedRetryWithoutRawPayload();
 testDuplicateAttemptReturnsExistingRecord();
 testIdempotencyKeyConflictHolds();
+testSharedStoreContractCoordinatesAcrossLedgerInstances();
 testBudgetHeldAttemptIsStillRecordedAsEvidence();
 testMismatchedBudgetFailsClosedWithoutRecord();
 testCapacityLimitFailsClosed();

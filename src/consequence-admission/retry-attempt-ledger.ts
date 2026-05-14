@@ -110,6 +110,42 @@ export interface ConsequenceAdmissionRetryAttemptLedgerSummary {
   readonly rawPayloadStored: false;
 }
 
+export type ConsequenceAdmissionRetryAttemptLedgerStoreKind =
+  | 'in-memory-reference'
+  | 'shared-atomic';
+
+export type ConsequenceAdmissionRetryAttemptLedgerStoreRecordOutcome =
+  | 'recorded'
+  | 'duplicate'
+  | 'idempotency-key-conflict'
+  | 'ledger-capacity-exhausted';
+
+export interface ConsequenceAdmissionRetryAttemptLedgerStoreDescriptor {
+  readonly version: typeof CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_VERSION;
+  readonly storeId: string;
+  readonly storeKind: ConsequenceAdmissionRetryAttemptLedgerStoreKind;
+  readonly duplicateBinding: 'retryAttemptId + idempotencyKeyDigest';
+  readonly atomicRecordIfAbsent: true;
+  readonly storesRawIdempotencyKeys: false;
+  readonly productionReady: boolean;
+}
+
+export interface ConsequenceAdmissionRetryAttemptLedgerStoreRecordResult {
+  readonly outcome: ConsequenceAdmissionRetryAttemptLedgerStoreRecordOutcome;
+  readonly record: ConsequenceAdmissionRetryAttemptLedgerRecord | null;
+}
+
+export interface ConsequenceAdmissionRetryAttemptLedgerStore {
+  readonly descriptor: ConsequenceAdmissionRetryAttemptLedgerStoreDescriptor;
+  readonly find: (retryAttemptId: string) => ConsequenceAdmissionRetryAttemptLedgerRecord | null;
+  readonly list: () => readonly ConsequenceAdmissionRetryAttemptLedgerRecord[];
+  readonly recordIfAbsent: (input: {
+    readonly record: ConsequenceAdmissionRetryAttemptLedgerRecord;
+    readonly idempotencyScope: string | null;
+    readonly maxRecords: number;
+  }) => ConsequenceAdmissionRetryAttemptLedgerStoreRecordResult;
+}
+
 export interface ConsequenceAdmissionRetryAttemptLedgerListFilter {
   readonly tenantId?: string | null;
   readonly previousAdmissionId?: string | null;
@@ -118,6 +154,7 @@ export interface ConsequenceAdmissionRetryAttemptLedgerListFilter {
 export interface ConsequenceAdmissionRetryAttemptLedger {
   readonly version: typeof CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_VERSION;
   readonly ledgerId: string;
+  readonly storeDescriptor: ConsequenceAdmissionRetryAttemptLedgerStoreDescriptor;
   readonly record: (
     input: RecordConsequenceAdmissionRetryAttemptInput,
   ) => ConsequenceAdmissionRetryAttemptLedgerDecision;
@@ -133,6 +170,11 @@ export interface CreateConsequenceAdmissionRetryAttemptLedgerInput {
   readonly ledgerId?: string | null;
   readonly maxRecords?: number | null;
   readonly now?: (() => string) | null;
+  readonly store?: ConsequenceAdmissionRetryAttemptLedgerStore | null;
+}
+
+export interface CreateConsequenceAdmissionRetryAttemptLedgerInMemoryStoreInput {
+  readonly storeId?: string | null;
 }
 
 export interface ConsequenceAdmissionRetryAttemptLedgerDescriptor {
@@ -143,6 +185,9 @@ export interface ConsequenceAdmissionRetryAttemptLedgerDescriptor {
   readonly storesRawPayloadsExternally: false;
   readonly storesRawIdempotencyKeysExternally: false;
   readonly inMemoryReferenceImplementation: true;
+  readonly sharedStoreContractIncluded: true;
+  readonly sharedStoreAtomicRecordRequired: true;
+  readonly defaultStoreKind: 'in-memory-reference';
   readonly productionSharedStoreIncluded: false;
   readonly failClosed: true;
 }
@@ -213,6 +258,61 @@ function digestText(value: string): string {
 
 function defaultNow(): string {
   return new Date().toISOString();
+}
+
+export function createConsequenceAdmissionRetryAttemptLedgerInMemoryStore(
+  input: CreateConsequenceAdmissionRetryAttemptLedgerInMemoryStoreInput = {},
+): ConsequenceAdmissionRetryAttemptLedgerStore {
+  const storeId = normalizeOptionalIdentifier(input.storeId, 'storeId') ??
+    'consequence-admission-retry-attempt-ledger-store:memory';
+  const recordsByAttemptId = new Map<string, ConsequenceAdmissionRetryAttemptLedgerRecord>();
+  const attemptIdByIdempotencyScope = new Map<string, string>();
+
+  return Object.freeze({
+    descriptor: Object.freeze({
+      version: CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_VERSION,
+      storeId,
+      storeKind: 'in-memory-reference',
+      duplicateBinding: 'retryAttemptId + idempotencyKeyDigest',
+      atomicRecordIfAbsent: true,
+      storesRawIdempotencyKeys: false,
+      productionReady: false,
+    }),
+    find(retryAttemptId: string): ConsequenceAdmissionRetryAttemptLedgerRecord | null {
+      const attemptId = normalizeIdentifier(retryAttemptId, 'retryAttemptId');
+      return recordsByAttemptId.get(attemptId) ?? null;
+    },
+    list(): readonly ConsequenceAdmissionRetryAttemptLedgerRecord[] {
+      return sortedRecords(recordsByAttemptId.values());
+    },
+    recordIfAbsent(input: {
+      readonly record: ConsequenceAdmissionRetryAttemptLedgerRecord;
+      readonly idempotencyScope: string | null;
+      readonly maxRecords: number;
+    }): ConsequenceAdmissionRetryAttemptLedgerStoreRecordResult {
+      const existing = recordsByAttemptId.get(input.record.retryAttemptId);
+      if (existing !== undefined) {
+        return Object.freeze({ outcome: 'duplicate', record: existing });
+      }
+      if (input.idempotencyScope !== null) {
+        const existingAttemptId = attemptIdByIdempotencyScope.get(input.idempotencyScope);
+        if (
+          existingAttemptId !== undefined &&
+          existingAttemptId !== input.record.retryAttemptId
+        ) {
+          return Object.freeze({ outcome: 'idempotency-key-conflict', record: null });
+        }
+      }
+      if (recordsByAttemptId.size >= input.maxRecords) {
+        return Object.freeze({ outcome: 'ledger-capacity-exhausted', record: null });
+      }
+      recordsByAttemptId.set(input.record.retryAttemptId, input.record);
+      if (input.idempotencyScope !== null) {
+        attemptIdByIdempotencyScope.set(input.idempotencyScope, input.record.retryAttemptId);
+      }
+      return Object.freeze({ outcome: 'recorded', record: input.record });
+    },
+  });
 }
 
 function orderedFailureReasons(
@@ -459,12 +559,13 @@ export function createConsequenceAdmissionRetryAttemptLedger(
     'consequence-admission-retry-attempt-ledger:memory';
   const maxRecords = normalizePositiveInteger(input.maxRecords, 'maxRecords', 1000);
   const now = input.now ?? defaultNow;
-  const recordsByAttemptId = new Map<string, ConsequenceAdmissionRetryAttemptLedgerRecord>();
-  const attemptIdByIdempotencyScope = new Map<string, string>();
+  const store = input.store ??
+    createConsequenceAdmissionRetryAttemptLedgerInMemoryStore({
+      storeId: `${ledgerId}:store`,
+    });
 
   function find(retryAttemptId: string): ConsequenceAdmissionRetryAttemptLedgerRecord | null {
-    const attemptId = normalizeIdentifier(retryAttemptId, 'retryAttemptId');
-    return recordsByAttemptId.get(attemptId) ?? null;
+    return store.find(retryAttemptId);
   }
 
   function list(
@@ -476,7 +577,7 @@ export function createConsequenceAdmissionRetryAttemptLedger(
       'filter.previousAdmissionId',
     );
     return sortedRecords(
-      [...recordsByAttemptId.values()].filter((record) =>
+      store.list().filter((record) =>
         (tenantId === null || record.tenantId === tenantId) &&
         (previousAdmissionId === null || record.previousAdmissionId === previousAdmissionId),
       ),
@@ -484,7 +585,7 @@ export function createConsequenceAdmissionRetryAttemptLedger(
   }
 
   function snapshot(): ConsequenceAdmissionRetryAttemptLedgerSnapshot {
-    const records = sortedRecords(recordsByAttemptId.values());
+    const records = sortedRecords(store.list());
     return Object.freeze({
       version: CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_VERSION,
       ledgerId,
@@ -494,7 +595,7 @@ export function createConsequenceAdmissionRetryAttemptLedger(
   }
 
   function summary(): ConsequenceAdmissionRetryAttemptLedgerSummary {
-    const records = [...recordsByAttemptId.values()];
+    const records = [...store.list()];
     const retryAllowedCount = records.filter((record) => record.retryAllowed).length;
     return Object.freeze({
       version: CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_VERSION,
@@ -529,8 +630,8 @@ export function createConsequenceAdmissionRetryAttemptLedger(
       });
     }
 
-    const existing = recordsByAttemptId.get(retryAttempt.attemptId);
-    if (existing !== undefined) {
+    const existing = store.find(retryAttempt.attemptId);
+    if (existing !== null) {
       if (existing.retryBudgetDigest !== retryBudget.digest) {
         return decision({
           outcome: 'held',
@@ -568,28 +669,7 @@ export function createConsequenceAdmissionRetryAttemptLedger(
       idempotencyKeyDigest,
     });
     if (scope !== null) {
-      const existingAttemptId = attemptIdByIdempotencyScope.get(scope);
-      if (existingAttemptId !== undefined && existingAttemptId !== retryAttempt.attemptId) {
-        return decision({
-          outcome: 'held',
-          ledgerId,
-          retryAttempt,
-          retryBudget,
-          record: null,
-          failureReasons: ['idempotency-key-conflict'],
-        });
-      }
-    }
-
-    if (recordsByAttemptId.size >= maxRecords) {
-      return decision({
-        outcome: 'held',
-        ledgerId,
-        retryAttempt,
-        retryBudget,
-        record: null,
-        failureReasons: ['ledger-capacity-exhausted'],
-      });
+      normalizeIdentifier(scope, 'idempotencyScope');
     }
 
     const recordedAt = normalizeIsoTimestamp(recordInput.recordedAt ?? now(), 'recordedAt');
@@ -628,9 +708,50 @@ export function createConsequenceAdmissionRetryAttemptLedger(
       recordDigest: recordDigest(recordBase),
     });
 
-    recordsByAttemptId.set(retryAttempt.attemptId, ledgerRecord);
-    if (scope !== null) {
-      attemptIdByIdempotencyScope.set(scope, retryAttempt.attemptId);
+    const stored = store.recordIfAbsent({
+      record: ledgerRecord,
+      idempotencyScope: scope,
+      maxRecords,
+    });
+    if (stored.outcome === 'duplicate') {
+      if (stored.record?.retryBudgetDigest !== retryBudget.digest) {
+        return decision({
+          outcome: 'held',
+          ledgerId,
+          retryAttempt,
+          retryBudget,
+          record: null,
+          failureReasons: ['retry-attempt-conflict'],
+        });
+      }
+      return decision({
+        outcome: 'duplicate',
+        ledgerId,
+        retryAttempt,
+        retryBudget,
+        record: stored.record,
+        failureReasons: [],
+      });
+    }
+    if (stored.outcome === 'idempotency-key-conflict') {
+      return decision({
+        outcome: 'held',
+        ledgerId,
+        retryAttempt,
+        retryBudget,
+        record: null,
+        failureReasons: ['idempotency-key-conflict'],
+      });
+    }
+    if (stored.outcome === 'ledger-capacity-exhausted') {
+      return decision({
+        outcome: 'held',
+        ledgerId,
+        retryAttempt,
+        retryBudget,
+        record: null,
+        failureReasons: ['ledger-capacity-exhausted'],
+      });
     }
 
     return decision({
@@ -638,7 +759,7 @@ export function createConsequenceAdmissionRetryAttemptLedger(
       ledgerId,
       retryAttempt,
       retryBudget,
-      record: ledgerRecord,
+      record: stored.record,
       failureReasons: [],
     });
   }
@@ -646,6 +767,7 @@ export function createConsequenceAdmissionRetryAttemptLedger(
   return Object.freeze({
     version: CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_VERSION,
     ledgerId,
+    storeDescriptor: store.descriptor,
     record,
     find,
     list,
@@ -664,6 +786,9 @@ ConsequenceAdmissionRetryAttemptLedgerDescriptor {
     storesRawPayloadsExternally: false,
     storesRawIdempotencyKeysExternally: false,
     inMemoryReferenceImplementation: true,
+    sharedStoreContractIncluded: true,
+    sharedStoreAtomicRecordRequired: true,
+    defaultStoreKind: 'in-memory-reference',
     productionSharedStoreIncluded: false,
     failClosed: true,
   });

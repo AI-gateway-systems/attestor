@@ -42,9 +42,10 @@ The package surface is exported through `attestor/consequence-admission`.
 Core functions:
 
 - `createConsequenceAdmissionRetryAttemptLedger(...)`
+- `createConsequenceAdmissionRetryAttemptLedgerInMemoryStore(...)`
 - `consequenceAdmissionRetryAttemptLedgerDescriptor()`
 
-The included ledger is an in-memory reference implementation for evaluation, tests, local demos, and agent-wrapper shape. It is not a production shared store. Production deployments should back the same contract with a shared atomic store at the admission edge.
+The included ledger is an in-memory reference implementation for evaluation, tests, local demos, and agent-wrapper shape. It is not a production shared store. The ledger exposes a shared-store contract, but production deployments still need to back that contract with a shared atomic store at the admission edge.
 
 ## Redacted Records
 
@@ -81,6 +82,23 @@ ledger record:
 If the same retry attempt arrives again, the ledger returns the existing record instead of appending another one.
 
 If another retry attempt reuses the same idempotency key digest for the same tenant and held admission, the ledger holds fail-closed with `idempotency-key-conflict`.
+
+## Shared-Store Contract
+
+The store contract must atomically record a retry attempt only if both of these bindings are still unused:
+
+- retry attempt ID
+- tenant plus previous admission plus idempotency key digest
+
+The core operation is:
+
+```text
+recordIfAbsent(record, idempotencyScope, maxRecords)
+```
+
+If the attempt already exists, the store returns the original record as `duplicate`. If another attempt already owns the same idempotency scope, the store returns `idempotency-key-conflict`. A production backend should implement this with unique constraints or equivalent atomic compare-and-insert behavior.
+
+The default store remains `in-memory-reference` and `productionReady: false`. Passing the same store instance to two ledgers proves the contract shape in tests; it is not a multi-pod production backend.
 
 ## Budget-Held Attempts
 
