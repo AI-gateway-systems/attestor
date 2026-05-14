@@ -1,7 +1,7 @@
 {
   "name": "attestor",
   "version": "0.1.2-evaluation",
-  "description": "Governance and proof engine for AI-assisted high-stakes workflows",
+  "description": "AI Action Control Plane for deciding, proving, and auditing AI-generated actions before they change real systems",
   "type": "module",
   "main": "dist/consequence-admission/index.js",
   "types": "dist/consequence-admission/index.d.ts",
