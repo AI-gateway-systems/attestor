@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -9,7 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   cleanupAtomicWriteTempFiles,
   writeTextFileAtomic,
@@ -41,17 +42,22 @@ const root = mkdtempSync(join(tmpdir(), 'attestor-f5-file-store-'));
 try {
   const targetPath = join(root, 'critical-store.json');
   const orphanPath = `${targetPath}.123.${'a'.repeat(32)}.tmp`;
+  const orphanDirectoryPath = join(root, '.critical-store.json.attestor-atomic-orphan');
   const unrelatedPath = `${targetPath}.manual.tmp`;
   writeFileSync(orphanPath, 'orphan');
+  mkdirSync(orphanDirectoryPath);
+  writeFileSync(join(orphanDirectoryPath, 'payload.tmp'), 'orphan');
   writeFileSync(unrelatedPath, 'unrelated');
 
   const result = writeTextFileAtomic(targetPath, '{"ok":true}\n');
   equal(readFileSync(targetPath, 'utf8'), '{"ok":true}\n', 'F-5.2: atomic text helper writes final content');
-  equal(result.orphanTempFilesRemoved, 1, 'F-5.2: target-scoped orphan temp file is swept before write');
+  equal(result.orphanTempFilesRemoved, 2, 'F-5.2: target-scoped orphan temp entries are swept before write');
   equal(existsSync(orphanPath), false, 'F-5.2: orphan temp file no longer exists');
+  equal(existsSync(orphanDirectoryPath), false, 'F-5.2: orphan temp directory no longer exists');
   equal(existsSync(unrelatedPath), true, 'F-5.2: unrelated temp-like files are not removed');
   ok(typeof result.directoryFsynced === 'boolean', 'F-5.2: parent directory fsync is attempted and reported');
   ok(result.tempPath.endsWith('.tmp'), 'F-5.2: write result exposes the random temp path used');
+  equal(existsSync(dirname(result.tempPath)), false, 'F-5.2: secure temp directory is removed after rename');
 
   const privateKeyPath = join(root, 'keys', 'private.pem');
   const publicKeyPath = join(root, 'keys', 'public.pem');

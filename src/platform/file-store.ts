@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import {
   closeSync,
   fsyncSync,
+  mkdtempSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -114,10 +115,6 @@ function writeLockOwner(lockPath: string): void {
   writeFileSync(`${lockPath}/owner.json`, `${JSON.stringify(owner, null, 2)}\n`, { mode: 0o600 });
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 export interface AtomicTextFileWriteResult {
   readonly tempPath: string;
   readonly directoryFsynced: boolean;
@@ -129,16 +126,52 @@ export interface AtomicTextFileWriteOptions {
   readonly cleanupOrphans?: boolean;
 }
 
+function isDecimalDigits(value: string): boolean {
+  if (value.length === 0) return false;
+  for (const character of value) {
+    if (character < '0' || character > '9') return false;
+  }
+  return true;
+}
+
+function isLowercaseHex(value: string): boolean {
+  if (value.length !== 32) return false;
+  for (const character of value) {
+    const isDigit = character >= '0' && character <= '9';
+    const isLowerHex = character >= 'a' && character <= 'f';
+    if (!isDigit && !isLowerHex) return false;
+  }
+  return true;
+}
+
+function isLegacyAtomicTempFile(entry: string, targetBaseName: string): boolean {
+  const prefix = `${targetBaseName}.`;
+  const suffix = '.tmp';
+  if (!entry.startsWith(prefix) || !entry.endsWith(suffix)) return false;
+
+  const body = entry.slice(prefix.length, entry.length - suffix.length);
+  const separatorIndex = body.indexOf('.');
+  if (separatorIndex <= 0 || separatorIndex === body.length - 1) return false;
+  const pid = body.slice(0, separatorIndex);
+  const nonce = body.slice(separatorIndex + 1);
+  return isDecimalDigits(pid) && isLowercaseHex(nonce);
+}
+
+function isAtomicTempDirectory(entry: string, targetBaseName: string): boolean {
+  return entry.startsWith(`.${targetBaseName}.attestor-atomic-`);
+}
+
 export function cleanupAtomicWriteTempFiles(path: string): number {
   const directoryPath = dirname(path);
   const targetBaseName = basename(path);
-  const tempPattern = new RegExp(`^${escapeRegExp(targetBaseName)}\\.\\d+\\.[a-f0-9]{32}\\.tmp$`, 'u');
   let removed = 0;
 
   try {
     for (const entry of readdirSync(directoryPath)) {
-      if (!tempPattern.test(entry)) continue;
-      rmSync(join(directoryPath, entry), { force: true });
+      if (!isLegacyAtomicTempFile(entry, targetBaseName) && !isAtomicTempDirectory(entry, targetBaseName)) {
+        continue;
+      }
+      rmSync(join(directoryPath, entry), { recursive: true, force: true });
       removed += 1;
     }
   } catch (error) {
@@ -220,20 +253,20 @@ export function writeTextFileAtomic(
   mkdirSync(directoryPath, { recursive: true });
   const orphanTempFilesRemoved =
     options.cleanupOrphans === false ? 0 : cleanupAtomicWriteTempFiles(path);
-  const tempPath = `${path}.${process.pid}.${randomBytes(16).toString('hex')}.tmp`;
-  const fd = openSync(tempPath, 'wx', options.mode ?? 0o600);
-  let completed = false;
+  const tempDirectoryPath = mkdtempSync(join(directoryPath, `.${basename(path)}.attestor-atomic-`));
+  const tempPath = join(tempDirectoryPath, `${randomBytes(16).toString('hex')}.tmp`);
   try {
-    writeSync(fd, content);
-    fsyncSync(fd);
-    completed = true;
-  } finally {
-    closeSync(fd);
-    if (!completed) {
-      rmSync(tempPath, { force: true });
+    const fd = openSync(tempPath, 'wx', options.mode ?? 0o600);
+    try {
+      writeSync(fd, content);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
     }
+    renameSync(tempPath, path);
+    const directoryFsynced = fsyncDirectoryBestEffort(directoryPath);
+    return { tempPath, directoryFsynced, orphanTempFilesRemoved };
+  } finally {
+    rmSync(tempDirectoryPath, { recursive: true, force: true });
   }
-  renameSync(tempPath, path);
-  const directoryFsynced = fsyncDirectoryBestEffort(directoryPath);
-  return { tempPath, directoryFsynced, orphanTempFilesRemoved };
 }

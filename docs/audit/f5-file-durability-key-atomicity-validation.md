@@ -22,7 +22,8 @@ It does not close the F-5.7 multi-host/shared-filesystem lock finding.
 
 `src/platform/file-store.ts` now:
 
-- writes through exclusive temp files
+- writes through exclusive temp files inside a target-directory-local
+  `mkdtempSync(...)` temp directory
 - fsyncs the temp file before rename
 - renames into place
 - attempts parent-directory fsync after rename and reports whether it succeeded
