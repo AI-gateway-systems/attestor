@@ -31,7 +31,7 @@ try {
   includes(tracker, 'not a certification', 'Tracker: no-certification disclaimer is present');
   includes(tracker, '`origin/master` is the source of truth', 'Tracker: origin/master rule is present');
   includes(tracker, 'Remaining work after the final claim-alignment slice: 0 planned', 'Tracker: final remaining estimate is explicit');
-  includes(tracker, 'Remaining F6 queue after tenant-key cache hardening slice: 5 planned', 'Tracker: F6 remaining estimate is explicit');
+  includes(tracker, 'Remaining F6 queue after anonymous sentinel hardening slice: 4 planned', 'Tracker: F6 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -135,7 +135,7 @@ try {
   includes(tracker, 'F6-T7 anonymous fallback env-gated | `invalid-as-stated`', 'Tracker: F6-T7 status is tracked');
   includes(tracker, 'F6-T8 recipient/tenant boundary replay-only | `partial`', 'Tracker: F6-T8 status is tracked');
   includes(tracker, 'F6-T9 plaintext env API keys in memory | `fixed`', 'Tracker: F6-T9 status is tracked');
-  includes(tracker, 'F6-T10 `default` tenant sentinel collision | `open`', 'Tracker: F6-T10 status is tracked');
+  includes(tracker, 'F6-T10 `default` tenant sentinel collision | `fixed`', 'Tracker: F6-T10 status is tracked');
   includes(tracker, 'F5-A1 out-of-band trust root optional | `fixed`', 'Tracker: F5 CA pin validation is fixed');
   includes(tracker, 'F5 CA Pin Required Validation', 'Tracker: F5 CA pin validation evidence is linked');
   includes(tracker, 'F5-A2 legacy flat verify escape via env | `fixed`', 'Tracker: F5 legacy env downgrade validation is fixed');
@@ -176,6 +176,7 @@ try {
   includes(packageJson, '"test:f6-tenant-blast-radius-validation"', 'Package: F6 tenant blast-radius validation script is exposed');
   includes(packageJson, '"test:f6-tenant-bound-release-token"', 'Package: F6 tenant-bound release-token validation script is exposed');
   includes(packageJson, '"test:f6-tenant-key-cache-hardening"', 'Package: F6 tenant key cache hardening script is exposed');
+  includes(packageJson, '"test:f6-anonymous-tenant-sentinel"', 'Package: F6 anonymous tenant sentinel script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);

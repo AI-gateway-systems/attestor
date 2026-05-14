@@ -49,10 +49,10 @@ Primary research anchors:
 | F6-T4 | Usage-meter quota enforcement is single-node/per-pod. | `partial` | `src/service/usage-meter.ts` is explicitly single-node. Current API runtime uses `getUsageContextState` and `consumePipelineRunState`; `src/service/control-plane-store.ts` switches those to PostgreSQL when `ATTESTOR_CONTROL_PLANE_PG_URL` is configured. `production-storage-path` blocks non-shared consequence-admission stores for `production-shared`. | Keep file ledger limited to local/single-node profiles and add claim tests so public docs do not imply multi-node quota from the file ledger. |
 | F6-T5 | Bypass routes can accept client-supplied tenant headers. | `invalid-as-stated` | Non-bypass tenant middleware overwrites `x-attestor-tenant-id`. Admin routes use `currentAdminAuthorized` and do not depend on `currentTenant`. No current admin route evidence supports the report's direct bypass claim. | Add an invariant test that bypass routes must not call `currentTenant` / `getTenantContextFromHeaders` without their own verified auth. |
 | F6-T6 | Compromise of runtime signer affects all tenants. | `partial` | Tenant-bound release-token claims narrow token reuse, but runtime signer and release-token verification key are still shared runtime material. Revoking that signer is runtime-wide. | Add per-tenant leaf signer or KMS/HSM tenant-scoped signer strategy before claiming signer-compromise blast-radius isolation. |
-| F6-T7 | Anonymous fallback is env-gated, not profile-gated. | `invalid-as-stated` | `tenant-isolation-production-guard.test.ts` proves anonymous fallback is rejected for `NODE_ENV=production`, `ATTESTOR_HA_MODE`, and public-hosted flags. `runtime-profile.ts` requires explicit `ATTESTOR_RUNTIME_PROFILE` for production-like envs. | Remaining improvement is naming: replace `default` sentinel with a reserved anonymous identifier. |
+| F6-T7 | Anonymous fallback is env-gated, not profile-gated. | `invalid-as-stated` | `tenant-isolation-production-guard.test.ts` proves anonymous fallback is rejected for `NODE_ENV=production`, `ATTESTOR_HA_MODE`, and public-hosted flags. `runtime-profile.ts` requires explicit `ATTESTOR_RUNTIME_PROFILE` for production-like envs. | Sentinel naming is closed under F6-T10. |
 | F6-T8 | Recipient/tenant boundary replay is not runtime enforcement. | `partial` | `recipient-tenant-boundary-replay.ts` is a replay contract. Runtime routes also contain concrete tenant checks, for example shadow route tenant mismatch handling and audit export boundaries. | Promote replay cases into runtime guard/conformance for declared output surfaces where payloads can cross tenant or recipient boundaries. |
 | F6-T9 | Env tenant API keys are stored plaintext in memory. | `fixed` | `tenant-isolation.ts` stores env-loaded API keys by `tenant.api-key` lookup hash and stores only a secret-derived config digest for reload detection. File/PG-backed tenant keys are also hashed via `tenant-key-store.ts` / control-plane store. | No remaining repository action for this scoped finding. |
-| F6-T10 | `default` tenant fallback can collide with real tenants. | `open` | `tenant-isolation.ts` uses literal `default` for anonymous fallback and `request-context.ts` treats `default` specially. | Introduce a reserved sentinel such as `__attestor_anonymous__` with compatibility handling and tests. |
+| F6-T10 | `default` tenant fallback can collide with real tenants. | `fixed` | `tenant-isolation.ts` exports `ANONYMOUS_TENANT_ID = "__attestor_anonymous__"` and `isAnonymousTenantContext`. Anonymous fallback and missing headers use the reserved sentinel. Legacy anonymous `default` headers normalize to the sentinel, while `api_key` tenant id `default` remains a real tenant. | No remaining repository action for this scoped finding. |
 
 ## Corrected F6 Queue
 
@@ -62,14 +62,14 @@ verified slices. The current queue is eight PR-sized units:
 1. F6 validation and tracker sync. Done.
 2. Tenant-bound release-token/admission semantics for F6-T1/F6-T6. Done for token semantics; per-tenant signer isolation remains partial.
 3. Env tenant API key cache hardening for F6-T3/F6-T9. Done for hashed lookup and production-shared env-key refusal; cross-pod env revocation remains partial.
-4. Anonymous tenant sentinel and fallback hardening for F6-T7/F6-T10.
+4. Anonymous tenant sentinel and fallback hardening for F6-T7/F6-T10. Done.
 5. Bypass-route tenant-context invariant for F6-T5.
 6. RLS/data-path claim alignment or real store integration for F6-T2.
 7. Usage-meter shared-store claim boundary for F6-T4.
 8. Recipient/tenant runtime boundary bridge for F6-T8.
 
-F6-T9 is fixed by a later remediation slice. Other F6 items remain fixed,
-invalid-as-stated, partial, or open as shown in the tracker.
+F6-T9 and F6-T10 are fixed by later remediation slices. Other F6 items remain
+fixed, invalid-as-stated, or partial as shown in the tracker.
 
 ## Go / No-Go
 

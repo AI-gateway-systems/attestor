@@ -9,6 +9,7 @@ import {
   observeRequestStart,
 } from './observability.js';
 import { currentTenant } from './request-context.js';
+import { isAnonymousTenantContext } from './tenant-isolation.js';
 import { directRemoteAddressFromContext, resolveTrustedClientAddress } from './trusted-proxy.js';
 
 export interface RequestObservabilityMiddlewareDeps {
@@ -72,7 +73,7 @@ export function createRequestObservabilityMiddleware(
       const observedAccountStatus = context.get('obs.accountStatus') as string | null | undefined;
       let account: HostedAccountRecord | null = null;
 
-      if (!observedAccountId && tenant.tenantId && tenant.tenantId !== 'default') {
+      if (!observedAccountId && tenant.tenantId && !isAnonymousTenantContext(tenant)) {
         try {
           account = await deps.findHostedAccountByTenantId(tenant.tenantId);
         } catch {

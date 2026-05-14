@@ -14,6 +14,7 @@ import type { AccountUserRole } from './account-user-store.js';
 import {
   getAccountAccessContextFromHeaders,
   getTenantContextFromHeaders,
+  isAnonymousTenantContext,
   type AccountAccessContext,
   type TenantContext,
 } from './tenant-isolation.js';
@@ -70,10 +71,11 @@ export function currentReleaseRequester(
   }
 
   const tenant = currentTenant(context);
+  const anonymousTenant = isAnonymousTenantContext(tenant);
   return {
-    id: tenant.tenantId === 'default' ? 'svc.attestor.api' : `tenant:${tenant.tenantId}`,
+    id: anonymousTenant ? 'svc.attestor.api' : `tenant:${tenant.tenantId}`,
     type: 'service' as const,
-    displayName: tenant.tenantId === 'default' ? 'Attestor API Runtime' : tenant.tenantId,
+    displayName: anonymousTenant ? 'Attestor API Runtime' : tenant.tenantId,
     role: tenant.planId ?? 'service',
   };
 }
@@ -85,7 +87,7 @@ export function currentReleaseEvaluationContext(context: Context) {
   const cohortId = cohortHeader?.trim() ? cohortHeader.trim() : null;
 
   return {
-    tenantId: tenant.tenantId !== 'default' ? tenant.tenantId : null,
+    tenantId: isAnonymousTenantContext(tenant) ? null : tenant.tenantId,
     accountId: account?.accountId ?? null,
     planId: tenant.planId ?? null,
     cohortId,

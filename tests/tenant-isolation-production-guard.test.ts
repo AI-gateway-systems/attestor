@@ -11,7 +11,11 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Hono } from 'hono';
-import { tenantMiddleware } from '../src/service/tenant-isolation.js';
+import {
+  ANONYMOUS_TENANT_ID,
+  resetTenantEnvKeyCacheForTests,
+  tenantMiddleware,
+} from '../src/service/tenant-isolation.js';
 import { resetTenantKeyStoreForTests } from '../src/service/tenant-key-store.js';
 
 let passed = 0;
@@ -25,6 +29,7 @@ const envKeys = [
   'ATTESTOR_HA_MODE',
   'ATTESTOR_PUBLIC_HOSTNAME',
   'ATTESTOR_PUBLIC_BASE_URL',
+  'ATTESTOR_RUNTIME_PROFILE',
   'ATTESTOR_TENANT_KEYS',
   'ATTESTOR_TENANT_KEY_STORE_PATH',
 ] as const;
@@ -50,8 +55,10 @@ function resetEnvForCase(): void {
   delete process.env.ATTESTOR_HA_MODE;
   delete process.env.ATTESTOR_PUBLIC_HOSTNAME;
   delete process.env.ATTESTOR_PUBLIC_BASE_URL;
+  delete process.env.ATTESTOR_RUNTIME_PROFILE;
   delete process.env.ATTESTOR_TENANT_KEYS;
   process.env.ATTESTOR_TENANT_KEY_STORE_PATH = tenantKeyStorePath;
+  resetTenantEnvKeyCacheForTests();
   resetTenantKeyStoreForTests();
 }
 
@@ -84,7 +91,7 @@ async function run() {
       const response = await app.request('/api/v1/account/usage');
       const body = await readJson(response);
       ok(response.status === 200, 'local-dev without tenant keys keeps anonymous fallback');
-      ok(body.tenantId === 'default', 'local-dev anonymous fallback uses default tenant');
+      ok(body.tenantId === ANONYMOUS_TENANT_ID, 'local-dev anonymous fallback uses reserved anonymous sentinel');
       ok(body.source === 'anonymous', 'local-dev anonymous fallback marks source');
     }
 
@@ -145,6 +152,7 @@ async function run() {
   } finally {
     restoreSavedEnv();
     process.env.ATTESTOR_TENANT_KEY_STORE_PATH = tenantKeyStorePath;
+    resetTenantEnvKeyCacheForTests();
     resetTenantKeyStoreForTests();
     restoreSavedEnv();
     rmSync(tempDir, { recursive: true, force: true });

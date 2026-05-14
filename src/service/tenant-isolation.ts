@@ -53,6 +53,9 @@ export interface AccountAccessContext {
   source: 'account_session';
 }
 
+export const ANONYMOUS_TENANT_ID = '__attestor_anonymous__';
+export const LEGACY_ANONYMOUS_TENANT_ID = 'default';
+
 /** Tenant registry: maps hashed API keys to tenants. */
 export const TENANT_ENV_KEY_CACHE_DEFAULT_TTL_MS = 30_000;
 const TENANT_API_KEY_LOOKUP_PURPOSE = 'tenant.api-key';
@@ -131,6 +134,23 @@ export function resetTenantEnvKeyCacheForTests(): void {
   loadedTenantKeyConfigAtMs = null;
   loadedTenantKeyConfigExpiresAtMs = null;
   envTenantKeyCacheDisabledReason = null;
+}
+
+function normalizeAnonymousTenantId(
+  tenantId: string | null,
+  source: TenantContext['source'],
+): string {
+  const normalized = tenantId?.trim() ?? '';
+  if (source === 'anonymous') {
+    if (!normalized || normalized === LEGACY_ANONYMOUS_TENANT_ID) return ANONYMOUS_TENANT_ID;
+  }
+  return normalized || ANONYMOUS_TENANT_ID;
+}
+
+export function isAnonymousTenantContext(
+  tenant: Pick<TenantContext, 'tenantId' | 'source'>,
+): boolean {
+  return tenant.source === 'anonymous' || tenant.tenantId === ANONYMOUS_TENANT_ID;
 }
 
 /**
@@ -234,7 +254,7 @@ export async function extractTenantContext(authHeader: string | undefined): Prom
 /**
  * Hono middleware for tenant isolation.
  * When tenant keys exist, requests must carry a valid tenant key.
- * Local-dev without tenant keys can use an anonymous default tenant.
+ * Local-dev without tenant keys can use a reserved anonymous tenant sentinel.
  * Production-like runtimes disable that fallback for non-public routes.
  */
 export function tenantMiddleware() {
@@ -274,7 +294,7 @@ export function tenantMiddleware() {
 
     // Propagate tenant context via internal headers (Hono-safe approach)
     const resolved = tenant ?? {
-      tenantId: 'default',
+      tenantId: ANONYMOUS_TENANT_ID,
       tenantName: 'anonymous',
       authenticatedAt: new Date().toISOString(),
       source: 'anonymous' as const,
@@ -326,11 +346,14 @@ export function tenantMiddleware() {
 export function getTenantContextFromHeaders(headers: Headers): TenantContext {
   const quotaRaw = headers.get('x-attestor-monthly-run-quota');
   const parsedQuota = quotaRaw ? Number.parseInt(quotaRaw, 10) : NaN;
+  const source =
+    (headers.get('x-attestor-tenant-source') as TenantContext['source'] | null)
+    ?? 'anonymous';
   return {
-    tenantId: headers.get('x-attestor-tenant-id') ?? 'default',
+    tenantId: normalizeAnonymousTenantId(headers.get('x-attestor-tenant-id'), source),
     tenantName: null,
     authenticatedAt: new Date().toISOString(),
-    source: (headers.get('x-attestor-tenant-source') as TenantContext['source'] | null) ?? 'anonymous',
+    source,
     planId: headers.get('x-attestor-plan-id') ?? SELF_HOST_PLAN_ID,
     monthlyRunQuota: Number.isFinite(parsedQuota) ? parsedQuota : null,
   };

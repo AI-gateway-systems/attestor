@@ -24,6 +24,7 @@ function readProjectFile(...segments: string[]): string {
 }
 
 const validation = readProjectFile('docs', 'audit', 'f6-tenant-blast-radius-validation.md');
+const anonymousSentinelValidation = readProjectFile('docs', 'audit', 'f6-anonymous-tenant-sentinel.md');
 const tracker = readProjectFile('docs', 'audit', 'attestor-audit-remediation-tracker.md');
 const tenantIsolation = readProjectFile('src', 'service', 'tenant-isolation.ts');
 const genericAdmissionRoutes = readProjectFile(
@@ -56,25 +57,28 @@ const packageJson = readProjectFile('package.json');
 includes(validation, '# F6 Tenant Blast Radius Validation', 'F6 validation: title exists');
 includes(validation, 'Corrected F6 Queue', 'F6 validation: corrected queue exists');
 includes(validation, 'The current queue is eight PR-sized units', 'F6 validation: remaining queue size is explicit');
-includes(validation, 'F6-T9 is fixed by a later remediation slice', 'F6 validation: later remediation status is explicit');
+includes(validation, 'F6-T9 and F6-T10 are fixed by later remediation slices', 'F6 validation: later remediation status is explicit');
 includes(validation, 'F6-T1', 'F6 validation: T1 is tracked');
 includes(validation, 'F6-T10', 'F6 validation: T10 is tracked');
 includes(validation, 'Generic admission tenant spoofing is stale', 'F6 validation: stale tenant spoofing subclaim is named');
 includes(validation, '`partial`', 'F6 validation: partial status vocabulary is used');
 includes(validation, '`invalid-as-stated`', 'F6 validation: invalid-as-stated status vocabulary is used');
-includes(validation, '`open`', 'F6 validation: open status vocabulary is used');
+excludes(validation, /\| `open` \|/u, 'F6 validation: no F6 item remains open after anonymous sentinel hardening');
 excludes(validation, /certified|SOC 2 evidence packet/iu, 'F6 validation: avoids certification overclaim wording');
 
 includes(tracker, 'F6 Multi-Tenant Blast Radius', 'Tracker: F6 section exists');
 includes(tracker, 'F6-T1 shared PKI tenant binding', 'Tracker: F6-T1 is tracked');
 includes(tracker, 'F6-T10 `default` tenant sentinel collision', 'Tracker: F6-T10 is tracked');
-includes(tracker, 'Remaining F6 queue after tenant-key cache hardening slice: 5 planned', 'Tracker: F6 remaining count is explicit');
+includes(tracker, 'Remaining F6 queue after anonymous sentinel hardening slice: 4 planned', 'Tracker: F6 remaining count is explicit');
 includes(tracker, 'F6 validation and tracker sync', 'Tracker: F6 queue names the current validation slice');
+includes(tracker, 'F6-T10 `default` tenant sentinel collision | `fixed`', 'Tracker: F6-T10 is fixed');
 
 includes(tenantIsolation, 'tenantApiKeyLookupHash', 'Repo evidence: env tenant key cache uses hashed lookup material');
 includes(tenantIsolation, 'tenantEnvKeyCacheStatus', 'Repo evidence: env tenant key cache exposes non-secret status');
 includes(tenantIsolation, "ATTESTOR_RUNTIME_PROFILE?.trim() === 'production-shared'", 'Repo evidence: production-shared profile refuses env tenant keys');
-includes(tenantIsolation, "tenantId: 'default'", 'Repo evidence: default anonymous sentinel exists');
+includes(tenantIsolation, "ANONYMOUS_TENANT_ID = '__attestor_anonymous__'", 'Repo evidence: reserved anonymous sentinel exists');
+includes(tenantIsolation, "LEGACY_ANONYMOUS_TENANT_ID = 'default'", 'Repo evidence: legacy anonymous default compatibility exists');
+includes(tenantIsolation, 'isAnonymousTenantContext', 'Repo evidence: anonymous tenant classification helper exists');
 includes(tenantIsolation, 'c.req.raw.headers.set', 'Repo evidence: tenant middleware overwrites internal headers');
 includes(genericAdmissionRoutes, 'Admission tenantId must match the authenticated tenant context', 'Repo evidence: generic admission rejects tenant mismatch');
 includes(genericAdmissionRoutes, 'tenantId: tenant.tenantId', 'Repo evidence: generic admission overwrites tenantId');
@@ -94,5 +98,10 @@ includes(adminRoutes, 'currentAdminAuthorized', 'Repo evidence: admin routes use
 ok(!adminRoutes.includes('currentTenant('), 'Repo evidence: admin routes do not call currentTenant directly');
 includes(recipientReplay, 'CONSEQUENCE_RECIPIENT_TENANT_BOUNDARY_REPLAY_VERSION', 'Repo evidence: recipient tenant boundary module is replay-scoped');
 includes(packageJson, '"test:f6-tenant-blast-radius-validation"', 'Package: F6 validation test script is exposed');
+includes(packageJson, '"test:f6-anonymous-tenant-sentinel"', 'Package: F6 anonymous sentinel test script is exposed');
+
+includes(anonymousSentinelValidation, '# F6 Anonymous Tenant Sentinel Validation', 'F6 anonymous sentinel validation: title exists');
+includes(anonymousSentinelValidation, '__attestor_anonymous__', 'F6 anonymous sentinel validation: reserved sentinel is documented');
+includes(anonymousSentinelValidation, 'an API-key tenant named `default` remains distinct', 'F6 anonymous sentinel validation: real default tenant remains distinct');
 
 console.log(`F6 tenant blast-radius validation tests: ${passed} passed, 0 failed`);

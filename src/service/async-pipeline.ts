@@ -41,6 +41,10 @@ import {
 } from './async-weighted-dispatch.js';
 import { removeAsyncDeadLetterRecordState, upsertAsyncDeadLetterRecordState } from './control-plane-store.js';
 import { resolvePlanAsyncDispatch, resolvePlanAsyncQueue } from './plan-catalog.js';
+import {
+  ANONYMOUS_TENANT_ID,
+  LEGACY_ANONYMOUS_TENANT_ID,
+} from './tenant-isolation.js';
 
 export interface PipelineJobTenantContext {
   tenantId: string;
@@ -394,7 +398,12 @@ export async function submitPipelineJob(
   tenant: PipelineJobTenantContext,
   sign: boolean = false,
 ): Promise<{ jobId: string }> {
-  const resolvedTenantId = tenant.tenantId.trim() || 'default';
+  const trimmedTenantId = tenant.tenantId.trim();
+  const resolvedTenantId =
+    tenant.source === 'anonymous'
+      && (!trimmedTenantId || trimmedTenantId === LEGACY_ANONYMOUS_TENANT_ID)
+      ? ANONYMOUS_TENANT_ID
+      : trimmedTenantId || ANONYMOUS_TENANT_ID;
   const job = await queue.add('pipeline-run', {
     input,
     sign,
