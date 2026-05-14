@@ -133,6 +133,31 @@ function testLedgerIndexesAuditRemediationClosure(): void {
     'does not prove a live Kubernetes deployment',
     'Research provenance ledger: F8 closure keeps live deployment non-claim explicit',
   );
+  includes(
+    content,
+    '### 20. F9 Compliance Gap Analysis Closure',
+    'Research provenance ledger: F9 closure entry is present',
+  );
+  includes(
+    content,
+    'docs/audit/f9-compliance-gap-validation.md',
+    'Research provenance ledger: F9 validation doc is indexed',
+  );
+  includes(
+    content,
+    'tests/f9-compliance-gap-validation.test.ts',
+    'Research provenance ledger: F9 validation test is indexed',
+  );
+  includes(
+    content,
+    'does not prove SOC 2 Type I/II assurance',
+    'Research provenance ledger: F9 closure keeps assurance non-claim explicit',
+  );
+  includes(
+    content,
+    'ISO/IEC 42001:2023',
+    'Research provenance ledger: F9 ISO 42001 anchor is recorded',
+  );
 }
 
 function testLedgerKeepsEvidenceBoundaryExplicit(): void {

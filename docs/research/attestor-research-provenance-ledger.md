@@ -393,6 +393,21 @@ The entries above are the most concrete PR/commit-linked hardening records. The 
 - Remaining limitation or no-go condition: This closes the repository-side F8 queue only. It does not prove a live Kubernetes deployment, external PostgreSQL/Redis behavior, distributed PKI locking, KMS/HSM custody, customer-operated worker drain, webhook smoke tests, observability delivery, or full fault-injection chaos practice.
 - Status: complete for F8 repository-side audit remediation tracking once this PR is merged and verified on `origin/master`.
 
+### 20. F9 Compliance Gap Analysis Closure
+
+- Step / PR / commit: F9 project-owner supplied compliance gap report for SOC 2 TSC, ISO/IEC 27001:2022, and ISO/IEC 42001:2023; this closure PR records governance documentation, tracker evidence, and validation tests but cannot pre-record its own merge commit.
+- Date if available: 2026-05-14.
+- Trust surface: compliance engineering-anchor mapping, evidence boundaries, shared responsibility, provider inventory, retention, data residency, privacy, cryptography, security testing, segregation of duties, DR documentation, and AI accessibility/bias boundary.
+- Protected principle: no overclaim; auditability; customer authority; data minimization and redaction; runtime readiness; proof integrity.
+- Research anchor / source used, if recorded: AICPA Trust Services Criteria 2017 with revised points of focus 2022; ISO/IEC 27001:2022; ISO/IEC 42001:2023; NIST CSF 2.0; NIST AI RMF; NIST SP 800-115; GDPR; EU AI Act; AWS shared responsibility model. These are used as engineering anchors only, not as assurance claims.
+- Repository evidence:
+  - Contract/documentation evidence: `docs/03-governance/soc2-tsc-mapping.md`, `docs/03-governance/iso27001-2022-annex-a-mapping.md`, `docs/03-governance/iso42001-2023-annex-a-mapping.md`, `docs/03-governance/compliance-evidence-boundary.md`, `docs/03-governance/shared-responsibility-matrix.md`, `docs/03-governance/segregation-of-duties.md`, `docs/03-governance/third-party-providers.md`, `docs/03-governance/data-residency.md`, `docs/03-governance/retention-policy.md`, `docs/03-governance/security-testing.md`, `docs/03-governance/cryptography-policy.md`, `docs/03-governance/privacy-notice-template.md`, `docs/03-governance/ai-accessibility-bias-boundary.md`, `docs/audit/f9-compliance-gap-validation.md`, and `docs/audit/attestor-audit-remediation-tracker.md`.
+  - Test evidence: `tests/f9-compliance-gap-validation.test.ts`, `tests/audit-remediation-tracker.test.ts`, and `tests/research-provenance-ledger.test.ts`.
+- Implemented control: Converts F9 from a narrative compliance gap report into machine-checked documentation coverage. SOC 2, ISO/IEC 27001, and ISO/IEC 42001 mappings are discoverable; evidence-pack boundaries are explicit; customer/operator responsibilities are separated from repository controls; provider, retention, residency, testing, privacy, cryptography, and SoD docs exist.
+- Tests / verification: `npm run test:f9-compliance-gap-validation`, `npm run test:audit-remediation-tracker`, and `npm run test:research-provenance-ledger`.
+- Remaining limitation or no-go condition: This closes the repository-side F9 documentation queue only. It does not prove SOC 2 Type I/II assurance, ISO management-system audit completion, GDPR compliance, EU AI Act conformity, live data-residency controls, customer access reviews, vendor due-diligence records, legal notices, independent penetration-test results, or customer production operations.
+- Status: complete for F9 repository-side compliance documentation once this PR is merged and verified on `origin/master`.
+
 ## Strong Recorded Research Support
 
 The strongest recorded research support appears in:
