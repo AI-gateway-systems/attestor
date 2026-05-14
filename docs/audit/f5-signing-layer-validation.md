@@ -27,12 +27,13 @@ Known limitations: repository evidence only; no live HSM, TUF, Rekor, or multi-r
 | F-5.4 certificate revocation inputs | disputed as stated | medium | Current `verifyCertificate` and `verifyTrustChain` accept revoked certificate IDs and fingerprints. |
 | F-5.5 trust-chain clock skew | disputed as stated | low-medium | Current `verifyTrustChain` uses `clockSkewMs` with 60s default. |
 | F-5.6 anti-self-attest primitive | refined | high | Low-level `verifyCertificate` has `expectedFingerprint`, but the CLI and `/api/v1/verify` needed stronger PKI-bound overall semantics. This PR fixes that slice. |
-| F-5.2 file persistence durability | accepted limitation | medium | `writeTextFileAtomic` uses temp file, exclusive open, file fsync, and rename. Parent-directory fsync and startup orphan sweep remain backlog. |
+| F-5.2 file persistence durability | partial | medium | `writeTextFileAtomic` uses target-local secure temp directories, exclusive open, file fsync, rename, and matching orphan-temp cleanup. Parent-directory fsync remains an explicit limitation; multi-host shared-filesystem locking remains tracked separately under F-5.7. |
 | F-5.7 HA shared PKI | accepted limitation | high | File-backed PKI and local lock are documented as not production-ready when external KMS/HSM is required. External KMS still fails closed as not implemented. |
 | F5-A1 out-of-band trust root | remediated in follow-up | high | Kit-contained CA material proves chain integrity only. Follow-up validation now requires an out-of-band trusted CA fingerprint by default and reserves kit-contained-root checks for explicit developer mode. |
 | F5-A2 legacy flat verify escape | remediated in follow-up | medium | Env-var legacy downgrades were removed. CLI legacy flat verification remains only as explicit `--allow-legacy-verify`. |
 | F5-A3 truncated fingerprint length | remediated in follow-up | medium | Signing key identity fingerprints now use 32 hex chars / 128-bit truncated SHA-256. Historical compact evidence IDs and already-issued artifacts are not widened by this scoped fix. |
 | F5-A4 homegrown canonicalization | accepted limitation | medium | Signing uses versioned, strict Attestor-specific canonical JSON, not RFC 8785 JCS. Interop with external sigstore/in-toto/JCS verifiers is not claimed. |
+| F5-A5 non-atomic key persistence | remediated in follow-up | medium | `saveKeyPair` now persists private and public key PEM files through the same atomic file helper, including temp-file writes, fsync before rename, and best-effort parent-directory fsync. |
 | F5-A8 numeric canonicalization edge cases | remediated in follow-up | low | Signing canonicalization now rejects `NaN`, `Infinity`, and other lossy JSON values before signing. |
 | F5-A6 transparency log missing | accepted limitation | medium | No transparency log exists yet. Do not claim Rekor-equivalent witness semantics. |
 
@@ -63,7 +64,8 @@ Remaining limitation: legacy flat verification remains only as an explicit CLI f
 ## Remaining Backlog
 
 - External KMS/HSM signer implementation remains not implemented and must continue to fail closed.
-- Parent-directory fsync and startup orphan sweep for file-backed critical stores remain durability hardening.
+- Parent-directory fsync remains a documented limitation for file-backed critical stores.
+- Multi-host/shared-filesystem locking remains separate F-5.7 hardening.
 - Full transparency-log or witness model is not implemented.
 - Signing key fingerprint width is remediated in follow-up; historical artifacts with older compact fingerprints remain historical evidence.
 - RFC 8785/JCS interoperability is formally documented as not claimed; signing canonicalization is Attestor-specific and fail-fast for lossy JSON values.

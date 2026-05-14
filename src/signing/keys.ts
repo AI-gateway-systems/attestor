@@ -17,8 +17,8 @@
  */
 
 import { generateKeyPairSync, createHash, createPublicKey } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { writeTextFileAtomic } from '../platform/file-store.js';
 
 export const ATTESTOR_SIGNING_FINGERPRINT_HEX_LENGTH = 32;
 export const ATTESTOR_SIGNING_FINGERPRINT_SECURITY_BITS =
@@ -62,10 +62,8 @@ export function generateKeyPair(): AttestorKeyPair {
  * Save a key pair to disk.
  */
 export function saveKeyPair(keyPair: AttestorKeyPair, privateKeyPath: string, publicKeyPath: string): void {
-  mkdirSync(dirname(privateKeyPath), { recursive: true });
-  mkdirSync(dirname(publicKeyPath), { recursive: true });
-  writeFileSync(privateKeyPath, keyPair.privateKeyPem, { mode: 0o600 });
-  writeFileSync(publicKeyPath, keyPair.publicKeyPem, { mode: 0o644 });
+  writeTextFileAtomic(privateKeyPath, keyPair.privateKeyPem, { mode: 0o600 });
+  writeTextFileAtomic(publicKeyPath, keyPair.publicKeyPem, { mode: 0o644 });
 }
 
 /**
