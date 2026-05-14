@@ -28,6 +28,10 @@ export const SHADOW_POLICY_BUNDLE_SIGNING_BOUNDARIES = [
 export type ShadowPolicyBundleSigningBoundary =
   typeof SHADOW_POLICY_BUNDLE_SIGNING_BOUNDARIES[number];
 
+export const SHADOW_POLICY_BUNDLE_PRODUCTION_SIGNING_BOUNDARIES = [
+  'external-kms-hsm',
+] as const satisfies readonly ShadowPolicyBundleSigningBoundary[];
+
 export type ShadowPolicyBundleSignatureStatus =
   | 'unsigned'
   | 'signed-evaluation'
@@ -82,6 +86,8 @@ export interface ShadowPolicyBundlePublication {
   readonly signatureStatus: ShadowPolicyBundleSignatureStatus;
   readonly signatureRequired: true;
   readonly signature: ShadowPolicyBundlePublicationSignature | null;
+  readonly productionSigningBoundaryRequired: true;
+  readonly productionSigningBoundaryReady: boolean;
   readonly publicationReady: boolean;
   readonly activationReady: false;
   readonly remainingActivationBlockers: readonly string[];
@@ -198,7 +204,18 @@ function signatureStatusFor(
   signature: ShadowPolicyBundlePublicationSignature | null,
 ): ShadowPolicyBundleSignatureStatus {
   if (!signature) return 'unsigned';
-  return signature.productionReady ? 'signed-production' : 'signed-evaluation';
+  return signature.productionReady && productionSigningBoundaryReady(signature)
+    ? 'signed-production'
+    : 'signed-evaluation';
+}
+
+function productionSigningBoundaryReady(
+  signature: ShadowPolicyBundlePublicationSignature | null,
+): boolean {
+  return signature !== null &&
+    signature.productionReady &&
+    (SHADOW_POLICY_BUNDLE_PRODUCTION_SIGNING_BOUNDARIES as readonly ShadowPolicyBundleSigningBoundary[])
+      .includes(signature.signingBoundary);
 }
 
 function publicationIdFor(input: {
@@ -212,7 +229,9 @@ function publicationIdFor(input: {
 
 function remainingActivationBlockers(input: {
   readonly simulation: ShadowPolicyPromotionSimulation;
+  readonly signature: ShadowPolicyBundlePublicationSignature | null;
   readonly signatureStatus: ShadowPolicyBundleSignatureStatus;
+  readonly productionSigningBoundaryReady: boolean;
 }): readonly string[] {
   const blockers = new Set(input.simulation.remainingActivationBlockers);
   if (input.signatureStatus === 'unsigned') {
@@ -222,6 +241,11 @@ function remainingActivationBlockers(input: {
     if (input.signatureStatus === 'signed-evaluation') {
       blockers.add('production-signing-provider-required');
     }
+  }
+  if (input.signature !== null &&
+    input.signature.productionReady &&
+    !input.productionSigningBoundaryReady) {
+    blockers.add('production-signing-boundary-invalid');
   }
   return Object.freeze([...blockers].sort());
 }
@@ -266,7 +290,13 @@ export function createShadowPolicyBundlePublication(
   const signingPayload = createShadowPolicyBundleSigningPayload(simulation);
   const signature = normalizeSignature(input.signature);
   const signatureStatus = signatureStatusFor(signature);
-  const blockers = remainingActivationBlockers({ simulation, signatureStatus });
+  const boundaryReady = productionSigningBoundaryReady(signature);
+  const blockers = remainingActivationBlockers({
+    simulation,
+    signature,
+    signatureStatus,
+    productionSigningBoundaryReady: boundaryReady,
+  });
   const payload = {
     version: SHADOW_POLICY_BUNDLE_PUBLICATION_VERSION,
     publicationId: publicationIdFor({
@@ -286,6 +316,8 @@ export function createShadowPolicyBundlePublication(
     signatureStatus,
     signatureRequired: true,
     signature,
+    productionSigningBoundaryRequired: true,
+    productionSigningBoundaryReady: boundaryReady,
     publicationReady: signatureStatus !== 'unsigned' && simulation.simulationReady,
     activationReady: false,
     remainingActivationBlockers: blockers,

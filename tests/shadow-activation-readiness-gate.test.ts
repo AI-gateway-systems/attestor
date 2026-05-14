@@ -377,6 +377,8 @@ function testActivationReadinessModuleRejectsInvalidTimestamp(): void {
         signatureStatus: 'unsigned',
         signatureRequired: true,
         signature: null,
+        productionSigningBoundaryRequired: true,
+        productionSigningBoundaryReady: false,
         publicationReady: false,
         activationReady: false,
         remainingActivationBlockers: ['bundle-signature-required'],

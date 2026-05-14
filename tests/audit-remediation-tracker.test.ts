@@ -32,7 +32,7 @@ try {
   includes(tracker, '`origin/master` is the source of truth', 'Tracker: origin/master rule is present');
   includes(tracker, 'Remaining work after the final claim-alignment slice: 0 planned', 'Tracker: final remaining estimate is explicit');
   includes(tracker, 'Remaining F6 queue after recipient/tenant runtime boundary bridge: 0 planned', 'Tracker: F6 remaining estimate is explicit');
-  includes(tracker, 'Remaining F7 queue after high-risk two-person activation: 2 planned', 'Tracker: F7 remaining estimate is explicit');
+  includes(tracker, 'Remaining F7 queue after shadow bundle signing boundary validation: 1 planned', 'Tracker: F7 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -147,7 +147,7 @@ try {
   includes(tracker, 'F7-S6 shadow persistence per-node single-host | `accepted-limitation`', 'Tracker: F7-S6 status is tracked');
   includes(tracker, 'F7-S7 red-team replay is not runtime enforcement | `accepted-limitation`', 'Tracker: F7-S7 status is tracked');
   includes(tracker, 'F7-S8 single-operator shadow activation | `fixed`', 'Tracker: F7-S8 status is tracked');
-  includes(tracker, 'F7-S9 shadow bundle signing boundary | `partial`', 'Tracker: F7-S9 status is tracked');
+  includes(tracker, 'F7-S9 shadow bundle signing boundary | `fixed`', 'Tracker: F7-S9 status is tracked');
   includes(tracker, 'F7-S10 production-ready descriptor enforcement | `partial`', 'Tracker: F7-S10 status is tracked');
   includes(tracker, 'F5-A1 out-of-band trust root optional | `fixed`', 'Tracker: F5 CA pin validation is fixed');
   includes(tracker, 'F5 CA Pin Required Validation', 'Tracker: F5 CA pin validation evidence is linked');
@@ -199,6 +199,7 @@ try {
   includes(packageJson, '"test:f7-shadow-simulation-floor-validation"', 'Package: F7 shadow simulation floor script is exposed');
   includes(packageJson, '"test:f7-break-glass-hardening-validation"', 'Package: F7 break-glass hardening validation script is exposed');
   includes(packageJson, '"test:f7-high-risk-two-person-activation-validation"', 'Package: F7 high-risk two-person activation validation script is exposed');
+  includes(packageJson, '"test:f7-shadow-bundle-signing-boundary-validation"', 'Package: F7 shadow bundle signing boundary validation script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);
