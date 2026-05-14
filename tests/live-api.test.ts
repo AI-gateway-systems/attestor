@@ -272,9 +272,9 @@ async function run() {
       ok(body.proofMode === 'offline_fixture', 'Pipeline(unsigned): proof=fixture');
       ok(body.auditChainIntact === true, 'Pipeline(unsigned): audit intact');
       ok(body.certificate === null, 'Pipeline(unsigned): no certificate (unsigned)');
-      // Tenant context (anonymous/default when no ATTESTOR_TENANT_KEYS)
+      // Tenant context (anonymous sentinel when no ATTESTOR_TENANT_KEYS)
       ok(body.tenantContext !== undefined, 'Pipeline(unsigned): tenantContext present');
-      ok(body.tenantContext.tenantId === 'default', 'Pipeline(unsigned): tenant=default');
+      ok(body.tenantContext.tenantId === '__attestor_anonymous__', 'Pipeline(unsigned): tenant=anonymous sentinel');
       console.log(`    decision=${body.decision}, tenant=${body.tenantContext.tenantId}, proof=${body.proofMode}`);
     }
 
@@ -914,7 +914,7 @@ async function run() {
       ok(body.result.trustChain !== null, 'Async: trust chain in result');
       ok(typeof body.attemptsMade === 'number', 'Async: attemptsMade returned');
       ok(typeof body.maxAttempts === 'number' && body.maxAttempts >= 1, 'Async: maxAttempts returned');
-      ok(body.tenantContext?.tenantId === 'default', 'Async: tenant context returned in status');
+      ok(body.tenantContext?.tenantId === '__attestor_anonymous__', 'Async: tenant context returned in status');
       console.log(`    status=${body.status}, backend=${body.backendMode}, decision=${body.result.decision}, cert=${body.result.certificateId}`);
     }
 
