@@ -50,6 +50,7 @@ later implementation pass does not re-open already-retired issues.
 | F6 multi-tenant blast radius | 10 | 4 | 6 | 0 |
 | F7 shadow infrastructure red-team | 10 | 8 | 2 | 0 |
 | F8 operational resilience / chaos | 12 | 6 | 6 | 0 |
+| F9 compliance gap analysis | 12 | 11 | 1 | 0 |
 
 Remaining work after the final claim-alignment slice: 0 planned
 PR-sized or validation-sized units in the current F1-F5 audit queue.
@@ -69,6 +70,9 @@ PR-sized or validation-sized units.
 
 Remaining F8 queue after operational resilience validation: 0 planned
 PR-sized or validation-sized units.
+
+Remaining F9 queue after compliance gap validation: 0 planned
+documentation or validation units.
 
 Completion rule through F5: every F1-F5 row must end as `fixed`,
 `invalid-as-stated`, `superseded`, `accepted-limitation`, or `backlog` with
@@ -335,6 +339,36 @@ or backlog without production overclaim.
 | F8-R11 production-shared startup fail-fast | `fixed` | `startHttpServer` rejects production-shared storage blockers before serving; `test:f8-operational-resilience-validation`. | No remaining repository action for this scoped finding. |
 | F8-R12 webhook signature route proof | `fixed` | Stripe, SendGrid, and Mailgun service tests reject missing or invalid signatures before mutation; health contract requires signed webhook ingress. | No remaining repository action for this scoped finding. |
 
+## F9 Compliance Gap Analysis
+
+Source report: project-owner supplied F9 compliance gap analysis for SOC 2 TSC,
+ISO/IEC 27001:2022, and ISO/IEC 42001:2023.
+
+Validation record: `docs/audit/f9-compliance-gap-validation.md`.
+
+Current F9 status: validation pass complete for the report as supplied. The
+repository now has explicit compliance engineering-anchor mappings, a shared
+responsibility matrix, SoD policy boundary, provider inventory, data-residency
+posture, retention boundary, security-testing posture, cryptography policy,
+privacy notice template, and AI accessibility/bias boundary. These documents are
+procurement and auditor orientation material; they are not external assurance,
+not a SOC 2 report, not an ISO audit, and not live production proof.
+
+| ID | Current status | Evidence / overlap | Remaining action |
+|---|---|---|---|
+| F9-C1 SOC 2 / ISO 27001 / ISO 42001 mapping docs missing | `fixed` | F9 Compliance Gap Validation; `soc2-tsc-mapping.md`; `iso27001-2022-annex-a-mapping.md`; `iso42001-2023-annex-a-mapping.md`; `regulatory-alignment.md` links; `test:f9-compliance-gap-validation`. | No remaining repository action for this scoped finding. |
+| F9-C2 SOC 2 Type II evidence-pack implication | `accepted-limitation` | `soc2-tsc-mapping.md` and `compliance-evidence-boundary.md` state that AI-decision evidence is not a SOC 2 Type II evidence pack. | Formal auditor evidence still needs access logs, change approvals, incident records, control-owner evidence, and audit-period samples. |
+| F9-C3 data-residency / regional-pinning posture missing | `fixed` | `data-residency.md`; F9 validation. | Live regional pinning and transfer-mechanism proof remain deployment/legal work. |
+| F9-C4 retention/disposal policy missing | `fixed` | `retention-policy.md`; release retention classes; replay ledger retention settings; F9 validation. | Customer legal retention schedule and WORM/SIEM retention remain external. |
+| F9-C5 segregation-of-duties policy missing | `fixed` | `segregation-of-duties.md`; F7 high-risk two-person activation validation; break-glass hardening. | Named role assignments and access-review samples remain organizational evidence. |
+| F9-C6 vendor / third-party provider risk doc missing | `fixed` | `third-party-providers.md`; agentic supply-chain guard; F2/F4 LLM provider supply-chain validation. | Vendor due diligence, DPA, and approval records remain organizational evidence. |
+| F9-C7 BC/DR policy doc RTO/RPO posture unclear | `fixed` | `backup-restore-dr.md` already records RPO / RTO guidance and current DR boundary; F9 validation asserts it. | Live restore drills and managed failover remain deployment evidence. |
+| F9-C8 accessibility / AI bias posture missing | `fixed` | `ai-accessibility-bias-boundary.md`; ISO/IEC 42001 mapping. | Upstream model fairness, dataset, UI accessibility, and legal assessment remain customer-owned. |
+| F9-C9 security-testing / pentest posture undocumented | `fixed` | `security-testing.md`; package runner; audit remediation tracker. | Independent pentest reports and retest records remain external evidence. |
+| F9-C10 cryptography / key-management policy doc missing | `fixed` | `cryptography-policy.md`; F5 signing validations; signing verification docs. | External KMS/HSM custody and customer key-management program remain external. |
+| F9-C11 privacy notice / data-flow template missing | `fixed` | `privacy-notice-template.md`; data minimization policy. | Legal basis, DPA, data-subject process, and customer notice approval remain external. |
+| F9-C12 shared-responsibility model implicit | `fixed` | `shared-responsibility-matrix.md`; compliance evidence boundary. | Contractual allocation and customer control owner assignments remain external. |
+
 ## Next Work Queue
 
 The current F1-F5 project-owner supplied audit queue is closed for repository
@@ -343,7 +377,8 @@ limitation, partial with a stated live/customer boundary, or backlogged with
 evidence.
 
 F6 is closed for planned repository slices. F7 is closed for planned repository slices.
-F8 is closed for planned repository slices.
+F8 is closed for planned repository slices. F9 is closed for planned repository
+documentation and validation slices.
 Planned F7 order:
 
 1. F7 validation and tracker sync. Done.
@@ -357,3 +392,12 @@ Planned F7 order:
 Planned F8 order:
 
 1. F8 operational resilience validation and tracker sync. Done in this slice.
+
+Planned F9 order:
+
+1. F9 compliance gap validation and tracker sync. Done in this slice.
+2. F9 governance documentation mapping. Done in this slice.
+
+Next planned report queue:
+
+1. F10 customer escape-hatch abuse. Not started.

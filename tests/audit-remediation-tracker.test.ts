@@ -34,6 +34,7 @@ try {
   includes(tracker, 'Remaining F6 queue after recipient/tenant runtime boundary bridge: 0 planned', 'Tracker: F6 remaining estimate is explicit');
   includes(tracker, 'Remaining F7 queue after shadow readiness and claim alignment: 0 planned', 'Tracker: F7 remaining estimate is explicit');
   includes(tracker, 'Remaining F8 queue after operational resilience validation: 0 planned', 'Tracker: F8 remaining estimate is explicit');
+  includes(tracker, 'Remaining F9 queue after compliance gap validation: 0 planned', 'Tracker: F9 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -88,6 +89,7 @@ try {
     'F6 Multi-Tenant Blast Radius',
     'F7 Shadow Infrastructure Red-Team',
     'F8 Operational Resilience / Chaos',
+    'F9 Compliance Gap Analysis',
   ]) {
     includes(tracker, group, `Tracker: ${group} section exists`);
   }
@@ -166,6 +168,22 @@ try {
   includes(tracker, 'F8-R12 webhook signature route proof | `fixed`', 'Tracker: F8-R12 status is tracked');
   includes(tracker, 'F8 Operational Resilience Validation', 'Tracker: F8 validation evidence is linked');
   includes(tracker, 'F8 is closed for planned repository slices', 'Tracker: F8 closure is explicit');
+  includes(tracker, 'F9 compliance gap analysis | 12 | 11 | 1 | 0', 'Tracker: F9 count row is tracked');
+  includes(tracker, 'F9-C1 SOC 2 / ISO 27001 / ISO 42001 mapping docs missing | `fixed`', 'Tracker: F9-C1 status is tracked');
+  includes(tracker, 'F9-C2 SOC 2 Type II evidence-pack implication | `accepted-limitation`', 'Tracker: F9-C2 status is tracked');
+  includes(tracker, 'F9-C3 data-residency / regional-pinning posture missing | `fixed`', 'Tracker: F9-C3 status is tracked');
+  includes(tracker, 'F9-C4 retention/disposal policy missing | `fixed`', 'Tracker: F9-C4 status is tracked');
+  includes(tracker, 'F9-C5 segregation-of-duties policy missing | `fixed`', 'Tracker: F9-C5 status is tracked');
+  includes(tracker, 'F9-C6 vendor / third-party provider risk doc missing | `fixed`', 'Tracker: F9-C6 status is tracked');
+  includes(tracker, 'F9-C7 BC/DR policy doc RTO/RPO posture unclear | `fixed`', 'Tracker: F9-C7 status is tracked');
+  includes(tracker, 'F9-C8 accessibility / AI bias posture missing | `fixed`', 'Tracker: F9-C8 status is tracked');
+  includes(tracker, 'F9-C9 security-testing / pentest posture undocumented | `fixed`', 'Tracker: F9-C9 status is tracked');
+  includes(tracker, 'F9-C10 cryptography / key-management policy doc missing | `fixed`', 'Tracker: F9-C10 status is tracked');
+  includes(tracker, 'F9-C11 privacy notice / data-flow template missing | `fixed`', 'Tracker: F9-C11 status is tracked');
+  includes(tracker, 'F9-C12 shared-responsibility model implicit | `fixed`', 'Tracker: F9-C12 status is tracked');
+  includes(tracker, 'F9 Compliance Gap Validation', 'Tracker: F9 validation evidence is linked');
+  includes(tracker, 'F9 is closed for planned repository', 'Tracker: F9 closure is explicit');
+  includes(tracker, 'F10 customer escape-hatch abuse. Not started.', 'Tracker: F10 next work marker is explicit');
   includes(tracker, 'F5-A1 out-of-band trust root optional | `fixed`', 'Tracker: F5 CA pin validation is fixed');
   includes(tracker, 'F5 CA Pin Required Validation', 'Tracker: F5 CA pin validation evidence is linked');
   includes(tracker, 'F5-A2 legacy flat verify escape via env | `fixed`', 'Tracker: F5 legacy env downgrade validation is fixed');
@@ -220,6 +238,7 @@ try {
   includes(packageJson, '"test:shadow-readiness-claim-alignment"', 'Package: shadow readiness claim-alignment script is exposed');
   includes(packageJson, '"test:f7-shadow-readiness-claim-alignment-validation"', 'Package: F7 shadow readiness validation script is exposed');
   includes(packageJson, '"test:f8-operational-resilience-validation"', 'Package: F8 operational resilience validation script is exposed');
+  includes(packageJson, '"test:f9-compliance-gap-validation"', 'Package: F9 compliance gap validation script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);

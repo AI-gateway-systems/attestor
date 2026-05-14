@@ -38,6 +38,21 @@ Those capabilities map naturally to regulatory and assurance themes such as:
 
 ## Framework Mapping
 
+### SOC 2 / ISO / AI management-system evidence
+
+Attestor now keeps the enterprise assurance mappings separate from this
+finance-focused regulatory page:
+
+- [SOC 2 TSC engineering anchor mapping](soc2-tsc-mapping.md)
+- [ISO/IEC 27001:2022 engineering anchor mapping](iso27001-2022-annex-a-mapping.md)
+- [ISO/IEC 42001:2023 engineering anchor mapping](iso42001-2023-annex-a-mapping.md)
+- [Shared responsibility matrix](shared-responsibility-matrix.md)
+- [Compliance evidence boundary](compliance-evidence-boundary.md)
+
+Those documents are procurement and auditor orientation material. They do not
+claim SOC 2, ISO/IEC 27001, ISO/IEC 42001, GDPR, EU AI Act, or production
+compliance by themselves.
+
 ### DORA
 
 Official reference: Digital Operational Resilience Act, Regulation (EU) 2022/2554.
