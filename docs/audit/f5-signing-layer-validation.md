@@ -36,6 +36,7 @@ Known limitations: repository evidence only; no live HSM, TUF, Rekor, or multi-r
 | F5-A5 non-atomic key persistence | remediated in follow-up | medium | `saveKeyPair` now persists private and public key PEM files through the same atomic file helper, including temp-file writes, fsync before rename, and best-effort parent-directory fsync. |
 | F5-A8 numeric canonicalization edge cases | remediated in follow-up | low | Signing canonicalization now rejects `NaN`, `Infinity`, and other lossy JSON values before signing. |
 | F5-A6 transparency log missing | accepted limitation | medium | No transparency log exists yet. Do not claim Rekor-equivalent witness semantics. |
+| F5-NEW-3 legacy unbounded certificate escape hatch | remediated in follow-up | low-medium | Default certificate verification rejects missing validity windows. Explicit `allowLegacyUnbounded` compatibility acceptance now emits a structured warning with sunset metadata. |
 
 ## Remediation Slice In This PR
 

@@ -45,10 +45,10 @@ later implementation pass does not re-open already-retired issues.
 | F3 cross-cutting guard readiness | 10 | 10 | 0 | 0 |
 | F4 OWASP LLM redo, active findings | 14 | 5 | 9 | 0 |
 | F4 stale worktree findings retired by fresh main | 3 | 0 | 3 | 0 |
-| F5 signing layer redo | 21 | 13 | 7 | 1 |
+| F5 signing layer redo | 21 | 14 | 7 | 0 |
 | Final docs / claim alignment | 2 | 0 | 0 | 2 |
 
-Remaining work after the current F5 HA shared PKI validation slice: 5 planned
+Remaining work after the current legacy unbounded certificate validation slice: 4 planned
 PR-sized or validation-sized units. Several items overlap and may close
 together, but no item is treated as closed until repository evidence proves it.
 
@@ -93,6 +93,7 @@ evidence. No `needs-revalidation` row can remain before starting F6.
 | [#320](https://github.com/AI-gateway-systems/attestor/pull/320) | `cedb2ce4d53d247820ac5726e247afe82cc3d4e0` | F5 signing canonicalization |
 | [#321](https://github.com/AI-gateway-systems/attestor/pull/321) | `4f1e4c933099db345af3f35e2ad7a8b5b6e9f9b9` | F5 file durability and key persistence atomicity |
 | [#322](https://github.com/AI-gateway-systems/attestor/pull/322) | `18f98e72b1755391a58ad85bae3cdf077b048b12` | F5 keyless CA runtime configuration boundary |
+| [#323](https://github.com/AI-gateway-systems/attestor/pull/323) | `994a1bbcf6263a77fe611dbe45cb25895bca3264` | F5 production-shared PKI path boundary |
 
 ## F1 Threat-Model Foundation
 
@@ -208,7 +209,7 @@ earlier stale-worktree F5 is not authoritative.
 | F5-B1 crypto-authorization adapter trust delegation | `accepted-limitation` | Architecture states adapters supply observations | Document this as a trust boundary; do not claim chain-state verification without adapter proof. |
 | F5-NEW-1 exported `setKeylessCa` runtime injection | `fixed` | Same F5 Keyless CA Injection Boundary Validation as F5-A7 | The generic setter no longer exists; keyless signer internals remain outside package `exports`. |
 | F5-NEW-2 strict PKI path enforcement opt-in | `fixed` | F5 HA Shared PKI Closure Validation (`docs/audit/f5-ha-shared-pki-closure-validation.md`); `release-runtime.ts`; `test:f5-ha-shared-pki-closure-validation` | `production-shared` is now an implicit shared-PKI-required profile. Explicit local-PKI fallback is no longer silently used for production-shared startup. |
-| F5-NEW-3 `allowLegacyUnbounded` escape hatch | `open` | certificate compatibility flag report | Add structured warning/telemetry and sunset documentation/tests. |
+| F5-NEW-3 `allowLegacyUnbounded` escape hatch | `fixed` | F5 Legacy Unbounded Certificate Validation (`docs/audit/f5-legacy-unbounded-certificate-validation.md`); `verifyCertificate`; `test:f5-legacy-unbounded-certificate-validation` | Compatibility acceptance remains explicit, but now emits a machine-readable `legacy-unbounded-certificate-accepted` warning with sunset metadata. Default verification still rejects unbounded certificates. |
 | F5-NEW-4 duplicate verify helper calls in CLI | `backlog` | Low-risk maintainability issue | Refactor only when touching `verify-cli.ts` for F5-A1/A2. |
 
 ## Final Docs And Claim Alignment
@@ -228,8 +229,7 @@ backlogged.
 
 Recommended next order through F5:
 
-1. F5-NEW-3 legacy unbounded certificate telemetry and sunset.
-2. F5-A6 transparency log design decision and claim boundary.
-3. F5-B1 crypto-authorization trust-delegation documentation.
-4. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
-5. Final README/docs/provenance claim alignment.
+1. F5-A6 transparency log design decision and claim boundary.
+2. F5-B1 crypto-authorization trust-delegation documentation.
+3. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
+4. Final README/docs/provenance claim alignment.
