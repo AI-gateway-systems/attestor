@@ -48,7 +48,7 @@ later implementation pass does not re-open already-retired issues.
 | F5 signing layer redo | 21 | 14 | 7 | 0 |
 | Final docs / claim alignment | 2 | 0 | 0 | 2 |
 
-Remaining work after the current transparency-log claim-boundary slice: 3 planned
+Remaining work after the current crypto trust-delegation boundary slice: 2 planned
 PR-sized or validation-sized units. Several items overlap and may close
 together, but no item is treated as closed until repository evidence proves it.
 
@@ -95,6 +95,7 @@ evidence. No `needs-revalidation` row can remain before starting F6.
 | [#322](https://github.com/AI-gateway-systems/attestor/pull/322) | `18f98e72b1755391a58ad85bae3cdf077b048b12` | F5 keyless CA runtime configuration boundary |
 | [#323](https://github.com/AI-gateway-systems/attestor/pull/323) | `994a1bbcf6263a77fe611dbe45cb25895bca3264` | F5 production-shared PKI path boundary |
 | [#324](https://github.com/AI-gateway-systems/attestor/pull/324) | `c626224ec7ea17ba46e30a4dba8bac92d21506e8` | F5 legacy unbounded certificate warning |
+| [#325](https://github.com/AI-gateway-systems/attestor/pull/325) | `3798a66e18aaff254a45275c349d9fc95948a1c9` | F5 transparency log claim boundary |
 
 ## F1 Threat-Model Foundation
 
@@ -207,7 +208,7 @@ earlier stale-worktree F5 is not authoritative.
 | F5-A7 module-level CA singleton / injection point | `fixed` | F5 Keyless CA Injection Boundary Validation (`docs/audit/f5-keyless-ca-injection-boundary-validation.md`); `configureReleaseRuntimeKeylessCa`; `test:f5-keyless-ca-injection-boundary-validation` | Generic `setKeylessCa` is removed. Release-runtime CA configuration is explicit, validates CA/key consistency, is idempotent for the same fingerprint, and refuses silent replacement with a different CA fingerprint unless the release-runtime path explicitly allows and explains the replacement. |
 | F5-A8 numeric canonicalization edge cases | `fixed` | F5 Canonicalization Validation (`docs/audit/f5-canonicalization-validation.md`); `canonicalize`; `test:f5-canonicalization-validation` | Signing canonicalization rejects `NaN`, `Infinity`, `undefined`, `bigint`, functions, symbols, and custom objects before signing. |
 | F5-A9 verifier helper absent | `partial` | Fresh F5 redo says helper now exists | Close absence claim; keep consumer footgun risk under F5-A1. |
-| F5-B1 crypto-authorization adapter trust delegation | `accepted-limitation` | Architecture states adapters supply observations | Document this as a trust boundary; do not claim chain-state verification without adapter proof. |
+| F5-B1 crypto-authorization adapter trust delegation | `accepted-limitation` | F5 Crypto Trust Delegation Boundary Validation (`docs/audit/f5-crypto-trust-delegation-boundary-validation.md`); crypto first-integration docs; source comments in `eip712-authorization-envelope.ts` and `replay-freshness-rules.ts`; `test:f5-crypto-trust-delegation-boundary-validation` | Attestor can bind policy, evidence, replay/freshness posture, adapter readiness, and admission plans. It does not claim independent wallet-signature, chain-state, custody, Safe, x402 settlement, or solver verification without verifiable adapter evidence. |
 | F5-NEW-1 exported `setKeylessCa` runtime injection | `fixed` | Same F5 Keyless CA Injection Boundary Validation as F5-A7 | The generic setter no longer exists; keyless signer internals remain outside package `exports`. |
 | F5-NEW-2 strict PKI path enforcement opt-in | `fixed` | F5 HA Shared PKI Closure Validation (`docs/audit/f5-ha-shared-pki-closure-validation.md`); `release-runtime.ts`; `test:f5-ha-shared-pki-closure-validation` | `production-shared` is now an implicit shared-PKI-required profile. Explicit local-PKI fallback is no longer silently used for production-shared startup. |
 | F5-NEW-3 `allowLegacyUnbounded` escape hatch | `fixed` | F5 Legacy Unbounded Certificate Validation (`docs/audit/f5-legacy-unbounded-certificate-validation.md`); `verifyCertificate`; `test:f5-legacy-unbounded-certificate-validation` | Compatibility acceptance remains explicit, but now emits a machine-readable `legacy-unbounded-certificate-accepted` warning with sunset metadata. Default verification still rejects unbounded certificates. |
@@ -230,6 +231,5 @@ backlogged.
 
 Recommended next order through F5:
 
-1. F5-B1 crypto-authorization trust-delegation documentation.
-2. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
-3. Final README/docs/provenance claim alignment.
+1. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
+2. Final README/docs/provenance claim alignment.
