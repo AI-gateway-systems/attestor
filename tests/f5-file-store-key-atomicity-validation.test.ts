@@ -3,13 +3,11 @@ import { randomUUID } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
   cleanupAtomicWriteTempFiles,
@@ -37,7 +35,8 @@ function includes(value: string, expected: string, message: string): void {
   passed += 1;
 }
 
-const root = mkdtempSync(join(tmpdir(), 'attestor-f5-file-store-'));
+const root = join(process.cwd(), '.attestor-test-runs', `f5-file-store-key-atomicity-${randomUUID()}`);
+mkdirSync(root, { recursive: true });
 
 try {
   const targetPath = join(root, 'critical-store.json');
