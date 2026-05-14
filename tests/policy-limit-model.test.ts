@@ -129,6 +129,15 @@ function testDescriptorAndAdmissionDescriptorExposeLimitVocabulary(): void {
     'Policy limits: missing required measurements fail closed',
   );
   ok(
+    descriptor.velocityMeasurementSources.includes('shared-durable-counter'),
+    'Policy limits: descriptor exposes shared durable velocity source',
+  );
+  equal(
+    descriptor.supportsSharedVelocitySourceRequirement,
+    true,
+    'Policy limits: descriptor supports requiring shared velocity measurements',
+  );
+  ok(
     admissionDescriptor.policyLimitKinds.includes('data-scope'),
     'Policy limits: admission descriptor exposes policy limit kinds',
   );
@@ -236,6 +245,66 @@ function testMissingRequiredMeasurementBlocks(): void {
   );
 }
 
+function testVelocityCanRequireSharedDurableSource(): void {
+  const limitSet = createConsequenceAdmissionPolicyLimitSet({
+    id: 'limits:velocity-shared:v1',
+    policyRef: 'policy:velocity:v1',
+    consequenceDomain: 'money-movement',
+    limits: [
+      {
+        id: 'limit:velocity-shared',
+        kind: 'velocity',
+        label: 'Shared procurement velocity',
+        consequenceDomain: 'money-movement',
+        maxCount: 3,
+        windowSeconds: 3600,
+        subject: 'procurement-agent',
+        requireSharedCounter: true,
+        breachAction: 'block',
+      },
+    ],
+  });
+  const operatorAsserted = evaluateConsequenceAdmissionPolicyLimits({
+    limitSet,
+    observation: {
+      consequenceKind: 'action',
+      velocity: {
+        count: 2,
+        windowSeconds: 3600,
+        subject: 'procurement-agent',
+        source: 'operator-asserted',
+      },
+    },
+  });
+  const shared = evaluateConsequenceAdmissionPolicyLimits({
+    limitSet,
+    observation: {
+      consequenceKind: 'action',
+      velocity: {
+        count: 2,
+        windowSeconds: 3600,
+        subject: 'procurement-agent',
+        source: 'shared-durable-counter',
+      },
+    },
+  });
+
+  equal(
+    operatorAsserted.decision,
+    'block',
+    'Policy limits: shared velocity requirement blocks operator-asserted counters',
+  );
+  ok(
+    operatorAsserted.reasonCodes.includes('policy-limit-velocity-source-not-shared'),
+    'Policy limits: non-shared velocity source reason is explicit',
+  );
+  equal(
+    shared.decision,
+    'admit',
+    'Policy limits: shared durable velocity source satisfies the limit',
+  );
+}
+
 function testDataScopeLimitBlocksUnmeasuredOrOverscopedExport(): void {
   const limitSet = createConsequenceAdmissionPolicyLimitSet({
     id: 'limits:data-export:v1',
@@ -332,6 +401,7 @@ testAmountBreachNarrowsWithConstraint();
 testRecipientBreachBlocks();
 testReviewThresholdRequiresReview();
 testMissingRequiredMeasurementBlocks();
+testVelocityCanRequireSharedDurableSource();
 testDataScopeLimitBlocksUnmeasuredOrOverscopedExport();
 testDocsAndPackageExposePolicyLimitModel();
 

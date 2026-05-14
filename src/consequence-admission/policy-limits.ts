@@ -41,6 +41,15 @@ export const CONSEQUENCE_ADMISSION_POLICY_LIMIT_RESULT_STATUSES = [
 export type ConsequenceAdmissionPolicyLimitResultStatus =
   typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_RESULT_STATUSES[number];
 
+export const CONSEQUENCE_ADMISSION_VELOCITY_MEASUREMENT_SOURCES = [
+  'shared-durable-counter',
+  'single-process-counter',
+  'operator-asserted',
+  'unknown',
+] as const;
+export type ConsequenceAdmissionVelocityMeasurementSource =
+  typeof CONSEQUENCE_ADMISSION_VELOCITY_MEASUREMENT_SOURCES[number];
+
 export type ConsequenceAdmissionPolicyLimitDecision =
   | 'admit'
   | 'narrow'
@@ -68,6 +77,7 @@ export interface VelocityPolicyLimit extends ConsequenceAdmissionPolicyLimitBase
   readonly maxCount: number;
   readonly windowSeconds: number;
   readonly subject: string;
+  readonly requireSharedCounter?: boolean | null;
 }
 
 export interface RecipientAllowlistPolicyLimit extends ConsequenceAdmissionPolicyLimitBase {
@@ -150,6 +160,7 @@ export interface ConsequenceAdmissionVelocityMeasurement {
   readonly count: number;
   readonly windowSeconds: number;
   readonly subject: string;
+  readonly source?: ConsequenceAdmissionVelocityMeasurementSource | null;
 }
 
 export interface ConsequenceAdmissionDataScopeMeasurement {
@@ -205,8 +216,10 @@ export interface ConsequenceAdmissionPolicyLimitDescriptor {
   readonly limitKinds: typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_KINDS;
   readonly breachActions: typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_BREACH_ACTIONS;
   readonly resultStatuses: typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_RESULT_STATUSES;
+  readonly velocityMeasurementSources: typeof CONSEQUENCE_ADMISSION_VELOCITY_MEASUREMENT_SOURCES;
   readonly decisions: readonly ['admit', 'narrow', 'review', 'block'];
   readonly failClosedOnMissingRequiredMeasurement: true;
+  readonly supportsSharedVelocitySourceRequirement: true;
 }
 
 const RISK_ORDER: Readonly<Record<RiskClass, number>> = Object.freeze({
@@ -311,6 +324,7 @@ function normalizePolicyLimit(
         maxCount: normalizePositiveInteger(base.maxCount, 'velocity.maxCount'),
         windowSeconds: normalizePositiveInteger(base.windowSeconds, 'velocity.windowSeconds'),
         subject: normalizeIdentifier(base.subject, 'velocity.subject'),
+        requireSharedCounter: base.requireSharedCounter ?? false,
       });
     case 'recipient-allowlist':
       return Object.freeze({
@@ -464,17 +478,28 @@ function evaluateVelocityLimit(
   const velocity = observation.velocity;
   const expected = `<= ${limit.maxCount} events / ${limit.windowSeconds}s for ${limit.subject}`;
   if (!velocity) return notObserved(limit, expected);
+  const source = velocity.source ?? 'unknown';
+  const sourceBreach = limit.requireSharedCounter === true &&
+    source !== 'shared-durable-counter';
   const breached =
     velocity.subject !== limit.subject ||
     velocity.windowSeconds !== limit.windowSeconds ||
-    velocity.count > limit.maxCount;
+    velocity.count > limit.maxCount ||
+    sourceBreach;
   return result({
     limit,
     breached,
-    measuredValue: `${velocity.count} events / ${velocity.windowSeconds}s for ${velocity.subject}`,
-    expectedValue: expected,
-    constraintSummary: `Velocity cannot exceed ${limit.maxCount} events per ${limit.windowSeconds}s for ${limit.subject}.`,
-    reasonCode: breached ? 'policy-limit-velocity-breach' : 'policy-limit-velocity-pass',
+    measuredValue:
+      `${velocity.count} events / ${velocity.windowSeconds}s for ${velocity.subject} (${source})`,
+    expectedValue: limit.requireSharedCounter === true
+      ? `${expected} from shared-durable-counter`
+      : expected,
+    constraintSummary: sourceBreach
+      ? 'Velocity measurement must come from a shared durable counter.'
+      : `Velocity cannot exceed ${limit.maxCount} events per ${limit.windowSeconds}s for ${limit.subject}.`,
+    reasonCode: sourceBreach
+      ? 'policy-limit-velocity-source-not-shared'
+      : breached ? 'policy-limit-velocity-breach' : 'policy-limit-velocity-pass',
   });
 }
 
@@ -747,7 +772,9 @@ ConsequenceAdmissionPolicyLimitDescriptor {
     limitKinds: CONSEQUENCE_ADMISSION_POLICY_LIMIT_KINDS,
     breachActions: CONSEQUENCE_ADMISSION_POLICY_LIMIT_BREACH_ACTIONS,
     resultStatuses: CONSEQUENCE_ADMISSION_POLICY_LIMIT_RESULT_STATUSES,
+    velocityMeasurementSources: CONSEQUENCE_ADMISSION_VELOCITY_MEASUREMENT_SOURCES,
     decisions: ['admit', 'narrow', 'review', 'block'] as const,
     failClosedOnMissingRequiredMeasurement: true,
+    supportsSharedVelocitySourceRequirement: true,
   });
 }
