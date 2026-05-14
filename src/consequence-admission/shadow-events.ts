@@ -11,10 +11,17 @@ import type {
   GenericAdmissionMode,
   GenericAdmissionShadowDecision,
 } from './index.js';
+import {
+  CONSEQUENCE_DATA_MINIMIZATION_REDACTION_POLICY_VERSION,
+} from './data-minimization-redaction-policy.js';
 import type { ConsequenceAdmissionDomain } from './taxonomy.js';
 
 export const SHADOW_ADMISSION_EVENT_VERSION =
   'attestor.shadow-admission-event.v1';
+export const SHADOW_ADMISSION_ORIGIN_WITNESS_VERSION =
+  'attestor.shadow-admission-origin-witness.v1';
+export const SHADOW_ADMISSION_REDACTION_WITNESS_VERSION =
+  'attestor.shadow-admission-redaction-witness.v1';
 
 export const SHADOW_ADMISSION_DOWNSTREAM_OUTCOMES = [
   'not-observed',
@@ -44,6 +51,36 @@ export const SHADOW_ADMISSION_REDACTION_LEVELS = [
 ] as const;
 export type ShadowAdmissionRedactionLevel =
   typeof SHADOW_ADMISSION_REDACTION_LEVELS[number];
+
+export interface ShadowAdmissionOriginWitness {
+  readonly version: typeof SHADOW_ADMISSION_ORIGIN_WITNESS_VERSION;
+  readonly witnessKind: 'admission-response-digest-binding';
+  readonly admissionId: string;
+  readonly admissionDigest: string;
+  readonly requestId: string;
+  readonly decidedAt: string;
+  readonly decision: ConsequenceAdmissionDecision;
+  readonly allowed: boolean;
+  readonly failClosed: boolean;
+  readonly tenantId: string | null;
+  readonly environment: string | null;
+  readonly rawPayloadStored: false;
+  readonly canonical: string;
+  readonly digest: string;
+}
+
+export interface ShadowAdmissionRedactionWitness {
+  readonly version: typeof SHADOW_ADMISSION_REDACTION_WITNESS_VERSION;
+  readonly witnessKind: 'redaction-policy-digest-binding';
+  readonly redactionLevel: ShadowAdmissionRedactionLevel;
+  readonly redactionPolicyVersion: typeof CONSEQUENCE_DATA_MINIMIZATION_REDACTION_POLICY_VERSION;
+  readonly observedFeatureKeys: readonly string[];
+  readonly observedFeatureDigest: string | null;
+  readonly rawPayloadStored: false;
+  readonly rawObservedValuesStored: false;
+  readonly canonical: string;
+  readonly digest: string;
+}
 
 export interface CreateShadowAdmissionEventInput {
   readonly admission: GenericAdmissionEnvelope | ConsequenceAdmissionResponse;
@@ -82,6 +119,10 @@ export interface ShadowAdmissionEvent {
   readonly humanOutcome: ShadowAdmissionHumanOutcome;
   readonly observedFeatureKeys: readonly string[];
   readonly observedFeatureDigest: string | null;
+  readonly originWitness: ShadowAdmissionOriginWitness;
+  readonly originWitnessDigest: string;
+  readonly redactionWitness: ShadowAdmissionRedactionWitness;
+  readonly redactionWitnessDigest: string;
   readonly evidenceRefCount: number;
   readonly nativeInputRefCount: number;
   readonly redactionLevel: ShadowAdmissionRedactionLevel;
@@ -251,6 +292,52 @@ function defaultActionSurface(admission: ConsequenceAdmissionResponse): string {
   return `${admission.request.proposedConsequence.downstreamSystem}.${admission.request.proposedConsequence.action}`;
 }
 
+function createOriginWitness(admission: ConsequenceAdmissionResponse): ShadowAdmissionOriginWitness {
+  const payload = {
+    version: SHADOW_ADMISSION_ORIGIN_WITNESS_VERSION,
+    witnessKind: 'admission-response-digest-binding',
+    admissionId: admission.admissionId,
+    admissionDigest: admission.digest,
+    requestId: admission.request.requestId,
+    decidedAt: admission.decidedAt,
+    decision: admission.decision,
+    allowed: admission.allowed,
+    failClosed: admission.failClosed,
+    tenantId: admission.request.policyScope.tenantId,
+    environment: admission.request.policyScope.environment,
+    rawPayloadStored: false,
+  } as const;
+  const canonical = canonicalObject(payload as unknown as CanonicalReleaseJsonValue);
+  return Object.freeze({
+    ...payload,
+    canonical: canonical.canonical,
+    digest: canonical.digest,
+  });
+}
+
+function createRedactionWitness(input: {
+  readonly redactionLevel: ShadowAdmissionRedactionLevel;
+  readonly observedFeatureKeys: readonly string[];
+  readonly observedFeatureDigest: string | null;
+}): ShadowAdmissionRedactionWitness {
+  const payload = {
+    version: SHADOW_ADMISSION_REDACTION_WITNESS_VERSION,
+    witnessKind: 'redaction-policy-digest-binding',
+    redactionLevel: input.redactionLevel,
+    redactionPolicyVersion: CONSEQUENCE_DATA_MINIMIZATION_REDACTION_POLICY_VERSION,
+    observedFeatureKeys: input.observedFeatureKeys,
+    observedFeatureDigest: input.observedFeatureDigest,
+    rawPayloadStored: false,
+    rawObservedValuesStored: false,
+  } as const;
+  const canonical = canonicalObject(payload as unknown as CanonicalReleaseJsonValue);
+  return Object.freeze({
+    ...payload,
+    canonical: canonical.canonical,
+    digest: canonical.digest,
+  });
+}
+
 function createEventId(input: {
   readonly occurredAt: string;
   readonly admissionId: string;
@@ -259,6 +346,8 @@ function createEventId(input: {
   readonly downstreamOutcome: ShadowAdmissionDownstreamOutcome;
   readonly humanOutcome: ShadowAdmissionHumanOutcome;
   readonly observedFeatureDigest: string | null;
+  readonly originWitnessDigest: string;
+  readonly redactionWitnessDigest: string;
 }): string {
   const digest = canonicalObject(input as unknown as CanonicalReleaseJsonValue).digest;
   return `shadow:${digest}`;
@@ -302,6 +391,12 @@ export function createShadowAdmissionEvent(
     input.policyRef,
     'policyRef',
   ) ?? admission.request.policyScope.policyRef;
+  const originWitness = createOriginWitness(admission);
+  const redactionWitness = createRedactionWitness({
+    redactionLevel,
+    observedFeatureKeys: observedFeatures.keys,
+    observedFeatureDigest: observedFeatures.digest,
+  });
   const eventId = normalizeOptionalIdentifier(input.eventId, 'eventId') ?? createEventId({
     occurredAt,
     admissionId: admission.admissionId,
@@ -310,6 +405,8 @@ export function createShadowAdmissionEvent(
     downstreamOutcome,
     humanOutcome,
     observedFeatureDigest: observedFeatures.digest,
+    originWitnessDigest: originWitness.digest,
+    redactionWitnessDigest: redactionWitness.digest,
   });
   const payload = {
     version: SHADOW_ADMISSION_EVENT_VERSION,
@@ -336,6 +433,10 @@ export function createShadowAdmissionEvent(
     humanOutcome,
     observedFeatureKeys: observedFeatures.keys,
     observedFeatureDigest: observedFeatures.digest,
+    originWitness,
+    originWitnessDigest: originWitness.digest,
+    redactionWitness,
+    redactionWitnessDigest: redactionWitness.digest,
     evidenceRefCount: admission.request.evidence.length,
     nativeInputRefCount: admission.request.nativeInputRefs.length,
     redactionLevel,

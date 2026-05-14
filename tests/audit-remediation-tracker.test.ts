@@ -32,7 +32,7 @@ try {
   includes(tracker, '`origin/master` is the source of truth', 'Tracker: origin/master rule is present');
   includes(tracker, 'Remaining work after the final claim-alignment slice: 0 planned', 'Tracker: final remaining estimate is explicit');
   includes(tracker, 'Remaining F6 queue after recipient/tenant runtime boundary bridge: 0 planned', 'Tracker: F6 remaining estimate is explicit');
-  includes(tracker, 'Remaining F7 queue after shadow validation and tracker sync: 6 planned', 'Tracker: F7 remaining estimate is explicit');
+  includes(tracker, 'Remaining F7 queue after shadow origin and redaction witness: 5 planned', 'Tracker: F7 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -139,8 +139,8 @@ try {
   includes(tracker, 'F6-T8 recipient/tenant boundary replay-only | `partial`', 'Tracker: F6-T8 status is tracked');
   includes(tracker, 'F6-T9 plaintext env API keys in memory | `fixed`', 'Tracker: F6-T9 status is tracked');
   includes(tracker, 'F6-T10 `default` tenant sentinel collision | `fixed`', 'Tracker: F6-T10 status is tracked');
-  includes(tracker, 'F7-S1 shadow event injection without origin-binding | `partial`', 'Tracker: F7-S1 status is tracked');
-  includes(tracker, 'F7-S2 operator-supplied redaction self-attest | `partial`', 'Tracker: F7-S2 status is tracked');
+  includes(tracker, 'F7-S1 shadow event injection without origin-binding | `fixed`', 'Tracker: F7-S1 status is tracked');
+  includes(tracker, 'F7-S2 operator-supplied redaction self-attest | `fixed`', 'Tracker: F7-S2 status is tracked');
   includes(tracker, 'F7-S3 simulation window / threshold manipulation | `partial`', 'Tracker: F7-S3 status is tracked');
   includes(tracker, 'F7-S4 break-glass rollout has no extra gate | `open`', 'Tracker: F7-S4 status is tracked');
   includes(tracker, 'F7-S5 customer controls readiness aggregation | `invalid-as-stated`', 'Tracker: F7-S5 status is tracked');
@@ -195,6 +195,7 @@ try {
   includes(packageJson, '"test:f6-usage-meter-shared-store-boundary"', 'Package: F6 usage-meter shared-store boundary script is exposed');
   includes(packageJson, '"test:f6-recipient-tenant-runtime-boundary"', 'Package: F6 recipient/tenant runtime boundary script is exposed');
   includes(packageJson, '"test:f7-shadow-infrastructure-validation"', 'Package: F7 shadow infrastructure validation script is exposed');
+  includes(packageJson, '"test:f7-shadow-origin-redaction-witness-validation"', 'Package: F7 shadow origin/redaction witness script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);
