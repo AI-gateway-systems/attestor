@@ -49,6 +49,7 @@ later implementation pass does not re-open already-retired issues.
 | Final docs / claim alignment | 2 | 2 | 0 | 0 |
 | F6 multi-tenant blast radius | 10 | 4 | 6 | 0 |
 | F7 shadow infrastructure red-team | 10 | 8 | 2 | 0 |
+| F8 operational resilience / chaos | 12 | 6 | 6 | 0 |
 
 Remaining work after the final claim-alignment slice: 0 planned
 PR-sized or validation-sized units in the current F1-F5 audit queue.
@@ -64,6 +65,9 @@ Remaining F6 queue after RLS claim-alignment slice: 2 planned.
 Remaining F6 queue after usage-meter shared-store boundary slice: 1 planned.
 
 Remaining F7 queue after shadow readiness and claim alignment: 0 planned
+PR-sized or validation-sized units.
+
+Remaining F8 queue after operational resilience validation: 0 planned
 PR-sized or validation-sized units.
 
 Completion rule through F5: every F1-F5 row must end as `fixed`,
@@ -302,6 +306,35 @@ selected-profile storage readiness blocks file-backed shadow stores for
 | F7-S9 shadow bundle signing boundary | `fixed` | F7 Shadow Bundle Signing Boundary Validation; `SHADOW_POLICY_BUNDLE_PRODUCTION_SIGNING_BOUNDARIES`; `productionSigningBoundaryRequired`; `productionSigningBoundaryReady`; `production-signing-boundary-invalid`; `test:shadow-policy-bundle-publication`. | Repository-side production signing boundary split is closed. Tenant-specific signer isolation remains covered by F6-T1/F6-T6 limitations. |
 | F7-S10 production-ready descriptor enforcement | `fixed` | F7 Shadow Readiness Claim Alignment Validation; `shadow-readiness-claim-alignment.ts`; `/api/v1/ready` `checks.shadowReadinessClaimAlignment`; `production-storage-path.ts`; `test:shadow-readiness-claim-alignment`. | No remaining repository action for this scoped finding. `productionReady: false` remains intentional; live production/customer activation evidence is not claimed. |
 
+## F8 Operational Resilience / Chaos
+
+Source report: project-owner supplied F8 operational resilience / chaos audit.
+
+Validation record: `docs/audit/f8-operational-resilience-validation.md`.
+
+Current F8 status: validation pass complete for the report as supplied. Startup,
+health, readiness, degraded-mode TTL, worker readiness, webhook signature, and
+production-shared startup-fail-fast findings are closed with repository tests.
+Health diagnostics, async dead-letter HA proof, PKI bootstrap locking,
+PostgreSQL circuit-breaker policy, degraded-mode clock skew, and full automated
+fault injection are closed as explicit limitations, partial repository evidence,
+or backlog without production overclaim.
+
+| ID | Current status | Evidence / overlap | Remaining action |
+|---|---|---|---|
+| F8-R1 health PKI fingerprint / subject disclosure | `fixed` | F8 Operational Resilience Validation; `core-routes.ts`; `/api/v1/health` redacts `caFingerprint`, `signerSubject`, and `reviewerSubject`; `/api/v1/pki/ca` remains the public trust-root route; `test:f8-operational-resilience-validation`. | No remaining repository action for this scoped finding. |
+| F8-R2 startup probe separation | `fixed` | F8 Operational Resilience Validation; `/api/v1/startup`; Kubernetes HA startup probe; `docker-compose.ha.yml` bootstrap grace; `test:f8-operational-resilience-validation`. | No remaining repository action for this scoped finding. |
+| F8-R3 health body diagnostic richness | `accepted-limitation` | `/api/v1/health` remains process-liveness HTTP 200 and privacy-minimized, while `/api/v1/ready` is the traffic gate. | Operators must use readiness for routability. Rich safe diagnostics remain intentionally visible on health. |
+| F8-R4 degraded-mode TTL ceiling | `fixed` | `createDegradedModeGrant` rejects grants exceeding `maxTtlSeconds`; `test:f8-operational-resilience-validation`. | No remaining repository action for this scoped finding. |
+| F8-R5 async dead-letter HA visibility | `partial` | `control-plane-store.ts` has PostgreSQL async dead-letter persistence and file-backed fallback; `service-pipeline-dead-letter-service` tests; `test:f8-operational-resilience-validation`. | Live HA deployment with shared PostgreSQL, restart, and operator DLQ drill remains external proof. |
+| F8-R6 worker shutdown readiness | `fixed` | `worker.ts` exposes health/ready and gates readiness while `shuttingDown`; health contract has `worker_shutdown_not_ready`; `test:f8-operational-resilience-validation`. | No remaining repository action for this scoped finding. |
+| F8-R7 PKI bootstrap idempotency / shared lock | `partial` | Same root as F-5.7; F5 HA Shared PKI Closure Validation; production-shared requires explicit shared PKI path attestation. | Distributed lock and KMS/HSM signer remain outside this repository closure. |
+| F8-R8 PostgreSQL pool retry / circuit-breaker policy | `backlog` | Shared PostgreSQL stores and rehearsal tests exist, but no dedicated circuit-breaker contract covers every pool. | Add explicit pool backoff/circuit-breaker contract before stronger production resilience claims. |
+| F8-R9 degraded-mode clock skew | `accepted-limitation` | Degraded-mode grants use exact `startsAt` / `expiresAt` boundaries. | Exact expiry is retained to avoid silently extending break-glass authority. |
+| F8-R10 automated chaos drill suite | `partial` | Production rehearsal tests cover target profiles, substrate probes, async recovery, backup/restore, observability, and promotion bundles. | Full automated fault-injection chaos suite remains future work. |
+| F8-R11 production-shared startup fail-fast | `fixed` | `startHttpServer` rejects production-shared storage blockers before serving; `test:f8-operational-resilience-validation`. | No remaining repository action for this scoped finding. |
+| F8-R12 webhook signature route proof | `fixed` | Stripe, SendGrid, and Mailgun service tests reject missing or invalid signatures before mutation; health contract requires signed webhook ingress. | No remaining repository action for this scoped finding. |
+
 ## Next Work Queue
 
 The current F1-F5 project-owner supplied audit queue is closed for repository
@@ -310,6 +343,7 @@ limitation, partial with a stated live/customer boundary, or backlogged with
 evidence.
 
 F6 is closed for planned repository slices. F7 is closed for planned repository slices.
+F8 is closed for planned repository slices.
 Planned F7 order:
 
 1. F7 validation and tracker sync. Done.
@@ -319,3 +353,7 @@ Planned F7 order:
 5. F7-S8 two-person high-risk activation handoff. Done in this slice.
 6. F7-S9 shadow bundle signing boundary validation. Done in this slice.
 7. F7-S10 shadow readiness and claim alignment. Done in this slice.
+
+Planned F8 order:
+
+1. F8 operational resilience validation and tracker sync. Done in this slice.

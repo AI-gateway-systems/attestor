@@ -378,6 +378,21 @@ The entries above are the most concrete PR/commit-linked hardening records. The 
 - Remaining limitation or no-go condition: This closes the repository-side F1-F5 queue only. It does not prove external compliance certification, production deployment readiness, universal non-bypassability, public transparency-log semantics, external WORM/SIEM anchoring, external KMS/HSM custody, live multi-provider LLM resilience, or chain-authoritative crypto verification without verifiable adapter evidence.
 - Status: complete for F1-F5 repository-side audit remediation tracking once the final claim-alignment PR is merged and verified on `origin/master`.
 
+### 19. F8 Operational Resilience Audit Closure
+
+- Step / PR / commit: F8 project-owner supplied operational resilience / chaos report; this closure PR records tracker and validation evidence but cannot pre-record its own merge commit.
+- Date if available: 2026-05-14.
+- Trust surface: startup, health, readiness, worker probes, async dead-letter recovery, degraded-mode grants, production-shared storage gates, webhook ingress, PKI bootstrap, PostgreSQL/Redis dependency posture, and rehearsal evidence.
+- Protected principle: runtime readiness; operational boundedness; fail-closed boundary; no overclaim; data minimization and redaction.
+- Research anchor / source used, if recorded: repository-internal validation over the F8 report plus already-recorded Kubernetes probes, Google SRE, OWASP API Security, NIST SP 800-53, NIST SP 800-160, Stripe webhook, and BullMQ retry/stalled-job anchors.
+- Repository evidence:
+  - Contract/documentation evidence: `docs/audit/f8-operational-resilience-validation.md`, `docs/audit/attestor-audit-remediation-tracker.md`, `docs/02-architecture/hosted-production-trust-hardening.md`, `docs/08-deployment/production-readiness.md`, and `docs/08-deployment/production-rehearsal-manifest.md`.
+  - Test evidence: `tests/f8-operational-resilience-validation.test.ts`, `tests/hosted-production-runtime-health-contract.test.ts`, `tests/service-stripe-webhook-service.test.ts`, `tests/service-email-webhook-service.test.ts`, `tests/production-rehearsal-async-recovery.test.ts`, and `tests/production-rehearsal-backup-restore-dr.test.ts`.
+- Implemented control: Converts the F8 report into a machine-checked tracker state where startup/health/readiness separation, health PKI redaction, degraded-mode TTL enforcement, worker readiness, webhook signature proof, and production-shared startup fail-fast are closed, while DLQ HA proof, PKI distributed locking, PostgreSQL circuit-breaker policy, exact degraded-grant expiry, and full automated fault injection remain explicit boundaries.
+- Tests / verification: `npm run test:f8-operational-resilience-validation`, `npm run test:hosted-production-runtime-health-contract`, `npm run test:service-stripe-webhook-service`, `npm run test:service-email-webhook-service`, `npm run test:production-rehearsal-async-recovery`, `npm run test:production-rehearsal-backup-restore-dr`, `npm run test:audit-remediation-tracker`, and `npm run test:research-provenance-ledger`.
+- Remaining limitation or no-go condition: This closes the repository-side F8 queue only. It does not prove a live Kubernetes deployment, external PostgreSQL/Redis behavior, distributed PKI locking, KMS/HSM custody, customer-operated worker drain, webhook smoke tests, observability delivery, or full fault-injection chaos practice.
+- Status: complete for F8 repository-side audit remediation tracking once this PR is merged and verified on `origin/master`.
+
 ## Strong Recorded Research Support
 
 The strongest recorded research support appears in:
