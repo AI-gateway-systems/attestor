@@ -183,6 +183,12 @@ Core functions:
 
 The descriptor is a policy map. The evaluator is a small gate that fails closed when a redacted surface declares raw payload storage, exposes a forbidden raw class, or emits a data unit outside the surface allowance.
 
+When a caller supplies material for evaluation, the evaluator also runs the
+central material scanner over the payload before deciding. Scanner hits become
+stable reason codes such as `unsafe-material-detected` and
+`material-raw-payload-storage`; the returned reason codes do not echo the raw
+secret marker text.
+
 ## Research Posture
 
 This policy follows the direction of current privacy and AI-security guidance:
