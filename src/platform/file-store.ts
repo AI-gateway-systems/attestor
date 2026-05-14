@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import {
   closeSync,
+  constants as fsConstants,
   fsyncSync,
   mkdtempSync,
   mkdirSync,
@@ -185,7 +186,7 @@ export function cleanupAtomicWriteTempFiles(path: string): number {
 export function fsyncDirectoryBestEffort(directoryPath: string): boolean {
   let directoryFd: number | null = null;
   try {
-    directoryFd = openSync(directoryPath, 'r');
+    directoryFd = openSync(directoryPath, fsConstants.O_RDONLY);
     fsyncSync(directoryFd);
     return true;
   } catch {
