@@ -31,7 +31,7 @@ try {
   includes(tracker, 'not a certification', 'Tracker: no-certification disclaimer is present');
   includes(tracker, '`origin/master` is the source of truth', 'Tracker: origin/master rule is present');
   includes(tracker, 'Remaining work after the final claim-alignment slice: 0 planned', 'Tracker: final remaining estimate is explicit');
-  includes(tracker, 'Remaining F6 queue after anonymous sentinel hardening slice: 4 planned', 'Tracker: F6 remaining estimate is explicit');
+  includes(tracker, 'Remaining F6 queue after bypass-route tenant-context invariant slice: 3 planned', 'Tracker: F6 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -130,7 +130,7 @@ try {
   includes(tracker, 'F6-T2 RLS declared but not data-path wired | `partial`', 'Tracker: F6-T2 status is tracked');
   includes(tracker, 'F6-T3 env tenant key registry per-pod cache | `partial`', 'Tracker: F6-T3 status is tracked');
   includes(tracker, 'F6-T4 usage-meter single-node quota | `partial`', 'Tracker: F6-T4 status is tracked');
-  includes(tracker, 'F6-T5 bypass route tenant-header spoofing | `invalid-as-stated`', 'Tracker: F6-T5 status is tracked');
+  includes(tracker, 'F6-T5 bypass route tenant-header spoofing | `fixed`', 'Tracker: F6-T5 status is tracked');
   includes(tracker, 'F6-T6 runtime signer all-tenant blast radius | `partial`', 'Tracker: F6-T6 status is tracked');
   includes(tracker, 'F6-T7 anonymous fallback env-gated | `invalid-as-stated`', 'Tracker: F6-T7 status is tracked');
   includes(tracker, 'F6-T8 recipient/tenant boundary replay-only | `partial`', 'Tracker: F6-T8 status is tracked');
@@ -177,6 +177,7 @@ try {
   includes(packageJson, '"test:f6-tenant-bound-release-token"', 'Package: F6 tenant-bound release-token validation script is exposed');
   includes(packageJson, '"test:f6-tenant-key-cache-hardening"', 'Package: F6 tenant key cache hardening script is exposed');
   includes(packageJson, '"test:f6-anonymous-tenant-sentinel"', 'Package: F6 anonymous tenant sentinel script is exposed');
+  includes(packageJson, '"test:f6-bypass-route-tenant-context-invariant"', 'Package: F6 bypass route tenant-context invariant script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);

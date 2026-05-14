@@ -25,6 +25,7 @@ function readProjectFile(...segments: string[]): string {
 
 const validation = readProjectFile('docs', 'audit', 'f6-tenant-blast-radius-validation.md');
 const anonymousSentinelValidation = readProjectFile('docs', 'audit', 'f6-anonymous-tenant-sentinel.md');
+const bypassRouteValidation = readProjectFile('docs', 'audit', 'f6-bypass-route-tenant-context-invariant.md');
 const tracker = readProjectFile('docs', 'audit', 'attestor-audit-remediation-tracker.md');
 const tenantIsolation = readProjectFile('src', 'service', 'tenant-isolation.ts');
 const genericAdmissionRoutes = readProjectFile(
@@ -69,8 +70,9 @@ excludes(validation, /certified|SOC 2 evidence packet/iu, 'F6 validation: avoids
 includes(tracker, 'F6 Multi-Tenant Blast Radius', 'Tracker: F6 section exists');
 includes(tracker, 'F6-T1 shared PKI tenant binding', 'Tracker: F6-T1 is tracked');
 includes(tracker, 'F6-T10 `default` tenant sentinel collision', 'Tracker: F6-T10 is tracked');
-includes(tracker, 'Remaining F6 queue after anonymous sentinel hardening slice: 4 planned', 'Tracker: F6 remaining count is explicit');
+includes(tracker, 'Remaining F6 queue after bypass-route tenant-context invariant slice: 3 planned', 'Tracker: F6 remaining count is explicit');
 includes(tracker, 'F6 validation and tracker sync', 'Tracker: F6 queue names the current validation slice');
+includes(tracker, 'F6-T5 bypass route tenant-header spoofing | `fixed`', 'Tracker: F6-T5 is fixed');
 includes(tracker, 'F6-T10 `default` tenant sentinel collision | `fixed`', 'Tracker: F6-T10 is fixed');
 
 includes(tenantIsolation, 'tenantApiKeyLookupHash', 'Repo evidence: env tenant key cache uses hashed lookup material');
@@ -79,6 +81,8 @@ includes(tenantIsolation, "ATTESTOR_RUNTIME_PROFILE?.trim() === 'production-shar
 includes(tenantIsolation, "ANONYMOUS_TENANT_ID = '__attestor_anonymous__'", 'Repo evidence: reserved anonymous sentinel exists');
 includes(tenantIsolation, "LEGACY_ANONYMOUS_TENANT_ID = 'default'", 'Repo evidence: legacy anonymous default compatibility exists');
 includes(tenantIsolation, 'isAnonymousTenantContext', 'Repo evidence: anonymous tenant classification helper exists');
+includes(tenantIsolation, 'clearTenantContextHeaders', 'Repo evidence: tenant context headers can be cleared');
+includes(tenantIsolation, 'hasVerifiedTenantContext', 'Repo evidence: tenant context verification marker exists');
 includes(tenantIsolation, 'c.req.raw.headers.set', 'Repo evidence: tenant middleware overwrites internal headers');
 includes(genericAdmissionRoutes, 'Admission tenantId must match the authenticated tenant context', 'Repo evidence: generic admission rejects tenant mismatch');
 includes(genericAdmissionRoutes, 'tenantId: tenant.tenantId', 'Repo evidence: generic admission overwrites tenantId');
@@ -99,9 +103,13 @@ ok(!adminRoutes.includes('currentTenant('), 'Repo evidence: admin routes do not 
 includes(recipientReplay, 'CONSEQUENCE_RECIPIENT_TENANT_BOUNDARY_REPLAY_VERSION', 'Repo evidence: recipient tenant boundary module is replay-scoped');
 includes(packageJson, '"test:f6-tenant-blast-radius-validation"', 'Package: F6 validation test script is exposed');
 includes(packageJson, '"test:f6-anonymous-tenant-sentinel"', 'Package: F6 anonymous sentinel test script is exposed');
+includes(packageJson, '"test:f6-bypass-route-tenant-context-invariant"', 'Package: F6 bypass route tenant-context test script is exposed');
 
 includes(anonymousSentinelValidation, '# F6 Anonymous Tenant Sentinel Validation', 'F6 anonymous sentinel validation: title exists');
 includes(anonymousSentinelValidation, '__attestor_anonymous__', 'F6 anonymous sentinel validation: reserved sentinel is documented');
 includes(anonymousSentinelValidation, 'an API-key tenant named `default` remains distinct', 'F6 anonymous sentinel validation: real default tenant remains distinct');
+includes(bypassRouteValidation, '# F6 Bypass Route Tenant Context Invariant', 'F6 bypass route validation: title exists');
+includes(bypassRouteValidation, 'x-attestor-tenant-context-verified', 'F6 bypass route validation: verified marker is documented');
+includes(bypassRouteValidation, 'currentTenant` refuses spoofed bypass-route tenant ids', 'F6 bypass route validation: runtime invariant is documented');
 
 console.log(`F6 tenant blast-radius validation tests: ${passed} passed, 0 failed`);

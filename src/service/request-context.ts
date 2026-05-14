@@ -12,8 +12,10 @@ import {
 } from './account-session-store.js';
 import type { AccountUserRole } from './account-user-store.js';
 import {
+  anonymousTenantContext,
   getAccountAccessContextFromHeaders,
   getTenantContextFromHeaders,
+  hasVerifiedTenantContext,
   isAnonymousTenantContext,
   type AccountAccessContext,
   type TenantContext,
@@ -46,11 +48,17 @@ export function createRequestSigners(
 }
 
 export function currentTenant(context: Context): TenantContext {
-  return getTenantContextFromHeaders(context.req.raw.headers);
+  const headers = context.req.raw.headers;
+  return hasVerifiedTenantContext(headers)
+    ? getTenantContextFromHeaders(headers)
+    : anonymousTenantContext();
 }
 
 export function currentAccountAccess(context: Context): AccountAccessContext | null {
-  return getAccountAccessContextFromHeaders(context.req.raw.headers);
+  const headers = context.req.raw.headers;
+  return hasVerifiedTenantContext(headers)
+    ? getAccountAccessContextFromHeaders(headers)
+    : null;
 }
 
 export function currentAccountRole(context: Context): AccountUserRole | null {
