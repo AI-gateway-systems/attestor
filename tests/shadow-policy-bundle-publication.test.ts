@@ -96,9 +96,39 @@ function createEvaluationSignature(
   });
 }
 
+function createUnsafeProductionSignature(
+  payload: ShadowPolicyBundleSigningPayload,
+): ShadowPolicyBundlePublicationSignature {
+  return Object.freeze({
+    algorithm: 'ed25519',
+    signature: signPayload(payload.canonical, signingKey.privateKeyPem),
+    signerRef: 'runtime:unsafe-policy-bundle-signer',
+    publicKeyFingerprint: signingIdentity.fingerprint,
+    signedAt: '2026-05-02T14:05:01.000Z',
+    signingBoundary: 'runtime-memory',
+    productionReady: true,
+  });
+}
+
+function createProductionSignature(
+  payload: ShadowPolicyBundleSigningPayload,
+): ShadowPolicyBundlePublicationSignature {
+  return Object.freeze({
+    algorithm: 'external-kms',
+    signature: `external-kms-signature:${payload.digest}`,
+    signerRef: 'kms:prod-policy-bundle-signer',
+    publicKeyFingerprint: 'kms-fingerprint:prod-policy-bundle-signer',
+    signedAt: '2026-05-02T14:05:01.000Z',
+    signingBoundary: 'external-kms-hsm',
+    productionReady: true,
+  });
+}
+
 function createApp(input: {
   readonly events: readonly ShadowAdmissionEvent[];
   readonly withSigner?: boolean;
+  readonly signatureFactory?: (payload: ShadowPolicyBundleSigningPayload) =>
+    ShadowPolicyBundlePublicationSignature;
 }): Hono {
   const candidateStore = createFileBackedShadowPolicyCandidateStore({ path: candidatePath });
   const app = new Hono();
@@ -125,8 +155,8 @@ function createApp(input: {
         actorRef,
         reason,
       }).record,
-    signShadowPolicyBundlePublication: input.withSigner
-      ? ({ payload }) => createEvaluationSignature(payload)
+    signShadowPolicyBundlePublication: input.signatureFactory || input.withSigner
+      ? ({ payload }) => input.signatureFactory?.(payload) ?? createEvaluationSignature(payload)
       : undefined,
     now: () => '2026-05-02T14:05:00.000Z',
   });
@@ -221,6 +251,8 @@ async function testPolicyBundlePublicationCarriesEvaluationSignatureWithoutRawPa
       readonly sourceSimulationDigest: string;
       readonly signatureStatus: string;
       readonly signatureRequired: boolean;
+      readonly productionSigningBoundaryRequired: boolean;
+      readonly productionSigningBoundaryReady: boolean;
       readonly signature: {
         readonly algorithm: string;
         readonly signature: string;
@@ -257,6 +289,8 @@ async function testPolicyBundlePublicationCarriesEvaluationSignatureWithoutRawPa
   ok(publication.sourceSimulationDigest.startsWith('sha256:'), 'Policy bundle publication route: source simulation digest is carried');
   equal(publication.signatureStatus, 'signed-evaluation', 'Policy bundle publication route: local signer is evaluation-only');
   equal(publication.signatureRequired, true, 'Policy bundle publication route: signature remains required');
+  equal(publication.productionSigningBoundaryRequired, true, 'Policy bundle publication route: production signing boundary remains required');
+  equal(publication.productionSigningBoundaryReady, false, 'Policy bundle publication route: runtime-memory signature is not production-boundary ready');
   equal(publication.signature.algorithm, 'ed25519', 'Policy bundle publication route: signature algorithm is explicit');
   equal(publication.signature.signerRef, 'test-local-ed25519-signer', 'Policy bundle publication route: signer ref is explicit');
   equal(publication.signature.publicKeyFingerprint, signingIdentity.fingerprint, 'Policy bundle publication route: public key fingerprint is carried');
@@ -284,6 +318,68 @@ async function testPolicyBundlePublicationCarriesEvaluationSignatureWithoutRawPa
   ok(!text.includes('raw_customer_value_must_not_escape'), 'Policy bundle publication route: raw recipient is not exported');
   ok(!text.includes('raw_feature_value_must_not_escape'), 'Policy bundle publication route: raw feature is not exported');
   ok(!text.includes('order:1'), 'Policy bundle publication route: raw evidence id is not exported');
+}
+
+async function testPolicyBundlePublicationRejectsRuntimeProductionClaim(): Promise<void> {
+  const app = createApp({
+    events: Array.from({ length: 5 }, (_, index) => createSafeEvent(index + 1)),
+    signatureFactory: createUnsafeProductionSignature,
+  });
+  const candidateId = await materializeCandidate(app);
+  await approveCandidate(app, candidateId);
+  const response = await app.request('/api/v1/shadow/policy-bundle-publication');
+  const body = await response.json() as {
+    readonly publication: {
+      readonly signatureStatus: string;
+      readonly productionSigningBoundaryReady: boolean;
+      readonly signature: {
+        readonly signingBoundary: string;
+        readonly productionReady: boolean;
+      };
+      readonly remainingActivationBlockers: readonly string[];
+    };
+  };
+
+  equal(response.status, 200, 'Policy bundle publication route: unsafe runtime production signature returns 200');
+  equal(body.publication.signature?.productionReady, true, 'Policy bundle publication route: unsafe signature claim is preserved for audit');
+  equal(body.publication.signature?.signingBoundary, 'runtime-memory', 'Policy bundle publication route: unsafe signature boundary is visible');
+  equal(body.publication.signatureStatus, 'signed-evaluation', 'Policy bundle publication route: runtime production claim is downgraded to evaluation');
+  equal(body.publication.productionSigningBoundaryReady, false, 'Policy bundle publication route: runtime production claim is not boundary-ready');
+  ok(
+    body.publication.remainingActivationBlockers.includes('production-signing-boundary-invalid'),
+    'Policy bundle publication route: invalid production signing boundary is blocked',
+  );
+}
+
+async function testPolicyBundlePublicationAcceptsProductionBoundary(): Promise<void> {
+  const app = createApp({
+    events: Array.from({ length: 5 }, (_, index) => createSafeEvent(index + 1)),
+    signatureFactory: createProductionSignature,
+  });
+  const candidateId = await materializeCandidate(app);
+  await approveCandidate(app, candidateId);
+  const response = await app.request('/api/v1/shadow/policy-bundle-publication');
+  const body = await response.json() as {
+    readonly publication: {
+      readonly signatureStatus: string;
+      readonly productionSigningBoundaryReady: boolean;
+      readonly signature: {
+        readonly signingBoundary: string;
+        readonly productionReady: boolean;
+      };
+      readonly remainingActivationBlockers: readonly string[];
+    };
+  };
+
+  equal(response.status, 200, 'Policy bundle publication route: production-boundary signature returns 200');
+  equal(body.publication.signature?.productionReady, true, 'Policy bundle publication route: production signature claim is carried');
+  equal(body.publication.signature?.signingBoundary, 'external-kms-hsm', 'Policy bundle publication route: production boundary is external KMS/HSM');
+  equal(body.publication.signatureStatus, 'signed-production', 'Policy bundle publication route: external KMS/HSM signature is production-signed');
+  equal(body.publication.productionSigningBoundaryReady, true, 'Policy bundle publication route: production signing boundary is ready');
+  ok(
+    !body.publication.remainingActivationBlockers.includes('production-signing-boundary-invalid'),
+    'Policy bundle publication route: production signing boundary blocker is absent',
+  );
 }
 
 async function testPolicyBundlePublicationRejectsUnsafeSourceStatus(): Promise<void> {
@@ -348,6 +444,10 @@ try {
   await testPolicyBundlePublicationStaysUnsignedWithoutSigner();
   resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
   await testPolicyBundlePublicationCarriesEvaluationSignatureWithoutRawPayload();
+  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  await testPolicyBundlePublicationRejectsRuntimeProductionClaim();
+  resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
+  await testPolicyBundlePublicationAcceptsProductionBoundary();
   resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
   await testPolicyBundlePublicationRejectsUnsafeSourceStatus();
   testPolicyBundlePublicationModuleRejectsInvalidTimestamp();
