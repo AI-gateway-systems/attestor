@@ -251,9 +251,20 @@ export interface CertificateVerification {
   schemaValid: boolean;
   /** Overall result. */
   overall: 'valid' | 'invalid' | 'expired' | 'revoked' | 'schema_error';
+  /** Structured warnings emitted for compatibility-only verifier paths. */
+  warnings: readonly CertificateVerificationWarning[];
   /** Human-readable explanation. */
   explanation: string;
 }
+
+export interface CertificateVerificationWarning {
+  readonly code: 'legacy-unbounded-certificate-accepted';
+  readonly severity: 'warning';
+  readonly message: string;
+  readonly sunsetAt: typeof LEGACY_UNBOUNDED_CERTIFICATE_SUNSET_AT;
+}
+
+export const LEGACY_UNBOUNDED_CERTIFICATE_SUNSET_AT = '2026-12-31T23:59:59.999Z';
 
 export interface VerifyCertificateOptions {
   readonly now?: Date;
@@ -297,6 +308,7 @@ export function verifyCertificate(
     revoked: false,
     schemaValid: false,
     overall,
+    warnings: Object.freeze([]),
     explanation,
   });
 
@@ -339,6 +351,18 @@ export function verifyCertificate(
   const expired = expiryBounded
     ? nowMs > notAfterMs + clockSkewMs || nowMs < notBeforeMs - clockSkewMs
     : false;
+  const legacyUnboundedAccepted = !expiryBounded && options.allowLegacyUnbounded === true;
+  const warnings: readonly CertificateVerificationWarning[] = legacyUnboundedAccepted
+    ? Object.freeze([
+        {
+          code: 'legacy-unbounded-certificate-accepted',
+          severity: 'warning',
+          message:
+            'Historical certificate without notBefore/notAfter was accepted through allowLegacyUnbounded. Reissue with a bounded certificate before the sunset date.',
+          sunsetAt: LEGACY_UNBOUNDED_CERTIFICATE_SUNSET_AT,
+        },
+      ])
+    : Object.freeze([]);
   const revokedCertificateIds = new Set(options.revokedCertificateIds ?? []);
   const revokedFingerprints = new Set(options.revokedFingerprints ?? []);
   const revoked =
@@ -370,6 +394,7 @@ export function verifyCertificate(
     revoked,
     schemaValid,
     overall,
+    warnings,
     explanation,
   };
 }
