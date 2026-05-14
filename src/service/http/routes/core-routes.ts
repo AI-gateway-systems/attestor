@@ -129,6 +129,11 @@ type ProductionStoragePathEvaluation = {
   }[];
   requiredProofs: readonly string[];
 };
+type AccountAuthKeySources = {
+  mfa: 'dedicated' | 'local-admin-fallback' | 'not-configured';
+  oidc: 'dedicated' | 'local-admin-fallback' | 'not-configured';
+  saml: 'dedicated' | 'local-admin-fallback' | 'not-configured';
+};
 
 export interface CoreRouteDeps {
   evaluateApiHighAvailabilityState(input: {
@@ -180,6 +185,7 @@ export interface CoreRouteDeps {
     tablesProtected: string[];
     error: string | null;
   };
+  accountAuthKeySources?: AccountAuthKeySources;
 }
 
 export function registerCoreRoutes(app: Hono, deps: CoreRouteDeps): void {
@@ -203,6 +209,7 @@ export function registerCoreRoutes(app: Hono, deps: CoreRouteDeps): void {
     evaluateSharedAuthorityRuntimeReadiness,
     evaluateProductionStoragePath,
     rlsActivationResult,
+    accountAuthKeySources,
   } = deps;
 
   app.get('/api/v1/startup', (c) => {
@@ -259,6 +266,13 @@ export function registerCoreRoutes(app: Hono, deps: CoreRouteDeps): void {
         },
       },
       asyncBackend: { mode: asyncBackendMode, redisMode },
+      accountAuth: {
+        keySources: accountAuthKeySources ?? {
+          mfa: 'not-configured',
+          oidc: 'not-configured',
+          saml: 'not-configured',
+        },
+      },
       runtimeProfile: runtimeProfileDiagnostics.profile,
       releaseRuntime: {
         diagnosticsVersion: runtimeProfileDiagnostics.version,

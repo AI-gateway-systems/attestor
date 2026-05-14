@@ -18,7 +18,7 @@ import {
   resolveRuntimeProfile,
 } from '../src/service/bootstrap/runtime-profile.js';
 import { createRequestSigners } from '../src/service/request-context.js';
-import { resetKeylessCa } from '../src/signing/keyless-signer.js';
+import { resetKeylessCaForTesting } from '../src/signing/keyless-signer.js';
 
 let passed = 0;
 
@@ -115,7 +115,7 @@ async function main(): Promise<void> {
 
   try {
     configureDurableRuntimePaths(root, 'rotation-a');
-    resetKeylessCa();
+    resetKeylessCaForTesting('production-runtime-pki-rotation');
     const firstProfile = resolveRuntimeProfile({ env: process.env });
     const first = await createReleaseRuntimeBootstrap({ runtimeProfile: firstProfile });
     const firstVerificationKey = await first.apiReleaseVerificationKeyPromise;

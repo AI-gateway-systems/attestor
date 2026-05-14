@@ -146,8 +146,14 @@ function getOrCreateCa(config?: KeylessSignerConfig): { keyPair: AttestorKeyPair
   return cachedCa;
 }
 
-/** Reset CA (for testing). */
-export function resetKeylessCa(): void {
+/**
+ * Reset CA for isolated tests. Production runtime code must configure the CA
+ * through configureReleaseRuntimeKeylessCa instead of resetting the singleton.
+ */
+export function resetKeylessCaForTesting(testOnlyReason: string): void {
+  if (!testOnlyReason.trim()) {
+    throw new Error('resetKeylessCaForTesting requires a non-empty test-only reason.');
+  }
   cachedCa = null;
 }
 

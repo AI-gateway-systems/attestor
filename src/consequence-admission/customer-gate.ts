@@ -27,6 +27,7 @@ export interface ConsequenceAdmissionCustomerGateDecision {
   readonly failClosed: boolean;
   readonly proofRequired: boolean;
   readonly proofSatisfied: boolean;
+  readonly proofSkippedByCaller: boolean;
   readonly proofRefs: readonly ConsequenceAdmissionProofRef[];
   readonly constraints: readonly ConsequenceAdmissionConstraint[];
   readonly reason: string;
@@ -63,6 +64,7 @@ export function evaluateConsequenceAdmissionGate(
   const proofRequired =
     input.requireProof ?? (input.admission.decision === 'admit' || input.admission.decision === 'narrow');
   const proofRefs = readonlyCopy(input.admission.proof);
+  const proofSkippedByCaller = input.requireProof === false && proofRefs.length === 0;
   const proofSatisfied = !proofRequired || proofRefs.length > 0;
   const failedRequiredChecks = input.admission.checks.filter((check) =>
     check.required && check.outcome === 'fail',
@@ -78,7 +80,11 @@ export function evaluateConsequenceAdmissionGate(
   const failedRequiredCheckCodes = failedRequiredChecks.map((check) => check.kind);
   const reasonCodes = Object.freeze([
     ...input.admission.reasonCodes,
-    missingRequiredProof ? 'customer-gate-proof-required' : 'customer-gate-proof-satisfied',
+    missingRequiredProof
+      ? 'customer-gate-proof-required'
+      : proofSkippedByCaller
+        ? 'customer-gate-proof-skipped-by-caller'
+        : 'customer-gate-proof-satisfied',
     requiredChecksSatisfied ? 'customer-gate-required-checks-satisfied' : 'customer-gate-required-check-failed',
     ...failedRequiredCheckCodes.map((kind) => `customer-gate-required-${kind}-failed`),
     `customer-gate-${outcome}`,
@@ -102,6 +108,7 @@ export function evaluateConsequenceAdmissionGate(
     failClosed: input.admission.failClosed || outcome === 'hold',
     proofRequired,
     proofSatisfied,
+    proofSkippedByCaller,
     proofRefs,
     constraints: readonlyCopy(input.admission.constraints),
     reason,

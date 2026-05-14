@@ -6,7 +6,7 @@
  *   npx tsx src/signing/verify-cli.ts <kit.json>
  *   npx tsx src/signing/verify-cli.ts <kit.json> --trusted-ca-fingerprint <fingerprint>
  *   npx tsx src/signing/verify-cli.ts <kit.json> --developer-mode
- *   npx tsx src/signing/verify-cli.ts <legacy-kit.json> --allow-legacy-verify
+ *   npx tsx src/signing/verify-cli.ts <legacy-kit.json> --allow-legacy-verify <reason>
  */
 
 import { readFileSync } from 'node:fs';
@@ -26,7 +26,7 @@ function main(): void {
     npx tsx src/signing/verify-cli.ts <kit.json>
     npx tsx src/signing/verify-cli.ts <kit.json> --trusted-ca-fingerprint <fingerprint>
     npx tsx src/signing/verify-cli.ts <kit.json> --developer-mode
-    npx tsx src/signing/verify-cli.ts <legacy-kit.json> --allow-legacy-verify
+    npx tsx src/signing/verify-cli.ts <legacy-kit.json> --allow-legacy-verify <reason>
 
   Exit codes:
     0  Fully verified
@@ -76,6 +76,28 @@ function trustedCaFingerprintFromArgs(): string | null {
 
 function developerModeFromArgs(): boolean {
   return process.argv.slice(2).includes('--developer-mode');
+}
+
+function legacyVerifyFlagProvidedFromArgs(): boolean {
+  return process.argv.slice(2).some((arg) =>
+    arg === '--allow-legacy-verify' || arg.startsWith('--allow-legacy-verify=')
+  );
+}
+
+function legacyVerifyReasonFromArgs(): string | null {
+  const args = process.argv.slice(2);
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg.startsWith('--allow-legacy-verify=')) {
+      const value = arg.slice('--allow-legacy-verify='.length).trim();
+      return value.length > 0 ? value : null;
+    }
+    if (arg === '--allow-legacy-verify') {
+      const value = args[index + 1]?.trim();
+      return value && !value.startsWith('--') ? value : null;
+    }
+  }
+  return null;
 }
 
 function verifyCertificateStandalone(cert: AttestationCertificate, publicKeyPem: string): void {
@@ -219,15 +241,23 @@ function verifyKit(kit: VerificationKit): void {
     }
     console.log(`  PKI:        ${pkiVerified ? 'VERIFIED' : trustBinding.failureReasons.join(', ')}`);
   } else {
-    const allowLegacy = process.argv.includes('--allow-legacy-verify');
-    if (allowLegacy) {
+    const legacyFlagProvided = legacyVerifyFlagProvidedFromArgs();
+    const legacyReason = legacyVerifyReasonFromArgs();
+    if (legacyFlagProvided && !legacyReason) {
+      console.log('  FAIL Legacy flat Ed25519 verification requires an explicit reason.');
+      console.log('  Usage: --allow-legacy-verify <reason>');
+      console.log('\n  Overall: LEGACY_REASON_REQUIRED\n');
+      process.exit(2);
+    }
+    if (legacyReason) {
       pkiVerificationRequired = false;
       console.log('  No PKI chain - using legacy flat Ed25519 verification (deprecated)');
+      console.log(`  Reason: ${legacyReason}`);
       console.log('  This mode will be removed in a future version.');
     } else {
       console.log('  FAIL No PKI chain material - PKI verification is mandatory.');
       console.log('  This kit was issued without trust chain and cannot be fully verified.');
-      console.log('  Override: --allow-legacy-verify');
+      console.log('  Override: --allow-legacy-verify <reason>');
       console.log('\n  Overall: PKI_REQUIRED\n');
       process.exit(2);
     }

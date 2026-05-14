@@ -143,6 +143,11 @@ async function testReleaseTokenJwksRouteExposesPublicVerificationKeyOnly(): Prom
       tablesProtected: [],
       error: null,
     },
+    accountAuthKeySources: {
+      mfa: 'dedicated',
+      oidc: 'local-admin-fallback',
+      saml: 'not-configured',
+    },
   };
 
   registerCoreRoutes(app, deps);
@@ -155,6 +160,13 @@ async function testReleaseTokenJwksRouteExposesPublicVerificationKeyOnly(): Prom
     'Core routes: health route is explicitly no-store',
   );
   const healthBody = await healthResponse.json() as {
+    accountAuth?: {
+      keySources?: {
+        mfa?: string;
+        oidc?: string;
+        saml?: string;
+      };
+    };
     releaseRuntime?: {
       signingProvider?: {
         kind?: string;
@@ -177,6 +189,21 @@ async function testReleaseTokenJwksRouteExposesPublicVerificationKeyOnly(): Prom
     healthBody.releaseRuntime?.signingProvider?.privateKeyExportable,
     true,
     'Core routes: health route reports exportable local release signer material',
+  );
+  equal(
+    healthBody.accountAuth?.keySources?.mfa,
+    'dedicated',
+    'Core routes: health route reports MFA key source label',
+  );
+  equal(
+    healthBody.accountAuth?.keySources?.oidc,
+    'local-admin-fallback',
+    'Core routes: health route reports OIDC key source label',
+  );
+  equal(
+    healthBody.accountAuth?.keySources?.saml,
+    'not-configured',
+    'Core routes: health route reports missing SAML key source label',
   );
 
   const readyResponse = await app.request('/api/v1/ready');

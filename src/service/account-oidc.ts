@@ -115,19 +115,27 @@ function normalizeIssuerUrl(value: string): string {
   return trimAndStripTrailingSlashes(value);
 }
 
-function hostedOidcAllowsInsecureRequests(config: HostedOidcConfig): boolean {
+export function hostedOidcAllowsInsecureRequests(config: HostedOidcConfig): boolean {
   const explicit = process.env.ATTESTOR_HOSTED_OIDC_ALLOW_INSECURE_HTTP;
-  if (envTruthy(explicit)) return true;
+  const explicitlyAllowed = envTruthy(explicit);
+  let localHttpIssuer = false;
   try {
     const url = new URL(config.issuerUrl);
-    return url.protocol === 'http:' && (
+    localHttpIssuer = url.protocol === 'http:' && (
       url.hostname === '127.0.0.1'
       || url.hostname === 'localhost'
       || url.hostname === '::1'
     );
   } catch {
-    return false;
+    localHttpIssuer = false;
   }
+  if (!explicitlyAllowed && !localHttpIssuer) return false;
+  if (isProductionLikeRuntimeEnv()) {
+    throw new Error(
+      'ATTESTOR_HOSTED_OIDC_ALLOW_INSECURE_HTTP and localhost HTTP OIDC issuers are disabled in production-like runtimes.',
+    );
+  }
+  return true;
 }
 
 function normalizeScopes(value: string | null | undefined): string {

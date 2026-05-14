@@ -2316,6 +2316,7 @@ export * from './agentic-supply-chain-guard.js';
 export * from './multi-agent-delegation-guard.js';
 export * from './decision-context-drift-binding.js';
 export * from './no-go-condition-ledger.js';
+export * from './escape-hatch-telemetry.js';
 export * from './policy-foundry-failure-gap-map.js';
 export * from './policy-foundry-counterexample-ledger.js';
 export * from './policy-foundry-policy-twin-summary.js';

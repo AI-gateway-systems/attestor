@@ -69,6 +69,7 @@ export const CONSEQUENCE_NO_GO_CONDITION_REASON_CODES = [
   'hold-expires-at-invalid',
   'untrusted-hold-source',
   'natural-language-bypass-attempted',
+  'natural-language-bypass-inferred',
   'released-hold-recorded',
   'expired-hold-recorded',
   'no-go-condition-pass',
@@ -99,6 +100,7 @@ export interface EvaluateConsequenceNoGoConditionLedgerInput {
   readonly ledgerRef?: string | null;
   readonly conditions?: readonly ConsequenceNoGoConditionRecord[] | null;
   readonly naturalLanguageBypassAttempted?: boolean | null;
+  readonly naturalLanguageSignals?: readonly string[] | null;
   readonly bypassAttemptRef?: string | null;
 }
 
@@ -153,6 +155,9 @@ export interface ConsequenceNoGoConditionLedgerDecision {
     readonly missingOwnerCount: number;
     readonly missingAuthorityCount: number;
     readonly naturalLanguageBypassAttempted: boolean;
+    readonly naturalLanguageBypassInferred: boolean;
+    readonly naturalLanguageBypassSignalCount: number;
+    readonly naturalLanguageBypassSignalDigests: readonly string[];
   };
   readonly observedConditions: readonly ConsequenceNoGoConditionObservedRecord[];
   readonly approvalRequired: true;
@@ -184,6 +189,12 @@ export interface ConsequenceNoGoConditionLedgerDescriptor {
   readonly autoEnforce: false;
   readonly productionReady: false;
   readonly activatesEnforcement: false;
+}
+
+export interface ConsequenceNoGoNaturalLanguageBypassDetection {
+  readonly attempted: boolean;
+  readonly signalCount: number;
+  readonly signalDigests: readonly string[];
 }
 
 const TRUSTED_SOURCES = new Set<ConsequenceNoGoConditionSourceKind>([
@@ -220,6 +231,33 @@ function normalizeOptionalString(value: string | null | undefined): string | und
 function normalizeDigest(value: string | null | undefined): string | undefined {
   const normalized = normalizeOptionalString(value);
   return normalized && normalized.startsWith('sha256:') ? normalized : undefined;
+}
+
+const NATURAL_LANGUAGE_BYPASS_PATTERNS = Object.freeze([
+  /\b(ignore|override|bypass|skip)\b.{0,80}\b(no-go|hold|legal hold|fraud hold|compliance hold|security hold|policy hold)\b/iu,
+  /\b(no-go|hold|legal hold|fraud hold|compliance hold|security hold|policy hold)\b.{0,80}\b(ignore|override|bypass|skip)\b/iu,
+  /\b(do not|don't)\s+(tell|mention|surface|report|record)\b.{0,80}\b(hold|review|approval|policy|compliance)\b/iu,
+  /\b(despite|regardless of)\b.{0,80}\b(hold|review|approval|policy|compliance|legal)\b/iu,
+  /\bpretend\b.{0,80}\b(approved|authorized|cleared|released)\b/iu,
+] as const);
+
+export function detectConsequenceNoGoNaturalLanguageBypass(
+  signals: readonly string[] | null | undefined,
+): ConsequenceNoGoNaturalLanguageBypassDetection {
+  const digests: string[] = [];
+  for (const signal of signals ?? []) {
+    const normalized = signal.trim();
+    if (!normalized) continue;
+    if (NATURAL_LANGUAGE_BYPASS_PATTERNS.some((pattern) => pattern.test(normalized))) {
+      digests.push(digestText(normalized));
+    }
+  }
+  const uniqueDigests = Object.freeze([...new Set(digests)]);
+  return Object.freeze({
+    attempted: uniqueDigests.length > 0,
+    signalCount: uniqueDigests.length,
+    signalDigests: uniqueDigests,
+  });
 }
 
 function normalizeTimestamp(value: string | null | undefined): string | null {
@@ -295,7 +333,12 @@ export function evaluateConsequenceNoGoConditionLedger(
   const actionSurface = normalizeOptionalString(input.actionSurface);
   const action = normalizeOptionalString(input.action);
   const conditions = input.conditions ?? null;
-  const naturalLanguageBypassAttempted = input.naturalLanguageBypassAttempted === true;
+  const naturalLanguageBypassDetection = detectConsequenceNoGoNaturalLanguageBypass(
+    input.naturalLanguageSignals,
+  );
+  const naturalLanguageBypassInferred = naturalLanguageBypassDetection.attempted;
+  const naturalLanguageBypassAttempted =
+    input.naturalLanguageBypassAttempted === true || naturalLanguageBypassInferred;
   const observedConditions = Object.freeze(
     (conditions ?? []).map((record) => evaluateRecord(record, generatedAt)),
   );
@@ -303,6 +346,7 @@ export function evaluateConsequenceNoGoConditionLedger(
   const reasonCodes: ConsequenceNoGoConditionReasonCode[] = [];
   if (!conditions) reasonCodes.push('hold-ledger-missing');
   if (naturalLanguageBypassAttempted) reasonCodes.push('natural-language-bypass-attempted');
+  if (naturalLanguageBypassInferred) reasonCodes.push('natural-language-bypass-inferred');
   for (const condition of observedConditions) {
     reasonCodes.push(...condition.reasonCodes);
   }
@@ -363,6 +407,9 @@ export function evaluateConsequenceNoGoConditionLedger(
     missingOwnerCount,
     missingAuthorityCount,
     naturalLanguageBypassAttempted,
+    naturalLanguageBypassInferred,
+    naturalLanguageBypassSignalCount: naturalLanguageBypassDetection.signalCount,
+    naturalLanguageBypassSignalDigests: naturalLanguageBypassDetection.signalDigests,
   });
   const canonical = canonicalObject({
     version: CONSEQUENCE_NO_GO_CONDITION_LEDGER_VERSION,

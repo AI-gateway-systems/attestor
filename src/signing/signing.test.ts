@@ -200,7 +200,7 @@ async function runSigningTests(): Promise<number> {
   console.log('\n  [PKI Trust Chain]');
   {
     const { verifyTrustChain, generatePkiHierarchy } = await import('./pki-chain.js');
-    const { createKeylessSigner, resetKeylessCa } = await import('./keyless-signer.js');
+    const { createKeylessSigner, resetKeylessCaForTesting } = await import('./keyless-signer.js');
 
     // Generate full PKI hierarchy
     const pki = generatePkiHierarchy('Test CA', 'Test Signer', 'Test Reviewer');
@@ -251,7 +251,7 @@ async function runSigningTests(): Promise<number> {
     assert(strictExpiryVerify.overall === 'expired', 'PKI: trust-chain verification can still fail strict expiry');
     passed += 2;
 
-    resetKeylessCa();
+    resetKeylessCaForTesting('signing-test-isolation');
     const keyless = createKeylessSigner(
       {
         subject: 'Short Lived Runtime',

@@ -35,6 +35,7 @@ try {
   includes(tracker, 'Remaining F7 queue after shadow readiness and claim alignment: 0 planned', 'Tracker: F7 remaining estimate is explicit');
   includes(tracker, 'Remaining F8 queue after operational resilience validation: 0 planned', 'Tracker: F8 remaining estimate is explicit');
   includes(tracker, 'Remaining F9 queue after compliance gap validation: 0 planned', 'Tracker: F9 remaining estimate is explicit');
+  includes(tracker, 'Remaining F10 queue after escape-hatch validation: 0 planned', 'Tracker: F10 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -90,6 +91,7 @@ try {
     'F7 Shadow Infrastructure Red-Team',
     'F8 Operational Resilience / Chaos',
     'F9 Compliance Gap Analysis',
+    'F10 Customer Escape-Hatch Abuse',
   ]) {
     includes(tracker, group, `Tracker: ${group} section exists`);
   }
@@ -183,7 +185,21 @@ try {
   includes(tracker, 'F9-C12 shared-responsibility model implicit | `fixed`', 'Tracker: F9-C12 status is tracked');
   includes(tracker, 'F9 Compliance Gap Validation', 'Tracker: F9 validation evidence is linked');
   includes(tracker, 'F9 is closed for planned repository', 'Tracker: F9 closure is explicit');
-  includes(tracker, 'F10 customer escape-hatch abuse. Not started.', 'Tracker: F10 next work marker is explicit');
+  includes(tracker, 'F10 customer escape-hatch abuse | 12 | 8 | 4 | 0', 'Tracker: F10 count row is tracked');
+  includes(tracker, 'F10-E1 legacy flat verify reason missing | `fixed`', 'Tracker: F10-E1 status is tracked');
+  includes(tracker, 'F10-E2 `requireProof: false` telemetry gap | `fixed`', 'Tracker: F10-E2 status is tracked');
+  includes(tracker, 'F10-E3 break-glass rollout lacks distinct gate | `fixed`', 'Tracker: F10-E3 status is tracked');
+  includes(tracker, 'F10-E4 natural-language bypass caller-asserted | `partial`', 'Tracker: F10-E4 status is tracked');
+  includes(tracker, 'F10-E5 OIDC insecure HTTP production gate | `fixed`', 'Tracker: F10-E5 status is tracked');
+  includes(tracker, 'F10-E6 shared `accept-the-risk` string | `accepted-limitation`', 'Tracker: F10-E6 status is tracked');
+  includes(tracker, 'F10-E7 fallback key-source health visibility | `fixed`', 'Tracker: F10-E7 status is tracked');
+  includes(tracker, 'F10-E8 local-dev profile production fallback | `invalid-as-stated`', 'Tracker: F10-E8 status is tracked');
+  includes(tracker, 'F10-E9 exported `resetKeylessCa` | `fixed`', 'Tracker: F10-E9 status is tracked');
+  includes(tracker, 'F10-E10 degraded-mode TTL escape | `fixed`', 'Tracker: F10-E10 status is tracked');
+  includes(tracker, 'F10-E11 shared counter default | `partial`', 'Tracker: F10-E11 status is tracked');
+  includes(tracker, 'F10-E12 aggregate escape-hatch usage view | `partial`', 'Tracker: F10-E12 status is tracked');
+  includes(tracker, 'F10 Customer Escape-Hatch Abuse', 'Tracker: F10 section is present');
+  includes(tracker, 'F11 supply-chain depth. Not started.', 'Tracker: F11 next work marker is explicit');
   includes(tracker, 'F5-A1 out-of-band trust root optional | `fixed`', 'Tracker: F5 CA pin validation is fixed');
   includes(tracker, 'F5 CA Pin Required Validation', 'Tracker: F5 CA pin validation evidence is linked');
   includes(tracker, 'F5-A2 legacy flat verify escape via env | `fixed`', 'Tracker: F5 legacy env downgrade validation is fixed');
@@ -239,6 +255,7 @@ try {
   includes(packageJson, '"test:f7-shadow-readiness-claim-alignment-validation"', 'Package: F7 shadow readiness validation script is exposed');
   includes(packageJson, '"test:f8-operational-resilience-validation"', 'Package: F8 operational resilience validation script is exposed');
   includes(packageJson, '"test:f9-compliance-gap-validation"', 'Package: F9 compliance gap validation script is exposed');
+  includes(packageJson, '"test:f10-escape-hatch-validation"', 'Package: F10 escape-hatch validation script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);

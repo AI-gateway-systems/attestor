@@ -158,6 +158,26 @@ function testLedgerIndexesAuditRemediationClosure(): void {
     'ISO/IEC 42001:2023',
     'Research provenance ledger: F9 ISO 42001 anchor is recorded',
   );
+  includes(
+    content,
+    '### 21. F10 Customer Escape-Hatch Abuse Closure',
+    'Research provenance ledger: F10 closure entry is present',
+  );
+  includes(
+    content,
+    'docs/audit/f10-escape-hatch-validation.md',
+    'Research provenance ledger: F10 validation doc is indexed',
+  );
+  includes(
+    content,
+    'tests/f10-escape-hatch-validation.test.ts',
+    'Research provenance ledger: F10 validation test is indexed',
+  );
+  includes(
+    content,
+    'does not prove persisted SIEM/admin reporting',
+    'Research provenance ledger: F10 closure keeps live reporting non-claim explicit',
+  );
 }
 
 function testLedgerKeepsEvidenceBoundaryExplicit(): void {

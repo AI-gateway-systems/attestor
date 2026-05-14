@@ -103,8 +103,13 @@ function testHoldGate(): void {
 
   equal(gate.outcome, 'hold', 'Customer gate: blocked response holds');
   equal(gate.failClosed, true, 'Customer gate: hold is fail closed');
+  equal(gate.proofSkippedByCaller, true, 'Customer gate: explicit proof skip is telemetry-visible');
   includes(gate.instruction, 'Do not run downstream action', 'Customer gate: instruction blocks downstream action');
   ok(gate.reasonCodes.includes('customer-gate-hold'), 'Customer gate: reason codes include hold');
+  ok(
+    gate.reasonCodes.includes('customer-gate-proof-skipped-by-caller'),
+    'Customer gate: proof skip reason is explicit',
+  );
 }
 
 function testRequiredProofHoldsEvenWhenNativeDecisionPassed(): void {
@@ -150,6 +155,7 @@ function testRequiredCheckFailureHoldsEvenWithProof(): void {
   });
 
   equal(gate.proofSatisfied, true, 'Customer gate: proof can be satisfied independently');
+  equal(gate.proofSkippedByCaller, false, 'Customer gate: satisfied proof is not marked skipped');
   equal(gate.outcome, 'hold', 'Customer gate: failed required admission checks hold the consequence');
   ok(gate.reasonCodes.includes('customer-gate-required-check-failed'), 'Customer gate: required check failure is explicit');
   ok(gate.reasonCodes.includes('customer-gate-required-authority-failed'), 'Customer gate: failed authority check is named');

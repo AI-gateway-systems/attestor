@@ -408,6 +408,20 @@ The entries above are the most concrete PR/commit-linked hardening records. The 
 - Remaining limitation or no-go condition: This closes the repository-side F9 documentation queue only. It does not prove SOC 2 Type I/II assurance, ISO management-system audit completion, GDPR compliance, EU AI Act conformity, live data-residency controls, customer access reviews, vendor due-diligence records, legal notices, independent penetration-test results, or customer production operations.
 - Status: complete for F9 repository-side compliance documentation once this PR is merged and verified on `origin/master`.
 
+### 21. F10 Customer Escape-Hatch Abuse Closure
+
+- Step / PR / commit: F10 project-owner supplied customer escape-hatch abuse report; this closure PR records validation evidence but cannot pre-record its own merge commit.
+- Trust surface: verifier downgrade flags, customer-gate proof requirements, no-go bypass handling, hosted OIDC insecure HTTP override, account auth key-source observability, keyless CA test reset, degraded-mode break-glass TTL, policy shared-counter defaults, and aggregate escape-hatch telemetry.
+- Protected principle: fail-closed boundary; auditability; customer authority; no overclaim; runtime readiness; data minimization and redaction.
+- Research anchor / source used, if recorded: OWASP API Security Top 10 2023, NIST SP 800-53 Rev. 5, NIST SP 800-92, SOC 2 TSC, ISO/IEC 27001:2022, and ISO/IEC 42001:2023. These are engineering anchors only, not assurance claims.
+- Repository evidence:
+  - Contract/code evidence: `src/signing/verify-cli.ts`, `src/consequence-admission/customer-gate.ts`, `src/consequence-admission/no-go-condition-ledger.ts`, `src/consequence-admission/escape-hatch-telemetry.ts`, `src/service/account-oidc.ts`, `src/service/http/routes/core-routes.ts`, `src/signing/keyless-signer.ts`, `docs/audit/f10-escape-hatch-validation.md`, and `docs/audit/attestor-audit-remediation-tracker.md`.
+  - Test evidence: `tests/f10-escape-hatch-validation.test.ts`, `tests/consequence-admission-customer-gate.test.ts`, `tests/no-go-condition-ledger.test.ts`, `tests/account-oidc-linking-policy.test.ts`, `tests/service-core-routes.test.ts`, `tests/audit-remediation-tracker.test.ts`, and `tests/research-provenance-ledger.test.ts`.
+- Implemented control: Converts F10 from an escape-hatch inventory into machine-checked repository evidence. Legacy flat verification now requires a reason; proof-skip is separately visible; natural-language bypass attempts can be inferred without storing raw text; insecure OIDC HTTP is blocked in production-like runtimes; health reports nonsecret auth key-source labels; the generic keyless CA reset export is removed; and a digest-only escape-hatch telemetry summary contract exists.
+- Tests / verification: `npm run test:f10-escape-hatch-validation`, `npm run test:audit-remediation-tracker`, and `npm run test:research-provenance-ledger`.
+- Remaining limitation or no-go condition: This closes the repository-side F10 queue only. It does not prove persisted SIEM/admin reporting, live OIDC provider operation, customer downstream gateway enforcement, every upstream text extraction path into the no-go scanner, or live production operator monitoring.
+- Status: complete for F10 repository-side validation once this PR is merged and verified on `origin/master`.
+
 ## Strong Recorded Research Support
 
 The strongest recorded research support appears in:

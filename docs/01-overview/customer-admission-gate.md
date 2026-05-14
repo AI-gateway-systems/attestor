@@ -24,6 +24,11 @@ The gate returns:
 - `PROCEED` when Attestor returned `admit` or `narrow`, the response is not fail-closed, and required proof is present
 - `HOLD` when Attestor returned `review` or `block`, the response is fail-closed, or required proof is missing
 
+If a caller explicitly sets `requireProof: false` and no proof is present, the
+gate records `proofSkippedByCaller` and the reason code
+`customer-gate-proof-skipped-by-caller`. That is an escape hatch, not a normal
+success path.
+
 The downstream system should only write, send, file, execute, broadcast, sign, or settle after the customer gate returns `PROCEED`.
 
 ## Minimal Shape

@@ -313,7 +313,7 @@ export function buildProofShowcasePacket(input: BuildProofShowcasePacketInput): 
       rerun: input.rerunCommand ?? 'npx tsx scripts/real-db-proof.ts',
       verifyKit: input.kit.trustChain && input.kit.caPublicKeyPem
         ? `npm run verify:cert -- ${latestPrefix}/evidence/kit.json`
-        : `npm run verify:cert -- ${latestPrefix}/evidence/kit.json --allow-legacy-verify`,
+        : `npm run verify:cert -- ${latestPrefix}/evidence/kit.json --allow-legacy-verify "legacy kit without PKI chain"`,
       verifyCertificate: `npm run verify:cert -- ${latestPrefix}/evidence/certificate.json ${latestPrefix}/evidence/public-key.pem`,
     },
   };
