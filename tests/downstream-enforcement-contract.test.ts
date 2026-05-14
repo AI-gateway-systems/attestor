@@ -308,6 +308,16 @@ function testNarrowRequiresConstraintAcknowledgement(): void {
     allowed.constraintRefs[0]?.idDigest.startsWith('sha256:'),
     'Downstream contract: constraint id is represented by digest',
   );
+  equal(
+    allowed.constraintRefs[0]?.kind,
+    'max-amount',
+    'Downstream contract: constraint ref carries machine-readable kind',
+  );
+  equal(
+    allowed.constraintRefs[0]?.parameterDigest,
+    null,
+    'Downstream contract: constraint ref carries null parameter digest when none is provided',
+  );
   ok(
     allowed.constraintRefs[0]?.constraintDigest.startsWith('sha256:'),
     'Downstream contract: constraint body is represented by digest',

@@ -86,9 +86,17 @@ The evaluator still checks acknowledgement against the raw constraint ids it rec
 
 ```text
 constraintRefs:
-  - idDigest: sha256:...
+  - kind: max-amount
+    parameterDigest: sha256:... | null
+    idDigest: sha256:...
     constraintDigest: sha256:...
 ```
+
+Constraint kinds come from the canonical `CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS`
+registry. This lets an enforcement point distinguish a maximum-amount constraint
+from a recipient allowlist, record scope, time window, tool allowlist, policy
+reference, release-token requirement, customer-approved-scope constraint, or
+custom constraint without exposing private thresholds or raw policy text.
 
 Operators that need the full constraint text should read the original admission inside the customer's trusted control plane. Receipts, logs, dashboards, and presentation decisions should keep only the digest references.
 

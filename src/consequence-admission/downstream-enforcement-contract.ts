@@ -18,6 +18,10 @@ import {
   consequenceAdmissionDomainsForKind,
   type ConsequenceAdmissionDomain,
 } from './taxonomy.js';
+import {
+  CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS,
+  type ConsequenceAdmissionConstraintKind,
+} from './constraint-kinds.js';
 
 export const CONSEQUENCE_ADMISSION_DOWNSTREAM_CONTRACT_VERSION =
   'attestor.consequence-admission-downstream-contract.v1';
@@ -114,6 +118,8 @@ export interface ConsequenceAdmissionDownstreamObservation {
 }
 
 export interface ConsequenceAdmissionDownstreamConstraintRef {
+  readonly kind: ConsequenceAdmissionConstraintKind;
+  readonly parameterDigest: string | null;
   readonly idDigest: string;
   readonly constraintDigest: string;
 }
@@ -161,6 +167,7 @@ export interface ConsequenceAdmissionDownstreamContractDescriptor {
   readonly failureReasons: typeof CONSEQUENCE_ADMISSION_DOWNSTREAM_FAILURE_REASONS;
   readonly decisionExposesRawConstraints: false;
   readonly decisionConstraintReferenceMode: 'digests-only';
+  readonly constraintKinds: typeof CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS;
   readonly failClosed: true;
 }
 
@@ -248,14 +255,18 @@ function constraintRef(
   constraint: ConsequenceAdmissionConstraint,
 ): ConsequenceAdmissionDownstreamConstraintRef {
   return Object.freeze({
+    kind: constraint.kind,
+    parameterDigest: constraint.parameterDigest,
     idDigest: digestText(constraint.id),
     constraintDigest: digestCanonical({
       version: CONSEQUENCE_ADMISSION_DOWNSTREAM_CONTRACT_VERSION,
       kind: 'constraint-reference',
       constraint: {
         id: constraint.id,
+        kind: constraint.kind,
         summary: constraint.summary,
         enforcedBy: constraint.enforcedBy,
+        parameterDigest: constraint.parameterDigest,
       },
     } as unknown as CanonicalReleaseJsonValue),
   });
@@ -485,6 +496,7 @@ ConsequenceAdmissionDownstreamContractDescriptor {
     failureReasons: CONSEQUENCE_ADMISSION_DOWNSTREAM_FAILURE_REASONS,
     decisionExposesRawConstraints: false,
     decisionConstraintReferenceMode: 'digests-only',
+    constraintKinds: CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS,
     failClosed: true,
   });
 }
