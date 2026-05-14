@@ -33,6 +33,12 @@ import {
   CONSEQUENCE_ADMISSION_DOWNSTREAM_EXECUTION_STATUSES,
 } from './downstream-execution-receipt.js';
 import {
+  CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS,
+  CONSEQUENCE_ADMISSION_CONSTRAINT_PARAMETER_DIGEST_PATTERN,
+  isConsequenceAdmissionConstraintKind,
+  type ConsequenceAdmissionConstraintKind,
+} from './constraint-kinds.js';
+import {
   CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_FAILURE_REASONS,
   CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_OUTCOMES,
   CONSEQUENCE_ADMISSION_RETRY_ATTEMPT_LEDGER_VERSION,
@@ -370,8 +376,18 @@ export interface ConsequenceAdmissionNativeDecision {
 
 export interface ConsequenceAdmissionConstraint {
   readonly id: string;
+  readonly kind: ConsequenceAdmissionConstraintKind;
   readonly summary: string;
   readonly enforcedBy: string;
+  readonly parameterDigest: string | null;
+}
+
+export interface CreateConsequenceAdmissionConstraintInput {
+  readonly id: string;
+  readonly kind?: ConsequenceAdmissionConstraintKind | null;
+  readonly summary: string;
+  readonly enforcedBy: string;
+  readonly parameterDigest?: string | null;
 }
 
 export interface ConsequenceAdmissionProofRef {
@@ -563,6 +579,7 @@ export interface ConsequenceAdmissionDescriptor {
   readonly taxonomy: typeof CONSEQUENCE_ADMISSION_TAXONOMY;
   readonly policyLimitKinds: typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_KINDS;
   readonly policyLimitBreachActions: typeof CONSEQUENCE_ADMISSION_POLICY_LIMIT_BREACH_ACTIONS;
+  readonly constraintKinds: typeof CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS;
   readonly presentationBindingFields: typeof CONSEQUENCE_ADMISSION_PRESENTATION_BINDING_FIELDS;
   readonly presentationReplayLedgerFailureReasons: typeof CONSEQUENCE_ADMISSION_PRESENTATION_REPLAY_LEDGER_FAILURE_REASONS;
   readonly downstreamExecutionStatuses: typeof CONSEQUENCE_ADMISSION_DOWNSTREAM_EXECUTION_STATUSES;
@@ -608,7 +625,7 @@ export interface CreateConsequenceAdmissionResponseInput {
   readonly reason: string;
   readonly reasonCodes?: readonly string[];
   readonly checks?: readonly ConsequenceAdmissionCheck[];
-  readonly constraints?: readonly ConsequenceAdmissionConstraint[];
+  readonly constraints?: readonly CreateConsequenceAdmissionConstraintInput[];
   readonly nativeDecision?: ConsequenceAdmissionNativeDecision | null;
   readonly proof?: readonly ConsequenceAdmissionProofRef[];
   readonly operationalContext?: Readonly<Record<string, string | number | boolean | null>>;
@@ -683,6 +700,74 @@ function normalizeIdentifier(value: string | null | undefined, fieldName: string
     throw new Error(`Consequence admission ${fieldName} requires a non-empty value.`);
   }
   return normalized;
+}
+
+function inferConstraintKind(id: string): ConsequenceAdmissionConstraintKind {
+  const normalized = id.toLowerCase();
+  if (normalized.includes('max-amount') || normalized.includes('amount')) {
+    return 'max-amount';
+  }
+  if (normalized.includes('recipient')) {
+    return 'recipient-allowlist';
+  }
+  if (normalized.includes('record') || normalized.includes('data-scope')) {
+    return 'record-scope';
+  }
+  if (normalized.includes('time') || normalized.includes('window')) {
+    return 'time-window';
+  }
+  if (normalized.includes('tool')) {
+    return 'tool-allowlist';
+  }
+  if (normalized.includes('policy')) {
+    return 'policy-ref';
+  }
+  if (normalized.includes('release-token') || normalized.startsWith('rt_')) {
+    return 'release-token';
+  }
+  if (normalized.includes('generic-narrow') || normalized.includes('customer')) {
+    return 'customer-approved-scope';
+  }
+  return 'custom';
+}
+
+function normalizeConstraintKind(
+  kind: ConsequenceAdmissionConstraintKind | null | undefined,
+  id: string,
+): ConsequenceAdmissionConstraintKind {
+  if (kind === undefined || kind === null) return inferConstraintKind(id);
+  if (!isConsequenceAdmissionConstraintKind(kind)) {
+    throw new Error(
+      `Consequence admission constraint kind must be one of: ${CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS.join(', ')}.`,
+    );
+  }
+  return kind;
+}
+
+function normalizeConstraintParameterDigest(
+  value: string | null | undefined,
+): string | null {
+  if (value === undefined || value === null) return null;
+  const normalized = normalizeIdentifier(value, 'constraint.parameterDigest');
+  if (!CONSEQUENCE_ADMISSION_CONSTRAINT_PARAMETER_DIGEST_PATTERN.test(normalized)) {
+    throw new Error(
+      'Consequence admission constraint parameterDigest must be a sha256 digest.',
+    );
+  }
+  return normalized;
+}
+
+function normalizeConstraint(
+  input: CreateConsequenceAdmissionConstraintInput,
+): ConsequenceAdmissionConstraint {
+  const id = normalizeIdentifier(input.id, 'constraint.id');
+  return Object.freeze({
+    id,
+    kind: normalizeConstraintKind(input.kind, id),
+    summary: normalizeIdentifier(input.summary, 'constraint.summary'),
+    enforcedBy: normalizeIdentifier(input.enforcedBy, 'constraint.enforcedBy'),
+    parameterDigest: normalizeConstraintParameterDigest(input.parameterDigest),
+  });
 }
 
 function normalizeOptionalIdentifier(
@@ -1254,8 +1339,10 @@ function genericAdmissionConstraints(
   return Object.freeze([
     {
       id: `constraint:${input.domain}:generic-narrow`,
+      kind: 'customer-approved-scope',
       summary: 'Proceed only with the customer-approved narrowed scope.',
       enforcedBy: input.downstreamSystem,
+      parameterDigest: null,
     },
   ]);
 }
@@ -1892,7 +1979,7 @@ export function createConsequenceAdmissionResponse(
   const decision = normalizeEnumValue(input.decision, CONSEQUENCE_ADMISSION_DECISIONS, 'decision');
   const reason = normalizeIdentifier(input.reason, 'reason');
   const reasonCodes = readonlyCopy(input.reasonCodes);
-  const constraints = readonlyCopy(input.constraints);
+  const constraints = Object.freeze((input.constraints ?? []).map(normalizeConstraint));
 
   if (decision === 'narrow' && constraints.length === 0) {
     throw new Error(
@@ -2151,6 +2238,7 @@ ConsequenceAdmissionDescriptor {
     taxonomy: CONSEQUENCE_ADMISSION_TAXONOMY,
     policyLimitKinds: CONSEQUENCE_ADMISSION_POLICY_LIMIT_KINDS,
     policyLimitBreachActions: CONSEQUENCE_ADMISSION_POLICY_LIMIT_BREACH_ACTIONS,
+    constraintKinds: CONSEQUENCE_ADMISSION_CONSTRAINT_KINDS,
     presentationBindingFields: CONSEQUENCE_ADMISSION_PRESENTATION_BINDING_FIELDS,
     presentationReplayLedgerFailureReasons: CONSEQUENCE_ADMISSION_PRESENTATION_REPLAY_LEDGER_FAILURE_REASONS,
     downstreamExecutionStatuses: CONSEQUENCE_ADMISSION_DOWNSTREAM_EXECUTION_STATUSES,
@@ -2158,6 +2246,7 @@ ConsequenceAdmissionDescriptor {
 }
 
 export * from './taxonomy.js';
+export * from './constraint-kinds.js';
 export * from './policy-limits.js';
 export * from './presentation-binding.js';
 export * from './presentation-replay-ledger.js';

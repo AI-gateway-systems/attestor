@@ -174,6 +174,14 @@ function testDescriptorAndDecisionHelpers(): void {
     'Admission contract: retry attempt ledger exposes idempotency conflict',
   );
   ok(
+    descriptor.constraintKinds.includes('max-amount'),
+    'Admission contract: max-amount is a first-class constraint kind',
+  );
+  ok(
+    descriptor.constraintKinds.includes('recipient-allowlist'),
+    'Admission contract: recipient allowlist is a first-class constraint kind',
+  );
+  ok(
     descriptor.correctionAudiences.includes('model'),
     'Admission contract: correction catalog exposes model audience',
   );

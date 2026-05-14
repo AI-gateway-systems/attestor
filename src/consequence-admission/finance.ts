@@ -484,8 +484,10 @@ function defaultNarrowConstraints(): readonly ConsequenceAdmissionConstraint[] {
   return Object.freeze([
     {
       id: 'finance-native-constraint',
+      kind: 'customer-approved-scope',
       summary: 'Proceed only under the constraints returned by the finance native surface.',
       enforcedBy: 'customer downstream system',
+      parameterDigest: null,
     },
   ]);
 }
