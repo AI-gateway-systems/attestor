@@ -41,14 +41,14 @@ later implementation pass does not re-open already-retired issues.
 | Group | Total tracked | Closed / invalid-as-stated | Partial / limitation / backlog | Needs revalidation / open |
 |---|---:|---:|---:|---:|
 | F1 threat-model foundation | 6 | 1 | 5 | 0 |
-| F2 agentic consequence surface | 10 | 1 | 2 | 7 |
+| F2 agentic consequence surface | 10 | 1 | 3 | 6 |
 | F3 cross-cutting guard readiness | 10 | 10 | 0 | 0 |
 | F4 OWASP LLM redo, active findings | 14 | 0 | 1 | 13 |
 | F4 stale worktree findings retired by fresh main | 3 | 0 | 3 | 0 |
 | F5 signing layer redo | 21 | 5 | 3 | 13 |
 | Final docs / claim alignment | 2 | 0 | 0 | 2 |
 
-Estimated remaining work after this tracker lands: about 33 to 41 PR-sized or
+Estimated remaining work after this tracker lands: about 32 to 40 PR-sized or
 validation-sized units. Several items overlap and may close together, but no
 item is treated as closed until repository evidence proves it.
 
@@ -94,7 +94,7 @@ Source report: project-owner supplied F2 redo, agentic consequence-surface audit
 | ID | Current status | Evidence / PR | Remaining action |
 |---|---|---|---|
 | F2-AG-1 customer-gate honor-system | `partial` | `docs/audit/f2-customer-gate-enforcement-validation.md` | Customer-gate helper alone is non-cryptographic; downstream contract helper and release-enforcement plane exist. Generic consequence-to-token binding remains future work. |
-| F2-AG-2 agent-payment settlement post-condition | `needs-revalidation` | `crypto-authorization-core/x402-agentic-payment-adapter.ts`; downstream receipt | Validate whether settlement evidence is operator-asserted or verifier-bound; likely needs facilitator-attestation contract. |
+| F2-AG-2 agent-payment settlement post-condition | `partial` | `docs/audit/f2-agent-payment-settlement-validation.md`; `crypto-authorization-core/x402-agentic-payment-adapter.ts`; `crypto-execution-admission/x402-resource-server.ts`; downstream receipt | Original no-settlement-gate wording is stale. Settlement gates exist, but facilitator/settlement truth remains adapter/runtime observation. Needs verifier-bound settlement attestation or chain receipt verification before `fixed`. |
 | F2-AG-3 account-delegation / EIP-7702 scope | `needs-revalidation` | crypto authorization adapters and replay freshness rules | Validate scope/window/nonce binding before creating a delegation-scope guard. |
 | F2-AG-4 multi-agent delegation confusion | `fixed` | PR #300; `multi-agent-delegation-guard.ts` | No further action for this scoped guard. Live inter-agent transport auth remains not proven. |
 | F2-AG-5 hidden downstream side effects / receipt omission | `needs-revalidation` | downstream enforcement contract and execution receipt exist | Validate whether receipt-deadline escalation exists; likely follow-up. |
@@ -206,30 +206,28 @@ backlogged.
 
 Recommended next order through F5:
 
-1. Merge this tracker update so the queue count is canonical.
-2. F2-AG-2 agent-payment settlement post-condition revalidation.
-3. F2-AG-3 account-delegation / EIP-7702 scope revalidation.
-4. F2-AG-5 hidden downstream side-effect receipt-deadline revalidation.
-5. F2-AG-6 / F4-LLM09-A hallucinated evidence and unsupported confidence.
-6. F2-AG-7 / F4-LLM03-A / F4-D runtime LLM provider and supply-chain split.
-7. F2-AG-9 free-text narrow constraints and constraint-kind registry.
-8. F2-AG-10 model/tool/config drift guard decision.
-9. F4-LLM01-A trust-class PKI proof revalidation.
-10. F4-LLM01-B hosted LLM boundary runtime conformance.
-11. F4-LLM02-A / F4-LLM02-B data-minimization scanning and activation readiness.
-12. F4-LLM05-A presentation freshness nonce.
-13. F4-LLM05-B shared replay ledger.
-14. F4-LLM06-B / F4-LLM10-A / F4-LLM10-B shared velocity and retry-budget validation.
-15. F4-LLM07-A prompt leakage marker expansion.
-16. F5-A1 require trusted CA pin or explicit developer-mode bypass.
-17. F5-A2 remove or sunset legacy env downgrade.
-18. F5-A3 fingerprint width migration.
-19. F5-A4 / F5-A8 canonicalization and numeric payload behavior.
-20. F-5.2 / F5-A5 file durability and key persistence atomicity.
-21. F5-A7 / F5-NEW-1 keyless CA singleton and test-only injection.
-22. F-5.7 / F5-NEW-2 HA shared PKI and production-shared local-PKI closure.
-23. F5-NEW-3 legacy unbounded certificate telemetry and sunset.
-24. F5-A6 transparency log design decision and claim boundary.
-25. F5-B1 crypto-authorization trust-delegation documentation.
-26. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
-27. Final README/docs/provenance claim alignment.
+1. F2-AG-3 account-delegation / EIP-7702 scope revalidation.
+2. F2-AG-5 hidden downstream side-effect receipt-deadline revalidation.
+3. F2-AG-6 / F4-LLM09-A hallucinated evidence and unsupported confidence.
+4. F2-AG-7 / F4-LLM03-A / F4-D runtime LLM provider and supply-chain split.
+5. F2-AG-9 free-text narrow constraints and constraint-kind registry.
+6. F2-AG-10 model/tool/config drift guard decision.
+7. F4-LLM01-A trust-class PKI proof revalidation.
+8. F4-LLM01-B hosted LLM boundary runtime conformance.
+9. F4-LLM02-A / F4-LLM02-B data-minimization scanning and activation readiness.
+10. F4-LLM05-A presentation freshness nonce.
+11. F4-LLM05-B shared replay ledger.
+12. F4-LLM06-B / F4-LLM10-A / F4-LLM10-B shared velocity and retry-budget validation.
+13. F4-LLM07-A prompt leakage marker expansion.
+14. F5-A1 require trusted CA pin or explicit developer-mode bypass.
+15. F5-A2 remove or sunset legacy env downgrade.
+16. F5-A3 fingerprint width migration.
+17. F5-A4 / F5-A8 canonicalization and numeric payload behavior.
+18. F-5.2 / F5-A5 file durability and key persistence atomicity.
+19. F5-A7 / F5-NEW-1 keyless CA singleton and test-only injection.
+20. F-5.7 / F5-NEW-2 HA shared PKI and production-shared local-PKI closure.
+21. F5-NEW-3 legacy unbounded certificate telemetry and sunset.
+22. F5-A6 transparency log design decision and claim boundary.
+23. F5-B1 crypto-authorization trust-delegation documentation.
+24. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
+25. Final README/docs/provenance claim alignment.
