@@ -119,6 +119,36 @@ The `simulation` object is produced by the crypto authorization core and its ada
 
 For the crypto package path, package-native `admit` maps to canonical `admit`, `needs-evidence` maps to fail-closed `review`, and `deny` maps to fail-closed `block`. That typed projection lives in `src/consequence-admission/crypto.ts` and keeps the current entry point as a package boundary rather than a public hosted crypto route.
 
+### Crypto Trust Delegation Boundary
+
+The crypto authorization core is an admission and simulation layer. It is not
+itself a wallet, chain indexer, bundler, custody policy engine, x402 facilitator,
+or settlement oracle.
+
+Attestor can bind the proposed consequence to policy scope, release evidence,
+replay/freshness posture, nonce requirements, adapter readiness, and an
+admission plan. It does not independently recover secp256k1 signatures, call
+ERC-1271 `isValidSignature`, read ERC-4337 EntryPoint nonce state, validate
+EIP-7702 authorization tuples on chain, inspect Safe guard/module state, verify
+custody policy state, or prove x402 settlement unless a trusted integration
+adapter supplies verifiable observation evidence for that fact.
+
+This is intentional. Crypto execution truth lives at the wallet, contract,
+chain, bundler, custody, facilitator, or solver boundary. Attestor should not
+claim chain-authoritative verification when it only has a plan or an
+operator-provided observation. The honest decision language is:
+
+- `admit`: policy and required adapter evidence are sufficient for the
+  customer-operated execution point to continue
+- `needs-evidence`: the plan is structurally valid, but required chain,
+  wallet, settlement, or custody evidence is missing or stale
+- `deny`: the policy, scope, freshness, nonce, receipt, or adapter evidence
+  fails closed
+
+If an integration cannot produce verifiable adapter evidence, treat the result
+as simulation/admission guidance, not proof that the downstream crypto action
+was valid or settled.
+
 Choose the first crypto surface by where the consequence would happen:
 
 | Consequence surface | First Attestor surface |
