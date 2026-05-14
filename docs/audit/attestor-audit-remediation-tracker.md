@@ -51,6 +51,7 @@ later implementation pass does not re-open already-retired issues.
 | F7 shadow infrastructure red-team | 10 | 8 | 2 | 0 |
 | F8 operational resilience / chaos | 12 | 6 | 6 | 0 |
 | F9 compliance gap analysis | 12 | 11 | 1 | 0 |
+| F10 customer escape-hatch abuse | 12 | 8 | 4 | 0 |
 
 Remaining work after the final claim-alignment slice: 0 planned
 PR-sized or validation-sized units in the current F1-F5 audit queue.
@@ -73,6 +74,9 @@ PR-sized or validation-sized units.
 
 Remaining F9 queue after compliance gap validation: 0 planned
 documentation or validation units.
+
+Remaining F10 queue after escape-hatch validation: 0 planned
+repository-side units.
 
 Completion rule through F5: every F1-F5 row must end as `fixed`,
 `invalid-as-stated`, `superseded`, `accepted-limitation`, or `backlog` with
@@ -369,6 +373,34 @@ not a SOC 2 report, not an ISO audit, and not live production proof.
 | F9-C11 privacy notice / data-flow template missing | `fixed` | `privacy-notice-template.md`; data minimization policy. | Legal basis, DPA, data-subject process, and customer notice approval remain external. |
 | F9-C12 shared-responsibility model implicit | `fixed` | `shared-responsibility-matrix.md`; compliance evidence boundary. | Contractual allocation and customer control owner assignments remain external. |
 
+## F10 Customer Escape-Hatch Abuse
+
+Source report: project-owner supplied F10 customer escape-hatch abuse audit.
+
+Validation record: `docs/audit/f10-escape-hatch-validation.md`.
+
+Current F10 status: validation pass complete for the report as supplied. The
+repository now requires reason metadata for legacy verifier downgrade, records
+customer-gate proof skips distinctly, rejects insecure hosted OIDC discovery in
+production-like runtimes, exposes nonsecret account auth key-source labels,
+adds digest-only no-go bypass scanning, removes the generic keyless CA reset
+export, and adds a digest-only escape-hatch telemetry summary contract.
+
+| ID | Current status | Evidence / overlap | Remaining action |
+|---|---|---|---|
+| F10-E1 legacy flat verify reason missing | `fixed` | `verify-cli.ts`; `signing-verification.md`; `test:f10-escape-hatch-validation`. | Legacy mode remains intentional for pre-PKI kits, but now requires a reason. |
+| F10-E2 `requireProof: false` telemetry gap | `fixed` | `customer-gate.ts`; `customer-gate-proof-skipped-by-caller`; `test:consequence-admission-customer-gate`. | Downstream enforcement remains customer-owned unless using protected enforcement wrappers. |
+| F10-E3 break-glass rollout lacks distinct gate | `fixed` | F7 Break-Glass Hardening Validation; secondary approver, expiry, justification, reconciliation. | Live operator evidence remains external. |
+| F10-E4 natural-language bypass caller-asserted | `partial` | `detectConsequenceNoGoNaturalLanguageBypass`; digest-only signal count/digests; `test:no-go-condition-ledger`. | Upstream integrations must pass relevant text fields to the scanner. |
+| F10-E5 OIDC insecure HTTP production gate | `fixed` | `hostedOidcAllowsInsecureRequests`; `account-oidc-linking-policy.test.ts`. | Live IdP configuration remains deployment evidence. |
+| F10-E6 shared `accept-the-risk` string | `accepted-limitation` | F10 validation documents the shared string as operator friction, not a secret. | Per-override phrases can be added later if operator confusion appears. |
+| F10-E7 fallback key-source health visibility | `fixed` | `/api/v1/health` `accountAuth.keySources`; `test:service-core-routes`. | Operators must monitor the health output. |
+| F10-E8 local-dev profile production fallback | `invalid-as-stated` | Production runtime profile tests and docs already require explicit profile in production-like envs. | Hosts with no production-like signal remain outside repository detection. |
+| F10-E9 exported `resetKeylessCa` | `fixed` | `resetKeylessCaForTesting(reason)` replaces generic reset export; package exports do not expose signing internals. | Internal test helper remains for isolated tests. |
+| F10-E10 degraded-mode TTL escape | `fixed` | F8 Operational Resilience Validation; `createDegradedModeGrant` max TTL enforcement. | No remaining repository action for this scoped finding. |
+| F10-E11 shared counter default | `partial` | Existing F4 shared velocity validation and production storage gates keep this as a claim boundary. | Pure policy default remains single-process compatible. |
+| F10-E12 aggregate escape-hatch usage view | `partial` | `escape-hatch-telemetry.ts` catalog, event, and summary builder. | Persisted admin route / SIEM export remains future integration work. |
+
 ## Next Work Queue
 
 The current F1-F5 project-owner supplied audit queue is closed for repository
@@ -378,7 +410,8 @@ evidence.
 
 F6 is closed for planned repository slices. F7 is closed for planned repository slices.
 F8 is closed for planned repository slices. F9 is closed for planned repository
-documentation and validation slices.
+documentation and validation slices. F10 is closed for planned repository
+validation slices.
 Planned F7 order:
 
 1. F7 validation and tracker sync. Done.
@@ -398,6 +431,10 @@ Planned F9 order:
 1. F9 compliance gap validation and tracker sync. Done in this slice.
 2. F9 governance documentation mapping. Done in this slice.
 
+Planned F10 order:
+
+1. F10 escape-hatch validation and tracker sync. Done in this slice.
+
 Next planned report queue:
 
-1. F10 customer escape-hatch abuse. Not started.
+1. F11 supply-chain depth. Not started.

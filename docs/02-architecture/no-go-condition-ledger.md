@@ -55,6 +55,7 @@ The ledger is digest-first:
 
 - ledger reference digest
 - bypass attempt reference digest
+- inferred bypass signal count and digests
 - condition reference digest
 - source reference digest
 - owner reference digest
@@ -65,6 +66,10 @@ The ledger is digest-first:
 - reason codes
 
 It does not serialize raw hold references, private case identifiers, customer messages, reviewer identifiers, or natural-language bypass text.
+
+The optional natural-language bypass detector can scan text supplied by an
+integration and records only whether a bypass was inferred plus digests of the
+matched signals. It does not fetch customer messages or model output on its own.
 
 ## Limitation
 

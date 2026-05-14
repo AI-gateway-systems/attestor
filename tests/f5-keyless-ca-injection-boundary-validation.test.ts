@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import {
   configureReleaseRuntimeKeylessCa,
   createKeylessSigner,
-  resetKeylessCa,
+  resetKeylessCaForTesting,
 } from '../src/signing/keyless-signer.js';
 import { generatePkiHierarchy } from '../src/signing/pki-chain.js';
 
@@ -58,7 +58,7 @@ try {
   );
   excludes(packageJson, './signing/keyless-signer', 'F5-A7: keyless signer internals are not public package exports');
 
-  resetKeylessCa();
+  resetKeylessCaForTesting('f5-keyless-ca-injection-boundary-validation');
   const first = generatePkiHierarchy('Runtime CA', 'Runtime Signer', 'Runtime Reviewer');
   const configured = configureReleaseRuntimeKeylessCa(first.ca);
   equal(configured.source, 'release-runtime-bootstrap', 'F5-A7: configuration source is explicit');
@@ -112,5 +112,5 @@ try {
 
   console.log(`f5-keyless-ca-injection-boundary-validation.test.ts: ${passed} assertions passed`);
 } finally {
-  resetKeylessCa();
+  resetKeylessCaForTesting('f5-keyless-ca-injection-boundary-validation');
 }

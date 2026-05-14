@@ -11,7 +11,7 @@ import {
   ATTESTOR_RUNTIME_PROFILE_ENV,
   findRuntimeProfile,
 } from '../src/service/bootstrap/runtime-profile.js';
-import { resetKeylessCa } from '../src/signing/keyless-signer.js';
+import { resetKeylessCaForTesting } from '../src/signing/keyless-signer.js';
 
 let passed = 0;
 
@@ -68,7 +68,7 @@ async function withTempCwd<T>(fn: (root: string) => Promise<T>): Promise<T> {
 
 async function testProductionSharedPreflightDoesNotPersistLocalPki(): Promise<void> {
   const previous = saveEnvironment();
-  resetKeylessCa();
+  resetKeylessCaForTesting('f5-ha-shared-pki-closure-validation');
   await withTempCwd(async (root) => {
     try {
       process.env[ATTESTOR_RUNTIME_PROFILE_ENV] = 'production-shared';
@@ -90,14 +90,14 @@ async function testProductionSharedPreflightDoesNotPersistLocalPki(): Promise<vo
       );
     } finally {
       restoreEnvironment(previous);
-      resetKeylessCa();
+      resetKeylessCaForTesting('f5-ha-shared-pki-closure-validation');
     }
   });
 }
 
 async function testProductionSharedPreflightRejectsUnattestedConfiguredPath(): Promise<void> {
   const previous = saveEnvironment();
-  resetKeylessCa();
+  resetKeylessCaForTesting('f5-ha-shared-pki-closure-validation');
   await withTempCwd(async (root) => {
     try {
       const pkiPath = join(root, 'release-runtime-pki.json');
@@ -114,14 +114,14 @@ async function testProductionSharedPreflightRejectsUnattestedConfiguredPath(): P
       equal(existsSync(pkiPath), false, 'F5 HA PKI: unattested path does not create issuer key material');
     } finally {
       restoreEnvironment(previous);
-      resetKeylessCa();
+      resetKeylessCaForTesting('f5-ha-shared-pki-closure-validation');
     }
   });
 }
 
 async function testProductionSharedSharedPathAttestationCreatesReadyFileBackedPki(): Promise<void> {
   const previous = saveEnvironment();
-  resetKeylessCa();
+  resetKeylessCaForTesting('f5-ha-shared-pki-closure-validation');
   await withTempCwd(async (root) => {
     try {
       const pkiPath = join(root, 'release-runtime-pki.json');
@@ -140,7 +140,7 @@ async function testProductionSharedSharedPathAttestationCreatesReadyFileBackedPk
       ok(existsSync(pkiPath), 'F5 HA PKI: attested shared path creates the issuer store');
     } finally {
       restoreEnvironment(previous);
-      resetKeylessCa();
+      resetKeylessCaForTesting('f5-ha-shared-pki-closure-validation');
     }
   });
 }

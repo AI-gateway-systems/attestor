@@ -14,7 +14,7 @@ Certificates are JSON documents that bind the full authority chain, evidence anc
 - **WHAT** evidence exists (evidence chain root/terminal, audit chain integrity, SQL hash, snapshot hash)
 - **WHETHER** execution was live or fixture-based (live proof mode + consistency)
 
-**Verification is portable and offline — no platform access, no database, no API call. The default verifier path is PKI-first: kit verification requires trust chain material (CA → leaf → certificate binding) and a trusted CA fingerprint pinned out of band. When chain material is absent, the CLI exits with code 2 (`PKI_REQUIRED`). When a kit provides a CA but no trusted CA fingerprint is supplied, the CLI exits with code 2 (`TRUST_ROOT_REQUIRED`) unless the caller explicitly chooses developer mode. Legacy flat Ed25519 verification (certificate JSON + signer public key only) remains available only as an explicit CLI override (`--allow-legacy-verify`).**
+**Verification is portable and offline — no platform access, no database, no API call. The default verifier path is PKI-first: kit verification requires trust chain material (CA → leaf → certificate binding) and a trusted CA fingerprint pinned out of band. When chain material is absent, the CLI exits with code 2 (`PKI_REQUIRED`). When a kit provides a CA but no trusted CA fingerprint is supplied, the CLI exits with code 2 (`TRUST_ROOT_REQUIRED`) unless the caller explicitly chooses developer mode. Legacy flat Ed25519 verification (certificate JSON + signer public key only) remains available only as an explicit CLI override with a reason (`--allow-legacy-verify <reason>`).**
 
 For independent third-party trust, the verifier must pin the expected CA fingerprint out-of-band with `--trusted-ca-fingerprint` or `ATTESTOR_TRUSTED_CA_FINGERPRINT`. A kit-contained `caPublicKeyPem` can prove internal chain consistency only when `--developer-mode` is explicitly selected; it is not by itself an out-of-band trust root.
 
@@ -58,7 +58,7 @@ PKI chain verification is now **mandatory** across both CLI and API.
 - When a trusted CA fingerprint is absent: verification fails closed with `TRUST_ROOT_REQUIRED`
 - Developer mode (`--developer-mode`) allows kit-contained CA chain-integrity checks for local development only; independent third-party trust is not claimed
 - When PKI chain material is absent: **exit code 2** (`PKI_REQUIRED`) — verification impossible
-- Legacy flat Ed25519 override: `--allow-legacy-verify` only; no env-var downgrade is supported
+- Legacy flat Ed25519 override: `--allow-legacy-verify <reason>` only; no env-var downgrade is supported
 
 **API verify behavior (mandatory):**
 - `/api/v1/verify` requires `trustChain` + `caPublicKeyPem` alongside `certificate` + `publicKeyPem`

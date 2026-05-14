@@ -25,6 +25,7 @@ import { sessionCookieName } from '../account-session-store.js';
 import { ATTESTOR_SERVICE_VERSION } from '../version.js';
 import {
   buildTotpOtpAuthUrl,
+  accountMfaEncryptionKeySource,
   decryptTotpSecret,
   encryptTotpSecret,
   generateRecoveryCodes,
@@ -37,6 +38,7 @@ import {
   buildHostedOidcAuthorizationRequest,
   completeHostedOidcAuthorization,
   hostedOidcAllowsAutomaticLinking,
+  hostedOidcStateKeySource,
   linkAccountUserOidcIdentity,
 } from '../account-oidc.js';
 import {
@@ -53,6 +55,7 @@ import {
   completeHostedSamlAuthorization,
   getHostedSamlMetadata,
   hostedSamlAllowsAutomaticLinking,
+  hostedSamlRelayStateKeySource,
   linkAccountUserSamlIdentity,
 } from '../account-saml.js';
 import { verifyAccountUserPasswordRecord } from '../account-user-store.js';
@@ -386,6 +389,16 @@ export async function createApiHttpRouteRuntime(
     committedEvidenceContentType,
   } satisfies ApiRouteDeps['publicSite'];
 
+  const safeAccountAuthKeySource = (
+    resolve: () => 'dedicated' | 'local-admin-fallback',
+  ): 'dedicated' | 'local-admin-fallback' | 'not-configured' => {
+    try {
+      return resolve();
+    } catch {
+      return 'not-configured';
+    }
+  };
+
   const coreRouteDeps = {
     evaluateApiHighAvailabilityState,
     redisMode,
@@ -414,6 +427,11 @@ export async function createApiHttpRouteRuntime(
         runtimeProfileId: runtimeProfileId === runtimeProfile.id ? runtimeProfile.id : null,
       }),
     rlsActivationResult,
+    accountAuthKeySources: {
+      mfa: safeAccountAuthKeySource(accountMfaEncryptionKeySource),
+      oidc: safeAccountAuthKeySource(hostedOidcStateKeySource),
+      saml: safeAccountAuthKeySource(hostedSamlRelayStateKeySource),
+    },
   } satisfies ApiRouteDeps['core'];
 
   const accountRouteDeps = buildAccountRouteDeps({
