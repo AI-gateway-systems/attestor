@@ -64,11 +64,21 @@ function testShadowEventRedactsRawInputs(): void {
   equal(event.shadowDecision, 'would_review', 'Shadow event: shadow decision is retained');
   equal(event.effectiveDecision, 'admit', 'Shadow event: observe mode still admits effective response');
   equal(event.rawPayloadStored, false, 'Shadow event: raw payload storage is explicitly false');
+  equal(event.originWitness.version, 'attestor.shadow-admission-origin-witness.v1', 'Shadow event: origin witness version is explicit');
+  equal(event.originWitness.admissionDigest, event.admissionDigest, 'Shadow event: origin witness binds admission digest');
+  equal(event.originWitnessDigest, event.originWitness.digest, 'Shadow event: origin witness digest is carried');
+  equal(event.redactionWitness.version, 'attestor.shadow-admission-redaction-witness.v1', 'Shadow event: redaction witness version is explicit');
+  equal(event.redactionWitness.redactionPolicyVersion, 'attestor.consequence-data-minimization-redaction-policy.v1', 'Shadow event: redaction witness binds policy version');
+  equal(event.redactionWitness.observedFeatureDigest, event.observedFeatureDigest, 'Shadow event: redaction witness binds observed feature digest');
+  equal(event.redactionWitness.rawObservedValuesStored, false, 'Shadow event: redaction witness declares raw observed values are not stored');
+  equal(event.redactionWitnessDigest, event.redactionWitness.digest, 'Shadow event: redaction witness digest is carried');
   equal(event.evidenceRefCount, 2, 'Shadow event: evidence is counted instead of copied');
   ok(event.eventId.startsWith('shadow:sha256:'), 'Shadow event: generated id is digest-backed');
   ok(event.admissionDigest.startsWith('sha256:'), 'Shadow event: admission digest is carried');
   ok(event.observedFeatureDigest?.startsWith('sha256:'), 'Shadow event: observed feature digest is carried');
   ok(event.observedFeatureKeys.includes('amountBucket'), 'Shadow event: observed feature keys are retained');
+  ok(event.originWitness.digest.startsWith('sha256:'), 'Shadow event: origin witness is digest-backed');
+  ok(event.redactionWitness.digest.startsWith('sha256:'), 'Shadow event: redaction witness is digest-backed');
   ok(!serialized.includes('raw-value-that-must-not-appear'), 'Shadow event: raw observed feature values are not serialized');
   ok(!serialized.includes('customer_123'), 'Shadow event: raw recipient is not serialized');
   ok(!serialized.includes('order:987'), 'Shadow event: raw evidence refs are not serialized');
@@ -129,6 +139,8 @@ function testRecorderSummarizesPolicyGapsAndReviewLoad(): void {
   equal(summary.blockedCount, 1, 'Shadow summary: block decisions are counted');
   equal(summary.nonEnforcingEventCount, 1, 'Shadow summary: non-enforcing adoption events are counted');
   equal(summary.rawPayloadEventCount, 0, 'Shadow summary: raw payload events remain zero');
+  equal(observedEvent.originWitness.admissionId, observedEvent.admissionId, 'Shadow recorder: recorded event carries origin witness');
+  equal(blockedEvent.redactionWitness.rawPayloadStored, false, 'Shadow recorder: recorded event carries redaction witness');
   equal(
     summarizeShadowAdmissionEvents([blockedEvent]).blockedCount,
     1,
