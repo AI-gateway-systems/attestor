@@ -89,6 +89,7 @@
     "test:research-provenance-ledger": "tsx tests/research-provenance-ledger.test.ts",
     "test:audit-remediation-tracker": "tsx tests/audit-remediation-tracker.test.ts",
     "test:final-claim-alignment-validation": "tsx tests/final-claim-alignment-validation.test.ts",
+    "test:f6-tenant-blast-radius-validation": "tsx tests/f6-tenant-blast-radius-validation.test.ts",
     "test:f1-backlog-closure-validation": "tsx tests/f1-backlog-closure-validation.test.ts",
     "test:f2-customer-gate-validation": "tsx tests/f2-customer-gate-validation.test.ts",
     "test:f2-agent-payment-settlement-validation": "tsx tests/f2-agent-payment-settlement-validation.test.ts",
