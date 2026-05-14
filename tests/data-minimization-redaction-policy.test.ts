@@ -347,6 +347,14 @@ function testEvaluationAllowsOnlySurfaceSpecificUnits(): void {
     exposedUnits: ['operator-supplied-aggregate-impact'],
     exposedRawClasses: ['raw-customer-identifier', 'credential-or-secret'],
   });
+  const materialBlocked = evaluateConsequenceDataMinimizationArtifact({
+    surfaceKind: 'admission-model-feedback',
+    material: JSON.stringify({
+      prompt: 'raw-model-prompt must not leave model feedback',
+      token: 'private_key must not leave model feedback',
+      rawPayloadStored: true,
+    }),
+  });
 
   equal(allowed.allowed, true, 'Data minimization policy: model-safe feedback shape is allowed');
   equal(allowed.failClosed, false, 'Data minimization policy: allowed feedback does not fail closed');
@@ -369,6 +377,20 @@ function testEvaluationAllowsOnlySurfaceSpecificUnits(): void {
   ok(
     blocked.reasonCodes.includes('data-unit-not-allowed:operator-supplied-aggregate-impact'),
     'Data minimization policy: dashboard-only impact units are not allowed in audit export',
+  );
+  equal(materialBlocked.allowed, false, 'Data minimization policy: unsafe material is blocked by scanner');
+  equal(materialBlocked.failClosed, true, 'Data minimization policy: unsafe material fails closed');
+  ok(
+    materialBlocked.reasonCodes.includes('unsafe-material-detected'),
+    'Data minimization policy: material scanner feeds artifact evaluation',
+  );
+  ok(
+    materialBlocked.reasonCodes.includes('material-raw-payload-storage'),
+    'Data minimization policy: material-declared raw payload storage is blocked',
+  );
+  ok(
+    !materialBlocked.reasonCodes.some((reason) => reason.includes('private_key')),
+    'Data minimization policy: stable reason codes do not echo sensitive marker text',
   );
 }
 

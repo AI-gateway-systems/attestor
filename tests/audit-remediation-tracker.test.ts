@@ -30,7 +30,7 @@ try {
   includes(tracker, '# Attestor Audit Remediation Tracker', 'Tracker: title is present');
   includes(tracker, 'not a certification', 'Tracker: no-certification disclaimer is present');
   includes(tracker, '`origin/master` is the source of truth', 'Tracker: origin/master rule is present');
-  includes(tracker, 'Estimated remaining work after this tracker lands: about 23 to 31', 'Tracker: remaining estimate is explicit');
+  includes(tracker, 'Estimated remaining work after this tracker lands: about 22 to 30', 'Tracker: remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -54,6 +54,7 @@ try {
     '#308',
     '#309',
     '#310',
+    '#311',
   ]) {
     includes(tracker, pr, `Tracker: ${pr} is referenced`);
   }
@@ -84,6 +85,8 @@ try {
   includes(tracker, 'F4-LLM09-A hallucinated evidence / unsupported confidence | `partial`', 'Tracker: F4 LLM09 evidence confidence validation is closed as partial');
   includes(tracker, 'F4-LLM01-A indirect prompt injection via operator-asserted trust class | `fixed`', 'Tracker: F4 trust class PKI proof validation is fixed');
   includes(tracker, 'F4-LLM01-B hosted LLM agent tool boundary descriptor-only | `invalid-as-stated`', 'Tracker: F4 hosted LLM boundary conformance is invalid as stated');
+  includes(tracker, 'F4-LLM02-A data-minimization evaluation operator-driven | `fixed`', 'Tracker: F4 data minimization scanning is fixed');
+  includes(tracker, 'F4-LLM02-B redaction policy not activated as an enforcement claim | `accepted-limitation`', 'Tracker: F4 data minimization readiness boundary is accepted');
   includes(tracker, 'F4-LLM03-A agentic supply-chain coverage gap / single LLM provider | `partial`', 'Tracker: F4 LLM03 provider split is closed as partial');
   includes(tracker, 'F4-D Attestor-owned OpenAI usage / budget / prompt leakage scope | `backlog`', 'Tracker: F4-D OpenAI usage is backlogged');
   includes(tracker, 'F5-A6 transparency log missing', 'Tracker: F5 transparency limitation is tracked');

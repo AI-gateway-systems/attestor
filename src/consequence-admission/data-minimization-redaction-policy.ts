@@ -151,6 +151,8 @@ export interface EvaluateConsequenceDataMinimizationArtifactInput {
   readonly rawPayloadStored?: boolean | null;
   readonly exposedUnits?: readonly ConsequenceDataMinimizationAllowedUnit[] | null;
   readonly exposedRawClasses?: readonly ConsequenceDataMinimizationForbiddenRawClass[] | null;
+  readonly material?: string | null;
+  readonly extraSensitiveMarkers?: readonly string[] | null;
 }
 
 export interface ConsequenceDataMinimizationMaterialSafetyFindingInput {
@@ -687,9 +689,22 @@ export function evaluateConsequenceDataMinimizationArtifact(
   const reasonCodes: string[] = [];
   const rawClasses = input.exposedRawClasses ?? [];
   const exposedUnits = input.exposedUnits ?? [];
+  const materialFindings = input.material
+    ? consequenceDataMinimizationMaterialSafetyFindings({
+      material: input.material,
+      findingSubject: input.surfaceKind,
+      extraSensitiveMarkers: input.extraSensitiveMarkers,
+    })
+    : [];
 
   if (input.rawPayloadStored === true) {
     reasonCodes.push('raw-payload-stored');
+  }
+  if (materialFindings.length > 0) {
+    reasonCodes.push('unsafe-material-detected');
+  }
+  if (materialFindings.some((finding) => finding.includes('raw payload storage'))) {
+    reasonCodes.push('material-raw-payload-storage');
   }
   for (const rawClass of rawClasses) {
     if (policy.forbiddenRawClasses.includes(rawClass)) {
