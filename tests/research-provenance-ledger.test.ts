@@ -113,6 +113,26 @@ function testLedgerIndexesAuditRemediationClosure(): void {
     'does not prove external compliance certification',
     'Research provenance ledger: final closure keeps certification non-claim explicit',
   );
+  includes(
+    content,
+    '### 19. F8 Operational Resilience Audit Closure',
+    'Research provenance ledger: F8 closure entry is present',
+  );
+  includes(
+    content,
+    'docs/audit/f8-operational-resilience-validation.md',
+    'Research provenance ledger: F8 validation doc is indexed',
+  );
+  includes(
+    content,
+    'tests/f8-operational-resilience-validation.test.ts',
+    'Research provenance ledger: F8 validation test is indexed',
+  );
+  includes(
+    content,
+    'does not prove a live Kubernetes deployment',
+    'Research provenance ledger: F8 closure keeps live deployment non-claim explicit',
+  );
 }
 
 function testLedgerKeepsEvidenceBoundaryExplicit(): void {

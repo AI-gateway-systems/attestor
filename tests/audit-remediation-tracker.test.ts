@@ -33,6 +33,7 @@ try {
   includes(tracker, 'Remaining work after the final claim-alignment slice: 0 planned', 'Tracker: final remaining estimate is explicit');
   includes(tracker, 'Remaining F6 queue after recipient/tenant runtime boundary bridge: 0 planned', 'Tracker: F6 remaining estimate is explicit');
   includes(tracker, 'Remaining F7 queue after shadow readiness and claim alignment: 0 planned', 'Tracker: F7 remaining estimate is explicit');
+  includes(tracker, 'Remaining F8 queue after operational resilience validation: 0 planned', 'Tracker: F8 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -86,6 +87,7 @@ try {
     'Final Docs And Claim Alignment',
     'F6 Multi-Tenant Blast Radius',
     'F7 Shadow Infrastructure Red-Team',
+    'F8 Operational Resilience / Chaos',
   ]) {
     includes(tracker, group, `Tracker: ${group} section exists`);
   }
@@ -150,6 +152,20 @@ try {
   includes(tracker, 'F7-S9 shadow bundle signing boundary | `fixed`', 'Tracker: F7-S9 status is tracked');
   includes(tracker, 'F7-S10 production-ready descriptor enforcement | `fixed`', 'Tracker: F7-S10 status is tracked');
   includes(tracker, 'F7 Shadow Readiness Claim Alignment Validation', 'Tracker: F7 readiness validation evidence is linked');
+  includes(tracker, 'F8-R1 health PKI fingerprint / subject disclosure | `fixed`', 'Tracker: F8-R1 status is tracked');
+  includes(tracker, 'F8-R2 startup probe separation | `fixed`', 'Tracker: F8-R2 status is tracked');
+  includes(tracker, 'F8-R3 health body diagnostic richness | `accepted-limitation`', 'Tracker: F8-R3 status is tracked');
+  includes(tracker, 'F8-R4 degraded-mode TTL ceiling | `fixed`', 'Tracker: F8-R4 status is tracked');
+  includes(tracker, 'F8-R5 async dead-letter HA visibility | `partial`', 'Tracker: F8-R5 status is tracked');
+  includes(tracker, 'F8-R6 worker shutdown readiness | `fixed`', 'Tracker: F8-R6 status is tracked');
+  includes(tracker, 'F8-R7 PKI bootstrap idempotency / shared lock | `partial`', 'Tracker: F8-R7 status is tracked');
+  includes(tracker, 'F8-R8 PostgreSQL pool retry / circuit-breaker policy | `backlog`', 'Tracker: F8-R8 status is tracked');
+  includes(tracker, 'F8-R9 degraded-mode clock skew | `accepted-limitation`', 'Tracker: F8-R9 status is tracked');
+  includes(tracker, 'F8-R10 automated chaos drill suite | `partial`', 'Tracker: F8-R10 status is tracked');
+  includes(tracker, 'F8-R11 production-shared startup fail-fast | `fixed`', 'Tracker: F8-R11 status is tracked');
+  includes(tracker, 'F8-R12 webhook signature route proof | `fixed`', 'Tracker: F8-R12 status is tracked');
+  includes(tracker, 'F8 Operational Resilience Validation', 'Tracker: F8 validation evidence is linked');
+  includes(tracker, 'F8 is closed for planned repository slices', 'Tracker: F8 closure is explicit');
   includes(tracker, 'F5-A1 out-of-band trust root optional | `fixed`', 'Tracker: F5 CA pin validation is fixed');
   includes(tracker, 'F5 CA Pin Required Validation', 'Tracker: F5 CA pin validation evidence is linked');
   includes(tracker, 'F5-A2 legacy flat verify escape via env | `fixed`', 'Tracker: F5 legacy env downgrade validation is fixed');
@@ -203,6 +219,7 @@ try {
   includes(packageJson, '"test:f7-shadow-bundle-signing-boundary-validation"', 'Package: F7 shadow bundle signing boundary validation script is exposed');
   includes(packageJson, '"test:shadow-readiness-claim-alignment"', 'Package: shadow readiness claim-alignment script is exposed');
   includes(packageJson, '"test:f7-shadow-readiness-claim-alignment-validation"', 'Package: F7 shadow readiness validation script is exposed');
+  includes(packageJson, '"test:f8-operational-resilience-validation"', 'Package: F8 operational resilience validation script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);
