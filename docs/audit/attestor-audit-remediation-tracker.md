@@ -45,10 +45,10 @@ later implementation pass does not re-open already-retired issues.
 | F3 cross-cutting guard readiness | 10 | 10 | 0 | 0 |
 | F4 OWASP LLM redo, active findings | 14 | 5 | 9 | 0 |
 | F4 stale worktree findings retired by fresh main | 3 | 0 | 3 | 0 |
-| F5 signing layer redo | 21 | 9 | 3 | 9 |
+| F5 signing layer redo | 21 | 11 | 3 | 7 |
 | Final docs / claim alignment | 2 | 0 | 0 | 2 |
 
-Estimated remaining work after this tracker lands: about 12 to 20 PR-sized or
+Estimated remaining work after this tracker lands: about 11 to 19 PR-sized or
 validation-sized units. Several items overlap and may close together, but no
 item is treated as closed until repository evidence proves it.
 
@@ -90,6 +90,7 @@ evidence. No `needs-revalidation` row can remain before starting F6.
 | [#317](https://github.com/AI-gateway-systems/attestor/pull/317) | `e1415827a770c23aaa1312966571c421f5ab6f7f` | F5 CA pin required validation |
 | [#318](https://github.com/AI-gateway-systems/attestor/pull/318) | `32d8274a4298ca41841876a05e5d4d5859e2f3f5` | F5 legacy env downgrade removal |
 | [#319](https://github.com/AI-gateway-systems/attestor/pull/319) | `0b96f2ae8b60ba94569dd915064964a1bd8b4f72` | F5 signing key fingerprint width |
+| [#320](https://github.com/AI-gateway-systems/attestor/pull/320) | `cedb2ce4d53d247820ac5726e247afe82cc3d4e0` | F5 signing canonicalization |
 
 ## F1 Threat-Model Foundation
 
@@ -187,7 +188,7 @@ earlier stale-worktree F5 is not authoritative.
 | ID | Current status | Evidence / overlap | Remaining action |
 |---|---|---|---|
 | F-5.1 leaf validity rounding | `invalid-as-stated` | Fresh F5 redo: duration-based leaf validity exists | No action unless fresh source inspection contradicts the redo. |
-| F-5.2 parent-directory fsync / orphan sweep | `open` | `platform/file-store.ts` durability path | Add parent-directory fsync where supported and startup orphan-tmp sweep, or document platform-specific fallback with tests. |
+| F-5.2 parent-directory fsync / orphan sweep | `fixed` | F5 File Durability And Key Atomicity Validation (`docs/audit/f5-file-durability-key-atomicity-validation.md`); `writeTextFileAtomic`; `cleanupAtomicWriteTempFiles`; `test:f5-file-store-key-atomicity-validation` | Atomic writes now sweep matching target temp files, fsync the temp file, rename, and attempt/report parent-directory fsync. Unsupported directory fsync remains a reported platform limitation, not a silent claim. |
 | F-5.3 attestation validity window | `invalid-as-stated` | Fresh F5 redo: cert has `notBefore` / `notAfter` | No action unless fresh source inspection contradicts the redo. |
 | F-5.4 revocation inputs | `invalid-as-stated` | Fresh F5 redo: cert and trust-chain verification accept revocation inputs | No action unless fresh source inspection contradicts the redo. |
 | F-5.5 trust-chain clock skew | `invalid-as-stated` | Fresh F5 redo: cert and chain checks apply skew | No action unless fresh source inspection contradicts the redo. |
@@ -197,7 +198,7 @@ earlier stale-worktree F5 is not authoritative.
 | F5-A2 legacy flat verify escape via env | `fixed` | F5 Legacy Env Downgrade Validation (`docs/audit/f5-legacy-env-downgrade-validation.md`); `verify-cli.ts`; `/api/v1/verify`; `test:f5-legacy-env-downgrade-validation` | Env-var legacy downgrade is removed. CLI legacy flat verification remains only as the explicit `--allow-legacy-verify` flag for intentional legacy kit checks. |
 | F5-A3 truncated fingerprint width | `fixed` | F5 Fingerprint Width Validation (`docs/audit/f5-fingerprint-width-validation.md`); `ATTESTOR_SIGNING_FINGERPRINT_HEX_LENGTH`; `test:f5-fingerprint-width-validation` | Signing key identity fingerprints now use 32 hex characters / 128-bit truncated SHA-256. Historical compact evidence IDs and previously-issued artifacts are not widened by this scoped fix. |
 | F5-A4 homegrown canonicalization / RFC 8785 interop | `accepted-limitation` | F5 Canonicalization Validation (`docs/audit/f5-canonicalization-validation.md`); `ATTESTOR_SIGNING_CANONICALIZATION_SPEC_VERSION`; `test:f5-canonicalization-validation` | Attestor signing canonicalization is now explicitly versioned, strict, and tested, but it remains Attestor-specific canonical JSON. RFC 8785/JCS interoperability is not claimed. |
-| F5-A5 non-atomic `saveKeyPair` | `open` | `keys.ts` direct writes report | Route key persistence through the atomic file-store helper or add equivalent fsync/temp-rename. |
+| F5-A5 non-atomic `saveKeyPair` | `fixed` | F5 File Durability And Key Atomicity Validation (`docs/audit/f5-file-durability-key-atomicity-validation.md`); `saveKeyPair`; `test:f5-file-store-key-atomicity-validation` | `saveKeyPair` now routes private and public key PEM persistence through `writeTextFileAtomic` with explicit file modes. |
 | F5-A6 transparency log missing | `backlog` | No Rekor-equivalent claim | Keep out of current readiness claims; design internal witness/transparency log separately. |
 | F5-A7 module-level CA singleton / injection point | `open` | `setKeylessCa` report | Move test injection out of production exports or add guard/logging/idempotence tests. |
 | F5-A8 numeric canonicalization edge cases | `fixed` | F5 Canonicalization Validation (`docs/audit/f5-canonicalization-validation.md`); `canonicalize`; `test:f5-canonicalization-validation` | Signing canonicalization rejects `NaN`, `Infinity`, `undefined`, `bigint`, functions, symbols, and custom objects before signing. |
@@ -225,11 +226,10 @@ backlogged.
 
 Recommended next order through F5:
 
-1. F-5.2 / F5-A5 file durability and key persistence atomicity.
-2. F5-A7 / F5-NEW-1 keyless CA singleton and test-only injection.
-3. F-5.7 / F5-NEW-2 HA shared PKI and production-shared local-PKI closure.
-4. F5-NEW-3 legacy unbounded certificate telemetry and sunset.
-5. F5-A6 transparency log design decision and claim boundary.
-6. F5-B1 crypto-authorization trust-delegation documentation.
-7. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
-8. Final README/docs/provenance claim alignment.
+1. F5-A7 / F5-NEW-1 keyless CA singleton and test-only injection.
+2. F-5.7 / F5-NEW-2 HA shared PKI and production-shared local-PKI closure.
+3. F5-NEW-3 legacy unbounded certificate telemetry and sunset.
+4. F5-A6 transparency log design decision and claim boundary.
+5. F5-B1 crypto-authorization trust-delegation documentation.
+6. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
+7. Final README/docs/provenance claim alignment.

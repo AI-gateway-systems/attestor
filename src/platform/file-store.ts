@@ -5,6 +5,7 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   statSync,
@@ -12,7 +13,7 @@ import {
   writeSync,
 } from 'node:fs';
 import { hostname } from 'node:os';
-import { dirname } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 const SLEEP_BUFFER = new SharedArrayBuffer(4);
 const SLEEP_VIEW = new Int32Array(SLEEP_BUFFER);
@@ -113,6 +114,60 @@ function writeLockOwner(lockPath: string): void {
   writeFileSync(`${lockPath}/owner.json`, `${JSON.stringify(owner, null, 2)}\n`, { mode: 0o600 });
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export interface AtomicTextFileWriteResult {
+  readonly tempPath: string;
+  readonly directoryFsynced: boolean;
+  readonly orphanTempFilesRemoved: number;
+}
+
+export interface AtomicTextFileWriteOptions {
+  readonly mode?: number;
+  readonly cleanupOrphans?: boolean;
+}
+
+export function cleanupAtomicWriteTempFiles(path: string): number {
+  const directoryPath = dirname(path);
+  const targetBaseName = basename(path);
+  const tempPattern = new RegExp(`^${escapeRegExp(targetBaseName)}\\.\\d+\\.[a-f0-9]{32}\\.tmp$`, 'u');
+  let removed = 0;
+
+  try {
+    for (const entry of readdirSync(directoryPath)) {
+      if (!tempPattern.test(entry)) continue;
+      rmSync(join(directoryPath, entry), { force: true });
+      removed += 1;
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    if (code !== 'ENOENT') throw error;
+  }
+
+  return removed;
+}
+
+export function fsyncDirectoryBestEffort(directoryPath: string): boolean {
+  let directoryFd: number | null = null;
+  try {
+    directoryFd = openSync(directoryPath, 'r');
+    fsyncSync(directoryFd);
+    return true;
+  } catch {
+    return false;
+  } finally {
+    if (directoryFd !== null) {
+      try {
+        closeSync(directoryFd);
+      } catch {
+        // Best-effort durability helper. Close failure should not mask the write.
+      }
+    }
+  }
+}
+
 export function withFileLock<T>(
   targetPath: string,
   action: () => T,
@@ -156,10 +211,17 @@ export function withFileLock<T>(
   }
 }
 
-export function writeTextFileAtomic(path: string, content: string): void {
-  mkdirSync(dirname(path), { recursive: true });
+export function writeTextFileAtomic(
+  path: string,
+  content: string,
+  options: AtomicTextFileWriteOptions = {},
+): AtomicTextFileWriteResult {
+  const directoryPath = dirname(path);
+  mkdirSync(directoryPath, { recursive: true });
+  const orphanTempFilesRemoved =
+    options.cleanupOrphans === false ? 0 : cleanupAtomicWriteTempFiles(path);
   const tempPath = `${path}.${process.pid}.${randomBytes(16).toString('hex')}.tmp`;
-  const fd = openSync(tempPath, 'wx', 0o600);
+  const fd = openSync(tempPath, 'wx', options.mode ?? 0o600);
   let completed = false;
   try {
     writeSync(fd, content);
@@ -172,4 +234,6 @@ export function writeTextFileAtomic(path: string, content: string): void {
     }
   }
   renameSync(tempPath, path);
+  const directoryFsynced = fsyncDirectoryBestEffort(directoryPath);
+  return { tempPath, directoryFsynced, orphanTempFilesRemoved };
 }
