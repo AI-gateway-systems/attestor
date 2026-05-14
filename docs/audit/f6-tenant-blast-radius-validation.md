@@ -1,0 +1,90 @@
+# F6 Tenant Blast Radius Validation
+
+Status: validation slice for the project-owner supplied F6 report.
+
+This document classifies the F6 report against current `origin/master` before
+implementation. It is not a production-readiness claim, not a SOC 2 / ISO
+evidence packet, and not a statement that every multi-tenant control is active.
+
+## Scope
+
+F6 covers request-level tenant identity, database isolation claims, shared
+runtime signing material, tenant API key handling, quota storage, bypass-route
+tenant context, anonymous fallback behavior, and recipient/tenant boundary
+coverage.
+
+Repository baseline inspected:
+
+- `src/service/tenant-isolation.ts`
+- `src/service/tenant-rls.ts`
+- `src/service/control-plane-store.ts`
+- `src/service/usage-meter.ts`
+- `src/service/bootstrap/production-storage-path.ts`
+- `src/service/bootstrap/runtime-profile.ts`
+- `src/service/bootstrap/release-runtime.ts`
+- `src/release-kernel/object-model.ts`
+- `src/service/http/routes/generic-admission-routes.ts`
+- `src/consequence-admission/recipient-tenant-boundary-replay.ts`
+- relevant tests and deployment docs listed below
+
+Primary research anchors:
+
+- OWASP API Security Top 10 2023: BOLA, broken authentication, unrestricted
+  resource consumption, and security misconfiguration.
+- PostgreSQL Row-Level Security documentation: row policies are enforced by the
+  database only for queries run under an active role/session context.
+- NIST SP 800-53 Rev. 5: access enforcement and information-flow enforcement
+  are control objectives, not claims satisfied by an unused helper.
+- NIST SP 800-57 Part 1 Rev. 5: key compromise blast radius and rotation scope
+  matter for key-management architecture.
+
+## Validation Summary
+
+| F6 ID | Report claim | Current classification | Evidence | Remaining work |
+|---|---|---|---|---|
+| F6-T1 | Shared PKI means `tenantId` is not cryptographically bound. | `partial` | Runtime PKI and release-token issuer are runtime-wide in `src/service/bootstrap/release-runtime.ts`. Release-token claims in `src/release-kernel/object-model.ts` do not carry first-class `tenant_id`. Generic admission tenant spoofing is stale: `src/service/http/routes/generic-admission-routes.ts` overwrites or rejects mismatched `tenantId`. | Add tenant-bound release-token/admission claim semantics or per-tenant leaf signer strategy. |
+| F6-T2 | RLS infrastructure is declared but not wired into data paths. | `partial` | `src/service/tenant-rls.ts` defines `withTenantTransaction` and sample RLS tables. `src/service/runtime/rls-runtime.ts` only auto-activates or checks that helper path. Main control-plane stores use `src/service/control-plane-store.ts`, not `withTenantTransaction`. | Either wire RLS into real data-path stores or narrow docs/comments so RLS is clearly a sample/probe substrate. |
+| F6-T3 | Env tenant key registry is per-pod in-memory and can go stale. | `open` | `src/service/tenant-isolation.ts` keeps env keys in module-level `tenantKeys` and reloads only when `ATTESTOR_TENANT_KEYS` changes. Shared file/PG-backed tenant-key lookup exists through `findActiveTenantKeyState`. | Remove env-key path from shared profiles or add hashed TTL/shared invalidation semantics and tests. |
+| F6-T4 | Usage-meter quota enforcement is single-node/per-pod. | `partial` | `src/service/usage-meter.ts` is explicitly single-node. Current API runtime uses `getUsageContextState` and `consumePipelineRunState`; `src/service/control-plane-store.ts` switches those to PostgreSQL when `ATTESTOR_CONTROL_PLANE_PG_URL` is configured. `production-storage-path` blocks non-shared consequence-admission stores for `production-shared`. | Keep file ledger limited to local/single-node profiles and add claim tests so public docs do not imply multi-node quota from the file ledger. |
+| F6-T5 | Bypass routes can accept client-supplied tenant headers. | `invalid-as-stated` | Non-bypass tenant middleware overwrites `x-attestor-tenant-id`. Admin routes use `currentAdminAuthorized` and do not depend on `currentTenant`. No current admin route evidence supports the report's direct bypass claim. | Add an invariant test that bypass routes must not call `currentTenant` / `getTenantContextFromHeaders` without their own verified auth. |
+| F6-T6 | Compromise of runtime signer affects all tenants. | `open` | Same root as F6-T1: runtime signer and release-token verification key are shared runtime material. Revoking that signer is runtime-wide. | Same fix family as F6-T1: tenant-bound signing leaves or first-class tenant-scoped token claims plus verifier checks. |
+| F6-T7 | Anonymous fallback is env-gated, not profile-gated. | `invalid-as-stated` | `tenant-isolation-production-guard.test.ts` proves anonymous fallback is rejected for `NODE_ENV=production`, `ATTESTOR_HA_MODE`, and public-hosted flags. `runtime-profile.ts` requires explicit `ATTESTOR_RUNTIME_PROFILE` for production-like envs. | Remaining improvement is naming: replace `default` sentinel with a reserved anonymous identifier. |
+| F6-T8 | Recipient/tenant boundary replay is not runtime enforcement. | `partial` | `recipient-tenant-boundary-replay.ts` is a replay contract. Runtime routes also contain concrete tenant checks, for example shadow route tenant mismatch handling and audit export boundaries. | Promote replay cases into runtime guard/conformance for declared output surfaces where payloads can cross tenant or recipient boundaries. |
+| F6-T9 | Env tenant API keys are stored plaintext in memory. | `open` | `tenant-isolation.ts` stores env-loaded API keys as raw `Map` keys. File/PG-backed tenant keys are hashed via `tenant-key-store.ts` / control-plane store. | Hash env-key lookup keys in memory or remove env keys from shared profiles. |
+| F6-T10 | `default` tenant fallback can collide with real tenants. | `open` | `tenant-isolation.ts` uses literal `default` for anonymous fallback and `request-context.ts` treats `default` specially. | Introduce a reserved sentinel such as `__attestor_anonymous__` with compatibility handling and tests. |
+
+## Corrected F6 Queue
+
+The F6 report remains important, but it must be remediated in smaller,
+verified slices. The current queue is eight PR-sized units:
+
+1. F6 validation and tracker sync.
+2. Tenant-bound release-token/admission semantics for F6-T1/F6-T6.
+3. Env tenant API key cache hardening for F6-T3/F6-T9.
+4. Anonymous tenant sentinel and fallback hardening for F6-T7/F6-T10.
+5. Bypass-route tenant-context invariant for F6-T5.
+6. RLS/data-path claim alignment or real store integration for F6-T2.
+7. Usage-meter shared-store claim boundary for F6-T4.
+8. Recipient/tenant runtime boundary bridge for F6-T8.
+
+No F6 item is considered fixed by this validation pass. This pass only decides
+what is true, stale, partial, or open against current `origin/master`.
+
+## Go / No-Go
+
+Go for remediation: yes.
+
+Do not claim:
+
+- Attestor is cryptographically tenant-isolated end to end.
+- The sample RLS helper protects the main control-plane data path.
+- File-backed usage metering is multi-node safe.
+- Recipient/tenant replay fixtures are equivalent to universal runtime output
+  enforcement.
+
+Allowed claim:
+
+- Current master has request-level tenant identity, generic-admission tenant
+  mismatch rejection, shared control-plane store support, production-shared
+  storage diagnostics, and concrete route-level tenant tests.
+

@@ -31,6 +31,7 @@ try {
   includes(tracker, 'not a certification', 'Tracker: no-certification disclaimer is present');
   includes(tracker, '`origin/master` is the source of truth', 'Tracker: origin/master rule is present');
   includes(tracker, 'Remaining work after the final claim-alignment slice: 0 planned', 'Tracker: final remaining estimate is explicit');
+  includes(tracker, 'Remaining F6 queue after validation slice: 7 planned', 'Tracker: F6 remaining estimate is explicit');
 
   for (const pr of [
     '#220',
@@ -82,6 +83,7 @@ try {
     'F4 OWASP LLM / Input Surface Redo',
     'F5 Signing Layer',
     'Final Docs And Claim Alignment',
+    'F6 Multi-Tenant Blast Radius',
   ]) {
     includes(tracker, group, `Tracker: ${group} section exists`);
   }
@@ -122,7 +124,18 @@ try {
   includes(tracker, 'FINAL-1 README / public docs claim alignment | `fixed`', 'Tracker: final README/docs alignment is fixed');
   includes(tracker, 'FINAL-2 research provenance / remediation ledger sync | `fixed`', 'Tracker: final provenance sync is fixed');
   includes(tracker, 'Final Claim Alignment Validation', 'Tracker: final claim-alignment validation evidence is linked');
-  includes(tracker, 'The current F1-F5 project-owner supplied audit queue is closed for repository', 'Tracker: current queue closure is explicit');
+  includes(tracker, 'The current F1-F5 project-owner supplied audit queue is closed for repository', 'Tracker: F1-F5 queue closure is explicit');
+  includes(tracker, 'F6 is now the active queue', 'Tracker: F6 active queue is explicit');
+  includes(tracker, 'F6-T1 shared PKI tenant binding | `partial`', 'Tracker: F6-T1 status is tracked');
+  includes(tracker, 'F6-T2 RLS declared but not data-path wired | `partial`', 'Tracker: F6-T2 status is tracked');
+  includes(tracker, 'F6-T3 env tenant key registry per-pod cache | `open`', 'Tracker: F6-T3 status is tracked');
+  includes(tracker, 'F6-T4 usage-meter single-node quota | `partial`', 'Tracker: F6-T4 status is tracked');
+  includes(tracker, 'F6-T5 bypass route tenant-header spoofing | `invalid-as-stated`', 'Tracker: F6-T5 status is tracked');
+  includes(tracker, 'F6-T6 runtime signer all-tenant blast radius | `open`', 'Tracker: F6-T6 status is tracked');
+  includes(tracker, 'F6-T7 anonymous fallback env-gated | `invalid-as-stated`', 'Tracker: F6-T7 status is tracked');
+  includes(tracker, 'F6-T8 recipient/tenant boundary replay-only | `partial`', 'Tracker: F6-T8 status is tracked');
+  includes(tracker, 'F6-T9 plaintext env API keys in memory | `open`', 'Tracker: F6-T9 status is tracked');
+  includes(tracker, 'F6-T10 `default` tenant sentinel collision | `open`', 'Tracker: F6-T10 status is tracked');
   includes(tracker, 'F5-A1 out-of-band trust root optional | `fixed`', 'Tracker: F5 CA pin validation is fixed');
   includes(tracker, 'F5 CA Pin Required Validation', 'Tracker: F5 CA pin validation evidence is linked');
   includes(tracker, 'F5-A2 legacy flat verify escape via env | `fixed`', 'Tracker: F5 legacy env downgrade validation is fixed');
@@ -160,6 +173,7 @@ try {
   includes(packageJson, '"test:f5-crypto-trust-delegation-boundary-validation"', 'Package: F5 crypto trust-delegation boundary validation script is exposed');
   includes(packageJson, '"test:f1-backlog-closure-validation"', 'Package: F1 backlog closure validation script is exposed');
   includes(packageJson, '"test:final-claim-alignment-validation"', 'Package: final claim-alignment validation script is exposed');
+  includes(packageJson, '"test:f6-tenant-blast-radius-validation"', 'Package: F6 tenant blast-radius validation script is exposed');
 
   ok(tracker.split('\n').length > 120, 'Tracker: enough rows to cover supplied audit reports');
   console.log(`Audit remediation tracker tests: ${passed} passed, 0 failed`);
