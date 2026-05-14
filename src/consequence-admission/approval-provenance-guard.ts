@@ -7,6 +7,10 @@ import {
   CONSEQUENCE_FAILURE_CONTROL_BINDINGS,
   type ConsequenceFailureControlBinding,
 } from './failure-mode-control-bindings.js';
+import {
+  verifyPkiBoundCertificate,
+  type VerifyPkiBoundCertificateInput,
+} from '../signing/verification-trust-binding.js';
 
 export const CONSEQUENCE_APPROVAL_PROVENANCE_GUARD_VERSION =
   'attestor.consequence-approval-provenance-guard.v1';
@@ -97,6 +101,7 @@ export interface ConsequenceApprovalProvenanceClaim {
   readonly expiresAt?: string | null;
   readonly trustClass?: ConsequenceApprovalTrustClass | null;
   readonly signatureVerified?: boolean | null;
+  readonly signatureVerificationInput?: VerifyPkiBoundCertificateInput | null;
   readonly stepUpVerified?: boolean | null;
 }
 
@@ -122,6 +127,7 @@ export interface ConsequenceApprovalObservedClaim {
   readonly issuedAt?: string;
   readonly expiresAt?: string;
   readonly signatureVerified: boolean;
+  readonly pkiVerified: boolean;
   readonly stepUpVerified: boolean;
   readonly outcome: ConsequenceApprovalGuardOutcome;
   readonly reasonCodes: readonly ConsequenceApprovalGuardReasonCode[];
@@ -188,6 +194,7 @@ export interface ConsequenceApprovalProvenanceGuardDescriptor {
   readonly requiresScopeDigest: true;
   readonly rejectsChatEmailTicketApproval: true;
   readonly allowsModelSelfApproval: false;
+  readonly requiresPkiBoundSignedApproval: true;
   readonly storesRawApprovalText: false;
   readonly digestOnly: true;
   readonly approvalRequired: true;
@@ -272,6 +279,17 @@ function normalizeTimestamp(value: string | null | undefined): string | null {
   return parsed.toISOString();
 }
 
+function verifyPkiSignatureInput(
+  input: VerifyPkiBoundCertificateInput | null | undefined,
+): boolean {
+  if (!input) return false;
+  try {
+    return verifyPkiBoundCertificate(input).pkiVerified;
+  } catch {
+    return false;
+  }
+}
+
 function binding(): ConsequenceFailureControlBinding {
   const found = CONSEQUENCE_FAILURE_CONTROL_BINDINGS.find(
     (item) => item.failureModeId === 'fake-approval-laundering',
@@ -299,7 +317,12 @@ function evaluateClaim(input: {
   const hasReviewerAuthority = isSha256Digest(claim.reviewerAuthorityDigest);
   const hasApprovalDigest = isSha256Digest(claim.approvalDigest);
   const hasScopeDigest = isSha256Digest(claim.scopeDigest);
-  const signatureVerified = claim.signatureVerified === true;
+  const pkiVerified = trustClass === 'signed-authority'
+    ? verifyPkiSignatureInput(claim.signatureVerificationInput)
+    : false;
+  const signatureVerified = trustClass === 'signed-authority'
+    ? pkiVerified
+    : claim.signatureVerified === true;
   const stepUpVerified = claim.stepUpVerified ?? false;
   const reasonCodes: ConsequenceApprovalGuardReasonCode[] = [];
 
@@ -371,6 +394,7 @@ function evaluateClaim(input: {
     ...(issuedAt ? { issuedAt } : {}),
     ...(expiresAt ? { expiresAt } : {}),
     signatureVerified,
+    pkiVerified,
     stepUpVerified,
     outcome,
     reasonCodes: uniqueReasonCodes(reasonCodes),
@@ -535,6 +559,7 @@ export function consequenceApprovalProvenanceGuardDescriptor(): ConsequenceAppro
     requiresScopeDigest: true,
     rejectsChatEmailTicketApproval: true,
     allowsModelSelfApproval: false,
+    requiresPkiBoundSignedApproval: true,
     storesRawApprovalText: false,
     digestOnly: true,
     approvalRequired: true,

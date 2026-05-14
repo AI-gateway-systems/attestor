@@ -43,7 +43,7 @@ The guard evaluates:
 - evidence digest
 - evidence class
 - allowed evidence classes
-- signed-attestation signature verification state
+- signed-attestation PKI trust binding verification input
 - tool risk
 
 Raw tool output and raw source references are not stored in the decision output. The guard emits digests and reason codes only.
@@ -81,9 +81,10 @@ Untrusted or review-only classes are:
 - model-generated
 - customer-controlled
 
-`signed-attestation` is not trusted by label alone. It must carry a verified
-signature state from an Attestor verifier path. If the signature is not verified,
-the guard returns `review` with `tool-result-signature-unverified`.
+`signed-attestation` is not trusted by label alone. It must carry PKI-bound
+signature verification input that passes `verifyPkiBoundCertificate`. A caller
+supplied boolean is not enough. If the PKI binding is missing or invalid, the
+guard returns `review` with `tool-result-signature-unverified`.
 
 ## Binding
 
