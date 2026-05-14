@@ -1,0 +1,236 @@
+# Attestor Audit Remediation Tracker
+
+Status: canonical tracker for project-owner supplied audit reports.
+
+This tracker exists to prevent skipped findings, duplicate work, stale-report
+confusion, and overclaiming. It is not a certification, not an independent
+external audit, and not a claim of full production readiness.
+
+## Tracker Rules
+
+- `origin/master` is the source of truth.
+- A finding is `fixed` only when the remediation PR is merged, checks are green,
+  and the merge commit is verified on `origin/master`.
+- A finding can be `superseded` or `invalid` only with repository evidence.
+- A finding can be `partial` when the repo has a contract, guard, or test, but
+  customer runtime enforcement, live deployment, or source-system evidence is
+  still not proven.
+- A finding that needs fresh validation is not treated as open exploit evidence
+  until it is rechecked against current `origin/master`.
+- External standards are engineering anchors only. They do not certify Attestor.
+
+## Status Vocabulary
+
+| Status | Meaning |
+|---|---|
+| `fixed` | Merged PR closes the scoped finding with tests/docs where needed. |
+| `partial` | A repository-side slice is implemented, but live/customer/integration proof remains. |
+| `open` | Validated as still needing remediation. |
+| `needs-revalidation` | Report finding exists, but current master may already differ. |
+| `accepted-limitation` | Real limitation, intentionally not claimed as solved. |
+| `superseded` | Later architecture or code made the original finding stale. |
+| `invalid-as-stated` | Current code does not support the finding as written. |
+| `backlog` | Known follow-up, not next immediate PR. |
+
+## Current Count
+
+The report count below includes the detailed F4 redo and F5 redo reports. The
+count intentionally separates stale worktree claims from active findings so a
+later implementation pass does not re-open already-retired issues.
+
+| Group | Total tracked | Closed / invalid-as-stated | Partial / limitation / backlog | Needs revalidation / open |
+|---|---:|---:|---:|---:|
+| F1 threat-model foundation | 6 | 1 | 5 | 0 |
+| F2 agentic consequence surface | 10 | 1 | 1 | 8 |
+| F3 cross-cutting guard readiness | 10 | 10 | 0 | 0 |
+| F4 OWASP LLM redo, active findings | 14 | 0 | 0 | 14 |
+| F4 stale worktree findings retired by fresh main | 3 | 0 | 3 | 0 |
+| F5 signing layer redo | 21 | 5 | 3 | 13 |
+| Final docs / claim alignment | 2 | 0 | 0 | 2 |
+
+Estimated remaining work after this tracker lands: about 34 to 42 PR-sized or
+validation-sized units. Several items overlap and may close together, but no
+item is treated as closed until repository evidence proves it.
+
+Completion rule through F5: every F1-F5 row must end as `fixed`,
+`invalid-as-stated`, `superseded`, `accepted-limitation`, or `backlog` with
+evidence. No `needs-revalidation` row can remain before starting F6.
+
+## Verified Merged Remediations
+
+| PR | Merge commit | Scope |
+|---|---|---|
+| [#220](https://github.com/AI-gateway-systems/attestor/pull/220) | `594ae560970c4a13b746c9055a59da0d3e30e174` | F1 validation and first remediation slice |
+| [#291](https://github.com/AI-gateway-systems/attestor/pull/291) | `b33bc24302d3ed52bb6f5c31644c520d21823e12` | F5 PKI verification binding |
+| [#292](https://github.com/AI-gateway-systems/attestor/pull/292) | `42e54d258da8cedbac5d0e84d8a8d7c2f9213c9f` | F3 guard trust labels and scope closure |
+| [#293](https://github.com/AI-gateway-systems/attestor/pull/293) | `c3ce7c7e649f25d59cc8b45ef8e5e2497fa00267` | F3 agent-loop shared storage readiness |
+| [#294](https://github.com/AI-gateway-systems/attestor/pull/294) | `e7f18b61efd3c446e123300f690f127e073fd4ef` | F3 guard activation readiness contract |
+| [#295](https://github.com/AI-gateway-systems/attestor/pull/295) | `d33a18d0c448abee1b1f2870798455a19be079ce` | F3 reviewer behavior fatigue telemetry |
+| [#296](https://github.com/AI-gateway-systems/attestor/pull/296) | `05c50ea6375fee2718b5535fd0a25b53440b0f91` | F3 failure-mode guard coverage matrix |
+| [#297](https://github.com/AI-gateway-systems/attestor/pull/297) | `2fe802535c209049bdf41328f95ef5287492a8b8` | F3 agentic supply-chain guard |
+| [#298](https://github.com/AI-gateway-systems/attestor/pull/298) | `fc6ba99c8821782521774487dc3707ada4882e04` | F3 runtime failure-mode extensions |
+| [#299](https://github.com/AI-gateway-systems/attestor/pull/299) | `84d27793b4717c46199c721280eb24275e200296` | F3 untrusted-content trust evidence |
+| [#300](https://github.com/AI-gateway-systems/attestor/pull/300) | `ae3c2f96dc83332b5e0d30a37d8cc0f292efa0f2` | F2 multi-agent delegation guard |
+
+## F1 Threat-Model Foundation
+
+Source report: project-owner supplied F1 cross-cutting threat model.
+
+Validation record: `docs/audit/f1-threat-model-foundation-validation.md`.
+
+| ID | Current status | Evidence / PR | Remaining action |
+|---|---|---|---|
+| F1-CC-1 agent-loop HA/shared-store bypass | `partial` | PR #220, PR #293 | Shared agent-loop guard path exists; broader replay/presentation/shared durability remains tracked elsewhere. |
+| F1-CC-2 review-required auto-promote | `accepted-limitation` | PR #220; `customer-gate.ts`; downstream enforcement docs | Needs protected downstream wrapper/gateway adoption proof. Related to F2-AG-1. |
+| F1-CC-3 cross-vector replay correlation | `backlog` | PR #220 validation | Needs common replay-event/correlation contract and selected shared durable consume paths. |
+| F1-CC-4 data-minimization fan-out | `backlog` | PR #220 validation; data-minimization policy | Needs mandatory surface-level conformance across every declared output surface. |
+| F1-CC-5 tenant boundary fan-out concrete route bug | `fixed` | PR #220 | Body tenant mismatch on generic admission route was remediated in the scoped slice. |
+| F1-CC-6 cross-log integrity anchor | `backlog` | PR #220 validation | Needs cross-store/meta-anchor design if pursued. |
+
+## F2 Agentic Consequence Surface
+
+Source report: project-owner supplied F2 redo, agentic consequence-surface audit.
+
+| ID | Current status | Evidence / PR | Remaining action |
+|---|---|---|---|
+| F2-AG-1 customer-gate honor-system | `needs-revalidation` | release-enforcement plane and downstream contract exist; generic consequence path still needs review | Validate current generic path and decide whether admission-token / verifier-helper hardening is still needed. |
+| F2-AG-2 agent-payment settlement post-condition | `needs-revalidation` | `crypto-authorization-core/x402-agentic-payment-adapter.ts`; downstream receipt | Validate whether settlement evidence is operator-asserted or verifier-bound; likely needs facilitator-attestation contract. |
+| F2-AG-3 account-delegation / EIP-7702 scope | `needs-revalidation` | crypto authorization adapters and replay freshness rules | Validate scope/window/nonce binding before creating a delegation-scope guard. |
+| F2-AG-4 multi-agent delegation confusion | `fixed` | PR #300; `multi-agent-delegation-guard.ts` | No further action for this scoped guard. Live inter-agent transport auth remains not proven. |
+| F2-AG-5 hidden downstream side effects / receipt omission | `needs-revalidation` | downstream enforcement contract and execution receipt exist | Validate whether receipt-deadline escalation exists; likely follow-up. |
+| F2-AG-6 unsupported confidence / hallucinated evidence | `needs-revalidation` | audit evidence export and external review packet exist | Validate whether source-system rehash/refetch exists before adding a dedicated guard. |
+| F2-AG-7 agentic supply-chain and LLM provider dependency | `partial` | PR #297 adds `agentic-supply-chain-guard` | Revalidate separate single-provider/OpenAI dependency claim; do not conflate with adapter supply-chain guard. |
+| F2-AG-8 multimodal vision input future risk | `needs-revalidation` | `src/api/openai.ts` and callers | Confirm exposure path; likely backlog if still CLI-only. |
+| F2-AG-9 free-text narrow constraints | `needs-revalidation` | downstream constraint acknowledgement exists | Validate whether constraint kind registry exists; likely contract hardening. |
+| F2-AG-10 model/tool/config drift | `needs-revalidation` | `decision-context-drift-binding.ts`; coverage matrix says deterministic contract | Decide whether dedicated guard is still needed or current binding is sufficient. |
+
+## F3 Cross-Cutting Guard Readiness
+
+Source report: project-owner supplied F3 redo, cross-cutting agentic guard audit.
+
+Status: closed for the scoped remediation series. These are repository-side guard
+and readiness controls, not proof of live customer enforcement.
+
+| ID | Current status | Evidence / PR |
+|---|---|---|
+| F3-CC-1 declared vs enforced gap | `fixed` | PR #294, PR #296 |
+| F3-CC-2 agent-loop in-memory HA gap | `fixed` | PR #293 |
+| F3-CC-3 tool-result trust label laundering | `fixed` | PR #292 |
+| F3-CC-4 reviewer fatigue behavior telemetry | `fixed` | PR #295 |
+| F3-CC-5 unknown reversibility closure | `fixed` | PR #292 |
+| F3-CC-6 approval provenance trust labels | `fixed` | PR #292 |
+| F3-CC-7 untrusted content trust evidence | `fixed` | PR #299 |
+| F3-CC-8 build-time-only registry extensions | `fixed` | PR #298 |
+| F3-CC-9 guard coverage missing/ambiguous | `fixed` | PR #296 |
+| F3-CC-10 agentic supply-chain guard missing | `fixed` | PR #297 |
+
+## F4 OWASP LLM / Input Surface Redo
+
+Source report: project-owner supplied F4 redo using OWASP LLM Top 10 v2.0
+2025 IDs.
+
+Current state: not remediated as a series. Each active item must be revalidated
+against current `origin/master` before any fix. Prior worktree-F4 findings that
+fresh main retired are listed separately to avoid duplicate work.
+
+| ID | Current status | Overlap / evidence | Remaining action |
+|---|---|---|---|
+| F4-LLM01-A indirect prompt injection via operator-asserted trust class | `needs-revalidation` | Overlaps F3-CC-3, F3-CC-6, F3-CC-7, PR #292, PR #299 | Verify whether `signed-attestation` and authority trust labels now require PKI-bound proof in every referenced guard. |
+| F4-LLM01-B hosted LLM agent tool boundary descriptor-only | `needs-revalidation` | `hosted-llm-agent-tool-boundary-guard` descriptor | Decide whether runtime conformance tests exist or must be added for the declared controls. |
+| F4-LLM02-A data-minimization evaluation operator-driven | `needs-revalidation` | `data-minimization-redaction-policy` | Verify whether server-side marker scanning exists; if not, add a scanner or explicit surface-conformance contract. |
+| F4-LLM02-B redaction policy not activated as an enforcement claim | `needs-revalidation` | `data-minimization-redaction-policy` lifecycle metadata | Keep docs honest and decide whether activation readiness is proven by code or remains backlog. |
+| F4-LLM03-A agentic supply-chain coverage gap / single LLM provider | `needs-revalidation` | PR #297 added `agentic-supply-chain-guard`; `src/api/openai.ts` remains separate | Split adapter supply-chain coverage from runtime LLM provider dependency; close only the repo-proven part. |
+| F4-LLM05-A presentation freshness relies on operator clock | `needs-revalidation` | `presentation-binding` | Verify whether Attestor-issued nonce or server-rendered freshness binding exists; add if missing. |
+| F4-LLM05-B presentation replay ledger in-memory reference path | `needs-revalidation` | `presentation-replay-ledger`; overlaps F1-CC-3 | Verify durable/shared replay consume path; add shared ledger plan or implementation. |
+| F4-LLM06-A customer gate honor-system | `needs-revalidation` | Same root as F2-AG-1 and F1-CC-2 | Validate generic consequence path and decide whether signed admission token / verifier helper is required. |
+| F4-LLM06-B agent-loop budget per process | `needs-revalidation` | Overlaps F3-CC-2, PR #293 | Confirm whether shared storage readiness fully closes the LLM06/LLM10 angle or only the descriptor. |
+| F4-LLM07-A prompt leakage second-pass markers missing | `needs-revalidation` | `raw-model-prompt` class exists | Check marker list for `system_prompt`, `instructions`, prompt-template leakage, and add tests if needed. |
+| F4-LLM09-A hallucinated evidence / unsupported confidence | `needs-revalidation` | Same root as F2-AG-6 | Verify re-fetch/re-hash or source-system evidence proof before adding a dedicated guard. |
+| F4-LLM10-A velocity limits depend on shared counter enforcement | `needs-revalidation` | `policy-limits`; overlaps F3-CC-2 | Validate that velocity enforcement is not per-pod only. |
+| F4-LLM10-B retry-attempt ledger storage claim | `needs-revalidation` | `retry-attempt-ledger` not yet read in this tracker | Read and classify ledger storage before deciding fix scope. |
+| F4-D Attestor-owned OpenAI usage / budget / prompt leakage scope | `needs-revalidation` | `src/api/openai.ts` and callers | Audit callers, model/provider config, timeout/budget handling, and logging; likely low-risk if CLI-only. |
+
+### Retired Worktree-F4 Claims
+
+These are not active findings unless a fresh source inspection re-opens them.
+
+| Retired claim | Current status | Reason |
+|---|---|---|
+| No sensitive-information disclosure control exists | `superseded` | Fresh main has `data-minimization-redaction-policy`; active issue is enforcement/conformance, not absence. |
+| No replay/binding control exists | `superseded` | Fresh main has presentation binding, replay ledger, downstream contract, and execution receipt. |
+| No system-prompt leakage axis exists | `superseded` | Fresh main includes `raw-model-prompt` in forbidden raw classes. |
+
+## F5 Signing Layer
+
+Source report: project-owner supplied F5 redo for the fresh main state. The
+earlier stale-worktree F5 is not authoritative.
+
+| ID | Current status | Evidence / overlap | Remaining action |
+|---|---|---|---|
+| F-5.1 leaf validity rounding | `invalid-as-stated` | Fresh F5 redo: duration-based leaf validity exists | No action unless fresh source inspection contradicts the redo. |
+| F-5.2 parent-directory fsync / orphan sweep | `open` | `platform/file-store.ts` durability path | Add parent-directory fsync where supported and startup orphan-tmp sweep, or document platform-specific fallback with tests. |
+| F-5.3 attestation validity window | `invalid-as-stated` | Fresh F5 redo: cert has `notBefore` / `notAfter` | No action unless fresh source inspection contradicts the redo. |
+| F-5.4 revocation inputs | `invalid-as-stated` | Fresh F5 redo: cert and trust-chain verification accept revocation inputs | No action unless fresh source inspection contradicts the redo. |
+| F-5.5 trust-chain clock skew | `invalid-as-stated` | Fresh F5 redo: cert and chain checks apply skew | No action unless fresh source inspection contradicts the redo. |
+| F-5.6 anti-self-attest / PKI-bound verification | `fixed` | PR #291; `verification-trust-binding` | Keep as fixed; related third-party pin behavior tracked under F5-A1. |
+| F-5.7 HA shared PKI / shared lock | `open` | Strict path opt-in exists; lock remains local/mkdir-style per report | Validate current lock path; implement durable shared lock or fail-closed production-shared local-PKI profile. |
+| F5-A1 out-of-band trust root optional | `partial` | PR #291 gives trusted CA fingerprint path | Decide whether foreign-kit verification must require a CA pin, with explicit developer-mode bypass if kept. |
+| F5-A2 legacy flat verify escape via env | `open` | `ATTESTOR_ALLOW_LEGACY=true` path in report | Remove env-only downgrade or add explicit telemetry/sunset gate. |
+| F5-A3 truncated fingerprint width | `open` | 64-bit fingerprint report | Validate compatibility impact, then migrate to at least 128-bit or full SHA-256 fingerprint. |
+| F5-A4 homegrown canonicalization / RFC 8785 interop | `open` | `sign.ts` canonicalizer report | Choose JCS adoption or explicitly document Attestor-specific canonicalization with tests. |
+| F5-A5 non-atomic `saveKeyPair` | `open` | `keys.ts` direct writes report | Route key persistence through the atomic file-store helper or add equivalent fsync/temp-rename. |
+| F5-A6 transparency log missing | `backlog` | No Rekor-equivalent claim | Keep out of current readiness claims; design internal witness/transparency log separately. |
+| F5-A7 module-level CA singleton / injection point | `open` | `setKeylessCa` report | Move test injection out of production exports or add guard/logging/idempotence tests. |
+| F5-A8 numeric canonicalization edge cases | `open` | Same root as F5-A4 | Reject non-finite numbers and pin signed payload numeric behavior. |
+| F5-A9 verifier helper absent | `partial` | Fresh F5 redo says helper now exists | Close absence claim; keep consumer footgun risk under F5-A1. |
+| F5-B1 crypto-authorization adapter trust delegation | `accepted-limitation` | Architecture states adapters supply observations | Document this as a trust boundary; do not claim chain-state verification without adapter proof. |
+| F5-NEW-1 exported `setKeylessCa` runtime injection | `open` | Same root as F5-A7 | Include with F5-A7 implementation, not as a separate PR unless needed. |
+| F5-NEW-2 strict PKI path enforcement opt-in | `open` | release-runtime strict path flag report | Make strict path implicit for production-shared profile or prove the current mode is safe. |
+| F5-NEW-3 `allowLegacyUnbounded` escape hatch | `open` | certificate compatibility flag report | Add structured warning/telemetry and sunset documentation/tests. |
+| F5-NEW-4 duplicate verify helper calls in CLI | `backlog` | Low-risk maintainability issue | Refactor only when touching `verify-cli.ts` for F5-A1/A2. |
+
+## Final Docs And Claim Alignment
+
+These run only after the active audit remediation queue is closed or explicitly
+backlogged.
+
+| ID | Current status | Remaining action |
+|---|---|---|
+| FINAL-1 README / public docs claim alignment | `needs-revalidation` | Ensure public language matches fixed/partial/backlog status. |
+| FINAL-2 research provenance / remediation ledger sync | `needs-revalidation` | Link final fixed/backlog statuses into provenance docs without certification claims. |
+
+## Next Work Queue
+
+Do not start new reports until the existing queue is closed or intentionally
+backlogged.
+
+Recommended next order through F5:
+
+1. Merge this tracker update so the queue count is canonical.
+2. F2-AG-1 / F4-LLM06-A customer-gate honor-system revalidation.
+3. F2-AG-2 agent-payment settlement post-condition revalidation.
+4. F2-AG-3 account-delegation / EIP-7702 scope revalidation.
+5. F2-AG-5 hidden downstream side-effect receipt-deadline revalidation.
+6. F2-AG-6 / F4-LLM09-A hallucinated evidence and unsupported confidence.
+7. F2-AG-7 / F4-LLM03-A / F4-D runtime LLM provider and supply-chain split.
+8. F2-AG-9 free-text narrow constraints and constraint-kind registry.
+9. F2-AG-10 model/tool/config drift guard decision.
+10. F4-LLM01-A trust-class PKI proof revalidation.
+11. F4-LLM01-B hosted LLM boundary runtime conformance.
+12. F4-LLM02-A / F4-LLM02-B data-minimization scanning and activation readiness.
+13. F4-LLM05-A presentation freshness nonce.
+14. F4-LLM05-B shared replay ledger.
+15. F4-LLM06-B / F4-LLM10-A / F4-LLM10-B shared velocity and retry-budget validation.
+16. F4-LLM07-A prompt leakage marker expansion.
+17. F5-A1 require trusted CA pin or explicit developer-mode bypass.
+18. F5-A2 remove or sunset legacy env downgrade.
+19. F5-A3 fingerprint width migration.
+20. F5-A4 / F5-A8 canonicalization and numeric payload behavior.
+21. F-5.2 / F5-A5 file durability and key persistence atomicity.
+22. F5-A7 / F5-NEW-1 keyless CA singleton and test-only injection.
+23. F-5.7 / F5-NEW-2 HA shared PKI and production-shared local-PKI closure.
+24. F5-NEW-3 legacy unbounded certificate telemetry and sunset.
+25. F5-A6 transparency log design decision and claim boundary.
+26. F5-B1 crypto-authorization trust-delegation documentation.
+27. F1 backlog closure pass for replay correlation, fan-out, and cross-log integrity.
+28. Final README/docs/provenance claim alignment.
