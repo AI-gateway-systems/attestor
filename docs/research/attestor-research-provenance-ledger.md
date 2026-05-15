@@ -557,6 +557,21 @@ The entries above are the most concrete PR/commit-linked hardening records. The 
 - Remaining limitation or no-go condition: This is not a customer PEP runtime, not generic consequence-to-token issuance, not a hosted enforcement service, and not a new DPoP/mTLS/SPIFFE verifier. The helper consumes release-enforcement verifier evidence produced elsewhere; customer deployment, replay store durability, token-introspection authority, trust anchors, and runtime adoption remain required before a production enforcement claim.
 - Status: complete for repository-side protected verifier-consumer contract once this PR is merged and verified on `origin/master`.
 
+### 31. Generic Admission Protected Release-Token Issuance
+
+- Step / PR / commit: Generic high-risk admission protected release-token issuance contract; this PR records repository-side contract evidence but cannot pre-record its own merge commit.
+- Date if available: 2026-05-15.
+- Trust surface: generic hosted admission, high-risk downstream authorization, sender-constrained release-token issuance, tenant/audience binding, compiled policy provenance, raw-token minimization, and shadow/audit recording.
+- Protected principle: customer authority; fail-closed boundary; proof integrity; replay and idempotency safety; data minimization and redaction; no overclaim.
+- Research anchor / source used, if recorded: OAuth Token Exchange RFC 8693 for audience/resource/scope-bound downstream credentials, OAuth Rich Authorization Requests RFC 9396 for structured authorization detail framing, JWT BCP RFC 8725 for signed-token safety posture, OAuth DPoP RFC 9449 for sender-constrained presentation, OAuth Token Introspection RFC 7662 for liveness, and OAuth Bearer Token Usage RFC 6750 as the contrast case for bearer-only risk. These are engineering anchors only, not OAuth certification, live authorization-server proof, customer runtime adoption, or production enforcement evidence.
+- Repository evidence:
+  - Contract/code evidence: `src/consequence-admission/generic-protected-release-token.ts`, `src/service/http/routes/generic-admission-routes.ts`, `docs/01-overview/consequence-admission-quickstart.md`, `docs/audit/f2-customer-gate-enforcement-validation.md`, and `docs/audit/attestor-audit-remediation-tracker.md`.
+  - Test evidence: `tests/generic-admission-protected-release-token.test.ts`, `tests/generic-admission-routes.test.ts`, `tests/f2-customer-gate-validation.test.ts`, `tests/audit-remediation-tracker.test.ts`, and `tests/research-provenance-ledger.test.ts`.
+- Implemented control: Adds a generic admission release-token issuer helper and route hook. Allowed high-risk enforcing generic admissions can be recreated with a `release-token` proof reference only after a sender-constrained confirmation, tenant id, and high-risk reviewer reference are present. The issued token is tenant-bound, audience-scoped to the downstream system, requires introspection/replay consumption through the release-enforcement plane, and carries compiled policy provenance. The sanitized envelope and shadow path store token digest/metadata only; the raw token is returned only as immediate authorization material.
+- Tests / verification: `npm run test:generic-admission-protected-release-token`, `npm run test:generic-admission-routes`, `npm run test:f2-customer-gate-validation`, `npm run test:audit-remediation-tracker`, `npm run test:research-provenance-ledger`, and `npm run test:consequence-admission-package-surface`.
+- Remaining limitation or no-go condition: This is not a customer PEP runtime, not a live authorization server, not a hosted production configuration proof, and not durable replay/introspection storage. If the generic route is not configured to require the protected issuer, compatibility mode can still return an admission without a protected token; production claims require the route dependency, token-introspection store, replay store, sender-proof verifier, and non-bypassable downstream PEP to be active.
+- Status: complete for repository-side generic high-risk consequence-to-token binding contract once this PR is merged and verified on `origin/master`.
+
 ## Strong Recorded Research Support
 
 The strongest recorded research support appears in:

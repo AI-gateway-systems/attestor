@@ -2,7 +2,10 @@ import type { Context, Hono } from 'hono';
 import {
   createConsequenceAdmissionProblem,
   createGenericAdmissionEnvelope,
+  evaluateGenericAdmissionProtectedReleaseTokenRequirement,
+  GenericAdmissionProtectedReleaseTokenIssuanceError,
   type ConsequenceAdmissionAgentLoopAbuseGuardDecision,
+  type GenericAdmissionProtectedReleaseTokenIssueResult,
   type GenericAdmissionEnvelope,
 } from '../../../consequence-admission/index.js';
 import { resolvePlanGenericAdmissionMode } from '../../plan-catalog.js';
@@ -19,6 +22,12 @@ export interface GenericAdmissionRouteDeps {
     readonly envelope: GenericAdmissionEnvelope;
     readonly receivedAt: string;
   }): ConsequenceAdmissionAgentLoopAbuseGuardDecision | Promise<ConsequenceAdmissionAgentLoopAbuseGuardDecision>;
+  issueProtectedReleaseToken?(input: {
+    readonly tenant: TenantContext;
+    readonly envelope: GenericAdmissionEnvelope;
+    readonly receivedAt: string;
+  }): GenericAdmissionProtectedReleaseTokenIssueResult | Promise<GenericAdmissionProtectedReleaseTokenIssueResult>;
+  readonly requireProtectedReleaseTokenForHighRisk?: boolean;
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -143,8 +152,65 @@ export function registerGenericAdmissionRoutes(
         });
         return c.json(problem, status);
       }
+      const protectedReleaseTokenRequirement =
+        evaluateGenericAdmissionProtectedReleaseTokenRequirement({ envelope });
+      let envelopeForShadow: GenericAdmissionEnvelope = envelope;
+      let responseEnvelope: GenericAdmissionEnvelope | (GenericAdmissionEnvelope & {
+        readonly protectedReleaseTokenAuthorization?: GenericAdmissionProtectedReleaseTokenIssueResult['authorization'];
+      }) = envelope;
+      if (protectedReleaseTokenRequirement.required && deps.issueProtectedReleaseToken) {
+        try {
+          const issued = await deps.issueProtectedReleaseToken({
+            tenant,
+            envelope,
+            receivedAt: new Date().toISOString(),
+          });
+          envelopeForShadow = issued.envelope;
+          responseEnvelope = {
+            ...issued.envelope,
+            protectedReleaseTokenAuthorization: issued.authorization,
+          };
+        } catch (error) {
+          const reasonCodes = error instanceof GenericAdmissionProtectedReleaseTokenIssuanceError
+            ? [
+                'protected-release-token-issuance-unavailable',
+                ...error.reasonCodes,
+              ]
+            : ['protected-release-token-issuance-unavailable'];
+          const detail =
+            error instanceof Error
+              ? error.message
+              : 'The protected release-token issuer could not issue a token.';
+          const problem = createConsequenceAdmissionProblem({
+            type: 'https://attestor.dev/problems/protected-release-token-issuance-unavailable',
+            title: 'Protected release-token issuance unavailable',
+            status: 503,
+            detail,
+            instance: '/api/v1/admissions',
+            reasonCodes,
+          });
+          return c.json(problem, 503);
+        }
+      } else if (
+        protectedReleaseTokenRequirement.required &&
+        deps.requireProtectedReleaseTokenForHighRisk
+      ) {
+        const problem = createConsequenceAdmissionProblem({
+          type: 'https://attestor.dev/problems/protected-release-token-issuer-missing',
+          title: 'Protected release-token issuer missing',
+          status: 503,
+          detail:
+            'This admission requires a protected sender-constrained release token, but no issuer was configured for the generic admission route.',
+          instance: '/api/v1/admissions',
+          reasonCodes: [
+            'protected-release-token-required',
+            'protected-release-token-issuer-missing',
+          ],
+        });
+        return c.json(problem, 503);
+      }
       try {
-        deps.recordShadowAdmission?.({ tenant, envelope });
+        deps.recordShadowAdmission?.({ tenant, envelope: envelopeForShadow });
       } catch (error) {
         const detail =
           error instanceof Error
@@ -160,7 +226,7 @@ export function registerGenericAdmissionRoutes(
         });
         return c.json(problem, 503);
       }
-      return c.json(envelope);
+      return c.json(responseEnvelope);
     } catch (error) {
       const detail =
         error instanceof Error

@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { Hono } from 'hono';
-import { createConsequenceAdmissionAgentLoopAbuseGuard } from '../src/consequence-admission/index.js';
+import {
+  createConsequenceAdmissionAgentLoopAbuseGuard,
+  issueGenericAdmissionProtectedReleaseToken,
+  type GenericAdmissionEnvelope,
+} from '../src/consequence-admission/index.js';
+import { generateDpopKeyPair } from '../src/release-enforcement-plane/dpop.js';
+import { createReleaseTokenIssuer } from '../src/release-kernel/release-token.js';
+import { generateKeyPair } from '../src/signing/keys.js';
 import { registerGenericAdmissionRoutes } from '../src/service/http/routes/generic-admission-routes.js';
 
 let passed = 0;
@@ -76,6 +83,7 @@ function validAdmissionPayload(overrides: Record<string, unknown> = {}): Record<
     requestedAt: '2026-05-01T18:00:00.000Z',
     decidedAt: '2026-05-01T18:00:01.000Z',
     policyRef: 'policy:refunds:v1',
+    reviewerRef: 'reviewer:risk-owner',
     evidenceRefs: ['order:987', 'payment:456'],
     amount: {
       value: 38000,
@@ -84,6 +92,15 @@ function validAdmissionPayload(overrides: Record<string, unknown> = {}): Record<
     recipient: 'customer_123',
     ...overrides,
   };
+}
+
+function releaseTokenIssuerFixture() {
+  const keyPair = generateKeyPair();
+  return createReleaseTokenIssuer({
+    issuer: 'attestor.generic-admission.route.test',
+    privateKeyPem: keyPair.privateKeyPem,
+    publicKeyPem: keyPair.publicKeyPem,
+  });
 }
 
 async function testEvaluationPlansRejectEnforcingModes(): Promise<void> {
@@ -499,6 +516,137 @@ async function testLoopGuardThrottlesRetryAttemptBeyondBudget(): Promise<void> {
   );
 }
 
+async function testProtectedReleaseTokenIssuerReturnsAuthorizationWithoutRecordingRawToken(): Promise<void> {
+  const app = new Hono();
+  const issuer = releaseTokenIssuerFixture();
+  const dpop = await generateDpopKeyPair();
+  let recordedEnvelope: GenericAdmissionEnvelope | null = null;
+  registerGenericAdmissionRoutes(app, {
+    currentTenant: () => ({
+      tenantId: 'tenant_route',
+      tenantName: 'Route Tenant',
+      authenticatedAt: '2026-05-01T18:00:00.000Z',
+      source: 'api_key',
+      planId: 'starter',
+      monthlyRunQuota: 100,
+    }),
+    issueProtectedReleaseToken: ({ envelope }) =>
+      issueGenericAdmissionProtectedReleaseToken({
+        envelope,
+        issuer,
+        confirmation: { jkt: dpop.publicKeyThumbprint },
+        issuedAt: '2026-05-01T18:00:02.000Z',
+      }),
+    recordShadowAdmission: ({ envelope }) => {
+      recordedEnvelope = envelope;
+    },
+  });
+  const response = await app.request('/api/v1/admissions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(validAdmissionPayload()),
+  });
+  const body = await response.json() as {
+    protectedReleaseToken: {
+      tokenId: string;
+      tokenDigest: string;
+      rawReleaseTokenStored: boolean;
+    };
+    protectedReleaseTokenAuthorization: {
+      token: string;
+      tokenId: string;
+      tokenDigest: string;
+      storeRawTokenInAdmissionOrShadow: boolean;
+    };
+    admission: {
+      proof: readonly {
+        kind: string;
+        id: string;
+        digest: string | null;
+      }[];
+      operationalContext: Record<string, unknown>;
+    };
+  };
+
+  equal(response.status, 200, 'Generic admission route: protected token issuance returns 200');
+  ok(
+    typeof body.protectedReleaseTokenAuthorization.token === 'string' &&
+      body.protectedReleaseTokenAuthorization.token.length > 50,
+    'Generic admission route: protected token authorization returns raw token to caller',
+  );
+  equal(
+    body.protectedReleaseTokenAuthorization.storeRawTokenInAdmissionOrShadow,
+    false,
+    'Generic admission route: protected token authorization forbids raw-token storage',
+  );
+  equal(
+    body.protectedReleaseToken.tokenId,
+    body.protectedReleaseTokenAuthorization.tokenId,
+    'Generic admission route: sanitized summary and authorization token id match',
+  );
+  equal(
+    body.admission.proof.some((proof) =>
+      proof.kind === 'release-token' &&
+      proof.id === body.protectedReleaseTokenAuthorization.tokenId &&
+      proof.digest === body.protectedReleaseTokenAuthorization.tokenDigest),
+    true,
+    'Generic admission route: final admission carries release-token proof ref',
+  );
+  equal(
+    body.admission.operationalContext.protectedReleaseTokenRawStored,
+    false,
+    'Generic admission route: final admission marks raw token as unstored',
+  );
+  ok(recordedEnvelope !== null, 'Generic admission route: protected token envelope is recorded');
+  equal(
+    JSON.stringify(recordedEnvelope).includes(body.protectedReleaseTokenAuthorization.token),
+    false,
+    'Generic admission route: recorded shadow envelope excludes raw token',
+  );
+}
+
+async function testProtectedReleaseTokenRequiredFailsClosedWithoutIssuer(): Promise<void> {
+  const app = new Hono();
+  let shadowRecords = 0;
+  registerGenericAdmissionRoutes(app, {
+    currentTenant: () => ({
+      tenantId: 'tenant_route',
+      tenantName: 'Route Tenant',
+      authenticatedAt: '2026-05-01T18:00:00.000Z',
+      source: 'api_key',
+      planId: 'starter',
+      monthlyRunQuota: 100,
+    }),
+    requireProtectedReleaseTokenForHighRisk: true,
+    recordShadowAdmission: () => {
+      shadowRecords += 1;
+    },
+  });
+  const response = await app.request('/api/v1/admissions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(validAdmissionPayload()),
+  });
+  const body = await response.json() as {
+    decision: string;
+    failClosed: boolean;
+    reasonCodes: readonly string[];
+  };
+
+  equal(response.status, 503, 'Generic admission route: missing required protected token issuer returns 503');
+  equal(body.decision, 'block', 'Generic admission route: missing required protected token issuer blocks');
+  equal(body.failClosed, true, 'Generic admission route: missing required protected token issuer fails closed');
+  ok(
+    body.reasonCodes.includes('protected-release-token-issuer-missing'),
+    'Generic admission route: missing protected token issuer reason is explicit',
+  );
+  equal(shadowRecords, 0, 'Generic admission route: missing protected token issuer is not shadow recorded');
+}
+
 await testEvaluationPlansRejectEnforcingModes();
 await testPostAdmissionRouteReturnsEnvelope();
 await testTenantMismatchFailsClosedBeforeShadowRecording();
@@ -507,5 +655,7 @@ await testInvalidJsonReturnsFailClosedProblem();
 await testInvalidInputReturnsFailClosedProblem();
 await testPostAdmissionRouteCarriesRetryAttemptBinding();
 await testLoopGuardThrottlesRetryAttemptBeyondBudget();
+await testProtectedReleaseTokenIssuerReturnsAuthorizationWithoutRecordingRawToken();
+await testProtectedReleaseTokenRequiredFailsClosedWithoutIssuer();
 
 console.log(`Generic admission route tests: ${passed} passed, 0 failed`);

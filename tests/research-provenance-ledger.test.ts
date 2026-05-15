@@ -413,6 +413,31 @@ function testLedgerIndexesAuditRemediationClosure(): void {
     'This is not a customer PEP runtime',
     'Research provenance ledger: customer gate release-enforcement runtime non-claim is explicit',
   );
+  includes(
+    content,
+    '### 31. Generic Admission Protected Release-Token Issuance',
+    'Research provenance ledger: generic protected release-token entry is present',
+  );
+  includes(
+    content,
+    'OAuth Token Exchange RFC 8693',
+    'Research provenance ledger: generic protected release-token token-exchange anchor is recorded',
+  );
+  includes(
+    content,
+    'src/consequence-admission/generic-protected-release-token.ts',
+    'Research provenance ledger: generic protected release-token code evidence is indexed',
+  );
+  includes(
+    content,
+    'tests/generic-admission-protected-release-token.test.ts',
+    'Research provenance ledger: generic protected release-token test evidence is indexed',
+  );
+  includes(
+    content,
+    'compatibility mode can still return an admission without a protected token',
+    'Research provenance ledger: generic protected release-token runtime limitation is explicit',
+  );
 }
 
 function testLedgerKeepsEvidenceBoundaryExplicit(): void {
