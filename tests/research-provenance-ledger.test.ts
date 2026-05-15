@@ -363,6 +363,31 @@ function testLedgerIndexesAuditRemediationClosure(): void {
     'This is not a shared durable backend implementation.',
     'Research provenance ledger: consequence shared-store backend non-claim is explicit',
   );
+  includes(
+    content,
+    '### 29. LLM Provider Failover Compatibility Gate',
+    'Research provenance ledger: LLM failover compatibility entry is present',
+  );
+  includes(
+    content,
+    'llm-provider-compatible-failover-provider-not-ready',
+    'Research provenance ledger: LLM compatible fallback blocker is recorded',
+  );
+  includes(
+    content,
+    'same requested purpose',
+    'Research provenance ledger: LLM fallback same-purpose requirement is recorded',
+  );
+  includes(
+    content,
+    'tests/f2-llm-provider-supply-chain-validation.test.ts',
+    'Research provenance ledger: LLM fallback validation test evidence is indexed',
+  );
+  includes(
+    content,
+    'This is still not a live multi-provider client implementation.',
+    'Research provenance ledger: LLM live failover non-claim is explicit',
+  );
 }
 
 function testLedgerKeepsEvidenceBoundaryExplicit(): void {

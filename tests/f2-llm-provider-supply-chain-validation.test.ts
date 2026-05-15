@@ -112,6 +112,11 @@ try {
   equal(registry.providers.find((provider) => provider.id === 'openai')?.wireStatus, 'wired', 'LLM provider supply-chain validation: OpenAI is wired');
   equal(registry.providers.find((provider) => provider.id === 'anthropic')?.wireStatus, 'planned', 'LLM provider supply-chain validation: Anthropic is planned');
   equal(registry.runtimePolicy.storesRawPrompt, false, 'LLM provider supply-chain validation: registry does not store raw prompts');
+  equal(
+    registry.runtimePolicy.failoverCompatibility,
+    'same-purpose-model-capability-rate-limit-required',
+    'LLM provider supply-chain validation: registry requires compatible failover providers',
+  );
   equal(registry.proofContextContract.requiresPromptDigest, true, 'LLM provider supply-chain validation: proof context requires prompt digest');
   equal(registryEvaluation.productionReady, false, 'LLM provider supply-chain validation: registry does not claim production readiness');
   includes(
@@ -120,6 +125,7 @@ try {
     'LLM provider supply-chain validation: production/failover readiness blocks without second provider',
   );
   equal(failoverRoute.status, 'blocked', 'LLM provider supply-chain validation: failover route fails closed');
+  equal(failoverRoute.failoverCompatibilityReady, false, 'LLM provider supply-chain validation: failover compatibility is not ready');
 
   equal(countOccurrencesOutsideOpenAi(/\bcallGpt\(/gu), 1, 'LLM provider supply-chain validation: callGpt has one caller outside the wrapper');
   equal(countOccurrencesOutsideOpenAi(/\bcallGptVision\(/gu), 0, 'LLM provider supply-chain validation: callGptVision has no caller outside the wrapper');
@@ -135,6 +141,12 @@ try {
   includes(doc, 'F4-D Attestor-owned OpenAI usage / budget / prompt leakage scope: `partial`.', 'LLM provider supply-chain validation doc: F4-D status is partial');
   includes(doc, 'No hosted production, multi-provider resilience, or prompt-leakage closure claim is made.', 'LLM provider supply-chain validation doc: no overclaim is present');
   includes(registryDoc, 'Status: repository-side contract only. Not a live multi-provider runtime.', 'LLM provider registry doc: runtime non-claim is explicit');
+  includes(registryDoc, 'Failover Compatibility Rule', 'LLM provider registry doc: compatible failover rule is documented');
+  includes(
+    registryDoc,
+    'llm-provider-compatible-failover-provider-not-ready',
+    'LLM provider registry doc: incompatible fallback blocker is documented',
+  );
   includes(registryDoc, 'OpenAI timeout and output-token budget enforcement are wired', 'LLM provider registry doc: OpenAI timeout/cost boundary is explicit');
   includes(registryDoc, 'OpenAI reasoning live smoke proof is wired as an explicit', 'LLM provider registry doc: OpenAI reasoning smoke proof boundary is explicit');
 

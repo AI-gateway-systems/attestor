@@ -77,8 +77,11 @@ registry contract:
 - OpenAI is the only `wired` provider.
 - Anthropic, Vertex AI, and Azure OpenAI are registered as `planned` provider
   surfaces only.
-- production/failover-required evaluation fails closed until a second provider,
-  timeout budget, cost budget, and live smoke proof are wired.
+- production/failover-required evaluation fails closed until a compatible
+  second provider, timeout budget, cost budget, and live smoke proof are wired.
+- failover compatibility requires the same requested purpose, model mapping,
+  route capabilities, structured-output support when required, and provider
+  rate-limit signals.
 - proof-context binding accepts prompt/config/tool/schema digests, not raw prompt
   bodies or raw provider response bodies.
 - `callGpt(...)` and `callGptVision(...)` return a digest-only provider proof
@@ -136,6 +139,8 @@ Reason:
 
 - Current OpenAI usage is optional and CLI-scoped.
 - `LlmProviderRegistry` records provider inventory, wire status, structured-output mechanisms, credential reference names, rate-limit signal names, and proof-context digest binding.
+- Route evaluation now rejects a generic second wired provider unless it is
+  purpose/model/capability/structured-output/rate-limit compatible.
 - The OpenAI wrapper now has explicit per-call timeout and output-token budget enforcement, disables provider SDK hidden retries, sets provider response storage to `false`, and can produce digest-only OpenAI reasoning smoke proof.
 - The OpenAI wrapper still has no live failover provider, no OpenAI vision smoke proof, and no non-OpenAI smoke proof.
 - It should block future claims that Attestor has production-grade multi-provider live-model resilience.

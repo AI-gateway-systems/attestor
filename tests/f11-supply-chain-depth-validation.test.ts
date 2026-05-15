@@ -135,6 +135,11 @@ function testExistingSupplyChainControlsRemainScoped(): void {
 
   ok(kinds.includes('model-provider-sdk'), 'F11-SC-4: model-provider-sdk is a supply-chain component kind');
   equal(providerRegistry.providers.filter((provider) => provider.wireStatus === 'wired').length, 1, 'F11-SC-4: only one LLM provider is wired');
+  equal(
+    providerRegistry.runtimePolicy.failoverCompatibility,
+    'same-purpose-model-capability-rate-limit-required',
+    'F11-SC-4: failover requires compatible purpose/model/capability/rate-limit posture',
+  );
   equal(providerEvaluation.productionReady, false, 'F11-SC-4: provider registry does not claim production readiness');
   ok(
     providerEvaluation.blockers.includes('llm-provider-failover-provider-not-wired'),
@@ -179,6 +184,7 @@ function testDocsTrackerAndPackageStayAligned(): void {
   includes(validation, '| F11-SC-1 container base images use floating tags | `fixed` |', 'F11 doc: SC-1 is fixed');
   includes(validation, '| F11-SC-4 single OpenAI provider / provider registry contract | `partial` |', 'F11 doc: SC-4 boundary remains partial');
   includes(validation, 'apply timeout/output-token runtime policy', 'F11 doc: SC-4 runtime policy is documented');
+  includes(validation, 'same-purpose model/capability/rate-limit compatibility', 'F11 doc: SC-4 compatible fallback gate is documented');
   includes(validation, 'OpenAI reasoning live smoke probe', 'F11 doc: SC-4 live smoke proof is documented');
   includes(validation, '| F11-SC-11 SBOM packaging not located | `invalid-as-stated` |', 'F11 doc: SC-11 stale claim is invalidated');
   includes(validation, 'F11 is closed for planned repository-side work in this slice.', 'F11 doc: closure statement is explicit');
