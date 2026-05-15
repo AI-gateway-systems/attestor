@@ -370,13 +370,23 @@ export async function createApiHttpRouteRuntime(
     runtimeProfileId: runtimeProfile.id,
     productionStoragePath,
   });
+  const genericAdmissionIssuerBoundary =
+    releaseSigningProvider.signingBoundary === 'external-kms-hsm'
+      ? 'external-kms-hsm'
+      : 'runtime-release-token-issuer';
   const genericAdmissionProtectedRoute = evaluateGenericAdmissionProtectedRoute({
     runtimeProfileId: runtimeProfile.id,
     requireProtectedReleaseTokenForHighRisk: true,
     issuerConfigured: true,
-    issuerBoundary: releaseSigningProvider.signingBoundary === 'external-kms-hsm'
-      ? 'external-kms-hsm'
-      : 'runtime-release-token-issuer',
+    issuerBoundary: genericAdmissionIssuerBoundary,
+    issuerBoundaryEvidence: {
+      source: 'runtime-signing-provider-diagnostics',
+      issuerBoundary: genericAdmissionIssuerBoundary,
+      productionReady: releaseSigningProvider.productionReady,
+      liveProviderVerified: false,
+      liveProviderProofState: 'not-provided',
+      rawProviderResponseStored: false,
+    },
     senderConfirmationSource: 'dpop-jkt',
     failClosedOnMissingIssuer: true,
     shadowRecordsRawToken: false,

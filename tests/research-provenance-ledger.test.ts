@@ -485,12 +485,12 @@ function testLedgerIndexesAuditRemediationClosure(): void {
   );
   includes(
     content,
-    'route readiness remains blocked while the issuer boundary is runtime-local',
-    'Research provenance ledger: hosted generic protected route guard issuer-boundary behavior is recorded',
+    'requires structured issuer boundary evidence with a valid live provider proof',
+    'Research provenance ledger: hosted generic protected route guard structured issuer proof behavior is recorded',
   );
   includes(
     content,
-    'The hosted route can issue DPoP-confirmed protected tokens in non-production profiles',
+    'production-shared readiness stays blocked until structured external issuer boundary proof',
     'Research provenance ledger: hosted generic protected route guard non-production issuance boundary is recorded',
   );
   includes(
@@ -522,6 +522,26 @@ function testLedgerIndexesAuditRemediationClosure(): void {
     content,
     'not durable DPoP replay consumption for the token-request proof',
     'Research provenance ledger: hosted generic DPoP issuer bridge replay limitation is explicit',
+  );
+  includes(
+    content,
+    '### 35. Hosted Generic Admission External Issuer Boundary Proof Gate',
+    'Research provenance ledger: hosted generic external issuer proof gate entry is present',
+  );
+  includes(
+    content,
+    'external-issuer-boundary-proof-missing',
+    'Research provenance ledger: hosted generic external issuer proof blocker is recorded',
+  );
+  includes(
+    content,
+    'structured issuer boundary evidence from the release tenant signer boundary descriptor',
+    'Research provenance ledger: hosted generic external issuer structured evidence is recorded',
+  );
+  includes(
+    content,
+    'does not activate external release-token signing',
+    'Research provenance ledger: hosted generic external issuer activation non-claim is explicit',
   );
 }
 

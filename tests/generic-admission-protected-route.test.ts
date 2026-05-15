@@ -202,11 +202,31 @@ function testProductionSharedNeedsExternalIssuerBoundary(): void {
     admissionOrShadowStoresRawToken: false,
     rawTokenReturnedOnlyToCaller: true,
   });
-  const externalIssuer = evaluateGenericAdmissionProtectedRoute({
+  const externalIssuerWithoutProof = evaluateGenericAdmissionProtectedRoute({
     runtimeProfileId: 'production-shared',
     requireProtectedReleaseTokenForHighRisk: true,
     issuerConfigured: true,
     issuerBoundary: 'external-kms-hsm',
+    senderConfirmationSource: 'dpop-jkt',
+    failClosedOnMissingIssuer: true,
+    shadowRecordsRawToken: false,
+    admissionOrShadowStoresRawToken: false,
+    rawTokenReturnedOnlyToCaller: true,
+  });
+  const externalIssuerWithStructuredProof = evaluateGenericAdmissionProtectedRoute({
+    runtimeProfileId: 'production-shared',
+    requireProtectedReleaseTokenForHighRisk: true,
+    issuerConfigured: true,
+    issuerBoundary: 'external-kms-hsm',
+    issuerBoundaryEvidence: {
+      source: 'release-tenant-signer-boundary-descriptor',
+      issuerBoundary: 'external-kms-hsm',
+      productionReady: true,
+      liveProviderVerified: true,
+      liveProviderProofState: 'valid',
+      proofDigest: 'sha256:provider-live-proof',
+      rawProviderResponseStored: false,
+    },
     senderConfirmationSource: 'dpop-jkt',
     failClosedOnMissingIssuer: true,
     shadowRecordsRawToken: false,
@@ -225,9 +245,29 @@ function testProductionSharedNeedsExternalIssuerBoundary(): void {
     'Generic protected route: runtime-local issuer blocker is explicit',
   );
   equal(
-    externalIssuer.readyForSelectedProfile,
+    externalIssuerWithoutProof.readyForSelectedProfile,
+    false,
+    'Generic protected route: production-shared route readiness requires structured external issuer proof',
+  );
+  includes(
+    externalIssuerWithoutProof.blockers,
+    'external-issuer-boundary-proof-missing',
+    'Generic protected route: external issuer label without live proof stays blocked',
+  );
+  equal(
+    externalIssuerWithStructuredProof.readyForSelectedProfile,
     true,
-    'Generic protected route: production-shared route readiness requires external issuer boundary',
+    'Generic protected route: production-shared route readiness accepts structured external issuer proof',
+  );
+  equal(
+    externalIssuerWithStructuredProof.issuerBoundaryEvidenceSource,
+    'release-tenant-signer-boundary-descriptor',
+    'Generic protected route: production-shared records the structured issuer boundary evidence source',
+  );
+  equal(
+    externalIssuerWithStructuredProof.externalIssuerLiveProviderVerified,
+    true,
+    'Generic protected route: production-shared records live provider verification evidence',
   );
 }
 
@@ -283,6 +323,11 @@ function testHostedBootstrapAndReadinessExposeRouteProof(): void {
   ok(
     /genericAdmissionProtectedIssuer:\s*apiReleaseTokenIssuer/u.test(apiRouteRuntime),
     'Generic protected route: API runtime passes the release-token issuer as a private service',
+  );
+  ok(
+    /issuerBoundaryEvidence:\s*\{/u.test(apiRouteRuntime) &&
+      /runtime-signing-provider-diagnostics/u.test(apiRouteRuntime),
+    'Generic protected route: API runtime records issuer boundary evidence instead of a bare boundary label',
   );
   ok(
     /genericAdmissionProtectedRoute,/u.test(apiRouteRuntime),

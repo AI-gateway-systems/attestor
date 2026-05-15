@@ -99,7 +99,7 @@ generic protected release-token issuance helper: can issue sender-constrained pr
 hosted generic DPoP issuer bridge: validates token-request DPoP proof and issues caller-only protected tokens in hosted non-production profiles
 customer PEP runtime adoption proof: can prove scoped fail-closed runtime adoption evidence, but does not deploy or operate the PEP
 protected enforcement profile: routes high-risk/customer-sensitive paths to the release-enforcement plane
-hosted generic admission protected route: requires the protected issuer for high-risk hosted generic admissions and blocks production-shared readiness until the issuer boundary is external
+hosted generic admission protected route: requires the protected issuer for high-risk hosted generic admissions and blocks production-shared readiness until the issuer boundary has structured external live provider proof
 ```
 
 ## Corrected Finding
@@ -134,9 +134,9 @@ closure beyond the repository-side contract:
    and sender-constrained proof validation are active before protected
    consequences can execute.
 2. Hosted production configuration still needs live issuer and sender-proof
-   deployment evidence with an external KMS/HSM-backed issuer boundary so
-   protected high-risk generic admissions are not relying on runtime-local
-   signer material.
+   deployment evidence with an external KMS/HSM-backed issuer boundary and
+   structured live provider proof so protected high-risk generic admissions are
+   not relying on runtime-local signer material or bare external labels.
 
 Current repo evidence supports `partial`, not `fixed`. The signed bearer helper
 narrows the low-risk cryptographic compatibility gap, and the
@@ -166,7 +166,8 @@ token-request DPoP proof into `cnf.jkt`, exposes the route proof through
 health/readiness diagnostics, and fails closed when sender confirmation is
 absent. It still does not configure a live external KMS/HSM signer, durable
 replay/introspection backend, or customer-operated PEP; production-shared route
-readiness remains blocked while the issuer boundary is runtime-local.
+readiness remains blocked while the issuer boundary is runtime-local or lacks
+structured live provider proof.
 
 ## Tests
 

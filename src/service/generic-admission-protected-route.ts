@@ -21,6 +21,17 @@ export type GenericAdmissionProtectedRouteIssuerBoundary =
   | 'external-kms-hsm'
   | 'missing';
 
+export type GenericAdmissionProtectedRouteIssuerBoundaryEvidenceSource =
+  | 'runtime-signing-provider-diagnostics'
+  | 'release-tenant-signer-boundary-descriptor'
+  | 'none';
+
+export type GenericAdmissionProtectedRouteIssuerLiveProofState =
+  | 'not-provided'
+  | 'valid'
+  | 'invalid'
+  | 'stale';
+
 export type GenericAdmissionProtectedRouteSenderConfirmationSource =
   | 'dpop-jkt'
   | 'mtls-certificate-thumbprint'
@@ -37,7 +48,12 @@ export type GenericAdmissionProtectedRouteBlocker =
   | 'raw-token-not-limited-to-immediate-caller'
   | 'protected-release-token-issuer-not-configured'
   | 'sender-confirmation-source-not-configured'
-  | 'production-issuer-boundary-not-external';
+  | 'production-issuer-boundary-not-external'
+  | 'external-issuer-boundary-proof-missing'
+  | 'external-issuer-boundary-proof-mismatch'
+  | 'external-issuer-boundary-proof-not-production-ready'
+  | 'external-issuer-live-provider-proof-not-valid'
+  | 'external-issuer-provider-response-storage-risk';
 
 export type GenericAdmissionProtectedRouteNoGoCondition =
   | 'hosted-route-issuer-missing'
@@ -55,6 +71,8 @@ export interface GenericAdmissionProtectedRouteEvaluation {
   readonly protectedIssuerRequired: boolean;
   readonly issuerConfigured: boolean;
   readonly issuerBoundary: GenericAdmissionProtectedRouteIssuerBoundary;
+  readonly issuerBoundaryEvidenceSource: GenericAdmissionProtectedRouteIssuerBoundaryEvidenceSource;
+  readonly externalIssuerLiveProviderVerified: boolean;
   readonly senderConfirmationSource: GenericAdmissionProtectedRouteSenderConfirmationSource;
   readonly failClosedOnMissingIssuer: boolean;
   readonly compatibilityModeAllowed: boolean;
@@ -72,11 +90,25 @@ export interface GenericAdmissionProtectedRouteEvaluation {
   readonly limitation: string;
 }
 
+export interface GenericAdmissionProtectedRouteIssuerBoundaryEvidence {
+  readonly source: Exclude<
+    GenericAdmissionProtectedRouteIssuerBoundaryEvidenceSource,
+    'none'
+  >;
+  readonly issuerBoundary: GenericAdmissionProtectedRouteIssuerBoundary;
+  readonly productionReady: boolean;
+  readonly liveProviderVerified: boolean;
+  readonly liveProviderProofState: GenericAdmissionProtectedRouteIssuerLiveProofState;
+  readonly proofDigest?: string | null;
+  readonly rawProviderResponseStored: false;
+}
+
 export interface EvaluateGenericAdmissionProtectedRouteInput {
   readonly runtimeProfileId?: string | null;
   readonly requireProtectedReleaseTokenForHighRisk: boolean;
   readonly issuerConfigured: boolean;
   readonly issuerBoundary?: GenericAdmissionProtectedRouteIssuerBoundary | null;
+  readonly issuerBoundaryEvidence?: GenericAdmissionProtectedRouteIssuerBoundaryEvidence | null;
   readonly senderConfirmationSource?: GenericAdmissionProtectedRouteSenderConfirmationSource | null;
   readonly failClosedOnMissingIssuer: boolean;
   readonly shadowRecordsRawToken?: boolean | null;
@@ -102,6 +134,15 @@ export function evaluateGenericAdmissionProtectedRoute(
   const issuerBoundary = input.issuerConfigured
     ? input.issuerBoundary ?? 'runtime-release-token-issuer'
     : 'missing';
+  const issuerBoundaryEvidence = input.issuerBoundaryEvidence ?? null;
+  const externalIssuerEvidenceReady =
+    issuerBoundary === 'external-kms-hsm' &&
+    issuerBoundaryEvidence !== null &&
+    issuerBoundaryEvidence.issuerBoundary === 'external-kms-hsm' &&
+    issuerBoundaryEvidence.productionReady &&
+    issuerBoundaryEvidence.liveProviderVerified &&
+    issuerBoundaryEvidence.liveProviderProofState === 'valid' &&
+    issuerBoundaryEvidence.rawProviderResponseStored === false;
   const senderConfirmationSource = input.senderConfirmationSource ?? 'none';
   const shadowRecordsRawToken = input.shadowRecordsRawToken === true;
   const admissionOrShadowStoresRawToken =
@@ -119,7 +160,7 @@ export function evaluateGenericAdmissionProtectedRoute(
   const issuerReady =
     input.issuerConfigured && senderConfirmationSource !== 'none';
   const productionIssuerBoundaryReady =
-    !productionSharedSelected || issuerBoundary === 'external-kms-hsm';
+    !productionSharedSelected || externalIssuerEvidenceReady;
   const readyForSelectedProfile = productionSharedSelected
     ? protectedRouteGuardReady && issuerReady && productionIssuerBoundaryReady
     : true;
@@ -150,6 +191,27 @@ export function evaluateGenericAdmissionProtectedRoute(
   if (productionSharedSelected && issuerBoundary !== 'external-kms-hsm') {
     blockers.push('production-issuer-boundary-not-external');
   }
+  if (productionSharedSelected && issuerBoundary === 'external-kms-hsm') {
+    if (issuerBoundaryEvidence === null) {
+      blockers.push('external-issuer-boundary-proof-missing');
+    } else {
+      if (issuerBoundaryEvidence.issuerBoundary !== 'external-kms-hsm') {
+        blockers.push('external-issuer-boundary-proof-mismatch');
+      }
+      if (!issuerBoundaryEvidence.productionReady) {
+        blockers.push('external-issuer-boundary-proof-not-production-ready');
+      }
+      if (
+        !issuerBoundaryEvidence.liveProviderVerified ||
+        issuerBoundaryEvidence.liveProviderProofState !== 'valid'
+      ) {
+        blockers.push('external-issuer-live-provider-proof-not-valid');
+      }
+      if (issuerBoundaryEvidence.rawProviderResponseStored !== false) {
+        blockers.push('external-issuer-provider-response-storage-risk');
+      }
+    }
+  }
 
   const noGoConditions: GenericAdmissionProtectedRouteNoGoCondition[] = [
     'customer-pep-not-proven',
@@ -171,6 +233,9 @@ export function evaluateGenericAdmissionProtectedRoute(
     protectedIssuerRequired,
     issuerConfigured: input.issuerConfigured,
     issuerBoundary,
+    issuerBoundaryEvidenceSource: issuerBoundaryEvidence?.source ?? 'none',
+    externalIssuerLiveProviderVerified:
+      issuerBoundaryEvidence?.liveProviderVerified ?? false,
     senderConfirmationSource,
     failClosedOnMissingIssuer: input.failClosedOnMissingIssuer,
     compatibilityModeAllowed: !protectedIssuerRequired,
@@ -186,6 +251,6 @@ export function evaluateGenericAdmissionProtectedRoute(
     noGoConditions: unique(noGoConditions),
     requiredProofs: GENERIC_ADMISSION_PROTECTED_ROUTE_REQUIRED_PROOFS,
     limitation:
-      'This proves hosted route fail-closed configuration for protected high-risk generic admissions, not a live authorization server, customer PEP deployment, external KMS/HSM signer, durable replay/introspection backend, or production deployment.',
+      'This proves hosted route fail-closed configuration for protected high-risk generic admissions, not a live authorization server, customer PEP deployment, external KMS/HSM signer adapter, durable replay/introspection backend, or production deployment.',
   });
 }
