@@ -11,6 +11,7 @@ independently enforce the Attestor decision.
 Files inspected:
 
 - `src/consequence-admission/customer-gate.ts`
+- `src/consequence-admission/generic-protected-release-token.ts`
 - `src/consequence-admission/downstream-enforcement-contract.ts`
 - `src/consequence-admission/verifier-helper.ts`
 - `src/release-kernel/release-token.ts`
@@ -44,6 +45,13 @@ result to be valid, sender-constrained, online-checked, replay-consumed,
 tenant/audience matched, and bound to an admission `release-token` proof
 reference by token id and digest.
 
+`issueGenericAdmissionProtectedReleaseToken(...)` adds a generic high-risk
+admission issuance contract. For allowed enforcing admissions whose protected
+profile requires the release-enforcement plane, it issues a sender-constrained,
+tenant-bound, audience-scoped release token and recreates the admission with a
+`release-token` proof reference by token id and digest. The sanitized envelope
+does not store the raw token.
+
 A customer runtime that ignores the helper can still execute the downstream
 action. The signed bearer path also does not consume replay, perform online
 introspection, or prove sender constraint.
@@ -69,7 +77,7 @@ signed-bearer customer-gate helper: cryptographic compatibility verifier for low
 release-enforcement customer-gate helper: consumes a proven release-enforcement verifier result for protected paths, but does not operate the customer PEP
 downstream contract helper: fail-closed structural verifier, not cryptographic
 release-enforcement plane: signed-token enforcement pattern exists
-generic consequence admission path: not proven to auto-issue protected tokens
+generic protected release-token issuance helper: can issue sender-constrained protected tokens for allowed high-risk generic admissions when configured
 protected enforcement profile: routes high-risk/customer-sensitive paths to the release-enforcement plane
 ```
 
@@ -87,8 +95,9 @@ release-token verifier for low-risk compatibility paths. High-impact downstream
 systems must use the downstream contract verifier and, where protected
 cryptographic enforcement is required, the release-enforcement plane or an
 equivalent sender-constrained signed-token verifier. The generic
-consequence-admission route is not yet proven to automatically issue or require
-such a token for every admitted consequence.
+consequence-admission route now has a protected release-token issuance hook, but
+customer runtime configuration and non-bypassable PEP adoption still determine
+whether every protected consequence is forced through it.
 ```
 
 ## Remaining Work
@@ -96,18 +105,19 @@ such a token for every admitted consequence.
 Before this can be marked `fixed`, Attestor still needs repo-proven protected
 runtime closure:
 
-1. Generic consequence-admission responses for executable high-risk actions
-   issue a signed, audience-scoped downstream authorization token, and
-   downstream verifiers reject execution without it.
-2. Customer-operated PEP/runtime adoption proof shows the release-enforcement
+1. Customer-operated PEP/runtime adoption proof shows the release-enforcement
    verifier, replay store, token-introspection authority, and sender-constrained
    proof validation are active before protected consequences can execute.
+2. Hosted production configuration proves the generic admission route requires
+   the protected release-token issuer for protected profiles instead of running
+   in compatibility mode.
 
 Current repo evidence supports `partial`, not `fixed`. The signed bearer helper
 narrows the low-risk cryptographic compatibility gap, and the
 release-enforcement customer-gate helper narrows the protected verifier-consumer
-gap, but generic consequence admission still does not auto-issue protected
-tokens or activate a customer runtime.
+gap. The generic protected release-token issuer narrows the consequence-to-token
+binding gap, but it does not activate a customer runtime or prove hosted
+production configuration by itself.
 
 The protected customer enforcement profile narrows the remaining gap by making
 the adoption rule machine-readable: R3/R4 and other production-sensitive
@@ -124,6 +134,7 @@ Focused test:
 npm run test:f2-customer-gate-validation
 npm run test:consequence-admission-protected-enforcement-profile
 npm run test:consequence-admission-customer-gate
+npm run test:generic-admission-protected-release-token
 ```
 
 Related tests:

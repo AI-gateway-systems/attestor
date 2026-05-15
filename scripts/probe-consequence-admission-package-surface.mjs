@@ -591,6 +591,18 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.CONSEQUENCE_ADMISSION_PROTECTED_RELEASE_TOKEN_ISSUANCE_VERSION,
+  'attestor.consequence-admission-protected-release-token-issuance.v1',
+);
+assert.equal(
+  typeof admission.issueGenericAdmissionProtectedReleaseToken,
+  'function',
+);
+assert.equal(
+  typeof admission.evaluateGenericAdmissionProtectedReleaseTokenRequirement,
+  'function',
+);
+assert.equal(
   admission.POLICY_FOUNDRY_COVERAGE_SCORE_VERSION,
   'attestor.policy-foundry-coverage-score.v1',
 );

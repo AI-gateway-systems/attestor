@@ -2345,3 +2345,4 @@ export * from './finance.js';
 export * from './crypto.js';
 export * from './facade.js';
 export * from './customer-gate.js';
+export * from './generic-protected-release-token.js';

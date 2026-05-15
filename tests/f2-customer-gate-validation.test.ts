@@ -31,6 +31,11 @@ const validationDoc = readProjectFile(
 );
 const tracker = readProjectFile('docs', 'audit', 'attestor-audit-remediation-tracker.md');
 const customerGate = readProjectFile('src', 'consequence-admission', 'customer-gate.ts');
+const genericProtectedReleaseToken = readProjectFile(
+  'src',
+  'consequence-admission',
+  'generic-protected-release-token.ts',
+);
 const packageJson = JSON.parse(readProjectFile('package.json')) as {
   readonly scripts: Readonly<Record<string, string>>;
 };
@@ -53,8 +58,8 @@ includes(
 );
 includes(
   validationDoc,
-  'generic consequence admission path: not proven to auto-issue protected tokens',
-  'F2 customer gate validation: generic token gap is explicit',
+  'generic protected release-token issuance helper: can issue sender-constrained protected tokens',
+  'F2 customer gate validation: generic protected token issuance is explicit',
 );
 includes(
   validationDoc,
@@ -78,6 +83,11 @@ includes(
 );
 includes(
   tracker,
+  'generic high-risk protected release-token issuance contract',
+  'Tracker: F2-AG-1 generic protected token issuance is recorded',
+);
+includes(
+  tracker,
   '| F4-LLM06-A customer gate honor-system | `partial` |',
   'Tracker: F4 overlap status is updated',
 );
@@ -90,6 +100,16 @@ includes(
   customerGate,
   'evaluateConsequenceAdmissionGateWithReleaseEnforcement',
   'Customer gate source: release-enforcement verifier consumer exists',
+);
+includes(
+  genericProtectedReleaseToken,
+  'issueGenericAdmissionProtectedReleaseToken',
+  'Generic protected release-token source: issuer helper exists',
+);
+includes(
+  genericProtectedReleaseToken,
+  'sender-confirmation-required',
+  'Generic protected release-token source: sender constraint is required',
 );
 equal(
   verifierDescriptor.cryptographicTokenVerification,

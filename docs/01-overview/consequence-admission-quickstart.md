@@ -114,6 +114,24 @@ The response carries both the effective admission decision and the shadow decisi
 
 `observe` and `warn` are adoption modes. They let a team see what Attestor would have done before enforcing a block. `review` and `enforce` are control modes. In those modes, incomplete policy, authority, evidence, scope, or adapter readiness holds the consequence before downstream execution.
 
+For high-risk `review` or `enforce` admissions that would execute downstream, the generic path now has a protected release-token issuance contract. When a customer-operated route dependency is configured, Attestor can bind the final admission to a sender-constrained release token:
+
+```ts
+import {
+  issueGenericAdmissionProtectedReleaseToken,
+} from 'attestor/consequence-admission';
+
+const issued = await issueGenericAdmissionProtectedReleaseToken({
+  envelope,
+  issuer,
+  confirmation: { jkt: dpopPublicKeyThumbprint },
+});
+```
+
+The final admission receives a `release-token` proof reference by token id and digest. R3 issuance requires an explicit `reviewerRef`; R4 issuance requires distinct reviewer and signer references. The sanitized envelope records only token metadata; the raw token is returned only to the immediate caller as authorization material and must be presented through `attestor/release-enforcement-plane` with sender constraint, online introspection, and replay consumption before the protected consequence executes.
+
+This is still not customer PEP activation by itself. A production integration must configure the issuer, token-introspection authority, replay store, sender-proof verifier, and non-bypassable downstream enforcement point.
+
 When an action is held for missing policy, evidence, amount, recipient, data scope, or authority shape, the admission response includes model-safe feedback. The feedback names fields and evidence kinds, not raw customer data or private policy internals. A safe retry must send a changed request; replaying the same request is not treated as model repair.
 
 Correction reason codes are cataloged. The catalog marks which codes are model-retryable and which must route to customer review or operator control. Model-retryable examples include `policy-ref-missing`, `evidence-ref-missing`, `amount-scope-missing`, `recipient-scope-missing`, `data-scope-missing`, `authority-mode-missing`, and `narrow-required`. Operator or customer-control examples include `adapter-readiness-missing`, `custom-domain-review-required`, `policy-blocked`, `feature-blocked`, and `feature-unsafe`.
