@@ -54,6 +54,11 @@ try {
     'Registry: failover is fail-closed until two providers are wired',
   );
   equal(
+    descriptor.runtimePolicy.failoverCompatibility,
+    'same-purpose-model-capability-rate-limit-required',
+    'Registry: failover requires same-purpose model, capability, and rate-limit compatibility',
+  );
+  equal(
     descriptor.runtimePolicy.retryBackoff,
     'openai-wrapper-jittered-exponential',
     'Registry: OpenAI wrapper has bounded jittered retry policy',
@@ -160,6 +165,13 @@ try {
   equal(openAiRoute.status, 'selected', 'Route: default reasoning route is selectable');
   equal(openAiRoute.providerId, 'openai', 'Route: default reasoning route uses OpenAI');
   equal(openAiRoute.model, 'o3', 'Route: default reasoning route uses o3');
+  equal(openAiRoute.requiredCapabilities.textGeneration, true, 'Route: reasoning requires text generation');
+  equal(openAiRoute.requiredCapabilities.structuredOutput, false, 'Route: reasoning does not require structured output by default');
+  equal(
+    openAiRoute.selectedProviderStructuredOutputMode,
+    'openai-response-format-json-schema',
+    'Route: selected provider structured-output mode is exposed',
+  );
   equal(openAiRoute.activatesLiveProviderCall, false, 'Route: route evaluation does not activate live provider calls');
   equal(openAiRoute.productionReady, false, 'Route: route evaluation does not claim production readiness');
 
@@ -178,6 +190,9 @@ try {
 
   const failoverRoute = evaluateLlmProviderRoute({ purpose: 'reasoning', requireFailover: true });
   equal(failoverRoute.status, 'blocked', 'Route: failover route blocks until a second provider is wired');
+  equal(failoverRoute.requiredCapabilities.rateLimitPolicy, true, 'Route: failover requires provider rate-limit policy');
+  deepEqual(failoverRoute.failoverProviderIds, [], 'Route: failover providers only include compatible wired providers');
+  equal(failoverRoute.failoverCompatibilityReady, false, 'Route: failover compatibility is not ready with one wired provider');
   includes(
     failoverRoute.blockers,
     'llm-provider-failover-provider-not-wired',
@@ -233,11 +248,92 @@ try {
     wireStatus: 'wired',
     defaultModelsByPurpose: { reasoning: 'claude-sonnet-placeholder' },
   };
+  const openAiProvider = DEFAULT_LLM_PROVIDER_REGISTRATIONS.find((provider) => provider.id === 'openai')!;
+  const anthropicWiredWithoutReasoningModel: LlmProviderRegistration = {
+    ...anthropicWired,
+    defaultModelsByPurpose: {},
+  };
+  const missingModelFailoverEvaluation = evaluateLlmProviderRegistry({
+    providers: [openAiProvider, anthropicWiredWithoutReasoningModel],
+    requireFailover: true,
+  });
+  equal(
+    missingModelFailoverEvaluation.state,
+    'blocked',
+    'Evaluation: a second wired provider without a purpose model does not satisfy failover',
+  );
+  includes(
+    missingModelFailoverEvaluation.blockers,
+    'llm-provider-compatible-failover-provider-not-ready',
+    'Evaluation: incompatible wired fallback blocker is explicit',
+  );
+  const missingModelFailoverRoute = evaluateLlmProviderRoute({
+    purpose: 'reasoning',
+    providers: [openAiProvider, anthropicWiredWithoutReasoningModel],
+    requireFailover: true,
+  });
+  deepEqual(
+    missingModelFailoverRoute.failoverProviderIds,
+    [],
+    'Route: fallback list excludes wired providers missing the requested purpose model',
+  );
+  equal(
+    missingModelFailoverRoute.failoverCompatibilityReady,
+    false,
+    'Route: failover compatibility is false when fallback model mapping is absent',
+  );
+
+  const anthropicWiredWithoutStructuredOutput: LlmProviderRegistration = {
+    ...anthropicWired,
+    capability: {
+      ...anthropicWired.capability,
+      structuredOutputMode: 'none',
+    },
+  };
+  const structuredFailoverRoute = evaluateLlmProviderRoute({
+    purpose: 'reasoning',
+    providers: [openAiProvider, anthropicWiredWithoutStructuredOutput],
+    requireFailover: true,
+    requireStructuredOutput: true,
+  });
+  equal(
+    structuredFailoverRoute.status,
+    'blocked',
+    'Route: structured-output failover blocks when the fallback provider cannot match structured output',
+  );
+  includes(
+    structuredFailoverRoute.blockers,
+    'llm-provider-compatible-failover-provider-not-ready',
+    'Route: structured-output fallback incompatibility is explicit',
+  );
+  deepEqual(
+    structuredFailoverRoute.failoverProviderIds,
+    [],
+    'Route: structured-output route excludes non-structured fallback providers',
+  );
+
+  const anthropicWiredWithoutRateLimitSignals: LlmProviderRegistration = {
+    ...anthropicWired,
+    rateLimitSignals: [],
+  };
+  const rateLimitFailoverRoute = evaluateLlmProviderRoute({
+    purpose: 'reasoning',
+    providers: [openAiProvider, anthropicWiredWithoutRateLimitSignals],
+    requireFailover: true,
+  });
+  equal(
+    rateLimitFailoverRoute.status,
+    'blocked',
+    'Route: failover blocks when the fallback provider lacks rate-limit signals',
+  );
+  includes(
+    rateLimitFailoverRoute.blockers,
+    'llm-provider-compatible-failover-provider-not-ready',
+    'Route: fallback rate-limit incompatibility is explicit',
+  );
+
   const twoProviderEvaluation = evaluateLlmProviderRegistry({
-    providers: [
-      DEFAULT_LLM_PROVIDER_REGISTRATIONS.find((provider) => provider.id === 'openai')!,
-      anthropicWired,
-    ],
+    providers: [openAiProvider, anthropicWired],
     requireFailover: true,
   });
   equal(
@@ -251,6 +347,19 @@ try {
     'Evaluation: two wired providers satisfy repository-level failover contract',
   );
   equal(twoProviderEvaluation.productionReady, false, 'Evaluation: even two wired providers do not prove production readiness');
+  const compatibleFailoverRoute = evaluateLlmProviderRoute({
+    purpose: 'reasoning',
+    providers: [openAiProvider, anthropicWired],
+    requireFailover: true,
+    requireStructuredOutput: true,
+  });
+  equal(compatibleFailoverRoute.status, 'selected', 'Route: compatible structured-output failover route can be selected');
+  deepEqual(compatibleFailoverRoute.failoverProviderIds, ['anthropic'], 'Route: compatible fallback provider is exposed');
+  equal(
+    compatibleFailoverRoute.failoverCompatibilityReady,
+    true,
+    'Route: failover compatibility is true only after purpose, capability, and rate-limit parity',
+  );
 
   console.log(`LLM provider registry tests: ${passed} passed, 0 failed`);
 } catch (error) {

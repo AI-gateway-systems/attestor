@@ -41,3 +41,6 @@ the only wired provider. Anthropic, Vertex AI, and Azure OpenAI are planned
 provider surfaces, not active runtime dependencies. The OpenAI wrapper has a
 bounded runtime policy envelope plus an opt-in reasoning live smoke probe; that
 is narrower than a production multi-provider resilience claim.
+The registry also rejects a generic second provider as failover evidence unless
+that provider is wired for the same purpose, model mapping, route capabilities,
+structured-output requirement when applicable, and provider rate-limit signals.

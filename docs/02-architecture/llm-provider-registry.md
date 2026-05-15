@@ -41,6 +41,19 @@ The registry does not instantiate Anthropic, Vertex AI, or Azure OpenAI clients,
 execute provider failover, or prove production readiness. It evaluates whether a
 requested provider route is selectable or blocked.
 
+## Failover Compatibility Rule
+
+Failover readiness cannot be satisfied by a generic second provider. A fallback
+provider must be wired and compatible with the requested route:
+
+- same requested purpose and configured model mapping;
+- required text, vision, tool-calling, and structured-output capability;
+- provider-specific structured-output mechanism when structured output matters;
+- provider rate-limit signals before failover or production routing claims.
+
+If a second provider is wired but cannot satisfy the route profile, the contract
+fails closed with `llm-provider-compatible-failover-provider-not-ready`.
+
 ## Current Decision
 
 OpenAI remains the only wired provider. Anthropic, Vertex AI, and Azure OpenAI are registered as planned provider surfaces only.
@@ -54,6 +67,8 @@ Default state:
 Production or failover-required state:
 
 - blocked by `llm-provider-failover-provider-not-wired`;
+- blocked by `llm-provider-compatible-failover-provider-not-ready` if a second
+  wired provider is not route-compatible;
 - blocked by `llm-provider-live-smoke-proof-required`.
 
 OpenAI timeout and output-token budget enforcement are wired in

@@ -527,6 +527,21 @@ The entries above are the most concrete PR/commit-linked hardening records. The 
 - Remaining limitation or no-go condition: This is not a shared durable backend implementation. It does not create PostgreSQL schemas, migrate file histories, wire RLS policies, add Redis-backed retry/replay stores, run Debezium, prove backup/restore, or verify a customer production environment.
 - Status: complete for repository-side consequence shared-store guard bridge once this PR is merged and verified on `origin/master`.
 
+### 29. LLM Provider Failover Compatibility Gate
+
+- Step / PR / commit: LLM provider route compatibility gate; this PR records repository-side contract evidence but cannot pre-record its own merge commit.
+- Date if available: 2026-05-15.
+- Trust surface: Attestor-owned optional live-model proof path, provider route selection, failover readiness, structured-output parity, tool-routing parity, rate-limit/backoff policy, provider/model drift context, and proof-context minimization.
+- Protected principle: fail-closed boundary; customer authority; data minimization and redaction; runtime readiness; auditability; operational boundedness; no overclaim.
+- Research anchor / source used, if recorded: OpenAI Responses API and Structured Outputs docs, OpenAI rate-limit retry guidance, Anthropic Messages/tool-use/rate-limit docs, Vertex AI structured output and quotas, and Azure OpenAI structured outputs/quotas. These are engineering anchors only, not provider certification, live provider evidence, or production-readiness evidence.
+- Repository evidence:
+  - Contract/code evidence: `src/api/llm-provider-registry.ts`, `docs/02-architecture/llm-provider-registry.md`, `docs/03-governance/third-party-providers.md`, `docs/audit/f2-llm-provider-supply-chain-validation.md`, `docs/audit/f11-supply-chain-depth-validation.md`, and `docs/audit/attestor-audit-remediation-tracker.md`.
+  - Test evidence: `tests/llm-provider-registry.test.ts`, `tests/f2-llm-provider-supply-chain-validation.test.ts`, `tests/f11-supply-chain-depth-validation.test.ts`, and `tests/research-provenance-ledger.test.ts`.
+- Implemented control: Tightens the provider registry so failover readiness cannot be satisfied by a generic second wired provider. A fallback provider must be wired for the same requested purpose, have a configured model for that purpose, satisfy required text/vision/tool/structured-output capabilities, and expose provider rate-limit signals before it can count as route-compatible. A wired but incompatible fallback fails closed with `llm-provider-compatible-failover-provider-not-ready`.
+- Tests / verification: `npm run test:llm-provider-registry`, `npm run test:f2-llm-provider-supply-chain-validation`, `npm run test:f11-supply-chain-depth-validation`, and `npm run test:research-provenance-ledger`.
+- Remaining limitation or no-go condition: This is still not a live multi-provider client implementation. It does not prove Anthropic, Vertex AI, or Azure OpenAI calls; runtime failover execution; OpenAI vision smoke proof; non-OpenAI smoke proof; provider-specific credential isolation; customer provider approval; or hosted LLM runtime readiness.
+- Status: complete for repository-side failover compatibility gating once this PR is merged and verified on `origin/master`.
+
 ## Strong Recorded Research Support
 
 The strongest recorded research support appears in:

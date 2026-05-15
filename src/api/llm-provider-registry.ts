@@ -62,6 +62,7 @@ export interface LlmProviderRuntimePolicy {
   readonly costBudget: 'openai-output-token-budget-wired' | 'required-before-production';
   readonly liveSmokeProof: 'openai-reasoning-external-live-probe-wired' | 'required-before-production';
   readonly failoverMode: 'disabled-single-provider' | 'fail-closed-until-two-wired-providers';
+  readonly failoverCompatibility: 'same-purpose-model-capability-rate-limit-required';
   readonly storesRawPrompt: false;
   readonly storesRawProviderBody: false;
   readonly exposesCredentialValues: false;
@@ -115,11 +116,22 @@ export interface LlmProviderRouteRequest {
   readonly providers?: readonly LlmProviderRegistration[];
 }
 
+export interface LlmProviderRouteRequirements {
+  readonly textGeneration: boolean;
+  readonly multimodalVision: boolean;
+  readonly toolCalling: boolean;
+  readonly structuredOutput: boolean;
+  readonly rateLimitPolicy: boolean;
+}
+
 export interface LlmProviderRouteDecision {
   readonly status: 'selected' | 'blocked';
   readonly providerId: LlmProviderId | null;
   readonly model: string | null;
+  readonly requiredCapabilities: LlmProviderRouteRequirements;
+  readonly selectedProviderStructuredOutputMode: LlmStructuredOutputMode | null;
   readonly failoverProviderIds: readonly LlmProviderId[];
+  readonly failoverCompatibilityReady: boolean;
   readonly blockers: readonly string[];
   readonly productionReady: false;
   readonly activatesLiveProviderCall: false;
@@ -321,6 +333,7 @@ export function llmProviderRegistryDescriptor(): LlmProviderRegistryDescriptor {
       costBudget: 'openai-output-token-budget-wired',
       liveSmokeProof: 'openai-reasoning-external-live-probe-wired',
       failoverMode: 'fail-closed-until-two-wired-providers',
+      failoverCompatibility: 'same-purpose-model-capability-rate-limit-required',
       storesRawPrompt: false,
       storesRawProviderBody: false,
       exposesCredentialValues: false,
@@ -347,6 +360,18 @@ export function evaluateLlmProviderRegistry(
   const wiredProviders = providers.filter((provider) => provider.wireStatus === 'wired');
   const plannedProviders = providers.filter((provider) => provider.wireStatus === 'planned');
   const selectedPrimaryProvider = findWiredProviderForPurpose(providers, purpose);
+  const requirements = routeRequirementsForPurpose({
+    purpose,
+    requireFailover: options.requireFailover ?? false,
+    requireProductionRuntime: options.requireProductionRuntime ?? false,
+    requireStructuredOutput: options.requireStructuredOutput ?? false,
+  });
+  const compatibleFallbackProviders = findCompatibleFailoverProviders({
+    providers,
+    selectedPrimaryProvider,
+    purpose,
+    requirements,
+  });
   const blockers = collectReadinessBlockers({
     providers,
     selectedPrimaryProvider,
@@ -354,9 +379,11 @@ export function evaluateLlmProviderRegistry(
     requireFailover: options.requireFailover ?? false,
     requireStructuredOutput: options.requireStructuredOutput ?? false,
     requireProductionRuntime: options.requireProductionRuntime ?? false,
+    requirements,
+    compatibleFallbackProviders,
   });
 
-  const multiProviderResilienceReady = wiredProviders.length >= 2 && blockers.length === 0;
+  const multiProviderResilienceReady = compatibleFallbackProviders.length > 0 && blockers.length === 0;
   const state: LlmProviderEvaluationState = blockers.length > 0
     ? 'blocked'
     : multiProviderResilienceReady
@@ -382,11 +409,17 @@ export function evaluateLlmProviderRoute(request: LlmProviderRouteRequest): LlmP
   const selectedProvider = request.providerId
     ? providers.find((provider) => provider.id === request.providerId)
     : findWiredProviderForPurpose(providers, request.purpose);
-
-  const wiredFallbackProviders = providers.filter((provider) => {
-    return provider.wireStatus === 'wired'
-      && provider.id !== selectedProvider?.id
-      && Boolean(provider.defaultModelsByPurpose[request.purpose]);
+  const requirements = routeRequirementsForPurpose({
+    purpose: request.purpose,
+    requireFailover: request.requireFailover ?? false,
+    requireProductionRuntime: request.requireProductionRuntime ?? false,
+    requireStructuredOutput: request.requireStructuredOutput ?? false,
+  });
+  const compatibleFallbackProviders = findCompatibleFailoverProviders({
+    providers,
+    selectedPrimaryProvider: selectedProvider ?? null,
+    purpose: request.purpose,
+    requirements,
   });
 
   const blockers = collectReadinessBlockers({
@@ -396,6 +429,8 @@ export function evaluateLlmProviderRoute(request: LlmProviderRouteRequest): LlmP
     requireFailover: request.requireFailover ?? false,
     requireStructuredOutput: request.requireStructuredOutput ?? false,
     requireProductionRuntime: request.requireProductionRuntime ?? false,
+    requirements,
+    compatibleFallbackProviders,
   });
 
   const model = selectedProvider?.defaultModelsByPurpose[request.purpose] ?? null;
@@ -404,7 +439,10 @@ export function evaluateLlmProviderRoute(request: LlmProviderRouteRequest): LlmP
     status: blockers.length === 0 ? 'selected' : 'blocked',
     providerId: selectedProvider?.id ?? null,
     model,
-    failoverProviderIds: Object.freeze(wiredFallbackProviders.map((provider) => provider.id)),
+    requiredCapabilities: Object.freeze(requirements),
+    selectedProviderStructuredOutputMode: selectedProvider?.capability.structuredOutputMode ?? null,
+    failoverProviderIds: Object.freeze(compatibleFallbackProviders.map((provider) => provider.id)),
+    failoverCompatibilityReady: compatibleFallbackProviders.length > 0 && blockers.length === 0,
     blockers: Object.freeze(blockers),
     productionReady: false,
     activatesLiveProviderCall: false,
@@ -457,33 +495,107 @@ function collectReadinessBlockers(input: {
   readonly requireFailover: boolean;
   readonly requireStructuredOutput: boolean;
   readonly requireProductionRuntime: boolean;
+  readonly requirements: LlmProviderRouteRequirements;
+  readonly compatibleFallbackProviders: readonly LlmProviderRegistration[];
 }): string[] {
   const blockers: string[] = [];
-  const wiredProviders = input.providers.filter((provider) => provider.wireStatus === 'wired');
+  const wiredFallbackCandidates = input.providers.filter((provider) => {
+    return provider.wireStatus === 'wired' && provider.id !== input.selectedPrimaryProvider?.id;
+  });
 
   if (!input.selectedPrimaryProvider) {
-    blockers.push('llm-provider-primary-not-wired-for-purpose');
+    pushBlocker(blockers, 'llm-provider-primary-not-wired-for-purpose');
   } else if (input.selectedPrimaryProvider.wireStatus !== 'wired') {
-    blockers.push('llm-provider-selected-provider-not-wired');
+    pushBlocker(blockers, 'llm-provider-selected-provider-not-wired');
   }
 
-  if (input.selectedPrimaryProvider && !input.selectedPrimaryProvider.defaultModelsByPurpose[input.purpose]) {
-    blockers.push('llm-provider-model-not-configured-for-purpose');
+  if (input.selectedPrimaryProvider) {
+    for (const blocker of providerRouteBlockers(input.selectedPrimaryProvider, input.purpose, input.requirements)) {
+      pushBlocker(blockers, blocker);
+    }
   }
 
-  if (input.requireStructuredOutput && input.selectedPrimaryProvider?.capability.structuredOutputMode === 'none') {
-    blockers.push('llm-provider-structured-output-not-supported');
-  }
-
-  if (input.requireFailover && wiredProviders.length < 2) {
-    blockers.push('llm-provider-failover-provider-not-wired');
+  if (input.requireFailover) {
+    if (wiredFallbackCandidates.length === 0) {
+      pushBlocker(blockers, 'llm-provider-failover-provider-not-wired');
+    } else if (input.compatibleFallbackProviders.length === 0) {
+      pushBlocker(blockers, 'llm-provider-compatible-failover-provider-not-ready');
+    }
   }
 
   if (input.requireProductionRuntime) {
-    blockers.push('llm-provider-live-smoke-proof-required');
+    pushBlocker(blockers, 'llm-provider-live-smoke-proof-required');
   }
 
   return blockers;
+}
+
+function routeRequirementsForPurpose(input: {
+  readonly purpose: LlmProviderPurpose;
+  readonly requireFailover: boolean;
+  readonly requireProductionRuntime: boolean;
+  readonly requireStructuredOutput: boolean;
+}): LlmProviderRouteRequirements {
+  return {
+    textGeneration: input.purpose !== 'vision',
+    multimodalVision: input.purpose === 'vision',
+    toolCalling: input.purpose === 'tool-routing',
+    structuredOutput: input.requireStructuredOutput || input.purpose === 'structured-output',
+    rateLimitPolicy: input.requireFailover || input.requireProductionRuntime,
+  };
+}
+
+function findCompatibleFailoverProviders(input: {
+  readonly providers: readonly LlmProviderRegistration[];
+  readonly selectedPrimaryProvider: LlmProviderRegistration | null;
+  readonly purpose: LlmProviderPurpose;
+  readonly requirements: LlmProviderRouteRequirements;
+}): readonly LlmProviderRegistration[] {
+  return Object.freeze(input.providers.filter((provider) => {
+    return provider.wireStatus === 'wired'
+      && provider.id !== input.selectedPrimaryProvider?.id
+      && providerRouteBlockers(provider, input.purpose, input.requirements).length === 0;
+  }));
+}
+
+function providerRouteBlockers(
+  provider: LlmProviderRegistration,
+  purpose: LlmProviderPurpose,
+  requirements: LlmProviderRouteRequirements,
+): readonly string[] {
+  const blockers: string[] = [];
+
+  if (!provider.defaultModelsByPurpose[purpose]) {
+    pushBlocker(blockers, 'llm-provider-model-not-configured-for-purpose');
+  }
+
+  if (requirements.textGeneration && !provider.capability.textGeneration) {
+    pushBlocker(blockers, 'llm-provider-text-generation-not-supported');
+  }
+
+  if (requirements.multimodalVision && !provider.capability.multimodalVision) {
+    pushBlocker(blockers, 'llm-provider-vision-not-supported');
+  }
+
+  if (requirements.toolCalling && !provider.capability.toolCalling) {
+    pushBlocker(blockers, 'llm-provider-tool-calling-not-supported');
+  }
+
+  if (requirements.structuredOutput && provider.capability.structuredOutputMode === 'none') {
+    pushBlocker(blockers, 'llm-provider-structured-output-not-supported');
+  }
+
+  if (requirements.rateLimitPolicy && provider.rateLimitSignals.length === 0) {
+    pushBlocker(blockers, 'llm-provider-rate-limit-policy-missing');
+  }
+
+  return Object.freeze(blockers);
+}
+
+function pushBlocker(blockers: string[], blocker: string): void {
+  if (!blockers.includes(blocker)) {
+    blockers.push(blocker);
+  }
 }
 
 function digestText(value: string): string {
