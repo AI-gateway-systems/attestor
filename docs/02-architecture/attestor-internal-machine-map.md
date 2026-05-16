@@ -27,7 +27,9 @@ The release PDP decides whether a proposed output can become a release. The admi
 
 ## One-Picture Internal Map
 
-This is the visual index for the repository. It is one picture: every major architectural element group and every main runtime route represented by this map should be readable from left to right. The tables and path sections below unpack the same picture.
+This is the visual index for the repository. It is one picture: every current top-level source area, route lane, decision axis, decision point, module group, shared store, side loop, and terminal outcome represented by this map should be readable from left to right. The tables and path sections below unpack the same picture.
+
+Decision points are diamond nodes. Structural components and stores are rectangular nodes.
 
 ```mermaid
 flowchart LR
@@ -42,6 +44,14 @@ flowchart LR
 
   subgraph SERVICE["Service ingress and tenant runtime"]
     ROUTES["Hono routes and runtime wiring<br/>src/service/*"]
+    ENTRY{"Entry path / route lane<br/>core / public / auth / admin / pipeline / admission / webhook / release"}
+    CORE_ROUTES["Core route group<br/>startup / health / ready / domains / connectors / metrics"]
+    PUBLIC_ROUTES["Public site and proof route group<br/>/ / proof pages / billing return pages"]
+    AUTH_ROUTES["Auth and account route group<br/>auth / account / OIDC / SAML / passkeys / MFA / API keys / billing self-service"]
+    ADMIN_ROUTES["Admin and operator route group<br/>accounts / plans / tenant keys / queue / release reviews / policy control / degraded-mode"]
+    PIPELINE_ROUTES["Pipeline route group<br/>run / run-async / status / verify / filing export"]
+    ADMISSION_ROUTES["Admission and shadow route group<br/>admissions / shadow / action-surface / hosted onboarding"]
+    WEBHOOK_ROUTES["Webhook route group<br/>Stripe billing / SendGrid / Mailgun"]
     TENANT["Tenant isolation / account / auth / plan context"]
     GUARD["Production request guard / trusted proxy / usage meter"]
     BOOT["Bootstrap runtime<br/>release runtime / route builders / registries"]
@@ -70,9 +80,9 @@ flowchart LR
 
   subgraph RELEASE["Release PDP<br/>src/release-kernel + src/release-layer"]
     RMAT["Release material<br/>target / output contract / hashes / capability boundary"]
-    RPOL["Policy resolution"]
-    RROLL["Rollout resolution"]
-    RCHK["Deterministic release checks<br/>contract / target / capability / hash / policy / evidence / trace / provenance / receipt"]
+    RPOL{"Policy resolution<br/>resolved / missing / invalid / inactive / fail-state"}
+    RROLL{"Rollout resolution<br/>shadow / enforce / dry-run / canary / rolled-back"}
+    RCHK{"Deterministic release check aggregate<br/>required checks pass? / finding / fail"}
     RDEC{"ReleaseDecision<br/>accepted / denied / hold / review-required / expired / revoked / overridden"}
     RTOK["Release token / evidence pack / introspection record"]
     RQ["Reviewer queue"]
@@ -84,20 +94,22 @@ flowchart LR
     FPW["Financial proof wedge<br/>src/financial/*<br/>src/proof-surface/*"]
     FREL["Finance record / communication / action release material"]
     FADM["Finance admission projection<br/>six canonical checks"]
+    FILING["Filing adapters<br/>src/filing/*<br/>XBRL / QRDA / Cypress / CMS / report package"]
     CAUTH["Crypto authorization core<br/>programmable-money objects / replay / simulation / account abstraction"]
     CEXEC["Crypto execution-admission package<br/>Safe / ERC-4337 / modular account / delegated EOA / x402 / custody / solver"]
     CINT["Crypto intelligence<br/>risk / privacy / adapter readiness / package surface"]
     CADM["Crypto admission projection<br/>six canonical checks"]
-    DOM["Other domain packs<br/>domains / filing / healthcare / connectors"]
+    DOM["Other domain packs<br/>src/domains/*<br/>healthcare / custom domains / connector-backed domains"]
   end
 
   subgraph ADMISSION["Admission PDP<br/>src/consequence-admission/*"]
     GENV["Generic admission envelope"]
-    MODE["Mode ladder<br/>observe / warn / review / enforce"]
+    MODE{"Admission mode ladder<br/>observe / warn / review / enforce"}
     AREQ["ConsequenceAdmissionRequest"]
-    ACHK["Admission checks<br/>policy / authority / evidence / freshness / enforcement / adapter-readiness"]
+    ACHK{"Required admission checks satisfied?<br/>policy / authority / evidence / freshness / enforcement / adapter-readiness"}
     ADEC{"Canonical decision<br/>admit / narrow / review / block"}
     AOUT["ConsequenceAdmissionResponse<br/>allowed / failClosed / constraints / proof / feedback / retry"]
+    PREQ{"Protected release token required?"}
     PTOK["Optional protected release token<br/>for high-risk allowed generic admission"]
     FAC["Facade<br/>finance and crypto native decision mapping"]
   end
@@ -106,9 +118,9 @@ flowchart LR
     EPSEL{"Enforcement path"}
     DCON["Downstream enforcement contract"]
     EPROF["Verification profile<br/>consequence type + risk class + boundary"]
-    PMODE["Presentation mode<br/>bearer / DPoP / mTLS / SPIFFE / HTTP signature / signed envelope"]
-    OFF["Offline verification<br/>signature / digest / binding"]
-    ON["Online verification<br/>introspection / freshness / replay / usage"]
+    PMODE{"Presentation mode acceptable?<br/>bearer / DPoP / mTLS / SPIFFE / HTTP signature / signed envelope"}
+    OFF{"Offline verification valid?<br/>signature / digest / binding"}
+    ON{"Online verification required and valid?<br/>introspection / freshness / replay / usage"}
     ERES{"Enforcement result<br/>allow / deny / shadow-allow / needs-introspection / break-glass-allow"}
     CGATE{"Customer gate<br/>proceed / hold"}
   end
@@ -119,7 +131,15 @@ flowchart LR
     SHSTORE["Shadow persistence stores<br/>events / simulations / candidates / activation receipts"]
     AUDIT["Audit and review surfaces<br/>audit export / tamper-evident history / dashboard / external review packet"]
     REDACT["Data minimization surfaces<br/>34 surfaces / 15 forbidden raw classes"]
-    CONN["Downstream connector boundary<br/>Postgres / Snowflake / schema attestation"]
+    CONN["Downstream connector boundary<br/>src/connectors/*<br/>Postgres / Snowflake / schema attestation"]
+  end
+
+  subgraph FOUNDATION["Shared support and non-decision surfaces"]
+    IDENTITY["Identity clients<br/>src/identity/*<br/>OIDC / device flow / token cache / secure token store"]
+    SIGNING["Signing and verification helpers<br/>src/signing/*<br/>keys / PKI / certificate / keyless signer / verify CLI"]
+    PLATFORM["Platform primitives<br/>src/platform/*<br/>file store / string normalization"]
+    UTILS["Utilities<br/>src/utils/*<br/>logger / errors"]
+    SHOWCASE["Showcase surface<br/>src/showcase/*<br/>committed public proof/demo material"]
   end
 
   subgraph SHADOW["Shadow-to-policy side loop"]
@@ -146,10 +166,31 @@ flowchart LR
   ROUTES --> TENANT
   TENANT --> GUARD
   GUARD --> BOOT
-  BOOT --> GEN
-  BOOT --> FIN
+  BOOT --> ENTRY
+  ENTRY --> CORE_ROUTES
+  ENTRY --> PUBLIC_ROUTES
+  ENTRY --> AUTH_ROUTES
+  ENTRY --> ADMIN_ROUTES
+  ENTRY --> PIPELINE_ROUTES
+  ENTRY --> ADMISSION_ROUTES
+  ENTRY --> WEBHOOK_ROUTES
+  ENTRY --> RLC
+
+  ADMISSION_ROUTES --> GEN
+  PIPELINE_ROUTES --> FIN
+  PIPELINE_ROUTES --> FILING
+  PIPELINE_ROUTES --> SIGNING
+  AUTH_ROUTES --> TENANT
+  ADMIN_ROUTES --> PBUNDLE
+  ADMIN_ROUTES --> RQ
+  ADMIN_ROUTES --> AUDIT
+  ADMIN_ROUTES --> SIGNER
+  WEBHOOK_ROUTES --> HISTORY
+  PUBLIC_ROUTES --> SHOWCASE
+  CORE_ROUTES --> TENANT
+  CORE_ROUTES --> CONN
+  CORE_ROUTES --> AUDIT
   BOOT --> CRY
-  BOOT --> RLC
 
   GEN --> GENV
   FIN --> FPW
@@ -159,6 +200,8 @@ flowchart LR
   RLC --> RMAT
 
   FPW --> FREL
+  FILING --> FREL
+  FILING --> DOM
   FREL --> RMAT
   FREL --> FADM
   CAUTH --> CEXEC
@@ -226,18 +269,20 @@ flowchart LR
   AREQ --> ACHK
   ACHK --> ADEC
   ADEC --> AOUT
-  AOUT -->|"high-risk allowed generic path"| PTOK
+  AOUT --> PREQ
+  PREQ -->|"yes"| PTOK
+  PREQ -->|"no"| EPSEL
   RTOK --> AOUT
-  PTOK --> AOUT
-
-  AOUT --> EPSEL
+  PTOK --> EPSEL
   EPSEL --> DCON
   EPSEL --> EPROF
   EPSEL --> CGATE
   EPROF --> PMODE
   PMODE --> OFF
-  OFF --> ON
-  ON --> ERES
+  OFF -->|"valid"| ON
+  OFF -->|"invalid"| ERES
+  ON -->|"valid / not required"| ERES
+  ON -->|"invalid / replayed / stale"| ERES
   DCON --> CGATE
   ERES --> CGATE
 
@@ -245,6 +290,16 @@ flowchart LR
   CGATE -->|"hold"| HOLD
   RUN --> CONN
   CONN --> HISTORY
+
+  IDENTITY --> TENANT
+  SIGNING --> SIGNER
+  SIGNING --> CRYPTOAX
+  SIGNING --> OFF
+  PLATFORM --> ROUTES
+  PLATFORM --> ATOMIC
+  UTILS --> ROUTES
+  UTILS --> AOUT
+  SHOWCASE --> AUDIT
 
   AREQ --> ATOMIC
   AOUT --> HISTORY
@@ -291,8 +346,13 @@ flowchart LR
 | Crypto authorization core | `src/crypto-authorization-core/*` | Models programmable-money authorization objects, risk mappings, simulations, replay/freshness, and signing/account abstraction surfaces. |
 | Crypto intelligence | `src/crypto-intelligence/*` | Adds crypto risk, adapter-readiness, privacy, performance, and package-surface summaries. |
 | Financial proof wedge | `src/financial/*`, `src/proof-surface/*`, `src/release-kernel/finance-*.ts` | Runs and binds the finance proof path, then projects record, communication, and action release material. |
+| Filing adapters | `src/filing/*` | Handles filing/export adapter material such as XBRL, QRDA, Cypress/CMS validation helpers, and report packages before those paths enter pipeline or domain-pack handling. |
 | Service composition root | `src/service/*` | Hono routes, hosted runtime wiring, tenant isolation, shared stores, route runtime, admin routes, pipeline routes, shadow routes, generic admission routes, and production/rehearsal primitives. |
+| Hosted identity support | `src/identity/*`, `src/service/account-*.ts`, `src/service/request-context.ts` | Supplies OIDC/device-flow/token-cache/keychain and hosted account/session/auth context that feeds tenant, actor, and audience binding. |
 | Shared storage primitives | `src/service/consequence-shared-atomic-stores.ts`, `src/service/consequence-shared-history-outbox-store.ts` | Shared retry/replay, source-history, and outbox store primitives used by consequence-side runtime paths. |
+| Signing and verification support | `src/signing/*` | Supplies key, PKI, certificate, keyless-signer, bundle, and verification helpers used by release, evidence, and presentation verification paths. |
+| Platform and utility primitives | `src/platform/*`, `src/utils/*` | Small shared primitives such as file-store/string normalization, logger, and error helpers used by runtime and domain code. |
+| Showcase surface | `src/showcase/*`, `src/service/site.ts`, `src/service/site-support.ts` | Committed proof/demo surface and public site support. It is not a separate decision engine. |
 | Shadow-to-policy side loop | `src/consequence-admission/shadow-*.ts`, `src/consequence-admission/policy-foundry-*.ts`, `src/consequence-admission/action-surface-*.ts` | Turns observed shadow/admission events into action surfaces, risk inventories, candidates, active questions, replay reports, review packets, and onboarding artifacts. |
 | Data minimization and audit surfaces | `src/consequence-admission/data-minimization-redaction-policy.ts`, `src/consequence-admission/audit-evidence-export.ts`, `src/consequence-admission/tamper-evident-history.ts`, `src/consequence-admission/business-risk-dashboard.ts`, `src/consequence-admission/dashboard-api-summary.ts`, `src/consequence-admission/external-review-packet.ts` | Shapes what internal and reviewer-facing outputs can expose. |
 
@@ -316,6 +376,28 @@ The same proposed consequence is viewed across ten axes before a final run/hold 
 ## Axis Fan-Out / Fan-In
 
 The ten-axis fan-out and the fan-in points are shown inside the single picture above. In that picture, a candidate passes through `Time`, `Identity`, `Content`, `Evidence`, `Risk`, `Scope and intent`, `Rollout`, `Consequence`, `Human authority`, and `Cryptography`; those facts then feed the release, admission, enforcement, and customer-gate aggregators.
+
+## Decision Points In The Picture
+
+Every current high-level decision point is a diamond node in the one-picture map.
+
+| Decision point | Question it answers | Immediate outputs |
+|---|---|---|
+| Entry path / route lane | Which runtime lane received the request? | core, public, auth/account, admin, pipeline, admission/shadow, webhook, release-layer caller |
+| Policy resolution | Is there an active policy/bundle/scope that applies to this candidate? | resolved, missing, invalid, inactive, fail-state |
+| Rollout resolution | Is the matched policy observing or enforcing for this request/cohort? | shadow, enforce, dry-run, canary, rolled-back |
+| Deterministic release check aggregate | Do required release checks pass for this risk and consequence class? | pass, finding, fail |
+| ReleaseDecision | Can release material become a release artifact? | accepted, denied, hold, review-required, expired, revoked, overridden |
+| Admission mode ladder | Which adoption mode controls the generic admission path? | observe, warn, review, enforce |
+| Required admission checks satisfied? | Are policy, authority, evidence, freshness, enforcement, and adapter-readiness closed? | pass/fail per check kind |
+| Canonical decision | What shared consequence-admission outcome should the caller receive? | admit, narrow, review, block |
+| Protected release token required? | Does the allowed generic path require a protected token before downstream presentation? | yes, no |
+| Enforcement path | Which downstream protection route applies? | customer gate, downstream contract, enforcement plane |
+| Presentation mode acceptable? | Is the presented release authorization carried in an accepted form? | bearer, DPoP, mTLS, SPIFFE, HTTP message signature, signed envelope |
+| Offline verification valid? | Does local cryptographic verification close? | valid, invalid |
+| Online verification required and valid? | Does freshness, introspection, replay, or usage verification close? | valid/not-required, invalid/replayed/stale |
+| Enforcement result | What does the PEP return before customer-side execution? | allow, deny, shadow-allow, needs-introspection, break-glass-allow |
+| Customer gate | Does the customer-side gate let the consequence run? | proceed, hold |
 
 ## Aggregators
 
@@ -361,6 +443,22 @@ The ten-axis fan-out and the fan-in points are shown inside the single picture a
 | Enforcement outcomes | 5 | allow, deny, shadow-allow, needs-introspection, break-glass-allow |
 | Enforcement failure reasons | 23 | missing/invalid/expired/revoked/replayed/stale/wrong-binding/introspection/policy/break-glass classes |
 | Public package entrypoints | 9 | root plus release, policy, enforcement, crypto, admission, and finance subpaths |
+
+## Route Groups Covered By The Picture
+
+The one-picture map includes route groups rather than every individual endpoint label. The current service surface groups into these lanes:
+
+| Route group in picture | Representative routes | Main target inside the machine |
+|---|---|---|
+| Core route group | `/api/v1/startup`, `/api/v1/health`, `/api/v1/ready`, `/api/v1/domains`, `/api/v1/connectors`, `/api/v1/metrics` | runtime liveness/readiness, registries, connector/domain visibility |
+| Generic admission route group | `POST /api/v1/admissions` | generic admission envelope, mode ladder, protected release token path |
+| Pipeline route group | `POST /api/v1/pipeline/run`, `POST /api/v1/pipeline/run-async`, `GET /api/v1/pipeline/status/:jobId` | finance pipeline, async execution, release material, admission projection |
+| Verification and filing route group | `POST /api/v1/verify`, `POST /api/v1/filing/export` | signing/PKI verification and filing adapter export path |
+| Shadow and onboarding route group | `/api/v1/shadow/*`, `/api/v1/shadow/policy-foundry/*`, action-surface onboarding routes | shadow event stores, policy foundry, action surface, promotion/handoff material |
+| Admin and operator route group | `/api/v1/admin/accounts*`, `/api/v1/admin/release-reviews*`, `/api/v1/admin/release-policy*`, `/api/v1/admin/tenant-keys*`, `/api/v1/admin/queue*`, `/api/v1/admin/release-enforcement/degraded-mode/*` | account operations, policy control plane, reviewer queue, signer/tenant-key, queue and degraded-mode controls |
+| Auth and account route group | `/api/v1/auth/*`, `/api/v1/account*`, `/api/v1/account/billing/*`, OIDC/SAML/passkey/MFA routes | tenant/account/session identity context and customer billing/account surfaces |
+| Webhook route group | `POST /api/v1/billing/stripe/webhook`, `POST /api/v1/email/sendgrid/webhook`, `POST /api/v1/email/mailgun/webhook` | external event ingestion into billing/email stores and shared history surfaces |
+| Public site/proof route group | `/`, `/financial-reporting-acceptance`, `/proof/financial-reporting-acceptance*`, billing return pages | committed proof/demo and public presentation surface |
 
 ## Path 1: Generic Admission
 
@@ -514,12 +612,17 @@ src/
   crypto-authorization-core/   programmable-money authorization core
   crypto-execution-admission/  crypto execution plan admission package
   crypto-intelligence/         crypto risk/readiness intelligence package
+  filing/                      filing/export adapters and validation helpers
   financial/                   finance proof and pipeline domain
+  identity/                    OIDC, device flow, token cache, secure token store
+  platform/                    local platform primitives
   proof-surface/               local proof scenarios and exports
   service/                     Hono service, routes, stores, runtime wiring
+  showcase/                    committed proof/demo surface
   domains/                     domain pack registry and pack descriptors
   signing/                     key, PKI, certificate, verification helpers
   connectors/                  downstream data connector boundary
+  utils/                       shared logger/error helpers
 
 docs/
   01-overview/                 product and customer-facing operating docs
