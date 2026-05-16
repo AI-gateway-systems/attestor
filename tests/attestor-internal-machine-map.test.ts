@@ -58,10 +58,34 @@ function testMachineMapExistsAndNamesTheCoreShape(): void {
 
   includes(doc, '# Attestor Internal Machine Map', 'Machine map: document exists');
   includes(doc, 'release PDP -> admission PDP -> enforcement PEP', 'Machine map: core shape is explicit');
-  includes(doc, '## Whole-System Diagram', 'Machine map: whole-system diagram is present');
+  includes(doc, '## One-Picture Internal Map', 'Machine map: one-picture diagram section is present');
   includes(doc, '## The Ten Decision Axes', 'Machine map: decision axes section is present');
-  includes(doc, '## Axis Fan-Out / Fan-In', 'Machine map: fan-out/fan-in diagram is present');
+  includes(doc, '## Axis Fan-Out / Fan-In', 'Machine map: fan-out/fan-in section is present');
   includes(doc, '## Result Emergence', 'Machine map: result emergence section is present');
+
+  const mermaidBlocks = doc.match(/```mermaid/g) ?? [];
+  assert.equal(
+    mermaidBlocks.length,
+    1,
+    'Machine map: document keeps the visual representation in one Mermaid picture',
+  );
+  passed += 1;
+
+  for (const expected of [
+    'Callers and proposed consequences',
+    'Service ingress and tenant runtime',
+    'Ten decision axes applied to the same candidate',
+    'Policy control plane and authority material',
+    'Release PDP',
+    'Domain packs projected into the shared machine',
+    'Admission PDP',
+    'Enforcement PEP and customer gate',
+    'Shared storage, audit, and redaction surfaces',
+    'Shadow-to-policy side loop',
+    'Terminal outcomes',
+  ]) {
+    includes(doc, expected, `Machine map: one-picture map includes ${expected}`);
+  }
 
   for (const axis of [
     '| Time |',

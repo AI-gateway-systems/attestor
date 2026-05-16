@@ -25,55 +25,254 @@ release PDP -> admission PDP -> enforcement PEP
 
 The release PDP decides whether a proposed output can become a release. The admission PDP turns a domain-specific result into the shared `admit`, `narrow`, `review`, `block` vocabulary. The enforcement PEP checks the final presentation at the downstream boundary before anything real happens.
 
-## Whole-System Diagram
+## One-Picture Internal Map
+
+This is the visual index for the repository. It is one picture: every major architectural element group and every main runtime route represented by this map should be readable from left to right. The tables and path sections below unpack the same picture.
 
 ```mermaid
-flowchart TD
-  A["AI or caller proposes action/output"] --> B["Ingress and tenant context"]
-  B --> C{"Entry path"}
+flowchart LR
+  subgraph CALLERS["Callers and proposed consequences"]
+    AI["AI agent / app / operator"]
+    LLM["Model/provider edge<br/>src/api/openai.ts<br/>src/api/llm-provider-registry.ts"]
+    GEN["Generic action<br/>POST /api/v1/admissions"]
+    FIN["Finance run<br/>POST /api/v1/pipeline/run"]
+    CRY["Crypto execution plan<br/>wallet / account / contract / payment"]
+    RLC["Release-layer caller<br/>release evaluation request"]
+  end
 
-  C -->|"Generic action"| G1["Generic admission route"]
-  C -->|"Finance run"| F1["Finance pipeline run"]
-  C -->|"Crypto plan"| K1["Crypto execution-admission package"]
-  C -->|"Release-layer caller"| R0["Release evaluation request"]
+  subgraph SERVICE["Service ingress and tenant runtime"]
+    ROUTES["Hono routes and runtime wiring<br/>src/service/*"]
+    TENANT["Tenant isolation / account / auth / plan context"]
+    GUARD["Production request guard / trusted proxy / usage meter"]
+    BOOT["Bootstrap runtime<br/>release runtime / route builders / registries"]
+  end
 
-  F1 --> F2["Finance release material: target, output contract, hashes"]
-  R0 --> P1["Policy resolution"]
-  F2 --> P1
-  P1 --> P2["Rollout resolution"]
-  P2 --> P3["Deterministic release checks"]
-  P3 --> P4["Release decision aggregation"]
+  subgraph AXES["Ten decision axes applied to the same candidate"]
+    TIME["Time<br/>TTL / expiry / freshness / replay window"]
+    ID["Identity<br/>tenant / actor / audience / sender binding"]
+    CONTENT["Content<br/>output contract / redaction / forbidden raw classes"]
+    EVID["Evidence<br/>proof refs / provenance / evidence pack"]
+    RISK["Risk<br/>R0-R4 / control matrix / failure modes"]
+    SCOPE["Scope and intent<br/>capability boundary / target / data domain"]
+    ROLLOUT["Rollout<br/>dry-run / canary / enforce / rolled-back"]
+    CONSEQ["Consequence<br/>domain / boundary / reversibility / receipt"]
+    HUMAN["Human authority<br/>reviewer / dual approval / override / break-glass"]
+    CRYPTOAX["Cryptography<br/>digest / EdDSA JWT / DPoP / mTLS / SPIFFE / signatures"]
+  end
 
-  P4 -->|"accepted or overridden"| T1["Release token / evidence pack / introspection"]
-  P4 -->|"hold or review-required"| Q1["Reviewer queue"]
-  P4 -->|"denied / expired / revoked"| X1["Stop before release"]
+  subgraph POLICY["Policy control plane and authority material"]
+    PBUNDLE["Policy bundles<br/>format / signing / cache"]
+    PSCOPE["Scoping / discovery / activation / approvals"]
+    PSIM["Simulation / impact summary / test pack"]
+    PRUNTIME["Runtime bridge / resolver / control-plane store"]
+    SIGNER["Tenant signer boundary<br/>local signer / external KMS profile"]
+  end
 
-  F1 --> F3["Finance admission projection"]
-  K1 --> K2["Crypto admission projection"]
-  G1 --> G2["Generic mode ladder"]
-  G2 --> G3["Optional protected release token"]
+  subgraph RELEASE["Release PDP<br/>src/release-kernel + src/release-layer"]
+    RMAT["Release material<br/>target / output contract / hashes / capability boundary"]
+    RPOL["Policy resolution"]
+    RROLL["Rollout resolution"]
+    RCHK["Deterministic release checks<br/>contract / target / capability / hash / policy / evidence / trace / provenance / receipt"]
+    RDEC{"ReleaseDecision<br/>accepted / denied / hold / review-required / expired / revoked / overridden"}
+    RTOK["Release token / evidence pack / introspection record"]
+    RQ["Reviewer queue"]
+    RSTOP["Stop before release"]
+    RSHADOW["Shadow release evaluator"]
+  end
 
-  F3 --> A1["Canonical consequence admission"]
-  K2 --> A1
-  G3 --> A1
+  subgraph PACKS["Domain packs projected into the shared machine"]
+    FPW["Financial proof wedge<br/>src/financial/*<br/>src/proof-surface/*"]
+    FREL["Finance record / communication / action release material"]
+    FADM["Finance admission projection<br/>six canonical checks"]
+    CAUTH["Crypto authorization core<br/>programmable-money objects / replay / simulation / account abstraction"]
+    CEXEC["Crypto execution-admission package<br/>Safe / ERC-4337 / modular account / delegated EOA / x402 / custody / solver"]
+    CINT["Crypto intelligence<br/>risk / privacy / adapter readiness / package surface"]
+    CADM["Crypto admission projection<br/>six canonical checks"]
+    DOM["Other domain packs<br/>domains / filing / healthcare / connectors"]
+  end
 
-  A1 --> E1{"Enforcement path"}
-  E1 -->|"customer-gate path"| CG["Customer gate"]
-  E1 -->|"downstream contract path"| DC["Downstream enforcement contract"]
-  E1 -->|"release-enforcement-plane path"| EP["Release enforcement plane"]
+  subgraph ADMISSION["Admission PDP<br/>src/consequence-admission/*"]
+    GENV["Generic admission envelope"]
+    MODE["Mode ladder<br/>observe / warn / review / enforce"]
+    AREQ["ConsequenceAdmissionRequest"]
+    ACHK["Admission checks<br/>policy / authority / evidence / freshness / enforcement / adapter-readiness"]
+    ADEC{"Canonical decision<br/>admit / narrow / review / block"}
+    AOUT["ConsequenceAdmissionResponse<br/>allowed / failClosed / constraints / proof / feedback / retry"]
+    PTOK["Optional protected release token<br/>for high-risk allowed generic admission"]
+    FAC["Facade<br/>finance and crypto native decision mapping"]
+  end
 
-  EP --> OV["Offline signature and binding verification"]
-  OV --> ON["Online introspection, freshness, replay"]
-  ON --> CG
-  DC --> CG
+  subgraph ENFORCE["Enforcement PEP and customer gate"]
+    EPSEL{"Enforcement path"}
+    DCON["Downstream enforcement contract"]
+    EPROF["Verification profile<br/>consequence type + risk class + boundary"]
+    PMODE["Presentation mode<br/>bearer / DPoP / mTLS / SPIFFE / HTTP signature / signed envelope"]
+    OFF["Offline verification<br/>signature / digest / binding"]
+    ON["Online verification<br/>introspection / freshness / replay / usage"]
+    ERES{"Enforcement result<br/>allow / deny / shadow-allow / needs-introspection / break-glass-allow"}
+    CGATE{"Customer gate<br/>proceed / hold"}
+  end
 
-  CG -->|"proceed"| Z["Run downstream consequence"]
-  CG -->|"hold"| H["Do not run downstream consequence"]
+  subgraph STORE["Shared storage, audit, and redaction surfaces"]
+    ATOMIC["Shared atomic stores<br/>retry / replay / idempotency"]
+    HISTORY["Shared history + outbox<br/>source history / worker claim / advisory lock contract"]
+    SHSTORE["Shadow persistence stores<br/>events / simulations / candidates / activation receipts"]
+    AUDIT["Audit and review surfaces<br/>audit export / tamper-evident history / dashboard / external review packet"]
+    REDACT["Data minimization surfaces<br/>34 surfaces / 15 forbidden raw classes"]
+    CONN["Downstream connector boundary<br/>Postgres / Snowflake / schema attestation"]
+  end
 
-  P2 --> S1["Shadow release evaluator"]
-  G1 --> S2["Shadow admission event"]
-  S1 --> PF["Policy Foundry / action-surface side loop"]
-  S2 --> PF
+  subgraph SHADOW["Shadow-to-policy side loop"]
+    SEVENT["Shadow admission/release event"]
+    ASURF["Action surface profiler / manifest intake / integration artifacts"]
+    RINV["Action risk inventory / failure-mode map"]
+    CAND["Policy discovery candidate / candidate registry"]
+    QUESTIONS["Active questions / authority relationship context"]
+    TWIN["Policy twin / replay / counterexamples / adversarial replay"]
+    PACKET["Review packet / review-only patch pack / promotion packet"]
+    HANDOFF["Activation handoff / publication / customer activation receipt"]
+  end
+
+  subgraph OUTPUTS["Terminal outcomes"]
+    RUN["Run downstream consequence"]
+    HOLD["Hold / do not run downstream consequence"]
+    REVIEW["Human review queue"]
+    OBSERVE["Observed only / shadow learning"]
+  end
+
+  AI --> LLM
+  LLM --> ROUTES
+  AI --> ROUTES
+  ROUTES --> TENANT
+  TENANT --> GUARD
+  GUARD --> BOOT
+  BOOT --> GEN
+  BOOT --> FIN
+  BOOT --> CRY
+  BOOT --> RLC
+
+  GEN --> GENV
+  FIN --> FPW
+  FIN --> FREL
+  CRY --> CAUTH
+  CRY --> CEXEC
+  RLC --> RMAT
+
+  FPW --> FREL
+  FREL --> RMAT
+  FREL --> FADM
+  CAUTH --> CEXEC
+  CEXEC --> CINT
+  CINT --> CADM
+  DOM --> GENV
+  DOM --> AREQ
+
+  PBUNDLE --> RPOL
+  PSCOPE --> RPOL
+  PRUNTIME --> RPOL
+  PSIM --> RSHADOW
+  SIGNER --> RTOK
+  SIGNER --> PTOK
+
+  RMAT --> TIME
+  RMAT --> ID
+  RMAT --> CONTENT
+  RMAT --> EVID
+  RMAT --> RISK
+  RMAT --> SCOPE
+  RMAT --> ROLLOUT
+  RMAT --> CONSEQ
+  RMAT --> HUMAN
+  RMAT --> CRYPTOAX
+
+  GENV --> TIME
+  GENV --> ID
+  GENV --> CONTENT
+  GENV --> EVID
+  GENV --> RISK
+  GENV --> SCOPE
+  GENV --> ROLLOUT
+  GENV --> CONSEQ
+  GENV --> HUMAN
+  GENV --> CRYPTOAX
+
+  TIME --> RPOL
+  ID --> RPOL
+  CONTENT --> RCHK
+  EVID --> RCHK
+  RISK --> RCHK
+  SCOPE --> RPOL
+  ROLLOUT --> RROLL
+  CONSEQ --> EPROF
+  HUMAN --> RQ
+  CRYPTOAX --> OFF
+
+  RPOL --> RROLL
+  RROLL --> RCHK
+  RCHK --> RDEC
+  RROLL --> RSHADOW
+  RSHADOW --> SEVENT
+  RDEC -->|"accepted / overridden"| RTOK
+  RDEC -->|"hold / review-required"| RQ
+  RDEC -->|"denied / expired / revoked"| RSTOP
+  RQ --> REVIEW
+  RSTOP --> HOLD
+
+  GENV --> MODE
+  MODE --> AREQ
+  FADM --> FAC
+  CADM --> FAC
+  FAC --> AREQ
+  AREQ --> ACHK
+  ACHK --> ADEC
+  ADEC --> AOUT
+  AOUT -->|"high-risk allowed generic path"| PTOK
+  RTOK --> AOUT
+  PTOK --> AOUT
+
+  AOUT --> EPSEL
+  EPSEL --> DCON
+  EPSEL --> EPROF
+  EPSEL --> CGATE
+  EPROF --> PMODE
+  PMODE --> OFF
+  OFF --> ON
+  ON --> ERES
+  DCON --> CGATE
+  ERES --> CGATE
+
+  CGATE -->|"proceed"| RUN
+  CGATE -->|"hold"| HOLD
+  RUN --> CONN
+  CONN --> HISTORY
+
+  AREQ --> ATOMIC
+  AOUT --> HISTORY
+  RTOK --> HISTORY
+  PTOK --> HISTORY
+  ERES --> HISTORY
+  HISTORY --> AUDIT
+  ATOMIC --> ON
+  SHSTORE --> AUDIT
+  REDACT --> AUDIT
+  REDACT --> AOUT
+  REDACT --> SEVENT
+  REDACT --> PACKET
+
+  MODE -->|"observe / warn shadow signal"| SEVENT
+  AOUT --> SEVENT
+  SEVENT --> SHSTORE
+  SEVENT --> ASURF
+  ASURF --> RINV
+  RINV --> CAND
+  CAND --> QUESTIONS
+  CAND --> TWIN
+  QUESTIONS --> PACKET
+  TWIN --> PACKET
+  PACKET --> HANDOFF
+  HANDOFF --> PBUNDLE
+  HANDOFF --> PSCOPE
+  SEVENT --> OBSERVE
 ```
 
 ## Main Parts
@@ -116,36 +315,7 @@ The same proposed consequence is viewed across ten axes before a final run/hold 
 
 ## Axis Fan-Out / Fan-In
 
-```mermaid
-flowchart LR
-  C["Consequence candidate"] --> T["Time axis"]
-  C --> I["Identity axis"]
-  C --> O["Content axis"]
-  C --> E["Evidence axis"]
-  C --> R["Risk axis"]
-  C --> S["Scope / intent axis"]
-  C --> W["Rollout axis"]
-  C --> N["Consequence axis"]
-  C --> H["Human axis"]
-  C --> K["Cryptographic axis"]
-
-  T --> A["Aggregators"]
-  I --> A
-  O --> A
-  E --> A
-  R --> A
-  S --> A
-  W --> A
-  N --> A
-  H --> A
-  K --> A
-
-  A --> RD["ReleaseDecision"]
-  A --> AD["ConsequenceAdmissionResponse"]
-  A --> ED["Enforcement verification"]
-  A --> CG["CustomerGateDecision"]
-  CG --> OUT["proceed or hold"]
-```
+The ten-axis fan-out and the fan-in points are shown inside the single picture above. In that picture, a candidate passes through `Time`, `Identity`, `Content`, `Evidence`, `Risk`, `Scope and intent`, `Rollout`, `Consequence`, `Human authority`, and `Cryptography`; those facts then feed the release, admission, enforcement, and customer-gate aggregators.
 
 ## Aggregators
 
