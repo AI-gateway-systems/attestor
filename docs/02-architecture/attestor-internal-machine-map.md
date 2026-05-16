@@ -17,17 +17,20 @@ AI / caller proposes a consequence
   -> downstream consequence proceeds or holds
 ```
 
-The most compact internal model is:
+The most compact decision-space model is:
 
 ```text
-release PDP -> admission PDP -> enforcement PEP
+candidate context
+  -> release PDP
+  -> admission PDP
+release PDP + admission PDP -> enforcement PEP -> customer gate
 ```
 
-The release PDP decides whether a proposed output can become a release. The admission PDP turns a domain-specific result into the shared `admit`, `narrow`, `review`, `block` vocabulary. The enforcement PEP checks the final presentation at the downstream boundary before anything real happens.
+The release PDP decides whether a proposed output can become a release. The admission PDP turns a domain-specific result into the shared `admit`, `narrow`, `review`, `block` vocabulary. They are separate decision planes over the same candidate context; their outputs fan into the enforcement PEP. The enforcement PEP checks the final presentation at the downstream boundary before anything real happens.
 
 ## One-Picture Internal Map
 
-This is the visual index for the repository. It is one picture: every current top-level source area, route lane, decision axis, decision point, module group, shared store, side loop, and terminal outcome represented by this map should be readable as a dark system-design projection. The tables and path sections below unpack the same picture.
+This is the visual index for the repository. It is one picture: every current top-level source area, route lane, decision axis, decision point, module group, shared store, side loop, boundary, value set, and terminal outcome represented by this map should be readable as a dark system-design blueprint. The embedded view is a poster preview; open the full-size SVG when inspecting dense value panels. The tables and path sections below unpack the same picture.
 
 Decision points are diamond nodes. Structural components and stores are rectangular nodes.
 
@@ -80,7 +83,7 @@ The same proposed consequence is viewed across ten axes before a final proceed/h
 
 ## Axis Fan-Out / Fan-In
 
-The ten-axis fan-out and the fan-in points are shown inside the single picture above. In that picture, a candidate passes through `Time`, `Identity`, `Content`, `Evidence`, `Risk`, `Scope and intent`, `Rollout`, `Consequence`, `Human authority`, and `Cryptography`; those facts then feed the release, admission, enforcement, and customer-gate aggregators.
+The ten-axis fan-out and the fan-in points are shown inside the single picture above. In that picture, a candidate passes through `Time`, `Identity`, `Content`, `Evidence`, `Risk`, `Scope and intent`, `Rollout`, `Consequence`, `Human authority`, and `Cryptography`; those facts then feed the release and admission decision planes before both outputs fan into enforcement and the customer-gate aggregator.
 
 ## Decision Points In The Picture
 
@@ -88,7 +91,7 @@ Every current high-level decision point is a diamond node in the one-picture map
 
 | Decision point | Question it answers | Immediate outputs |
 |---|---|---|
-| Entry path / route lane | Which runtime lane received the request? | core, public, auth/account, admin, pipeline, admission/shadow, webhook, release-layer caller |
+| Entry path / route lane | Which runtime lane received the request? | core, public, auth/account, admin, pipeline, generic admission, admission/shadow, webhook |
 | Policy resolution | Is there an active policy/bundle/scope that applies to this candidate? | resolved, missing, invalid, inactive, fail-state |
 | Rollout resolution | Is the matched policy observing or enforcing for this request/cohort? | shadow, enforce, dry-run, canary, rolled-back |
 | Deterministic release check aggregate | Do required release checks pass for this risk and consequence class? | pass, finding, fail |
