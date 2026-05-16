@@ -61,7 +61,13 @@ function testMachineMapExistsAndNamesTheCoreShape(): void {
   includes(doc, '## One-Picture Internal Map', 'Machine map: one-picture diagram section is present');
   includes(doc, '## The Ten Decision Axes', 'Machine map: decision axes section is present');
   includes(doc, '## Axis Fan-Out / Fan-In', 'Machine map: fan-out/fan-in section is present');
+  includes(doc, '## Decision Points In The Picture', 'Machine map: decision-point section is present');
   includes(doc, '## Result Emergence', 'Machine map: result emergence section is present');
+  includes(
+    doc,
+    'Decision points are diamond nodes.',
+    'Machine map: diamond-node convention is explicit',
+  );
 
   const mermaidBlocks = doc.match(/```mermaid/g) ?? [];
   assert.equal(
@@ -108,6 +114,30 @@ function testMachineMapExistsAndNamesTheCoreShape(): void {
     '| Cryptography |',
   ]) {
     includes(doc, axis, `Machine map: axis row ${axis} exists`);
+  }
+}
+
+function testMachineMapNamesEveryHighLevelDecisionPoint(): void {
+  const doc = readProjectFile('docs', '02-architecture', 'attestor-internal-machine-map.md');
+
+  for (const expected of [
+    'Entry path / route lane',
+    'Policy resolution',
+    'Rollout resolution',
+    'Deterministic release check aggregate',
+    'ReleaseDecision',
+    'Admission mode ladder',
+    'Required admission checks satisfied?',
+    'Canonical decision',
+    'Protected release token required?',
+    'Enforcement path',
+    'Presentation mode acceptable?',
+    'Offline verification valid?',
+    'Online verification required and valid?',
+    'Enforcement result',
+    'Customer gate',
+  ]) {
+    includes(doc, expected, `Machine map: decision point ${expected} is named`);
   }
 }
 
@@ -161,6 +191,7 @@ function testMachineMapCountsStayAlignedWithSourceConstants(): void {
 
 function testMachineMapLinksAndFolderViewArePresent(): void {
   const doc = readProjectFile('docs', '02-architecture', 'attestor-internal-machine-map.md');
+  const readme = readProjectFile('README.md');
   const overview = readProjectFile('docs', '02-architecture', 'system-overview.md');
   const packageJson = JSON.parse(readProjectFile('package.json')) as {
     readonly scripts: Readonly<Record<string, string>>;
@@ -184,6 +215,11 @@ function testMachineMapLinksAndFolderViewArePresent(): void {
     '[Attestor internal machine map](attestor-internal-machine-map.md)',
     'Machine map: system overview links the raw structure map',
   );
+  includes(
+    readme,
+    '[Attestor internal machine map](docs/02-architecture/attestor-internal-machine-map.md)',
+    'Machine map: README links the one-picture internal map',
+  );
   assert.equal(
     packageJson.scripts['test:attestor-internal-machine-map'],
     'tsx tests/attestor-internal-machine-map.test.ts',
@@ -193,6 +229,7 @@ function testMachineMapLinksAndFolderViewArePresent(): void {
 }
 
 testMachineMapExistsAndNamesTheCoreShape();
+testMachineMapNamesEveryHighLevelDecisionPoint();
 testMachineMapNamesEveryTopLevelSourceDirectory();
 testMachineMapCountsStayAlignedWithSourceConstants();
 testMachineMapLinksAndFolderViewArePresent();

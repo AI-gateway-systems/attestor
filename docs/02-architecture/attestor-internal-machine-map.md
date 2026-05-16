@@ -27,7 +27,9 @@ The release PDP decides whether a proposed output can become a release. The admi
 
 ## One-Picture Internal Map
 
-This is the visual index for the repository. It is one picture: every major architectural element group and every main runtime route represented by this map should be readable from left to right. The tables and path sections below unpack the same picture.
+This is the visual index for the repository. It is one picture: every current top-level source area, route lane, decision axis, decision point, module group, shared store, side loop, and terminal outcome represented by this map should be readable from left to right. The tables and path sections below unpack the same picture.
+
+Decision points are diamond nodes. Structural components and stores are rectangular nodes.
 
 ```mermaid
 flowchart LR
@@ -42,6 +44,7 @@ flowchart LR
 
   subgraph SERVICE["Service ingress and tenant runtime"]
     ROUTES["Hono routes and runtime wiring<br/>src/service/*"]
+    ENTRY{"Entry path / route lane<br/>core / public / auth / admin / pipeline / admission / webhook / release"}
     CORE_ROUTES["Core route group<br/>startup / health / ready / domains / connectors / metrics"]
     PUBLIC_ROUTES["Public site and proof route group<br/>/ / proof pages / billing return pages"]
     AUTH_ROUTES["Auth and account route group<br/>auth / account / OIDC / SAML / passkeys / MFA / API keys / billing self-service"]
@@ -77,9 +80,9 @@ flowchart LR
 
   subgraph RELEASE["Release PDP<br/>src/release-kernel + src/release-layer"]
     RMAT["Release material<br/>target / output contract / hashes / capability boundary"]
-    RPOL["Policy resolution"]
-    RROLL["Rollout resolution"]
-    RCHK["Deterministic release checks<br/>contract / target / capability / hash / policy / evidence / trace / provenance / receipt"]
+    RPOL{"Policy resolution<br/>resolved / missing / invalid / inactive / fail-state"}
+    RROLL{"Rollout resolution<br/>shadow / enforce / dry-run / canary / rolled-back"}
+    RCHK{"Deterministic release check aggregate<br/>required checks pass? / finding / fail"}
     RDEC{"ReleaseDecision<br/>accepted / denied / hold / review-required / expired / revoked / overridden"}
     RTOK["Release token / evidence pack / introspection record"]
     RQ["Reviewer queue"]
@@ -101,11 +104,12 @@ flowchart LR
 
   subgraph ADMISSION["Admission PDP<br/>src/consequence-admission/*"]
     GENV["Generic admission envelope"]
-    MODE["Mode ladder<br/>observe / warn / review / enforce"]
+    MODE{"Admission mode ladder<br/>observe / warn / review / enforce"}
     AREQ["ConsequenceAdmissionRequest"]
-    ACHK["Admission checks<br/>policy / authority / evidence / freshness / enforcement / adapter-readiness"]
+    ACHK{"Required admission checks satisfied?<br/>policy / authority / evidence / freshness / enforcement / adapter-readiness"}
     ADEC{"Canonical decision<br/>admit / narrow / review / block"}
     AOUT["ConsequenceAdmissionResponse<br/>allowed / failClosed / constraints / proof / feedback / retry"]
+    PREQ{"Protected release token required?"}
     PTOK["Optional protected release token<br/>for high-risk allowed generic admission"]
     FAC["Facade<br/>finance and crypto native decision mapping"]
   end
@@ -114,9 +118,9 @@ flowchart LR
     EPSEL{"Enforcement path"}
     DCON["Downstream enforcement contract"]
     EPROF["Verification profile<br/>consequence type + risk class + boundary"]
-    PMODE["Presentation mode<br/>bearer / DPoP / mTLS / SPIFFE / HTTP signature / signed envelope"]
-    OFF["Offline verification<br/>signature / digest / binding"]
-    ON["Online verification<br/>introspection / freshness / replay / usage"]
+    PMODE{"Presentation mode acceptable?<br/>bearer / DPoP / mTLS / SPIFFE / HTTP signature / signed envelope"}
+    OFF{"Offline verification valid?<br/>signature / digest / binding"}
+    ON{"Online verification required and valid?<br/>introspection / freshness / replay / usage"}
     ERES{"Enforcement result<br/>allow / deny / shadow-allow / needs-introspection / break-glass-allow"}
     CGATE{"Customer gate<br/>proceed / hold"}
   end
@@ -162,14 +166,15 @@ flowchart LR
   ROUTES --> TENANT
   TENANT --> GUARD
   GUARD --> BOOT
-  BOOT --> CORE_ROUTES
-  BOOT --> PUBLIC_ROUTES
-  BOOT --> AUTH_ROUTES
-  BOOT --> ADMIN_ROUTES
-  BOOT --> PIPELINE_ROUTES
-  BOOT --> ADMISSION_ROUTES
-  BOOT --> WEBHOOK_ROUTES
-  BOOT --> RLC
+  BOOT --> ENTRY
+  ENTRY --> CORE_ROUTES
+  ENTRY --> PUBLIC_ROUTES
+  ENTRY --> AUTH_ROUTES
+  ENTRY --> ADMIN_ROUTES
+  ENTRY --> PIPELINE_ROUTES
+  ENTRY --> ADMISSION_ROUTES
+  ENTRY --> WEBHOOK_ROUTES
+  ENTRY --> RLC
 
   ADMISSION_ROUTES --> GEN
   PIPELINE_ROUTES --> FIN
@@ -264,18 +269,20 @@ flowchart LR
   AREQ --> ACHK
   ACHK --> ADEC
   ADEC --> AOUT
-  AOUT -->|"high-risk allowed generic path"| PTOK
+  AOUT --> PREQ
+  PREQ -->|"yes"| PTOK
+  PREQ -->|"no"| EPSEL
   RTOK --> AOUT
-  PTOK --> AOUT
-
-  AOUT --> EPSEL
+  PTOK --> EPSEL
   EPSEL --> DCON
   EPSEL --> EPROF
   EPSEL --> CGATE
   EPROF --> PMODE
   PMODE --> OFF
-  OFF --> ON
-  ON --> ERES
+  OFF -->|"valid"| ON
+  OFF -->|"invalid"| ERES
+  ON -->|"valid / not required"| ERES
+  ON -->|"invalid / replayed / stale"| ERES
   DCON --> CGATE
   ERES --> CGATE
 
@@ -369,6 +376,28 @@ The same proposed consequence is viewed across ten axes before a final run/hold 
 ## Axis Fan-Out / Fan-In
 
 The ten-axis fan-out and the fan-in points are shown inside the single picture above. In that picture, a candidate passes through `Time`, `Identity`, `Content`, `Evidence`, `Risk`, `Scope and intent`, `Rollout`, `Consequence`, `Human authority`, and `Cryptography`; those facts then feed the release, admission, enforcement, and customer-gate aggregators.
+
+## Decision Points In The Picture
+
+Every current high-level decision point is a diamond node in the one-picture map.
+
+| Decision point | Question it answers | Immediate outputs |
+|---|---|---|
+| Entry path / route lane | Which runtime lane received the request? | core, public, auth/account, admin, pipeline, admission/shadow, webhook, release-layer caller |
+| Policy resolution | Is there an active policy/bundle/scope that applies to this candidate? | resolved, missing, invalid, inactive, fail-state |
+| Rollout resolution | Is the matched policy observing or enforcing for this request/cohort? | shadow, enforce, dry-run, canary, rolled-back |
+| Deterministic release check aggregate | Do required release checks pass for this risk and consequence class? | pass, finding, fail |
+| ReleaseDecision | Can release material become a release artifact? | accepted, denied, hold, review-required, expired, revoked, overridden |
+| Admission mode ladder | Which adoption mode controls the generic admission path? | observe, warn, review, enforce |
+| Required admission checks satisfied? | Are policy, authority, evidence, freshness, enforcement, and adapter-readiness closed? | pass/fail per check kind |
+| Canonical decision | What shared consequence-admission outcome should the caller receive? | admit, narrow, review, block |
+| Protected release token required? | Does the allowed generic path require a protected token before downstream presentation? | yes, no |
+| Enforcement path | Which downstream protection route applies? | customer gate, downstream contract, enforcement plane |
+| Presentation mode acceptable? | Is the presented release authorization carried in an accepted form? | bearer, DPoP, mTLS, SPIFFE, HTTP message signature, signed envelope |
+| Offline verification valid? | Does local cryptographic verification close? | valid, invalid |
+| Online verification required and valid? | Does freshness, introspection, replay, or usage verification close? | valid/not-required, invalid/replayed/stale |
+| Enforcement result | What does the PEP return before customer-side execution? | allow, deny, shadow-allow, needs-introspection, break-glass-allow |
+| Customer gate | Does the customer-side gate let the consequence run? | proceed, hold |
 
 ## Aggregators
 
