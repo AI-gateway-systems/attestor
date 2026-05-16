@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   CONSEQUENCE_TYPES,
@@ -74,6 +74,13 @@ function testMachineMapExistsAndNamesTheCoreShape(): void {
   for (const expected of [
     'Callers and proposed consequences',
     'Service ingress and tenant runtime',
+    'Core route group',
+    'Public site and proof route group',
+    'Auth and account route group',
+    'Admin and operator route group',
+    'Pipeline route group',
+    'Admission and shadow route group',
+    'Webhook route group',
     'Ten decision axes applied to the same candidate',
     'Policy control plane and authority material',
     'Release PDP',
@@ -81,6 +88,7 @@ function testMachineMapExistsAndNamesTheCoreShape(): void {
     'Admission PDP',
     'Enforcement PEP and customer gate',
     'Shared storage, audit, and redaction surfaces',
+    'Shared support and non-decision surfaces',
     'Shadow-to-policy side loop',
     'Terminal outcomes',
   ]) {
@@ -100,6 +108,22 @@ function testMachineMapExistsAndNamesTheCoreShape(): void {
     '| Cryptography |',
   ]) {
     includes(doc, axis, `Machine map: axis row ${axis} exists`);
+  }
+}
+
+function testMachineMapNamesEveryTopLevelSourceDirectory(): void {
+  const doc = readProjectFile('docs', '02-architecture', 'attestor-internal-machine-map.md');
+  const sourceRoot = join(process.cwd(), 'src');
+  const sourceDirectories = readdirSync(sourceRoot)
+    .filter((entry) => statSync(join(sourceRoot, entry)).isDirectory())
+    .sort((left, right) => left.localeCompare(right));
+
+  for (const directory of sourceDirectories) {
+    includes(
+      doc,
+      `src/${directory}`,
+      `Machine map: top-level source directory src/${directory} is named`,
+    );
   }
 }
 
@@ -169,6 +193,7 @@ function testMachineMapLinksAndFolderViewArePresent(): void {
 }
 
 testMachineMapExistsAndNamesTheCoreShape();
+testMachineMapNamesEveryTopLevelSourceDirectory();
 testMachineMapCountsStayAlignedWithSourceConstants();
 testMachineMapLinksAndFolderViewArePresent();
 
