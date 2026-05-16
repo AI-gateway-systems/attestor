@@ -48,6 +48,9 @@ Core functions:
 
 The consequence-admission package ledger remains an in-memory reference implementation for evaluation, tests, local demos, and agent-wrapper shape. Step 08 adds the PostgreSQL-backed shared atomic store slice under the service layer. The descriptor exposes that shared store but keeps `productionSharedStoreRuntimeWired: false`, because default runtime cutover and deployment probes are still separate work.
 
+The shared-store contract remains part of the package surface so older audit
+validation can still distinguish the contract from runtime cutover.
+
 ## Redacted Records
 
 The ledger records enough to audit the retry chain without storing raw retry payloads:
