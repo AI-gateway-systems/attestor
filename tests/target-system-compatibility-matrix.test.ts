@@ -159,11 +159,12 @@ function testTrackersAndScriptsAreUpdated(): void {
   };
 
   for (const expected of [
-    '| Complete | 13 |',
-    '| Remaining | 13 |',
+    '| Complete | 14 |',
+    '| Remaining | 12 |',
     '| 13 | complete | Target-system compatibility matrix |',
-    '| 14 | planned | Shadow event canonical schema |',
-    'completion of steps 14-26',
+    '| 14 | complete | Shadow event canonical schema |',
+    '| 15 | planned | Action surface graph |',
+    'completion of steps 15-26',
     'Target-System Compatibility Matrix',
   ]) {
     includes(plan, expected, `Compatibility matrix: unified plan records ${expected}`);

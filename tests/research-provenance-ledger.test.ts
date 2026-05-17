@@ -345,6 +345,36 @@ function testLedgerIndexesAuditRemediationClosure(): void {
   );
   includes(
     content,
+    '### 56. Shadow Event Canonical Schema',
+    'Research provenance ledger: shadow event canonical schema entry is present',
+  );
+  includes(
+    content,
+    'src/consequence-admission/canonical-shadow-event-schema.ts',
+    'Research provenance ledger: canonical shadow event code evidence is indexed',
+  );
+  includes(
+    content,
+    'tests/shadow-event-canonical-schema.test.ts',
+    'Research provenance ledger: canonical shadow event test evidence is indexed',
+  );
+  includes(
+    content,
+    'CloudEvents anchors common event envelope identity/source/time concepts',
+    'Research provenance ledger: CloudEvents source anchor is recorded',
+  );
+  includes(
+    content,
+    'OpenTelemetry Logs Data Model anchors observed timestamp',
+    'Research provenance ledger: OpenTelemetry source anchor is recorded',
+  );
+  includes(
+    content,
+    'not a production event store',
+    'Research provenance ledger: canonical shadow event production store non-claim is explicit',
+  );
+  includes(
+    content,
     'does not prove Anthropic, Vertex AI, or Azure OpenAI calls',
     'Research provenance ledger: LLM provider live-client non-claim is explicit',
   );

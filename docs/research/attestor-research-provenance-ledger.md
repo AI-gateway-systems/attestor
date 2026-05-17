@@ -932,6 +932,21 @@ The entries above are the most concrete PR/commit-linked hardening records. The 
 - Remaining limitation or no-go condition: This is not native connector coverage, not a live target-system integration, not a customer deployment, not target-system certification, not production readiness, not crypto custody or transaction broadcasting, and not healthcare/insurance/procurement compliance evidence. It only proves the repository-side compatibility contract for deciding the next canonical shadow event and action-surface work.
 - Status: complete for repository-side Step 13 once this PR is merged and verified on `origin/master`.
 
+### 56. Shadow Event Canonical Schema
+
+- Step / PR / commit: Shadow event canonical schema; this PR records the repository-side Step 14 canonical event envelope but cannot pre-record its own merge commit.
+- Date if available: 2026-05-17.
+- Trust surface: AI-action shadow event envelope, target-system normalization, tenant and actor digest references, observed-versus-inferred fact separation, evidence/simulation/approval/receipt references, raw-material prohibitions, event id/digest generation, and no-auto-enforcement posture.
+- Protected principle: data minimization and redaction; tenant isolation; customer authority; proof integrity; auditability; replay and idempotency safety; fail-closed boundary; no overclaim.
+- Research anchor / source used, if recorded: CloudEvents anchors common event envelope identity/source/time concepts; OpenTelemetry Logs Data Model anchors observed timestamp, event name, attributes, and trace-correlation shape; OCSF anchors vendor-neutral event-class normalization; W3C PROV anchors provenance references across entities, activities, and agents; OPA decision logs anchor masked decision logging for audit. These are engineering anchors only, not SIEM compatibility, telemetry compliance, native target-system connector proof, storage security certification, or production-readiness evidence.
+- Repository evidence:
+  - Contract/code evidence: `src/consequence-admission/canonical-shadow-event-schema.ts`, `src/consequence-admission/index.ts`, `docs/02-architecture/shadow-event-canonical-schema.md`, `docs/02-architecture/shadow-event-recorder.md`, `docs/02-architecture/target-system-compatibility-matrix.md`, `docs/02-architecture/unified-shadow-to-policy-master-plan.md`, `docs/02-architecture/system-overview.md`, and `docs/research/attestor-research-provenance-ledger.md`.
+  - Test evidence: `tests/shadow-event-canonical-schema.test.ts`, `tests/unified-shadow-to-policy-master-plan.test.ts`, and `tests/research-provenance-ledger.test.ts`.
+- Implemented control: Adds `attestor.canonical-shadow-event.v1`, a versioned digest-only event envelope with CloudEvents/OpenTelemetry-inspired metadata, source kind, tenant and actor digest refs, separate `observed` and `inferred` fact sets, decision/outcome labels, digest-only evidence/simulation/approval/receipt/policy refs, replay/idempotency/trace/schema refs, and a raw-material boundary that explicitly rejects raw payloads, prompts, provider bodies, wallet material, and customer identifiers. A bridge projects existing `ShadowAdmissionEvent` records into the canonical shape without inventing target receipts or live integration proof.
+- Tests / verification: `npm run test:shadow-event-canonical-schema`, `npm run test:unified-shadow-to-policy-master-plan`, `npm run test:research-provenance-ledger`, `npm run typecheck`, and `npm run typecheck:hygiene`.
+- Remaining limitation or no-go condition: This is not a production event store, not SIEM/export integration, not native target-system connector coverage, not live downstream receipt reconciliation, not customer deployment, not compliance certification, and not automatic policy activation. It only proves the repository-side canonical event contract for Step 15 action-surface graph work.
+- Status: complete for repository-side Step 14 once this PR is merged and verified on `origin/master`.
+
 ## Strong Recorded Research Support
 
 The strongest recorded research support appears in:
