@@ -1075,6 +1075,42 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.INVARIANT_CALIBRATION_CONTRACT_VERSION,
+  'attestor.invariant-calibration-contract.v1',
+);
+assert.equal(
+  admission.invariantCalibrationContractDescriptor().candidateInvariantsCatalogVersion,
+  admission.CANDIDATE_INVARIANTS_CATALOG_VERSION,
+);
+assert.equal(
+  admission.invariantCalibrationContractDescriptor().methods.includes('isotonic-regression'),
+  true,
+);
+assert.equal(
+  admission.invariantCalibrationContractDescriptor().confidenceCapBelowSingleSignalBlock,
+  true,
+);
+assert.equal(
+  admission.invariantCalibrationContractDescriptor().rawClassifierScoreAuthorityAllowed,
+  false,
+);
+assert.equal(
+  admission.invariantCalibrationContractDescriptor().calibratedConfidenceAuthorityAllowed,
+  false,
+);
+assert.equal(
+  admission.invariantCalibrationContractDescriptor().learnsFromTraffic,
+  false,
+);
+assert.equal(
+  typeof admission.createInvariantCalibrationRecord,
+  'function',
+);
+assert.equal(
+  typeof admission.evaluateInvariantCalibrationReadiness,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

@@ -100,6 +100,7 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     '| W08 | complete | Alloy Tenant Isolation Model |',
     '| W09 | complete | Baseline Cohort Contract |',
     '| W10 | complete | Candidate Invariants Catalog |',
+    '| W11 | complete | Invariant Calibration Contract |',
     'src/consequence-admission/shadow-envelope-projector.ts',
     'tests/shadow-envelope-projector.test.ts',
     'src/consequence-admission/signal-extractor-contract.ts',
@@ -127,6 +128,9 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'src/consequence-admission/candidate-invariants-catalog.ts',
     'tests/candidate-invariants-catalog.test.ts',
     'docs/02-architecture/candidate-invariants-catalog.md',
+    'src/consequence-admission/invariant-calibration-contract.ts',
+    'tests/invariant-calibration-contract.test.ts',
+    'docs/02-architecture/invariant-calibration-contract.md',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }
