@@ -36,6 +36,12 @@ This is an evaluation/local helper, not the production audit log. The included i
 
 Production deployment still needs a shared append-only or tamper-evident event store, retention policy, access controls, export controls, and incident-review workflow.
 
+The next vendor-neutral contract is the
+[Shadow Event Canonical Schema](shadow-event-canonical-schema.md). It projects
+these admission shadow events into a digest-only event envelope with separate
+`observed` and `inferred` fact sets for the action-surface graph and later
+policy-candidate work.
+
 ## Design Basis
 
 The shape follows existing control-plane patterns rather than inventing a raw data lake:

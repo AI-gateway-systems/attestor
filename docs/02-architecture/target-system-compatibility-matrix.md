@@ -108,8 +108,8 @@ repository-side compatibility:
 
 ## Implementation Implications
 
-Step 14 should define the canonical shadow event schema from this matrix, not
-from one vendor. At minimum, the schema needs:
+Step 14 defines the [shadow event canonical schema](shadow-event-canonical-schema.md)
+from this matrix, not from one vendor. At minimum, the schema needs:
 
 ```text
 tenantRefDigest
