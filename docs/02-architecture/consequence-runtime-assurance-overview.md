@@ -711,7 +711,7 @@ creating live enforcement.
 | W03 | complete | Existing Checks To Signal Adapter Registry | `src/consequence-admission/signal-adapter-registry.ts`, [Signal Adapter Registry](signal-adapter-registry.md), `tests/signal-adapter-registry.test.ts`, package script, package-surface probe, complete coverage for the six `CONSEQUENCE_ADMISSION_CHECK_KINDS`, pass-outcome exclusion, duplicate-evidence dedupe keys, and no-authority invariants. | Do not double-count duplicate evidence. |
 | W04 | complete | Relationship Detector Contract | `src/consequence-admission/relationship-detector-contract.ts`, [Relationship Detector Contract](relationship-detector-contract.md), `tests/relationship-detector-contract.test.ts`, package script, package-surface probe, deterministic rule-based relationship detection, same-envelope boundary, duplicate/conflict/directed/unary relationship output, interaction-rule output, and no-authority invariants. | Do not add learned relationship inference, correlation learning, fusion, packet signing, live enforcement, or authority upgrade in v1. |
 | W05 | complete | Shadow Runtime Pipeline Dry Run | `src/consequence-admission/shadow-runtime-pipeline.ts`, [Shadow Runtime Pipeline](shadow-runtime-pipeline.md), `tests/shadow-runtime-pipeline.test.ts`, package script, package-surface probe, shadow-only event -> envelope -> signals -> relationships -> fusion -> conflict gate -> human gate -> unsigned packet path, bounded review output, and no-authority invariants. | Do not emit live enforcement decisions, sign production packets, activate policy, call downstream systems, learn, aggregate cross-tenant data, or claim production readiness. |
-| W06 | planned | Decision Trace Logger | Digest-bound decision trace suitable for offline replay/spec checks. | Do not store raw payloads or write production audit claims. |
+| W06 | complete | Decision Trace Logger | `src/consequence-admission/decision-trace-logger.ts`, [Decision Trace Logger](decision-trace-logger.md), `tests/decision-trace-logger.test.ts`, package script, package-surface probe, digest-only eight-phase decision trace, linear hash chain, TTL-bound verification, replay rejection, and no-authority invariants. | Do not store raw payloads, write the audit plane, claim production log integrity, activate policy, sign packets, or claim formal verification. |
 | W07 | planned | TLA+ Admission State Machine Skeleton | Manual design-first spec and initial invariants. | Do not claim formal verification of the TypeScript implementation. |
 | W08 | planned | Alloy Tenant Isolation Model | Small-scope non-interference relation model. | Do not mix behavior/state-machine proof with tenant relation proof. |
 | W09 | planned | Baseline Cohort Contract | Explicit cohort shape and promotion gate for baseline candidates. | Do not learn from blocked traffic or auto-promote invariants. |
@@ -888,6 +888,47 @@ package export wiring
 Not allowed in W05:
 
 ```text
+live enforcement
+policy activation
+downstream execution
+packet signing
+TLA+ validation claim
+Alloy validation claim
+learning
+baseline extraction
+cross-tenant aggregation
+new production dependency
+runtime deployment readiness claim
+```
+
+The sixth wiring slice is complete as the Decision Trace Logger:
+
+```text
+src/consequence-admission/decision-trace-logger.ts
+tests/decision-trace-logger.test.ts
+docs/02-architecture/decision-trace-logger.md
+```
+
+Allowed in the completed W06 slice:
+
+```text
+digest-only trace entries
+eight ordered shadow pipeline phases
+linear hash-chain verification
+TTL-bound trace expiry
+pipeline digest replay rejection
+capacity hold fail-closed behavior
+structured snapshot for later offline spec checks
+no-authority invariant tests
+package export wiring
+```
+
+Not allowed in W06:
+
+```text
+audit-plane writes
+production log integrity claim
+external immutability claim
 live enforcement
 policy activation
 downstream execution

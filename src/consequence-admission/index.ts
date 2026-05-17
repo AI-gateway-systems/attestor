@@ -2312,6 +2312,7 @@ export * from './signal-extractor-contract.js';
 export * from './signal-adapter-registry.js';
 export * from './relationship-detector-contract.js';
 export * from './shadow-runtime-pipeline.js';
+export * from './decision-trace-logger.js';
 export * from './shadow-simulation.js';
 export * from './money-movement-shadow.js';
 export * from './shadow-summary.js';

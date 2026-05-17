@@ -971,6 +971,42 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.DECISION_TRACE_LOGGER_VERSION,
+  'attestor.decision-trace-logger.v1',
+);
+assert.equal(
+  admission.decisionTraceLoggerDescriptor().shadowRuntimePipelineVersion,
+  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
+);
+assert.equal(
+  admission.decisionTraceLoggerDescriptor().ttlRequired,
+  true,
+);
+assert.equal(
+  admission.decisionTraceLoggerDescriptor().replayRejected,
+  true,
+);
+assert.equal(
+  admission.decisionTraceLoggerDescriptor().digestOnly,
+  true,
+);
+assert.equal(
+  admission.decisionTraceLoggerDescriptor().writesAuditPlane,
+  false,
+);
+assert.equal(
+  admission.decisionTraceLoggerDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.createDecisionTraceLogger,
+  'function',
+);
+assert.equal(
+  typeof admission.verifyDecisionTraceEntries,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

@@ -95,6 +95,7 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     '| W03 | complete | Existing Checks To Signal Adapter Registry |',
     '| W04 | complete | Relationship Detector Contract |',
     '| W05 | complete | Shadow Runtime Pipeline Dry Run |',
+    '| W06 | complete | Decision Trace Logger |',
     'src/consequence-admission/shadow-envelope-projector.ts',
     'tests/shadow-envelope-projector.test.ts',
     'src/consequence-admission/signal-extractor-contract.ts',
@@ -106,6 +107,9 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'src/consequence-admission/shadow-runtime-pipeline.ts',
     'tests/shadow-runtime-pipeline.test.ts',
     'docs/02-architecture/shadow-runtime-pipeline.md',
+    'src/consequence-admission/decision-trace-logger.ts',
+    'tests/decision-trace-logger.test.ts',
+    'docs/02-architecture/decision-trace-logger.md',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }
