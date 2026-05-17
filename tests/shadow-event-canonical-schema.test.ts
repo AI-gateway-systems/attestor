@@ -234,14 +234,15 @@ function testDescriptorAndDocsStayAligned(): void {
   }
 
   for (const expected of [
-    '| Complete | 17 |',
-    '| Remaining | 9 |',
+    '| Complete | 18 |',
+    '| Remaining | 8 |',
     '| 14 | complete | Shadow event canonical schema |',
     '| 15 | complete | Action surface graph |',
     '| 16 | complete | Evidence state model |',
     '| 17 | complete | Policy Candidate PR contract |',
-    '| 18 | planned | Active Question Engine |',
-    'completion of steps 18-26',
+    '| 18 | complete | Active Question Engine |',
+    '| 19 | planned | Counterexample replay generator |',
+    'completion of steps 19-26',
   ]) {
     includes(masterPlan, expected, `Canonical shadow event: master plan records ${expected}`);
   }

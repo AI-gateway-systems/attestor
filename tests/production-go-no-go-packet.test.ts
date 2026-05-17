@@ -329,14 +329,15 @@ function testDocsAndScriptsExposeStep12(): void {
   includes(tracker, '| Complete in this tracker | 12 |', 'Unlock tracker: Step 12 completion count is updated');
   includes(tracker, '| Remaining after this tracker | 0 |', 'Unlock tracker: no remaining tracker steps');
   includes(tracker, '| 12 | complete | Production rehearsal go/no-go packet |', 'Unlock tracker: Step 12 is complete');
-  includes(masterPlan, '| Complete | 17 |', 'Unified plan: Step 17 completion count is updated');
-  includes(masterPlan, '| Remaining | 9 |', 'Unified plan: remaining count moves to 9');
+  includes(masterPlan, '| Complete | 18 |', 'Unified plan: Step 18 completion count is updated');
+  includes(masterPlan, '| Remaining | 8 |', 'Unified plan: remaining count moves to 8');
   includes(masterPlan, '| 12 | complete | Production rehearsal go/no-go packet |', 'Unified plan: Step 12 is complete');
   includes(masterPlan, '| 13 | complete | Target-system compatibility matrix |', 'Unified plan: Step 13 is complete');
   includes(masterPlan, '| 14 | complete | Shadow event canonical schema |', 'Unified plan: Step 14 is complete');
   includes(masterPlan, '| 15 | complete | Action surface graph |', 'Unified plan: Step 15 is complete');
   includes(masterPlan, '| 16 | complete | Evidence state model |', 'Unified plan: Step 16 is complete');
   includes(masterPlan, '| 17 | complete | Policy Candidate PR contract |', 'Unified plan: Step 17 is complete');
+  includes(masterPlan, '| 18 | complete | Active Question Engine |', 'Unified plan: Step 18 is complete');
   includes(ledger, '### 54. Production Rehearsal Go/No-Go Packet', 'Research ledger: Step 12 entry is present');
 }
 
