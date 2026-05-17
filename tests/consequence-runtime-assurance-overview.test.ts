@@ -101,6 +101,7 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     '| W09 | complete | Baseline Cohort Contract |',
     '| W10 | complete | Candidate Invariants Catalog |',
     '| W11 | complete | Invariant Calibration Contract |',
+    '| W12 | complete | Invariant Promotion Gate |',
     'src/consequence-admission/shadow-envelope-projector.ts',
     'tests/shadow-envelope-projector.test.ts',
     'src/consequence-admission/signal-extractor-contract.ts',
@@ -131,6 +132,9 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'src/consequence-admission/invariant-calibration-contract.ts',
     'tests/invariant-calibration-contract.test.ts',
     'docs/02-architecture/invariant-calibration-contract.md',
+    'src/consequence-admission/invariant-promotion-gate.ts',
+    'tests/invariant-promotion-gate.test.ts',
+    'docs/02-architecture/invariant-promotion-gate.md',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }

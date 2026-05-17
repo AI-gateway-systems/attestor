@@ -1111,6 +1111,42 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.INVARIANT_PROMOTION_GATE_VERSION,
+  'attestor.invariant-promotion-gate.v1',
+);
+assert.equal(
+  admission.invariantPromotionGateDescriptor().candidateInvariantsCatalogVersion,
+  admission.CANDIDATE_INVARIANTS_CATALOG_VERSION,
+);
+assert.equal(
+  admission.invariantPromotionGateDescriptor().invariantCalibrationContractVersion,
+  admission.INVARIANT_CALIBRATION_CONTRACT_VERSION,
+);
+assert.equal(
+  admission.invariantPromotionGateDescriptor().reviewOnlyPatchOnly,
+  true,
+);
+assert.equal(
+  admission.invariantPromotionGateDescriptor().noRelaxation,
+  true,
+);
+assert.equal(
+  admission.invariantPromotionGateDescriptor().noAutoPromotion,
+  true,
+);
+assert.equal(
+  admission.invariantPromotionGateDescriptor().activatesEnforcement,
+  false,
+);
+assert.equal(
+  typeof admission.createInvariantPromotionGateDecision,
+  'function',
+);
+assert.equal(
+  typeof admission.evaluateInvariantPromotionGate,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );
