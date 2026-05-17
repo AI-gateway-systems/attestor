@@ -823,6 +823,42 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.SIGNAL_EXTRACTOR_CONTRACT_VERSION,
+  'attestor.signal-extractor-contract.v1',
+);
+assert.equal(
+  admission.signalExtractorContractDescriptor().signalRelationshipContractVersion,
+  admission.SIGNAL_RELATIONSHIP_CONTRACT_VERSION,
+);
+assert.equal(
+  admission.signalExtractorContractDescriptor().shadowEnvelopeProjectorVersion,
+  admission.SHADOW_ENVELOPE_PROJECTOR_VERSION,
+);
+assert.equal(
+  admission.signalExtractorContractDescriptor().categoryBoundOutputRequired,
+  true,
+);
+assert.equal(
+  admission.signalExtractorContractDescriptor().advisoryCannotEmitHardFloor,
+  true,
+);
+assert.equal(
+  admission.signalExtractorContractDescriptor().readsRawPayload,
+  false,
+);
+assert.equal(
+  admission.signalExtractorContractDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.createSignalExtractorDeclaration,
+  'function',
+);
+assert.equal(
+  typeof admission.createSignalExtractionBatch,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

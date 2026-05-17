@@ -707,7 +707,7 @@ creating live enforcement.
 | Step | Status | Work item | Required evidence | No-go boundary |
 |---|---|---|---|---|
 | W01 | complete | Shadow Envelope Projector | `src/consequence-admission/shadow-envelope-projector.ts`, [Shadow Envelope Projector](shadow-envelope-projector.md), `tests/shadow-envelope-projector.test.ts`, package script, package-surface probe, deterministic source-event-to-envelope projection, tenant binding, redaction preservation, idempotency digest, and no-authority invariants. | Do not extract signals, detect relationships, run fusion, sign packets, activate enforcement, learn, or grant authority. |
-| W02 | planned | Signal Extractor Contract | Typed extractor interface that emits category-bound signals from digest-only evidence refs. | Do not let an extractor upgrade advisory evidence into hard authority. |
+| W02 | complete | Signal Extractor Contract | `src/consequence-admission/signal-extractor-contract.ts`, [Signal Extractor Contract](signal-extractor-contract.md), `tests/signal-extractor-contract.test.ts`, package script, package-surface probe, category-bound extractor declarations, digest-only signal batches, source-plane preservation, authority-mode preservation, and no-authority invariants. | Do not let an extractor upgrade advisory evidence into hard authority. |
 | W03 | planned | Existing Checks To Signal Adapter Registry | Adapters from existing checks into typed signals with source evidence digests. | Do not double-count duplicate evidence. |
 | W04 | planned | Relationship Detector Contract | Rule-based detector for explicit `confirms`, `contradicts`, `duplicates`, and directed relationship shapes. | Do not add learned relationship inference in v1. |
 | W05 | planned | Shadow Runtime Pipeline Dry Run | Shadow-only event -> envelope -> signals -> relationships -> fusion -> gate -> packet path. | Do not emit live enforcement decisions. |
@@ -750,6 +750,41 @@ fusion
 packet signing
 live enforcement
 learning
+new production dependency
+runtime deployment readiness claim
+```
+
+The second wiring slice is complete as the Signal Extractor Contract:
+
+```text
+src/consequence-admission/signal-extractor-contract.ts
+tests/signal-extractor-contract.test.ts
+docs/02-architecture/signal-extractor-contract.md
+```
+
+Allowed in the completed W02 slice:
+
+```text
+category-bound extractor declarations
+signals-only extraction batches
+source-plane tag preservation tests
+authority-mode preservation tests
+digest-only evidence ref tests
+advisory-cannot-emit-hard-floor tests
+no-authority invariant tests
+package export wiring
+```
+
+Not allowed in W02:
+
+```text
+adapter registry
+relationship detection
+fusion
+packet signing
+live enforcement
+learning
+raw payload access
 new production dependency
 runtime deployment readiness claim
 ```
