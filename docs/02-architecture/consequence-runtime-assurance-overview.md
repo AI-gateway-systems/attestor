@@ -357,7 +357,7 @@ Shadow-to-Policy master plan.
 | 06 | complete | Conflict and abstention gate | `src/consequence-admission/conflict-abstention-gate.ts`, [Conflict And Abstention Gate](conflict-abstention-gate.md), `tests/conflict-abstention-gate.test.ts`, package script, review/block-pressure/abstain-hold outcomes for high conflict, low coverage, high uncertainty, and weighted abstention, and no-admit invariant tests. | Do not turn uncertainty into admit. |
 | 07 | complete | Human comprehension gate | `src/consequence-admission/human-comprehension-gate.ts`, [Human Comprehension Gate](human-comprehension-gate.md), `tests/human-comprehension-gate.test.ts`, package script, max-7 reason-line limit, default max-3 active-question cap, escalation posture, review-load visibility, and no-admit invariant tests. | Do not create a noisy dashboard that shifts work to humans. |
 | 08 | complete | Signed assurance packet | `src/consequence-admission/signed-assurance-packet.ts`, [Signed Assurance Packet](signed-assurance-packet.md), `tests/signed-assurance-packet.test.ts`, package script, digest-only refs, tamper-history binding, optional signature record, production-boundary downgrade, and no-authority invariant tests. | Do not store raw payloads, claim external immutability, or turn packet signing into execution authority. |
-| 09 | planned | Outcome and incident feedback contract | Outcome source classes, incident path states, bounded mutation rules, replay regression triggers. | Do not retrain, activate, or mutate policy directly from feedback. |
+| 09 | complete | Outcome and incident feedback contract | `src/consequence-admission/outcome-incident-feedback-contract.ts`, [Outcome And Incident Feedback Contract](outcome-incident-feedback-contract.md), `tests/outcome-incident-feedback-contract.test.ts`, package script, separated source classes, incident path states, blocked mutation requests, replay regression triggers, and no-authority invariant tests. | Do not retrain, activate, or mutate policy directly from feedback. |
 | 10 | planned | Assurance measurement plane | Read-only metrics, drift/regression/degraded-state reporting, scoped budget accounting, dashboard contract. | Do not let measurement output become decision authority. |
 
 ## First Code PR Scope
@@ -621,12 +621,48 @@ external immutability claim
 JWS, JWT, DSSE, in-toto, or NIST conformance claim
 ```
 
-The next implementation PR should be the Outcome and incident feedback
+The ninth implementation slice is complete as the Outcome and incident feedback
 contract:
 
 ```text
 src/consequence-admission/outcome-incident-feedback-contract.ts
 tests/outcome-incident-feedback-contract.test.ts
+docs/02-architecture/outcome-incident-feedback-contract.md
+```
+
+Allowed in the completed Step 09 slice:
+
+```text
+pure deterministic feedback builder
+descriptors
+source-class separation tests
+incident path tests
+replay regression trigger tests
+blocked mutation request tests
+no-authority invariant tests
+package export wiring
+```
+
+Not allowed in Step 09:
+
+```text
+learning system
+admit decisions
+policy activation
+runtime enforcement
+model training
+automatic score or calibration mutation
+downstream calls
+new production dependency
+incident-response completion claim
+NIST SP 800-61 or NIST AI RMF conformance claim
+```
+
+The next implementation PR should be the Assurance measurement plane:
+
+```text
+src/consequence-admission/assurance-measurement-plane.ts
+tests/assurance-measurement-plane.test.ts
 ```
 
 ## Primary Source Anchors
@@ -641,6 +677,7 @@ Reviewed on 2026-05-17:
 - Risk budget and operational measurement discipline: [Google SRE, Embracing Risk](https://sre.google/sre-book/embracing-risk/) and [Google SRE, Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/).
 - Human review and alert load discipline: [NIST AI RMF Appendix C](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf), [NASA Human Systems Integration Handbook](https://ntrs.nasa.gov/citations/20210010952), [Google SRE Practical Alerting](https://sre.google/sre-book/practical-alerting/), and [Microsoft Human-AI Interaction Guidelines](https://www.microsoft.com/en-us/research/wp-content/uploads/2019/01/Guidelines-for-Human-AI-Interaction-camera-ready.pdf).
 - Signed packet and digest-bound artifact framing: [RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785), [RFC 7515 JSON Web Signature](https://www.rfc-editor.org/rfc/rfc7515), [RFC 8725 JWT Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725), [in-toto Attestation Statement](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md), and [DSSE](https://github.com/secure-systems-lab/dsse).
+- Outcome and incident feedback framing: [NIST SP 800-61 Rev. 3](https://csrc.nist.gov/pubs/sp/800/61/r3/final), [Google SRE Postmortem Culture](https://sre.google/sre-book/postmortem-culture/), [NIST AI RMF Core](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/), and [MIT STPA Handbook](http://psas.scripts.mit.edu/home/get_file.php?name=STPA_handbook.pdf).
 - Agentic threat and tool-action risk framing: [OWASP Agentic AI threats and mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/).
 - Causal dependency framing: [Pearl, Causality](https://bayes.cs.ucla.edu/BOOK-2K/causality.html).
 - Feedback loop and dynamic-system framing: [System Dynamics Society](https://systemdynamics.org/what-is-system-dynamics-old/).

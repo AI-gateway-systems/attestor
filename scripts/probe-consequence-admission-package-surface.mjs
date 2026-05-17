@@ -731,6 +731,34 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.OUTCOME_INCIDENT_FEEDBACK_CONTRACT_VERSION,
+  'attestor.outcome-incident-feedback-contract.v1',
+);
+assert.equal(
+  admission.outcomeIncidentFeedbackContractDescriptor().separatesSourceClasses,
+  true,
+);
+assert.equal(
+  admission.outcomeIncidentFeedbackContractDescriptor().incidentPathFirstClass,
+  true,
+);
+assert.equal(
+  admission.outcomeIncidentFeedbackContractDescriptor().replayRegressionTriggering,
+  true,
+);
+assert.equal(
+  admission.outcomeIncidentFeedbackContractDescriptor().automaticPolicyMutationAllowed,
+  false,
+);
+assert.equal(
+  admission.outcomeIncidentFeedbackContractDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.createOutcomeIncidentFeedbackContract,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );
