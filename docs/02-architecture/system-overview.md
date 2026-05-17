@@ -40,6 +40,8 @@ The review-only candidate diff contract lives in [policy candidate PR contract](
 
 The ranked human-question layer lives in [Active Question Engine](active-question-engine.md). Use it when candidate PR material needs to become a small set of high-impact reviewer questions instead of a broad policy-writing task.
 
+The negative replay-fixture layer lives in [Counterexample replay generator](counterexample-replay-generator.md). Use it when candidate PR material and active questions need synthetic tenant-mismatch, stale-approval, missing-evidence, bypass, replay, prompt/tool poisoning, unsafe-approval, and crypto-abuse cases before backtesting.
+
 The append-only proof trail lives in [Tamper-evident history](tamper-evident-history.md). Use it when digest-first evidence needs a linear history root that can detect modified, deleted, or reordered entries before a reviewer trusts an export.
 
 The operator-facing risk summary lives in [Business risk dashboard](business-risk-dashboard.md). Use it when a customer needs to see action volume, review load, blocked actions, policy gaps, consequence-domain risk, downstream proof coverage, and operator-supplied impact without turning raw logs into the product.

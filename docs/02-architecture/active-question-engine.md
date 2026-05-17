@@ -23,6 +23,11 @@ Its job is narrow: rank the smallest useful set of human questions from
 candidate PR material. It does not ask a human to write policy DSL. It does
 not let an LLM decide policy. It does not activate enforcement.
 
+The next repository-side layer is the
+[Counterexample Replay Generator](counterexample-replay-generator.md), which
+turns the candidate and unresolved-question context into digest-only negative
+replay fixtures.
+
 ## Runtime Contract
 
 The machine-readable contract lives in
@@ -191,7 +196,7 @@ This engine does not claim:
 - downstream receipt correctness
 - compliance certification
 - automatic policy activation
-- completion of Step 19 Counterexample replay generator
+- completion of Step 20 Policy Twin backtest
 
 It is the ranked human-question layer that lets the next step generate
 counterexamples and replay fixtures against the right unresolved decisions.
