@@ -229,7 +229,7 @@ This schema does not claim:
 - automatic policy activation
 - raw-payload retention safety
 - live downstream receipt reconciliation
-- completion of Step 19 Counterexample replay generator
+- completion of Step 20 Policy Twin backtest
 
 It is the canonical event input for graph, evidence, candidate, replay, and
 review-by-exception work.

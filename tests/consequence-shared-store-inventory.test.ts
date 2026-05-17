@@ -248,7 +248,7 @@ function testEvidencePathsAndDocsAreWired(): void {
     'Unlock tracker: step 09 is complete',
   );
   ok(
-    masterPlan.includes('| Complete | 18 |'),
+    masterPlan.includes('| Complete | 19 |'),
     'Unified master plan: completion count includes the active question engine',
   );
   ok(
