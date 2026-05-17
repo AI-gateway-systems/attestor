@@ -2308,6 +2308,7 @@ export * from './protected-enforcement-profile.js';
 export * from './shadow-events.js';
 export * from './canonical-shadow-event-schema.js';
 export * from './shadow-envelope-projector.js';
+export * from './signal-extractor-contract.js';
 export * from './shadow-simulation.js';
 export * from './money-movement-shadow.js';
 export * from './shadow-summary.js';

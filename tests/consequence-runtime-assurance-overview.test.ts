@@ -90,6 +90,12 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'src/consequence-admission/assurance-measurement-plane.ts',
     'tests/assurance-measurement-plane.test.ts',
     'docs/02-architecture/assurance-measurement-plane.md',
+    '| W01 | complete | Shadow Envelope Projector |',
+    '| W02 | complete | Signal Extractor Contract |',
+    'src/consequence-admission/shadow-envelope-projector.ts',
+    'tests/shadow-envelope-projector.test.ts',
+    'src/consequence-admission/signal-extractor-contract.ts',
+    'tests/signal-extractor-contract.test.ts',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }
