@@ -355,7 +355,7 @@ Shadow-to-Policy master plan.
 | 04 | complete | Modulator authority tier | `src/consequence-admission/modulator-authority-tier.ts`, [Modulator Authority Tier](modulator-authority-tier.md), `tests/modulator-authority-tier.test.ts`, package script, context-only dimensions for reversibility, blast radius, tenant maturity, coverage, and freshness, and hard-floor preservation invariants. | Do not let context modulators override hard denies. |
 | 05 | complete | Relationship-aware monotone fusion | `src/consequence-admission/relationship-aware-monotone-fusion.ts`, [Relationship-Aware Monotone Fusion](relationship-aware-monotone-fusion.md), `tests/relationship-aware-monotone-fusion.test.ts`, package script, duplicate discount, confirmation boost, hard-floor preservation, monotone risk aggregation, and property-style no-loosening tests. | Do not average away strong hazards or count duplicate evidence twice. |
 | 06 | complete | Conflict and abstention gate | `src/consequence-admission/conflict-abstention-gate.ts`, [Conflict And Abstention Gate](conflict-abstention-gate.md), `tests/conflict-abstention-gate.test.ts`, package script, review/block-pressure/abstain-hold outcomes for high conflict, low coverage, high uncertainty, and weighted abstention, and no-admit invariant tests. | Do not turn uncertainty into admit. |
-| 07 | planned | Human comprehension gate | Reason-line limit, active question cap, escalation and review-load visibility tests. | Do not create a noisy dashboard that shifts work to humans. |
+| 07 | complete | Human comprehension gate | `src/consequence-admission/human-comprehension-gate.ts`, [Human Comprehension Gate](human-comprehension-gate.md), `tests/human-comprehension-gate.test.ts`, package script, max-7 reason-line limit, default max-3 active-question cap, escalation posture, review-load visibility, and no-admit invariant tests. | Do not create a noisy dashboard that shifts work to humans. |
 | 08 | planned | Signed assurance packet | Digest-bound packet tied to tamper-evident history, policy, evidence, signals, relationships, and replay refs. | Do not store raw payloads or claim external immutability. |
 | 09 | planned | Outcome and incident feedback contract | Outcome source classes, incident path states, bounded mutation rules, replay regression triggers. | Do not retrain, activate, or mutate policy directly from feedback. |
 | 10 | planned | Assurance measurement plane | Read-only metrics, drift/regression/degraded-state reporting, scoped budget accounting, dashboard contract. | Do not let measurement output become decision authority. |
@@ -552,11 +552,45 @@ new production dependency
 calibrated probability or conformal validity claim
 ```
 
-The next implementation PR should be the Human comprehension gate:
+The seventh implementation slice is complete as the Human comprehension gate:
 
 ```text
 src/consequence-admission/human-comprehension-gate.ts
 tests/human-comprehension-gate.test.ts
+docs/02-architecture/human-comprehension-gate.md
+```
+
+Allowed in the completed Step 07 slice:
+
+```text
+pure deterministic handoff function
+descriptors
+max-7 reason-line tests
+default max-3 active-question cap tests
+review-load visibility tests
+escalation posture tests
+no-admit invariant tests
+package export wiring
+```
+
+Not allowed in Step 07:
+
+```text
+review UI
+admit decisions
+policy activation
+runtime enforcement
+learning
+downstream calls
+new production dependency
+human-factors certification claim
+```
+
+The next implementation PR should be the Signed assurance packet:
+
+```text
+src/consequence-admission/signed-assurance-packet.ts
+tests/signed-assurance-packet.test.ts
 ```
 
 ## Primary Source Anchors
@@ -569,6 +603,7 @@ Reviewed on 2026-05-17:
 - Fault/event tree analysis: [NRC Fault Tree Handbook, NUREG-0492](https://www.nrc.gov/reading-rm/doc-collections/nuregs/staff/sr0492/index.html).
 - Govern/map/measure/manage risk lifecycle framing: [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework) and [NIST AI RMF Playbook](https://www.nist.gov/itl/ai-risk-management-framework/nist-ai-rmf-playbook).
 - Risk budget and operational measurement discipline: [Google SRE, Embracing Risk](https://sre.google/sre-book/embracing-risk/) and [Google SRE, Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/).
+- Human review and alert load discipline: [NIST AI RMF Appendix C](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf), [NASA Human Systems Integration Handbook](https://ntrs.nasa.gov/citations/20210010952), [Google SRE Practical Alerting](https://sre.google/sre-book/practical-alerting/), and [Microsoft Human-AI Interaction Guidelines](https://www.microsoft.com/en-us/research/wp-content/uploads/2019/01/Guidelines-for-Human-AI-Interaction-camera-ready.pdf).
 - Agentic threat and tool-action risk framing: [OWASP Agentic AI threats and mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/).
 - Causal dependency framing: [Pearl, Causality](https://bayes.cs.ucla.edu/BOOK-2K/causality.html).
 - Feedback loop and dynamic-system framing: [System Dynamics Society](https://systemdynamics.org/what-is-system-dynamics-old/).

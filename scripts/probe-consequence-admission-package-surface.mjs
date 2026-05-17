@@ -683,6 +683,26 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.HUMAN_COMPREHENSION_GATE_VERSION,
+  'attestor.human-comprehension-gate.v1',
+);
+assert.equal(
+  admission.humanComprehensionGateDescriptor().maxReasonLinesEnforced,
+  true,
+);
+assert.equal(
+  admission.humanComprehensionGateDescriptor().activeQuestionCapEnforced,
+  true,
+);
+assert.equal(
+  admission.humanComprehensionGateDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.evaluateHumanComprehensionGate,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

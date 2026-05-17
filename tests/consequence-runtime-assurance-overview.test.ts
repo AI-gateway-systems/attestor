@@ -65,7 +65,8 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     '| 04 | complete | Modulator authority tier |',
     '| 05 | complete | Relationship-aware monotone fusion |',
     '| 06 | complete | Conflict and abstention gate |',
-    '| 07 | planned | Human comprehension gate |',
+    '| 07 | complete | Human comprehension gate |',
+    '| 08 | planned | Signed assurance packet |',
     '| 10 | planned | Assurance measurement plane |',
     'src/consequence-admission/consequence-envelope-contract.ts',
     'tests/consequence-envelope-contract.test.ts',
@@ -80,6 +81,8 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'src/consequence-admission/conflict-abstention-gate.ts',
     'tests/conflict-abstention-gate.test.ts',
     'src/consequence-admission/human-comprehension-gate.ts',
+    'tests/human-comprehension-gate.test.ts',
+    'src/consequence-admission/signed-assurance-packet.ts',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }
