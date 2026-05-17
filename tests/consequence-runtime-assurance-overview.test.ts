@@ -67,7 +67,7 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     '| 06 | complete | Conflict and abstention gate |',
     '| 07 | complete | Human comprehension gate |',
     '| 08 | complete | Signed assurance packet |',
-    '| 09 | planned | Outcome and incident feedback contract |',
+    '| 09 | complete | Outcome and incident feedback contract |',
     '| 10 | planned | Assurance measurement plane |',
     'src/consequence-admission/consequence-envelope-contract.ts',
     'tests/consequence-envelope-contract.test.ts',
@@ -86,6 +86,8 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'src/consequence-admission/signed-assurance-packet.ts',
     'tests/signed-assurance-packet.test.ts',
     'src/consequence-admission/outcome-incident-feedback-contract.ts',
+    'tests/outcome-incident-feedback-contract.test.ts',
+    'src/consequence-admission/assurance-measurement-plane.ts',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }
