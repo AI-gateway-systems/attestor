@@ -23,6 +23,10 @@ material that can be represented as a candidate diff. It does not write a live
 policy bundle, deploy an admission rule, or mark a generated candidate
 enforceable.
 
+The next repository-side layer is the [Active Question Engine](active-question-engine.md),
+which ranks the smallest high-impact human questions from these candidate
+diffs.
+
 ## Runtime Contract
 
 The machine-readable contract lives in
@@ -195,7 +199,7 @@ This contract does not claim:
 - downstream receipt correctness
 - compliance certification
 - automatic policy activation
-- completion of Step 18 Active Question Engine
+- completion of Step 19 Counterexample replay generator
 - completion of replay, backtest, review-inbox, or feedback-loop work
 
 It is the review-only candidate diff layer that lets the next step ask the

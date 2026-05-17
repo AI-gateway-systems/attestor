@@ -96,7 +96,8 @@ implementation source is the [Unified Shadow-To-Policy Master Plan](unified-shad
 where Step 13 records the target-system compatibility matrix, Step 14 records
 the canonical shadow event schema, Step 15 records the action surface graph,
 Step 16 records the evidence state model, Step 17 records the Policy Candidate
-PR contract, and Step 18 is the next planned Active Question Engine.
+PR contract, Step 18 records the Active Question Engine, and Step 19 is the
+next planned Counterexample replay generator.
 
 Step 12 does not remove the live-production boundary. It only gives operators
 one packet that refuses to issue `go` unless the named target supplies the
