@@ -100,8 +100,8 @@ PR contract, Step 18 records the Active Question Engine, Step 19 records the
 Counterexample replay generator, Step 20 records the Policy Twin backtest, Step
 21 records the Review-by-exception inbox, Step 22 records the Approval/dismiss
 feedback loop, Step 23 records the Enterprise integration recipes, Step 24
-records the General Crypto Transaction Gate, and Step 25 is the next planned
-Spend, procurement, data, IAM, health, and insurance recipes step.
+records the General Crypto Transaction Gate, Step 25 records the Domain consequence recipes,
+and Step 26 is the next planned Pilot readiness packet.
 
 Step 12 does not remove the live-production boundary. It only gives operators
 one packet that refuses to issue `go` unless the named target supplies the

@@ -199,8 +199,9 @@ This gate does not claim:
 - compliance certification
 - production readiness
 - automatic policy activation
-- completion of Step 25 Spend, procurement, data, IAM, health, and insurance
-  recipes
+- completion of Step 26 Pilot readiness packet
 
 It proves a repository-side, digest-only gate contract for general crypto
-consequences inside the same Shadow-to-Policy engine.
+consequences inside the same Shadow-to-Policy engine. The domain recipe pack is
+now recorded separately; the remaining master-plan step is the pilot readiness
+packet.

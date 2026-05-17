@@ -183,7 +183,7 @@ This model does not claim:
 - compliance certification
 - automatic policy activation
 - policy candidate correctness
-- completion of Step 25 Spend, procurement, data, IAM, health, and insurance recipes
+- completion of Step 26 Pilot readiness packet
 
 It is the explicit evidence-state layer that lets the next step generate
 candidate diffs without hiding uncertainty.

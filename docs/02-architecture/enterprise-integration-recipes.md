@@ -214,9 +214,8 @@ This recipe catalog does not claim:
 - downstream receipt correctness
 - compliance certification
 - automatic policy activation
-- completion of Step 25 Spend, procurement, data, IAM, health, and insurance
-  recipes
+- completion of Step 26 Pilot readiness packet
 
 It is the source-backed placement catalog for enterprise target systems. The
-next step is the domain recipe pack, which must stay inside the same
-consequence grammar instead of becoming a workflow workspace or records system.
+domain recipe pack is now recorded separately; the remaining master-plan step
+is the pilot readiness packet.
