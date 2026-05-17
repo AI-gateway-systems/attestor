@@ -196,7 +196,7 @@ This engine does not claim:
 - downstream receipt correctness
 - compliance certification
 - automatic policy activation
-- completion of Step 25 Spend, procurement, data, IAM, health, and insurance recipes
+- completion of Step 26 Pilot readiness packet
 
 It is the ranked human-question layer that lets the next step generate
 counterexamples and replay fixtures against the right unresolved decisions.

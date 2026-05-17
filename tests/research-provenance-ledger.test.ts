@@ -980,6 +980,31 @@ function testLedgerIndexesAuditRemediationClosure(): void {
   );
   includes(
     content,
+    '### 67. Domain Consequence Recipes',
+    'Research provenance ledger: domain consequence recipes entry is present',
+  );
+  includes(
+    content,
+    'src/consequence-admission/domain-consequence-recipes.ts',
+    'Research provenance ledger: domain recipes code evidence is indexed',
+  );
+  includes(
+    content,
+    'tests/domain-consequence-recipes.test.ts',
+    'Research provenance ledger: domain recipes test evidence is indexed',
+  );
+  includes(
+    content,
+    'recordsSystem=false',
+    'Research provenance ledger: domain recipes no-records-system boundary is recorded',
+  );
+  includes(
+    content,
+    'workflowWorkspace=false',
+    'Research provenance ledger: domain recipes no-workspace boundary is recorded',
+  );
+  includes(
+    content,
     'not an implementation',
     'Research provenance ledger: master plan non-implementation boundary is explicit',
   );

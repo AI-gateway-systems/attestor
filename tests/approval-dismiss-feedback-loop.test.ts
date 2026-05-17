@@ -499,12 +499,12 @@ function testDescriptorDocsAndTrackersStayAligned(): void {
   }
 
   for (const expected of [
-    '| Complete | 24 |',
-    '| Remaining | 2 |',
+    '| Complete | 25 |',
+    '| Remaining | 1 |',
     '| 21 | complete | Review-by-exception inbox |',
     '| 22 | complete | Approval/dismiss feedback loop |',
     '| 23 | complete | Enterprise integration recipes |',
-    'completion of steps 25-26',
+    'completion of Step 26 Pilot readiness packet',
   ]) {
     includes(masterPlan, expected, `Feedback loop: master plan records ${expected}`);
   }

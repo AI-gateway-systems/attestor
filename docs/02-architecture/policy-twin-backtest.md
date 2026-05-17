@@ -246,7 +246,7 @@ This backtest does not claim:
 - crypto custody, wallet, exchange, or transaction broadcasting capability
 - compliance certification
 - automatic policy activation
-- completion of Step 25 Spend, procurement, data, IAM, health, and insurance recipes
+- completion of Step 26 Pilot readiness packet
 
 It is the digest-bound backtest layer that lets the next step route only the
 exceptions that still need human work.
