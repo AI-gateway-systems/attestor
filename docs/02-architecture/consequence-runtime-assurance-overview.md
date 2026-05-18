@@ -1175,7 +1175,7 @@ semantics. It does not claim exactly-once delivery, global total ordering, live
 enforcement, production worker readiness, audit-plane write integration, or
 customer deployment readiness.
 
-Progress: 5/8 complete after R05. 3 steps remain.
+Progress: 6/8 complete after R06. 2 steps remain.
 
 | Step | Status | Slice | Evidence |
 |---|---|---|---|
@@ -1184,7 +1184,7 @@ Progress: 5/8 complete after R05. 3 steps remain.
 | R03 | complete | Shadow Outbox Work Item Contract | `src/consequence-admission/shadow-outbox-work-item-contract.ts`; `tests/shadow-outbox-work-item-contract.test.ts`; `docs/02-architecture/shadow-outbox-work-item-contract.md`; pending digest-only work item over R02 activation profile, source-history binding, stable dedupe key, null claim fields, and no-authority flags |
 | R04 | complete | Dispatcher / Reconcile Claim Contract | `src/consequence-admission/shadow-dispatch-claim-contract.ts`; `tests/shadow-dispatch-claim-contract.test.ts`; `docs/02-architecture/shadow-dispatch-claim-contract.md`; time-bounded lease, `FOR UPDATE SKIP LOCKED` semantics, tenant/source partition advisory-lock scope, bounded attempt increment, digest-only claim token, and no runner invocation |
 | R05 | complete | Shadow Runtime Activation Runner | `src/consequence-admission/shadow-runtime-activation-runner.ts`; `tests/shadow-runtime-activation-runner.test.ts`; `docs/02-architecture/shadow-runtime-activation-runner.md`; validates R04 claim/event binding, checks lease window, calls W05 dry-run, and binds pipeline/projection/packet digests, still shadow-only |
-| R06 | planned | Trace / Lineage / Measurement Hooks | connects W06/I11/I10 without audit write or authority |
+| R06 | complete | Trace / Lineage / Measurement Hooks | `src/consequence-admission/shadow-runtime-observability-hooks.ts`; `tests/shadow-runtime-observability-hooks.test.ts`; `docs/02-architecture/shadow-runtime-observability-hooks.md`; binds R05 activation to W06 decision trace, I10 runtime monitor / optional measurement, assurance case, and I11 lineage graph without audit write or authority |
 | R07 | planned | Outcome Feedback Hook | connects I13 feedback material as read-only post-outcome input |
 | R08 | planned | End-to-End Fixture Replay Smoke | synthetic fixture replay through R02-R07, no live target system |
 

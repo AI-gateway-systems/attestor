@@ -118,5 +118,5 @@ R03 does not claim:
 - production readiness
 - customer deployment readiness
 
-R04 and R05 are now complete. The next safe step is R06: Trace / Lineage /
-Measurement Hooks.
+R04, R05, and R06 are now complete. The next safe step is R07: Outcome Feedback
+Hook.
