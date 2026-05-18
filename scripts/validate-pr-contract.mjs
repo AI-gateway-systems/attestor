@@ -47,6 +47,8 @@ export const ALLOWED_EVIDENCE_STATES = Object.freeze([
   'opinion / design hypothesis',
 ]);
 
+export const DEPENDABOT_PR_AUTHOR = 'dependabot[bot]';
+
 function lineForField(body, field) {
   const escaped = field.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const match = body.match(new RegExp(`^${escaped}(.*)$`, 'imu'));
@@ -68,7 +70,24 @@ function hasDependencySurfaceRisk(body) {
   return dependencyPr === 'yes' || surface === 'yes';
 }
 
-export function validatePrContract(body) {
+function isDependabotPr(options) {
+  return options.prAuthor === DEPENDABOT_PR_AUTHOR;
+}
+
+export function validatePrContract(body, options = {}) {
+  if (isDependabotPr(options)) {
+    return {
+      ok: true,
+      dependencyAutomationBypass: true,
+      missingSections: [],
+      emptyFields: [],
+      invalidEvidenceState: null,
+      noMergeClassification: false,
+      invalidFinalDecisionCount: 1,
+      dependencyReviewMissing: [],
+    };
+  }
+
   const missingSections = REQUIRED_SECTIONS.filter((section) => !body.includes(section));
   const emptyFields = REQUIRED_NON_EMPTY_FIELDS.filter((field) => {
     const value = lineForField(body, field);
@@ -111,6 +130,7 @@ export function validatePrContract(body) {
       mergeClassificationCount > 0 &&
       finalDecisionCount === 1 &&
       dependencyReviewMissing.length === 0,
+    dependencyAutomationBypass: false,
     missingSections,
     emptyFields,
     invalidEvidenceState,
@@ -155,10 +175,16 @@ function readBodyFromCli() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const body = readBodyFromCli();
-  const result = validatePrContract(body);
+  const result = validatePrContract(body, {
+    prAuthor: process.env.PR_AUTHOR,
+  });
   if (!result.ok) {
     console.error(formatValidationFailure(result));
     process.exit(1);
+  }
+  if (result.dependencyAutomationBypass) {
+    console.log('Dependabot PR detected; Attestor human PR contract template is not required for automation-authored dependency PRs.');
+    process.exit(0);
   }
   console.log('PR contract present.');
 }
