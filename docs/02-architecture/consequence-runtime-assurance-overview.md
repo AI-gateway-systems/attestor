@@ -1040,12 +1040,12 @@ shadow / replay / formal / calibration / outcome material
         -> promotion gate can review what remains unknown
 ```
 
-Progress: 1/14 complete after I00. 13 steps remain.
+Progress: 2/14 complete after I01. 12 steps remain.
 
 | Step | Status | Slice | Evidence |
 |---|---|---|---|
 | I00 | complete | Assurance Case Contract | `src/consequence-admission/assurance-case-contract.ts`; `tests/assurance-case-contract.test.ts`; `docs/02-architecture/assurance-case-contract.md` |
-| I01 | planned | Learned Artifact Release Budget | Privacy/reconstruction budget context and undermining defeaters |
+| I01 | complete | Learned Artifact Release Budget | `src/consequence-admission/learned-artifact-release-budget.ts`; `tests/learned-artifact-release-budget.test.ts`; `docs/02-architecture/learned-artifact-release-budget.md` |
 | I02 | planned | Shadow Data Quality Gate | Shadow evidence quality and provenance undermining defeaters |
 | I03 | planned | Baseline Cohort Builder | Cohort evidence nodes for candidate claims |
 | I04 | planned | Candidate Invariant Synthesizer | Claim and strategy nodes |
@@ -1063,6 +1063,12 @@ I00 is SACM 2.3-aligned, GSN render-view compatible, and grounded in
 Eliminative Argumentation / Assurance 2.0 style defeasibility. It does not claim
 SACM conformance, formal proof, runtime assurance, reviewer UI, learned model
 deployment, live enforcement, or production readiness.
+
+I01 makes learned artifact release an explicit information-release budget
+problem. It binds each candidate artifact to tenant, cohort, finite budget,
+reviewer, assurance case, and reconstruction-risk context. It does not implement
+differential privacy, does not provide a DP guarantee, does not release artifacts,
+and rejects public, raw-material, and cross-tenant release paths.
 
 ## Primary Source Anchors
 
@@ -1084,6 +1090,7 @@ Reviewed on 2026-05-17 and 2026-05-18:
 - Design-first formal specification framing: [Microsoft Research, Specifying Systems](https://www.microsoft.com/en-us/research/publication/specifying-systems-the-tla-language-and-tools-for-hardware-and-software-engineers/), [How Amazon Web Services uses formal methods](https://cacm.acm.org/research/how-amazon-web-services-uses-formal-methods/), [Systems Correctness Practices at AWS](https://cacm.acm.org/practice/systems-correctness-practices-at-amazon-web-services/), and [Apalache TLA+ model checker documentation](https://apalache-mc.org/docs/).
 - Tenant isolation and relation-model framing: [Alloy language reference](https://alloytools.org/download/alloy-language-reference.pdf), [Alloy in CACM](https://cacm.acm.org/research/alloy/), [AWS SaaS tenant isolation concepts](https://docs.aws.amazon.com/whitepapers/latest/saas-tenant-isolation-strategies/core-isolation-concepts.html), [AWS Lambda tenant isolation](https://docs.aws.amazon.com/lambda/latest/dg/tenant-isolation.html), and [NIST SP 800-207A](https://csrc.nist.gov/pubs/sp/800/207/a/final).
 - Assurance-case argument structure and exchange framing: [GSN Community Standard v3](https://scsc.uk/gsn), [OMG SACM 2.3](https://www.omg.org/spec/SACM), [CMU SEI Eliminative Argumentation](https://www.sei.cmu.edu/library/eliminative-argumentation-a-basis-for-arguing-confidence-in-system-properties/), [SRI Assurance 2.0](https://www.csl.sri.com/users/rushby/assurance2.0), [ENTRUST dynamic assurance cases](https://arxiv.org/abs/1703.06350), and [University of York AMLAS](https://www.york.ac.uk/assuring-autonomy/guidance/amlas/).
+- Learned artifact privacy and reconstruction-risk framing: [NIST SP 800-226](https://csrc.nist.gov/pubs/sp/800/226/final), [OpenDP Context](https://docs.opendp.org/en/stable/api/user-guide/context/index.html), [OpenDP typical workflow](https://docs.opendp.org/en/stable/getting-started/typical-workflow.html), [U.S. Census reconstruction and reidentification attack](https://www.census.gov/library/working-papers/2023/adrm/CES-WP-23-63.html), and [Google Differential Privacy libraries](https://github.com/google/differential-privacy).
 
 These sources are engineering anchors only. They do not prove production
 readiness, compliance certification, customer deployment, target-system

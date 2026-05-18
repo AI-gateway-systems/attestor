@@ -1187,6 +1187,42 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.LEARNED_ARTIFACT_RELEASE_BUDGET_VERSION,
+  'attestor.learned-artifact-release-budget.v1',
+);
+assert.equal(
+  admission.learnedArtifactReleaseBudgetDescriptor().assuranceCaseContractVersion,
+  admission.ASSURANCE_CASE_CONTRACT_VERSION,
+);
+assert.equal(
+  admission.learnedArtifactReleaseBudgetDescriptor().differentialPrivacyEngine,
+  false,
+);
+assert.equal(
+  admission.learnedArtifactReleaseBudgetDescriptor().externalDpProofAcceptedAsEvidenceOnly,
+  true,
+);
+assert.equal(
+  admission.learnedArtifactReleaseBudgetDescriptor().noCrossTenantRelease,
+  true,
+);
+assert.equal(
+  admission.learnedArtifactReleaseBudgetDescriptor().noPublicRelease,
+  true,
+);
+assert.equal(
+  admission.learnedArtifactReleaseBudgetDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.createLearnedArtifactReleaseBudget,
+  'function',
+);
+assert.equal(
+  typeof admission.evaluateLearnedArtifactReleaseBudget,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );
