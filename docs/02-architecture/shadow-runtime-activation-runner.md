@@ -94,6 +94,4 @@ R05 does not claim:
 
 ## Next
 
-R06 is Trace / Lineage / Measurement Hooks. It may read the R05 activation
-result and bind it to W06/I10/I11 material, but must still avoid audit-plane
-write authority, production readiness claims, and enforcement activation.
+R06 is now complete. The next safe step is R07: Outcome Feedback Hook.

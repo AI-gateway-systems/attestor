@@ -1179,6 +1179,66 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.SHADOW_RUNTIME_OBSERVABILITY_HOOKS_VERSION,
+  'attestor.shadow-runtime-observability-hooks.v1',
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().shadowRuntimeActivationRunnerVersion,
+  admission.SHADOW_RUNTIME_ACTIVATION_RUNNER_VERSION,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().shadowRuntimePipelineVersion,
+  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().decisionTraceLoggerVersion,
+  admission.DECISION_TRACE_LOGGER_VERSION,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().runtimeMonitorSkeletonVersion,
+  admission.RUNTIME_MONITOR_SKELETON_VERSION,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().assuranceCaseContractVersion,
+  admission.ASSURANCE_CASE_CONTRACT_VERSION,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().decisionLineageGraphVersion,
+  admission.DECISION_LINEAGE_GRAPH_VERSION,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().assuranceMeasurementPlaneVersion,
+  admission.ASSURANCE_MEASUREMENT_PLANE_VERSION,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().traceHooked,
+  true,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().lineageHooked,
+  true,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().measurementHookOptional,
+  true,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().writesAuditPlane,
+  false,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().measurementAuthorityIncluded,
+  false,
+);
+assert.equal(
+  admission.shadowRuntimeObservabilityHooksDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.runShadowRuntimeObservabilityHooks,
+  'function',
+);
+assert.equal(
   admission.DECISION_TRACE_LOGGER_VERSION,
   'attestor.decision-trace-logger.v1',
 );

@@ -334,12 +334,14 @@ function testDocsOverviewLedgerAndPackageSurfaceStayAligned(): void {
   }
 
   for (const expected of [
-    'Progress: 5/8 complete after R05. 3 steps remain.',
+    'Progress: 6/8 complete after R06. 2 steps remain.',
     '| R03 | complete | Shadow Outbox Work Item Contract |',
     '| R04 | complete | Dispatcher / Reconcile Claim Contract |',
     '| R05 | complete | Shadow Runtime Activation Runner |',
+    '| R06 | complete | Trace / Lineage / Measurement Hooks |',
     'src/consequence-admission/shadow-outbox-work-item-contract.ts',
     'src/consequence-admission/shadow-runtime-activation-runner.ts',
+    'src/consequence-admission/shadow-runtime-observability-hooks.ts',
     'tests/shadow-outbox-work-item-contract.test.ts',
     'docs/02-architecture/shadow-outbox-work-item-contract.md',
   ]) {
@@ -347,12 +349,13 @@ function testDocsOverviewLedgerAndPackageSurfaceStayAligned(): void {
   }
 
   for (const expected of [
-    'Current progress after R05:',
-    '5/8 complete, 3 steps remain.',
+    'Current progress after R06:',
+    '6/8 complete, 2 steps remain.',
     '| R03 | complete | Shadow Outbox Work Item Contract |',
     '| R04 | complete | Dispatcher / Reconcile Claim Contract |',
     '| R05 | complete | Shadow Runtime Activation Runner |',
-    'The next safe step is R06',
+    '| R06 | complete | Trace / Lineage / Measurement Hooks |',
+    'The next safe step is R07',
   ]) {
     includes(decisionPacket, expected, `Runtime activation packet: records ${expected}`);
   }
