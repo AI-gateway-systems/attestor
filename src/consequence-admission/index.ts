@@ -2318,6 +2318,7 @@ export * from './candidate-invariants-catalog.js';
 export * from './invariant-calibration-contract.js';
 export * from './invariant-promotion-gate.js';
 export * from './assurance-case-contract.js';
+export * from './learned-artifact-release-budget.js';
 export * from './shadow-simulation.js';
 export * from './money-movement-shadow.js';
 export * from './shadow-summary.js';

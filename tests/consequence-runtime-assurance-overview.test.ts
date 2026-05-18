@@ -136,13 +136,18 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'tests/invariant-promotion-gate.test.ts',
     'docs/02-architecture/invariant-promotion-gate.md',
     '| I00 | complete | Assurance Case Contract |',
-    '| I01 | planned | Learned Artifact Release Budget |',
+    'Progress: 2/14 complete after I01. 12 steps remain.',
+    '| I01 | complete | Learned Artifact Release Budget |',
     '| I13 | planned | Outcome Feedback / COE Wiring |',
     'src/consequence-admission/assurance-case-contract.ts',
     'tests/assurance-case-contract.test.ts',
     'docs/02-architecture/assurance-case-contract.md',
+    'src/consequence-admission/learned-artifact-release-budget.ts',
+    'tests/learned-artifact-release-budget.test.ts',
+    'docs/02-architecture/learned-artifact-release-budget.md',
     'SACM 2.3-aligned',
     'Eliminative Argumentation / Assurance 2.0',
+    'I01 makes learned artifact release an explicit information-release budget',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }
@@ -195,6 +200,10 @@ function testResearchAnnexRecordsCrossDomainAnchors(): void {
     'CMU SEI Eliminative Argumentation',
     'SRI Assurance 2.0',
     'University of York AMLAS',
+    'NIST SP 800-226',
+    'OpenDP Context',
+    'U.S. Census reconstruction and reidentification attack',
+    'Google Differential Privacy libraries',
     'Only AI RMF-mappable language is claimed, not conformance.',
     'Every future fabric mutation must run replay/backtest regression.',
   ]) {
