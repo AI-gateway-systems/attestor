@@ -1367,6 +1367,54 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.CALIBRATION_LOWER_BOUND_RUNNER_VERSION,
+  'attestor.calibration-lower-bound-runner.v1',
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().assuranceCaseContractVersion,
+  admission.ASSURANCE_CASE_CONTRACT_VERSION,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().candidateInvariantSynthesizerVersion,
+  admission.CANDIDATE_INVARIANT_SYNTHESIZER_VERSION,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().invariantCalibrationContractVersion,
+  admission.INVARIANT_CALIBRATION_CONTRACT_VERSION,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().counterexampleMinimalWitnessVersion,
+  admission.COUNTEREXAMPLE_MINIMAL_WITNESS_VERSION,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().requiresLowerBound,
+  true,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().opensUndercuttingDefeaterOnWeakLowerBound,
+  true,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().pointEstimateAuthorityAllowed,
+  false,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().lowerBoundAuthorityAllowed,
+  false,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().measurementMutationAllowed,
+  false,
+);
+assert.equal(
+  admission.calibrationLowerBoundRunnerDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.createCalibrationLowerBoundRunner,
+  'function',
+);
+assert.equal(
   admission.financePipelineAdmissionDescriptor().route,
   '/api/v1/pipeline/run',
 );

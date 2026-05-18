@@ -136,12 +136,13 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'tests/invariant-promotion-gate.test.ts',
     'docs/02-architecture/invariant-promotion-gate.md',
     '| I00 | complete | Assurance Case Contract |',
-    'Progress: 6/14 complete after I05. 8 steps remain.',
+    'Progress: 7/14 complete after I06. 7 steps remain.',
     '| I01 | complete | Learned Artifact Release Budget |',
     '| I02 | complete | Shadow Data Quality Gate |',
     '| I03 | complete | Baseline Cohort Builder |',
     '| I04 | complete | Candidate Invariant Synthesizer |',
     '| I05 | complete | Counterexample Minimal Witness |',
+    '| I06 | complete | Calibration Lower-Bound Runner |',
     '| I13 | planned | Outcome Feedback / COE Wiring |',
     'src/consequence-admission/assurance-case-contract.ts',
     'tests/assurance-case-contract.test.ts',
@@ -161,6 +162,9 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'src/consequence-admission/counterexample-minimal-witness.ts',
     'tests/counterexample-minimal-witness.test.ts',
     'docs/02-architecture/counterexample-minimal-witness.md',
+    'src/consequence-admission/calibration-lower-bound-runner.ts',
+    'tests/calibration-lower-bound-runner.test.ts',
+    'docs/02-architecture/calibration-lower-bound-runner.md',
     'SACM 2.3-aligned',
     'Eliminative Argumentation / Assurance 2.0',
     'I01 makes learned artifact release an explicit information-release budget',
@@ -169,6 +173,7 @@ function testOverviewRecordsContractShapeAndSequence(): void {
     'I00 assurance-case evidence',
     'I04 turns a review-ready W10 candidate invariant plus ready I03 cohort evidence',
     'I05 turns a minimal reproducing counterexample witness into',
+    'I06 turns W11 calibration records into',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }

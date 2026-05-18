@@ -1040,7 +1040,7 @@ shadow / replay / formal / calibration / outcome material
         -> promotion gate can review what remains unknown
 ```
 
-Progress: 6/14 complete after I05. 8 steps remain.
+Progress: 7/14 complete after I06. 7 steps remain.
 
 | Step | Status | Slice | Evidence |
 |---|---|---|---|
@@ -1050,7 +1050,7 @@ Progress: 6/14 complete after I05. 8 steps remain.
 | I03 | complete | Baseline Cohort Builder | `src/consequence-admission/baseline-cohort-builder.ts`; `tests/baseline-cohort-builder.test.ts`; `docs/02-architecture/baseline-cohort-builder.md` |
 | I04 | complete | Candidate Invariant Synthesizer | `src/consequence-admission/candidate-invariant-synthesizer.ts`; `tests/candidate-invariant-synthesizer.test.ts`; `docs/02-architecture/candidate-invariant-synthesizer.md` |
 | I05 | complete | Counterexample Minimal Witness | `src/consequence-admission/counterexample-minimal-witness.ts`; `tests/counterexample-minimal-witness.test.ts`; `docs/02-architecture/counterexample-minimal-witness.md` |
-| I06 | planned | Calibration Lower-Bound Runner | Evidence confidence annotations |
+| I06 | complete | Calibration Lower-Bound Runner | `src/consequence-admission/calibration-lower-bound-runner.ts`; `tests/calibration-lower-bound-runner.test.ts`; `docs/02-architecture/calibration-lower-bound-runner.md` |
 | I07 | planned | Reviewer Packet / Open Defeater View | Human-readable open-defeater packet |
 | I08 | planned | Promotion Gate Runner | Indefeasibility predicate execution |
 | I09 | planned | TLA+ Trace Validator Bridge | Formal-spec evidence nodes |
@@ -1093,11 +1093,20 @@ digest-only, deterministic, tenant-bound, and review-only. It does not execute
 replay, reject claims automatically, use credentials, touch target systems,
 activate policy, or enforce.
 
+I06 turns W11 calibration records into I00 lower-bound confidence evidence, or
+opens an undercutting defeater when the lower bound is too weak. It treats point
+estimates as context, not authority, and never promotes, admits, activates
+policy, trains a calibrator, or enforces.
+
 ## Primary Source Anchors
 
 Reviewed on 2026-05-17 and 2026-05-18:
 
 - STPA and unsafe control action framing: [MIT STPA Handbook](http://psas.scripts.mit.edu/home/get_file.php?name=STPA_handbook.pdf).
+- Calibration lower-bound framing: [FDA Data Mining White Paper](https://www.fda.gov/science-research/data-mining/data-mining-fda-white-paper),
+  [NIST/SEMATECH Engineering Statistics Handbook](https://www.nist.gov/programs-projects/nistsematech-engineering-statistics-handbook),
+  [scikit-learn Probability calibration](https://scikit-learn.org/stable/modules/calibration.html),
+  and [NIST AI RMF 1.0](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10).
 - Runtime assurance framing for trusted safety monitors around untrusted or advanced autonomy: [NASA Runtime Assurance](https://ntrs.nasa.gov/citations/20240006522).
 - Failure modes and upstream/downstream dependency modeling: [NASA FMEA Tool](https://software.nasa.gov/software/MSC-25379-1) and [NASA SW Failure Modes and Effects Analysis](https://swehb.nasa.gov/display/SWEHBVD/8.05%2B-%2BSW%2BFailure%2BModes%2Band%2BEffects%2BAnalysis).
 - Fault/event tree analysis: [NRC Fault Tree Handbook, NUREG-0492](https://www.nrc.gov/reading-rm/doc-collections/nuregs/staff/sr0492/index.html).
