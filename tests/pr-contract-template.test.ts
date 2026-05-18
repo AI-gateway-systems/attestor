@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ALLOWED_EVIDENCE_STATES,
+  DEPENDABOT_PR_AUTHOR,
   REQUIRED_NON_EMPTY_FIELDS,
   REQUIRED_SECTIONS,
   validatePrContract,
@@ -89,9 +90,31 @@ function testValidatorRejectsInvalidEvidenceState(): void {
   equal(result.invalidEvidenceState, 'vibes', 'PR contract validator reports invalid evidence state');
 }
 
+function testValidatorAcceptsDependabotAutomationBody(): void {
+  const body = [
+    'Bumps hono from 4.12.18 to 4.12.19.',
+    '',
+    '<details><summary>Release notes</summary></details>',
+  ].join('\n');
+  const result = validatePrContract(body, { prAuthor: DEPENDABOT_PR_AUTHOR });
+
+  equal(result.ok, true, 'PR contract validator accepts Dependabot-authored dependency PRs');
+  equal(result.dependencyAutomationBypass, true, 'PR contract validator marks Dependabot automation bypass');
+}
+
+function testValidatorStillRejectsAutomationBodyFromHumanAuthor(): void {
+  const body = 'Bumps hono from 4.12.18 to 4.12.19.';
+  const result = validatePrContract(body, { prAuthor: 'human-author' });
+
+  equal(result.ok, false, 'PR contract validator still rejects non-template bodies from human authors');
+  ok(result.missingSections.includes('## Attestor PR Contract'), 'PR contract remains required for human PRs');
+}
+
 testTemplateContainsRequiredContract();
 testValidatorRejectsBlankTemplate();
 testValidatorAcceptsCompletedTemplate();
 testValidatorRejectsInvalidEvidenceState();
+testValidatorAcceptsDependabotAutomationBody();
+testValidatorStillRejectsAutomationBodyFromHumanAuthor();
 
 console.log(`PR contract template tests: ${passed} passed, 0 failed`);
