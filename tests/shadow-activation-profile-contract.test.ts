@@ -267,8 +267,9 @@ function testDocsOverviewLedgerAndPackageSurfaceStayAligned(): void {
   }
 
   for (const expected of [
-    'Progress: 2/8 complete after R02. 6 steps remain.',
+    'Progress: 3/8 complete after R03. 5 steps remain.',
     '| R02 | complete | Shadow Activation Profile Contract |',
+    '| R03 | complete | Shadow Outbox Work Item Contract |',
     'src/consequence-admission/shadow-activation-profile-contract.ts',
     'tests/shadow-activation-profile-contract.test.ts',
     'docs/02-architecture/shadow-activation-profile-contract.md',

@@ -156,5 +156,5 @@ R02 does not claim:
 - production readiness
 - customer deployment readiness
 
-The next safe step is R03: a Shadow Outbox Work Item Contract over canonical
-shadow events and the R02 activation profile.
+R03 is now complete. The next safe step is R04: a Dispatcher / Reconcile Claim
+Contract with no runner invocation.

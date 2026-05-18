@@ -1175,13 +1175,13 @@ semantics. It does not claim exactly-once delivery, global total ordering, live
 enforcement, production worker readiness, audit-plane write integration, or
 customer deployment readiness.
 
-Progress: 2/8 complete after R02. 6 steps remain.
+Progress: 3/8 complete after R03. 5 steps remain.
 
 | Step | Status | Slice | Evidence |
 |---|---|---|---|
 | R01 | complete | Runtime Activation Decision Packet | `docs/02-architecture/runtime-activation-decision-packet.md`; `tests/runtime-activation-decision-packet.test.ts` |
 | R02 | complete | Shadow Activation Profile Contract | `src/consequence-admission/shadow-activation-profile-contract.ts`; `tests/shadow-activation-profile-contract.test.ts`; `docs/02-architecture/shadow-activation-profile-contract.md`; activation profile version, trigger mode, activation work key digest, idempotency binding, source partition binding, and no-authority flags |
-| R03 | planned | Shadow Outbox Work Item Contract | digest-only work item shape over canonical shadow events |
+| R03 | complete | Shadow Outbox Work Item Contract | `src/consequence-admission/shadow-outbox-work-item-contract.ts`; `tests/shadow-outbox-work-item-contract.test.ts`; `docs/02-architecture/shadow-outbox-work-item-contract.md`; pending digest-only work item over R02 activation profile, source-history binding, stable dedupe key, null claim fields, and no-authority flags |
 | R04 | planned | Dispatcher / Reconcile Claim Contract | lease, retry, partial-order, and duplicate handling contract |
 | R05 | planned | Shadow Runtime Activation Runner | calls W05 dry-run from claimed work, still shadow-only |
 | R06 | planned | Trace / Lineage / Measurement Hooks | connects W06/I11/I10 without audit write or authority |

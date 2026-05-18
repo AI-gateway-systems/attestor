@@ -1019,6 +1019,58 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.SHADOW_OUTBOX_WORK_ITEM_CONTRACT_VERSION,
+  'attestor.shadow-outbox-work-item-contract.v1',
+);
+assert.equal(
+  admission.SHADOW_OUTBOX_WORK_ITEM_EVENT_TYPE,
+  'attestor.shadow-runtime.activation.requested.v1',
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().activationProfileContractVersion,
+  admission.SHADOW_ACTIVATION_PROFILE_CONTRACT_VERSION,
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().workKeyVersion,
+  admission.SHADOW_ACTIVATION_WORK_KEY_VERSION,
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().eventType,
+  admission.SHADOW_OUTBOX_WORK_ITEM_EVENT_TYPE,
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().status,
+  'pending',
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().deliverySemantics,
+  'at-least-once',
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().duplicateHandling,
+  'activation-work-key-digest',
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().claimBehaviorIncluded,
+  false,
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().workerBehaviorIncluded,
+  false,
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().outboxWriteIncluded,
+  false,
+);
+assert.equal(
+  admission.shadowOutboxWorkItemContractDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  typeof admission.createShadowOutboxWorkItemContract,
+  'function',
+);
+assert.equal(
   admission.DECISION_TRACE_LOGGER_VERSION,
   'attestor.decision-trace-logger.v1',
 );

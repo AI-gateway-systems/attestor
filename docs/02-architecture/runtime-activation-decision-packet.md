@@ -196,22 +196,22 @@ activate production paths.
 
 ## R-Series Plan
 
-R01 defines the next runtime activation series. Current progress after R02:
-2/8 complete, 6 steps remain.
+R01 defines the next runtime activation series. Current progress after R03:
+3/8 complete, 5 steps remain.
 
 | Step | Status | Slice | Output |
 |---|---|---|---|
 | R01 | complete | Runtime Activation Decision Packet | This document and targeted test |
 | R02 | complete | Shadow Activation Profile Contract | `src/consequence-admission/shadow-activation-profile-contract.ts`; activation profile version, trigger mode, idempotency binding, no-authority flags |
-| R03 | planned | Shadow Outbox Work Item Contract | Digest-only work item shape over canonical shadow events |
+| R03 | complete | Shadow Outbox Work Item Contract | `src/consequence-admission/shadow-outbox-work-item-contract.ts`; pending digest-only work item over R02 activation profile, source-history binding, stable dedupe key, null claim fields, no-authority flags |
 | R04 | planned | Dispatcher / Reconcile Claim Contract | Lease, retry, partial-order, and duplicate handling contract |
 | R05 | planned | Shadow Runtime Activation Runner | Calls W05 dry-run from claimed work, still shadow-only |
 | R06 | planned | Trace / Lineage / Measurement Hooks | Connects W06/I11/I10 without audit write or authority |
 | R07 | planned | Outcome Feedback Hook | Connects I13 feedback material as read-only post-outcome input |
 | R08 | planned | End-to-End Fixture Replay Smoke | Synthetic fixture replay through R02-R07, no live target system |
 
-R03-R08 remain implementation steps after R02. R01 is only the architectural
-decision; R02 is the first small implementation contract.
+R04-R08 remain implementation steps after R03. R01 is only the architectural
+decision; R02 and R03 are small implementation contracts.
 
 ## No-Claims
 
@@ -231,5 +231,5 @@ R01 does not claim:
 - raw event storage
 - compliance certification
 
-The next safe step is R03: a small Shadow Outbox Work Item Contract with tests
-and no worker behavior.
+The next safe step is R04: a Dispatcher / Reconcile Claim Contract with tests
+and no runner invocation.
