@@ -2322,6 +2322,7 @@ export * from './learned-artifact-release-budget.js';
 export * from './baseline-cohort-builder.js';
 export * from './candidate-invariant-synthesizer.js';
 export * from './counterexample-minimal-witness.js';
+export * from './calibration-lower-bound-runner.js';
 export * from './shadow-simulation.js';
 export * from './money-movement-shadow.js';
 export * from './shadow-summary.js';
