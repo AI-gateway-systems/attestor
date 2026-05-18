@@ -971,6 +971,54 @@ assert.equal(
   'function',
 );
 assert.equal(
+  admission.SHADOW_ACTIVATION_PROFILE_CONTRACT_VERSION,
+  'attestor.shadow-activation-profile-contract.v1',
+);
+assert.equal(
+  admission.SHADOW_ACTIVATION_WORK_KEY_VERSION,
+  'attestor.runtime-activation-work-key.v1',
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().sourceEventSchemaVersion,
+  admission.CANONICAL_SHADOW_EVENT_SCHEMA_VERSION,
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().shadowRuntimePipelineVersion,
+  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().deliverySemantics,
+  'at-least-once',
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().duplicateHandling,
+  'activation-work-key-digest',
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().orderingScope,
+  'tenant-source-partition',
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().rawIdempotencyKeyStored,
+  false,
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().workerBehaviorIncluded,
+  false,
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().canAdmit,
+  false,
+);
+assert.equal(
+  admission.shadowActivationProfileContractDescriptor().activatesEnforcement,
+  false,
+);
+assert.equal(
+  typeof admission.createShadowActivationProfileContract,
+  'function',
+);
+assert.equal(
   admission.DECISION_TRACE_LOGGER_VERSION,
   'attestor.decision-trace-logger.v1',
 );
