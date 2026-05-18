@@ -196,13 +196,13 @@ activate production paths.
 
 ## R-Series Plan
 
-R01 defines the next runtime activation series. Progress after this packet:
-1/8 complete, 7 steps remain.
+R01 defines the next runtime activation series. Current progress after R02:
+2/8 complete, 6 steps remain.
 
 | Step | Status | Slice | Output |
 |---|---|---|---|
 | R01 | complete | Runtime Activation Decision Packet | This document and targeted test |
-| R02 | planned | Shadow Activation Profile Contract | Activation profile version, trigger mode, idempotency binding, no-authority flags |
+| R02 | complete | Shadow Activation Profile Contract | `src/consequence-admission/shadow-activation-profile-contract.ts`; activation profile version, trigger mode, idempotency binding, no-authority flags |
 | R03 | planned | Shadow Outbox Work Item Contract | Digest-only work item shape over canonical shadow events |
 | R04 | planned | Dispatcher / Reconcile Claim Contract | Lease, retry, partial-order, and duplicate handling contract |
 | R05 | planned | Shadow Runtime Activation Runner | Calls W05 dry-run from claimed work, still shadow-only |
@@ -210,7 +210,8 @@ R01 defines the next runtime activation series. Progress after this packet:
 | R07 | planned | Outcome Feedback Hook | Connects I13 feedback material as read-only post-outcome input |
 | R08 | planned | End-to-End Fixture Replay Smoke | Synthetic fixture replay through R02-R07, no live target system |
 
-R02-R08 are implementation steps. R01 is only the architectural decision.
+R03-R08 remain implementation steps after R02. R01 is only the architectural
+decision; R02 is the first small implementation contract.
 
 ## No-Claims
 
@@ -230,5 +231,5 @@ R01 does not claim:
 - raw event storage
 - compliance certification
 
-The next safe step is R02: a small Shadow Activation Profile Contract with
-tests and no worker behavior.
+The next safe step is R03: a small Shadow Outbox Work Item Contract with tests
+and no worker behavior.

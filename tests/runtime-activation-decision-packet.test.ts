@@ -120,16 +120,16 @@ function testDecisionPacketRecordsRSeriesAndNonClaims(): void {
 
   for (const expected of [
     'R01 defines the next runtime activation series.',
-    '1/8 complete, 7 steps remain.',
+    '2/8 complete, 6 steps remain.',
     '| R01 | complete | Runtime Activation Decision Packet |',
-    '| R02 | planned | Shadow Activation Profile Contract |',
+    '| R02 | complete | Shadow Activation Profile Contract |',
     '| R03 | planned | Shadow Outbox Work Item Contract |',
     '| R04 | planned | Dispatcher / Reconcile Claim Contract |',
     '| R05 | planned | Shadow Runtime Activation Runner |',
     '| R06 | planned | Trace / Lineage / Measurement Hooks |',
     '| R07 | planned | Outcome Feedback Hook |',
     '| R08 | planned | End-to-End Fixture Replay Smoke |',
-    'The next safe step is R02',
+    'The next safe step is R03',
     'live enforcement',
     'production worker readiness',
     'exactly-once delivery',
@@ -167,9 +167,11 @@ function testOverviewLedgerAndPackageSurfaceStayAligned(): void {
 
   for (const expected of [
     '## Runtime Activation Series',
-    'Progress: 1/8 complete after R01. 7 steps remain.',
+    'Progress: 2/8 complete after R02. 6 steps remain.',
     '| R01 | complete | Runtime Activation Decision Packet |',
+    '| R02 | complete | Shadow Activation Profile Contract |',
     'docs/02-architecture/runtime-activation-decision-packet.md',
+    'src/consequence-admission/shadow-activation-profile-contract.ts',
   ]) {
     includes(overview, expected, `Overview: records ${expected}`);
   }
