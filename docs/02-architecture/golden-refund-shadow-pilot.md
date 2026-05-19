@@ -1,10 +1,10 @@
 # Golden Path: Refund
 
-Status: G06 pilot readiness probe for the first concrete golden path after the
-completed Shadow-to-Policy, Consequence Runtime Assurance, and Runtime
-Activation repository-side tracks. This is a planning and evidence-shaping
-artifact. It is not runtime code, not live connector coverage, not Google Cloud
-work, not production readiness, and not live enforcement.
+Status: complete for the first concrete golden path after the completed
+Shadow-to-Policy, Consequence Runtime Assurance, and Runtime Activation
+repository-side tracks. This is a planning and evidence-shaping artifact. It is
+not live connector coverage, not Google Cloud work, not production readiness,
+and not live enforcement.
 
 ## Decision
 
@@ -48,6 +48,7 @@ surface; it does not get independent authority.
 | Foundry refund projection | `src/consequence-admission/golden-refund-policy-foundry-projection.ts` projects the G03 fixtures into a review-only candidate, named evidence/authority/relationship gaps, backtest material, and an existing Policy Twin summary. | repo-proven |
 | Refund runtime smoke | `src/consequence-admission/golden-refund-runtime-smoke.ts` runs all five G03 fixtures through the existing R02-R07 shadow runtime smoke chain without target-system calls, audit writes, external exports, policy activation, learning, training, or admission authority. | repo-proven |
 | Refund pilot readiness probe | `src/consequence-admission/golden-refund-pilot-readiness-probe.ts` wraps the G05 runtime smoke in a digest-bound Pilot Readiness Packet and allows only `ready-for-shadow-pilot` or `not-ready`. `ready-for-scoped-pilot` remains outside this golden path. | repo-proven |
+| Refund demo CLI | `scripts/demo-golden-refund.ts` renders the G03-G06 golden path as Markdown by default and JSON with `--json`, without writing files or calling target systems. | repo-proven |
 | Manifest intake | `src/consequence-admission/action-surface-manifest-intake.ts` accepts OpenAPI manifests as action-surface intake material. | repo-proven |
 | Shadow replay | `src/consequence-admission/shadow-runtime-fixture-replay-smoke.ts` replays synthetic fixtures through the R02-R07 shadow runtime activation chain without target-system calls. | repo-proven |
 | Foundry summary | `src/consequence-admission/policy-foundry-policy-twin-summary.ts` summarizes candidate, evidence, replay, and review material without activating policy. | repo-proven |
@@ -77,7 +78,7 @@ Policy and audit material stay schema-bound and replayable. Source anchors:
 
 ## G-Series Tracker
 
-Progress after G06 lands: 6/7 complete. 1 step remains.
+Progress after G07 lands: 7/7 complete. 0 steps remain.
 
 | Step | Status | Slice | Evidence target |
 |---|---|---|---|
@@ -87,7 +88,7 @@ Progress after G06 lands: 6/7 complete. 1 step remains.
 | G04 | complete | Policy Foundry refund projection | Policy twin summary over refund fixtures with named gaps, review-only candidates, and backtest material. |
 | G05 | complete | Runtime smoke | Run the existing R02-R07 shadow runtime smoke chain over the refund fixtures end to end without target-system calls. |
 | G06 | complete | Pilot readiness probe | Emit only `ready-for-shadow-pilot` or `not-ready` for the golden path. `ready-for-scoped-pilot` is outside the G-series until real shadow observation, customer PEP, receipt evidence, and approval are present. |
-| G07 | planned | Demo CLI | `npm run demo:golden-refund` renders Markdown as the primary G07 output and JSON as secondary machine output. |
+| G07 | complete | Demo CLI | `npm run demo:golden-refund` renders Markdown as the primary G07 output and JSON as secondary machine output. |
 
 ## Why G02 Matters
 
