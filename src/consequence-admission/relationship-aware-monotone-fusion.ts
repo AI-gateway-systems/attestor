@@ -44,6 +44,10 @@ export const MONOTONE_FUSION_REASON_CODES = [
 export type MonotoneFusionReasonCode =
   typeof MONOTONE_FUSION_REASON_CODES[number];
 
+const MONOTONE_FUSION_SCORE_SCALE = 1_000_000_000;
+const MONOTONE_FUSION_EPSILON = 1 / MONOTONE_FUSION_SCORE_SCALE;
+const HARD_FLOOR_BLOCK_PRESSURE_PER_SIGNAL = 0.45;
+
 export interface MonotoneFusionInput {
   readonly envelopeRefDigest: string;
   readonly opinions: readonly LayerOpinion[];
@@ -115,10 +119,46 @@ function clamp01(value: number): number {
   return value;
 }
 
+function stableFiniteScore(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * MONOTONE_FUSION_SCORE_SCALE) /
+    MONOTONE_FUSION_SCORE_SCALE;
+}
+
+function stableUnitScore(value: number): number {
+  return clamp01(stableFiniteScore(value));
+}
+
+function compareAscii(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
+function compareContributions(
+  left: MonotoneFusionSignalContribution,
+  right: MonotoneFusionSignalContribution,
+): number {
+  return compareAscii(left.sourceKind, right.sourceKind) ||
+    compareAscii(left.sourceId, right.sourceId);
+}
+
+function assertFusionInvariant(condition: boolean, message: string): void {
+  if (!condition) {
+    throw new Error(`Relationship-aware monotone fusion invariant failed: ${message}`);
+  }
+}
+
 function uniqueReasonCodes(
   codes: readonly MonotoneFusionReasonCode[],
 ): readonly MonotoneFusionReasonCode[] {
-  return Object.freeze([...new Set(codes)]);
+  return Object.freeze(
+    [...new Set(codes)].sort(
+      (left, right) =>
+        MONOTONE_FUSION_REASON_CODES.indexOf(left) -
+        MONOTONE_FUSION_REASON_CODES.indexOf(right),
+    ),
+  );
 }
 
 function opinionRawHazard(opinion: LayerOpinion): number {
@@ -137,7 +177,9 @@ function opinionRawHazard(opinion: LayerOpinion): number {
             ? 0.2
             : 0;
 
-  return clamp01(Math.max(hazard, uncertaintyPressure, abstentionPressure) + positionPressure);
+  return stableUnitScore(
+    Math.max(hazard, uncertaintyPressure, abstentionPressure) + positionPressure,
+  );
 }
 
 function opinionReasonCodes(opinion: LayerOpinion): readonly MonotoneFusionReasonCode[] {
@@ -161,7 +203,7 @@ function duplicateDiscountForSignal(
     relationship.leftSignalId === signalId || relationship.rightSignalId === signalId
   ).length;
 
-  return duplicateCount === 0 ? 1 : 1 / (1 + duplicateCount);
+  return duplicateCount === 0 ? 1 : stableUnitScore(1 / (1 + duplicateCount));
 }
 
 function relationshipContribution(
@@ -192,8 +234,8 @@ function relationshipContribution(
   return {
     sourceId: relationship.relationshipId,
     sourceKind: 'relationship',
-    rawHazard,
-    effectiveHazard: rawHazard,
+    rawHazard: stableUnitScore(rawHazard),
+    effectiveHazard: stableUnitScore(rawHazard),
     duplicateDiscount: relationship.kind === 'duplicates' ? 0 : 1,
     reasonCodes: uniqueReasonCodes(reasonCodes),
   };
@@ -218,8 +260,8 @@ function modulatorContribution(
   return {
     sourceId: modulator.modulatorId,
     sourceKind: 'modulator',
-    rawHazard,
-    effectiveHazard: rawHazard,
+    rawHazard: stableUnitScore(rawHazard),
+    effectiveHazard: stableUnitScore(rawHazard),
     duplicateDiscount: 1,
     reasonCodes: ['modulator-tightening-applied'],
   };
@@ -262,40 +304,50 @@ export function relationshipAwareMonotoneFusionDescriptor():
 export function fuseRelationshipAwareMonotoneHazard(
   input: MonotoneFusionInput,
 ): RelationshipAwareMonotoneFusionResult {
-  for (const opinion of input.opinions) {
+  const opinions = [...input.opinions].sort((left, right) =>
+    compareAscii(left.opinionId, right.opinionId)
+  );
+  const relationships = [...input.relationships].sort((left, right) =>
+    compareAscii(left.relationshipId, right.relationshipId)
+  );
+  const modulators = [...input.modulators].sort((left, right) =>
+    compareAscii(left.modulatorId, right.modulatorId)
+  );
+
+  for (const opinion of opinions) {
     assertLayerOpinionRuntimeInvariants(opinion, {
       envelopeRefDigest: input.envelopeRefDigest,
     });
   }
 
-  const duplicateRelationships = input.relationships.filter(
+  const duplicateRelationships = relationships.filter(
     (relationship): relationship is SignalSymmetricRelationship =>
       relationship.shape === 'symmetric' && relationship.kind === 'duplicates',
   );
-  const confirmationRelationships = input.relationships.filter(
+  const confirmationRelationships = relationships.filter(
     (relationship): relationship is SignalSymmetricRelationship =>
       relationship.shape === 'symmetric' && relationship.kind === 'confirms',
   );
-  const contradictionRelationships = input.relationships.filter(
+  const contradictionRelationships = relationships.filter(
     (relationship): relationship is SignalSymmetricRelationship =>
       relationship.shape === 'symmetric' && relationship.kind === 'contradicts',
   );
-  const directedRelationships = input.relationships.filter(
+  const directedRelationships = relationships.filter(
     (relationship): relationship is SignalDirectedRelationship =>
       relationship.shape === 'directed',
   );
-  const unaryRelationships = input.relationships.filter(
+  const unaryRelationships = relationships.filter(
     (relationship): relationship is SignalUnaryRelationship =>
       relationship.shape === 'unary',
   );
 
-  const opinionContributions = input.opinions.map((opinion) => {
+  const opinionContributions = opinions.map((opinion) => {
     const rawHazard = opinionRawHazard(opinion);
     const duplicateDiscount = duplicateDiscountForSignal(
       opinion.opinionId,
       duplicateRelationships,
     );
-    const effectiveHazard = rawHazard * duplicateDiscount;
+    const effectiveHazard = stableUnitScore(rawHazard * duplicateDiscount);
 
     return {
       sourceId: opinion.opinionId,
@@ -307,64 +359,67 @@ export function fuseRelationshipAwareMonotoneHazard(
     };
   });
 
-  const relationshipContributions = input.relationships.map(relationshipContribution);
-  const modulatorContributions = input.modulators.map(modulatorContribution);
+  const relationshipContributions = relationships.map(relationshipContribution);
+  const modulatorContributions = modulators.map(modulatorContribution);
   const contributions = [
     ...opinionContributions,
     ...relationshipContributions,
     ...modulatorContributions,
-  ];
+  ].sort(compareContributions);
 
-  const additivePressure = contributions.reduce(
+  const additivePressure = stableFiniteScore(contributions.reduce(
     (total, contribution) => total + contribution.effectiveHazard,
     0,
-  );
-  const maxInputHazardScore = clamp01(
+  ));
+  const maxInputHazardScore = stableUnitScore(
     Math.max(0, ...contributions.map((contribution) => contribution.rawHazard)),
   );
-  const confirmationBoostTotal = clamp01(confirmationRelationships.length * 0.08);
-  const conflictPressure = clamp01(
+  const confirmationBoostTotal = stableUnitScore(confirmationRelationships.length * 0.08);
+  const conflictPressure = stableUnitScore(
     contradictionRelationships.length * 0.16 +
-      input.opinions.filter((opinion) => opinion.position === 'conflict-indicated').length * 0.12,
+      opinions.filter((opinion) => opinion.position === 'conflict-indicated').length * 0.12,
   );
-  const reviewPressure = clamp01(
+  const reviewPressure = stableUnitScore(
     unaryRelationships.length * 0.22 +
-      input.opinions.filter((opinion) =>
+      opinions.filter((opinion) =>
         opinion.position === 'abstained' ||
         opinion.position === 'uncertainty-indicated' ||
         opinion.abstention.abstained
       ).length * 0.14 +
-      input.modulators.filter((modulator) =>
+      modulators.filter((modulator) =>
         modulator.effect === 'increase-review-pressure' ||
         modulator.effect === 'raise-evidence-requirement' ||
         modulator.effect === 'mark-coverage-insufficient'
       ).length * 0.12,
   );
-  const blockPressure = clamp01(
-    input.opinions.filter((opinion) =>
+  const hardFloorSignalCount = opinions.filter((opinion) =>
+    opinion.projectedSignal.kind === 'hard_floor'
+  ).length;
+  const blockPressure = stableUnitScore(
+    opinions.filter((opinion) =>
       opinion.projectedSignal.kind === 'hard_floor' ||
       opinion.projectedSignal.authorityMode === 'advisory' &&
         opinion.position === 'hazard-indicated' &&
         opinion.hazardScore !== null &&
         opinion.hazardScore >= 0.85
-    ).length * 0.45 +
+    ).length * HARD_FLOOR_BLOCK_PRESSURE_PER_SIGNAL +
       directedRelationships.filter((relationship) =>
         relationship.kind === 'overrides' || relationship.kind === 'escalates'
       ).length * 0.16 +
-      input.modulators.filter((modulator) =>
+      modulators.filter((modulator) =>
         modulator.effect === 'increase-block-pressure' ||
         modulator.effect === 'preserve-hard-floor'
       ).length * 0.14,
   );
 
-  const fusedHazardScore = clamp01(
+  const fusedHazardScore = stableUnitScore(
     Math.max(maxInputHazardScore, additivePressure / 3) +
       confirmationBoostTotal +
       conflictPressure * 0.5 +
       reviewPressure * 0.35 +
       blockPressure * 0.5,
   );
-  const duplicateDiscountTotal = clamp01(
+  const duplicateDiscountTotal = stableUnitScore(
     opinionContributions.reduce(
       (total, contribution) => total + (1 - contribution.duplicateDiscount),
       0,
@@ -373,6 +428,24 @@ export function fuseRelationshipAwareMonotoneHazard(
 
   const reasonCodes = uniqueReasonCodes(
     contributions.flatMap((contribution) => contribution.reasonCodes),
+  );
+  const posture = postureForScore(fusedHazardScore, reviewPressure, blockPressure);
+  const expectedHardFloorBlockPressure = stableUnitScore(
+    hardFloorSignalCount * HARD_FLOOR_BLOCK_PRESSURE_PER_SIGNAL,
+  );
+
+  assertFusionInvariant(
+    fusedHazardScore + MONOTONE_FUSION_EPSILON >= maxInputHazardScore,
+    'fused hazard score must not fall below max input hazard score',
+  );
+  assertFusionInvariant(
+    hardFloorSignalCount === 0 ||
+      (
+        reasonCodes.includes('hard-floor-preserved') &&
+        blockPressure + MONOTONE_FUSION_EPSILON >= expectedHardFloorBlockPressure &&
+        posture !== 'clear'
+      ),
+    'hard-floor inputs must produce hard-floor reason code, nonzero block pressure, and non-clear posture',
   );
 
   return {
@@ -388,7 +461,7 @@ export function fuseRelationshipAwareMonotoneHazard(
     conflictPressure,
     reviewPressure,
     blockPressure,
-    posture: postureForScore(fusedHazardScore, reviewPressure, blockPressure),
+    posture,
     contributions,
     reasonCodes,
     monotoneNoLoosening: true,

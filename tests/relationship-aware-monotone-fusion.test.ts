@@ -24,6 +24,11 @@ function equal<T>(actual: T, expected: T, message: string): void {
   passed += 1;
 }
 
+function deepEqual<T>(actual: T, expected: T, message: string): void {
+  assert.deepEqual(actual, expected, message);
+  passed += 1;
+}
+
 function ok(condition: unknown, message: string): void {
   assert.ok(condition, message);
   passed += 1;
@@ -338,6 +343,100 @@ function testReviewAndBlockPressureRemainNonAuthority(): void {
   equal(result.autoEnforce, false, 'Monotone fusion: result does not auto-enforce');
 }
 
+function testHardFloorPreservationIsBehavioral(): void {
+  const hard = opinion({
+    id: 'opinion-hard-floor-low-score',
+    position: 'no-advisory-objection',
+    hazardScore: 0,
+    signalKind: 'hard_floor',
+  });
+
+  const result = fuseRelationshipAwareMonotoneHazard({
+    envelopeRefDigest: digestA,
+    opinions: [hard],
+    relationships: [],
+    modulators: [],
+  });
+
+  equal(result.preservesHardFloor, true, 'Monotone fusion: hard-floor preservation claim remains true');
+  ok(
+    result.reasonCodes.includes('hard-floor-preserved'),
+    'Monotone fusion: hard-floor input emits a hard-floor preservation reason',
+  );
+  ok(
+    result.blockPressure >= 0.45,
+    'Monotone fusion: hard-floor input contributes block pressure even with a low score',
+  );
+  ok(
+    result.posture !== 'clear',
+    'Monotone fusion: hard-floor input cannot produce a clear posture',
+  );
+}
+
+function testFusionOutputIsStableUnderInputOrdering(): void {
+  const first = opinion({
+    id: 'opinion-1-high',
+    position: 'hazard-indicated',
+    hazardScore: 0.72,
+  });
+  const second = opinion({
+    id: 'opinion-2-gap',
+    position: 'gap-indicated',
+    hazardScore: 0.31,
+  });
+  const third = opinion({
+    id: 'opinion-3-abstained',
+    position: 'abstained',
+    hazardScore: null,
+  });
+  const duplicate: SignalRelationship = {
+    relationshipId: 'rel-1-duplicate',
+    kind: 'duplicates',
+    shape: 'symmetric',
+    leftSignalId: first.opinionId,
+    rightSignalId: second.opinionId,
+    evidenceRefs: [{ kind: 'trace', digest: digestA }],
+    reasonCodes: ['same-evidence'],
+    grantsAuthority: false,
+    activatesEnforcement: false,
+    autoEnforce: false,
+    productionReady: false,
+  };
+  const review: SignalRelationship = {
+    relationshipId: 'rel-2-review',
+    kind: 'requires_review',
+    shape: 'unary',
+    signalId: third.opinionId,
+    evidenceRefs: [{ kind: 'runbook', digest: digestB }],
+    reasonCodes: ['requires-review'],
+    grantsAuthority: false,
+    activatesEnforcement: false,
+    autoEnforce: false,
+    productionReady: false,
+  };
+  const reviewModulator = modulator('increase-review-pressure');
+  const blockModulator = modulator('increase-block-pressure');
+
+  const canonical = fuseRelationshipAwareMonotoneHazard({
+    envelopeRefDigest: digestA,
+    opinions: [first, second, third],
+    relationships: [duplicate, review],
+    modulators: [reviewModulator, blockModulator],
+  });
+  const shuffled = fuseRelationshipAwareMonotoneHazard({
+    envelopeRefDigest: digestA,
+    opinions: [third, first, second],
+    relationships: [review, duplicate],
+    modulators: [blockModulator, reviewModulator],
+  });
+
+  deepEqual(
+    shuffled,
+    canonical,
+    'Monotone fusion: shuffled opinions, relationships, and modulators produce identical output',
+  );
+}
+
 function testFusionRejectsNonConservedLayerOpinionBeliefMass(): void {
   const badOpinion = {
     ...opinion({
@@ -422,6 +521,8 @@ testFusionPreservesMaxInputHazardAndAddsPressure();
 testDuplicateDiscountDoesNotAverageAwayStrongHazard();
 testRelationshipOnlyHazardsArePreserved();
 testReviewAndBlockPressureRemainNonAuthority();
+testHardFloorPreservationIsBehavioral();
+testFusionOutputIsStableUnderInputOrdering();
 testFusionRejectsNonConservedLayerOpinionBeliefMass();
 testDocsOverviewAndPackageScriptStayAligned();
 

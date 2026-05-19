@@ -43,6 +43,19 @@ on every `LayerOpinion`. This keeps the belief mass conservation and envelope
 binding requirements behavioral at the fusion boundary, not only TypeScript
 shape claims.
 
+The function also canonicalizes calculation order before scoring:
+
+```text
+opinions sorted by opinionId
+relationships sorted by relationshipId
+modulators sorted by modulatorId
+contributions sorted by source kind and source id
+threshold-relevant scores normalized to fixed decimal precision
+```
+
+This makes shuffled input ordering produce identical fusion output for the same
+evidence set.
+
 The result posture is:
 
 ```text
@@ -71,6 +84,13 @@ productionReady = false
 The fused score must not fall below the maximum raw input hazard. Duplicate
 discounting can reduce duplicate advisory contribution, but it cannot average
 away the strongest hazard already observed.
+
+These result claims are runtime-asserted before the result is returned. If a
+hard-floor signal enters fusion, the result must carry
+`hard-floor-preserved`, must retain hard-floor block pressure, and must not
+return `clear`. If the fused score would fall below the maximum raw input
+hazard, fusion throws instead of returning a misleading
+`monotoneNoLoosening = true` result.
 
 ## Primary Source Anchors
 
