@@ -45,10 +45,12 @@ function testTopLevelPositioningStaysAligned(): void {
   includes(readme, '[Domain pack boundary](docs/02-architecture/domain-pack-boundary.md)', 'Product docs: README links the domain-pack boundary');
   includes(readme, 'The machine-readable domain-pack boundary is exported from `attestor/consequence-admission`.', 'Product docs: README names the packaged domain-pack boundary contract');
   includes(readme, 'This is not a claim that every customer workflow is already non-bypassable', 'Product docs: README keeps reference-monitor non-claim visible');
+  includes(readme, 'Attestor without that enforced downstream PEP is advisory, not control.', 'Product docs: README states the PEP enforcement boundary');
   includes(readme, 'AI action control-plane infrastructure', 'Product docs: README names the infrastructure category');
   includes(readme, '## Consequence Packs', 'Product docs: README names consequence packs before architecture');
   includes(readme, 'A pack does not answer "is this finance or crypto?" It answers the control question:', 'Product docs: README blocks industry-pack framing');
   includes(readme, 'The pack is the consequence class. Adapters sit underneath it.', 'Product docs: README keeps adapters below consequence packs');
+  includes(readme, 'The pack list is taxonomy, not an equal-maturity claim.', 'Product docs: README keeps consequence taxonomy separate from maturity claims');
   includes(actionPositioning, 'AI Action Control Plane is the product category.', 'Product docs: action authorization positioning names the category');
   includes(actionPositioning, 'The operating model is consequence admission:', 'Product docs: action authorization positioning preserves consequence-admission language');
   includes(actionPositioning, 'AI proposes -> Attestor checks -> consequence is admitted, narrowed, reviewed, or blocked -> proof remains', 'Product docs: action authorization positioning keeps the front-page control flow');
@@ -76,6 +78,7 @@ function testTopLevelPositioningStaysAligned(): void {
   includes(readme, 'docs/01-overview/what-you-can-do.md', 'Product docs: README links the use-case bridge');
   includes(readme, 'Read the architecture as a path, not a stack diagram:', 'Product docs: README avoids table-first architecture framing');
   includes(readme, 'Attestor does not guess what to run automatically, and it does not bypass the customer\'s own enforcement point.', 'Product docs: README blocks automatic-pack overclaim');
+  includes(readme, 'Green local checks such as `npm run verify` are repo-side evidence only.', 'Product docs: README separates repo checks from production readiness');
   includes(purpose, 'not a magical router that guesses the correct pack automatically', 'Product docs: purpose blocks automatic-pack overclaim');
   includes(useCases, 'Not automatic pack detection.', 'Product docs: use-case bridge blocks automatic-pack overclaim');
 }
@@ -104,6 +107,7 @@ function testCoreAndPackStatusStayConsistent(): void {
   includes(readme, '**PAP:** handles policy lifecycle: signed bundles, simulation, rollout, activation rules, reviewer constraints, and provenance checks.', 'Product docs: README PAP role is concrete');
   includes(readme, 'Pack-specific adapters live below this layer.', 'Product docs: README keeps adapter role below consequence packs');
   includes(readme, 'keeps finance, crypto, filing, general admission, and future packs as bounded extensions over the shared admission core', 'Product docs: README keeps domain pack boundary summary');
+  includes(readme, 'other packs name consequence classes and integration boundaries that can mature at different speeds without becoming separate products', 'Product docs: README avoids equal-maturity pack claim');
   includes(readme, 'Money Movement', 'Product docs: README names Money Movement pack');
   includes(readme, 'Data Movement', 'Product docs: README names Data Movement pack');
   includes(readme, 'Authority Change', 'Product docs: README names Authority Change pack');

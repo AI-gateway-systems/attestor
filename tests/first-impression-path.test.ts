@@ -41,6 +41,7 @@ function testReadmeHasAFirstImpressionPath(): void {
   includes(readme, 'Attestor controls the boundary between AI intent and real-world consequence.', 'README: opens with the canonical control-plane sentence');
   includes(readme, 'Attestor treats that proposed action as a consequence to admit, narrow, review, or block before the customer system changes state.', 'README: explains the control point before architecture');
   includes(readme, 'The trust boundary is the action, not the model response.', 'README: frames the risk before architecture');
+  includes(readme, 'Without an enforced customer-side PEP, gateway, verifier, or adapter in front of the downstream system, Attestor is advisory evidence, not a control point.', 'README: makes the PEP dependency explicit near the top');
   includes(readme, 'Start in shadow mode. See what your AI agents would have done before you let them act.', 'README: makes shadow mode visible immediately');
   includes(readme, 'AI proposes -> Attestor checks -> consequence is admitted, narrowed, reviewed, or blocked -> proof remains', 'README: keeps the front-page control flow short');
   includes(readme, 'Every case has the same shape: a proposed consequence must pass policy, authority, evidence, freshness, scope, replay, and enforcement checks before a downstream system acts.', 'README: explains the fail-closed gateway result');
@@ -48,6 +49,7 @@ function testReadmeHasAFirstImpressionPath(): void {
   includes(readme, '## Current Repository Truth', 'README: exposes the evaluation boundary near the top');
   includes(readme, 'proposed consequence -> consequence admission -> proof material -> customer enforcement', 'README: keeps one product language near the top');
   includes(readme, 'not a finished public SaaS', 'README: avoids public SaaS overclaim');
+  includes(readme, 'Green local checks such as `npm run verify` are repo-side evidence only.', 'README: keeps local verification separate from production readiness');
   includes(readme, '## The Control Boundary', 'README: names the operating model before architecture');
   includes(readme, 'Use Attestor where a capable AI-assisted system should not be able to act just because it can form a request:', 'README: moves quickly from category to use cases');
   includes(readme, 'a procurement agent proposes paying a supplier after reading a changed bank-account instruction', 'README: frames money movement by consequence');
@@ -71,12 +73,16 @@ function testReadmeHasAFirstImpressionPath(): void {
   includes(readme, 'sameRequestReplayAllowed', 'README: makes replay unsafe for model repair');
   includes(readme, '## Proof Model', 'README: surfaces proof as a first-class concept near the top');
   includes(readme, 'local proof artifacts that can be reviewed later', 'README: explains why proof matters');
+  includes(readme, 'Read "proof material" as typed evidence, not one universal cryptographic guarantee:', 'README: narrows the proof vocabulary');
+  includes(readme, 'A production signing boundary unless external KMS/HSM readiness is specifically proven.', 'README: prevents signed artifact production-boundary overclaim');
+  includes(readme, '`verify:cert` may report `PROOF_DEGRADED`', 'README: explains degraded proof verification honestly');
   includes(readme, 'npm run proof:surface', 'README: exposes the proof surface command near the first proof explanation');
   includes(readme, 'POST /api/v1/admissions', 'README: exposes the generic admission route');
   includes(readme, '`observe`, `warn`, `review`, or `enforce`', 'README: explains the generic mode ladder');
   includes(readme, '"domain": "money-movement"', 'README: shows the route is consequence-domain based');
   includes(readme, '## Consequence Packs', 'README: introduces consequence packs before architecture');
   includes(readme, 'The pack is the consequence class. Adapters sit underneath it.', 'README: keeps consequence packs above adapters');
+  includes(readme, 'The pack list is taxonomy, not an equal-maturity claim.', 'README: blocks consequence-pack maturity overclaim');
   includes(readme, 'Attestor is designed as a control point, not a data lake.', 'README: explains data handling posture early');
   includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'README: links to the guided first run');
   appearsBefore(readme, '## Current Repository Truth', '## Architecture: Core And Packs', 'README: keeps evaluation boundary before architecture');
