@@ -18,6 +18,8 @@ Start in shadow mode. See what your AI agents would have done before you let the
 
 The trust boundary is the action, not the model response. Attestor does not replace the model, agent runtime, wallet, custody platform, orchestration layer, or downstream system. It sits at the consequence boundary and returns a bounded admission decision plus proof material.
 
+Without an enforced customer-side PEP, gateway, verifier, or adapter in front of the downstream system, Attestor is advisory evidence, not a control point.
+
 > [!NOTE]
 > This repository is source-available under Business Source License 1.1. Non-production use is allowed. Production use requires a commercial license until the Change Date in [LICENSE](LICENSE).
 
@@ -32,6 +34,8 @@ proposed consequence -> consequence admission -> proof material -> customer enfo
 The clearest repo-side path today is [Golden Path: Refund](docs/02-architecture/golden-refund-shadow-pilot.md): a synthetic, shadow-only refund scenario that runs through action-surface material, canonical shadow fixtures, runtime assurance smoke, Policy Foundry summary, pilot readiness, and a local demo output.
 
 That path does not execute refunds, activate policy, call Stripe or Shopify, deploy infrastructure, or claim production readiness. The repository is not a finished public SaaS, a production-use guarantee, a completed customer-operated deployment, or a substitute for an external security audit.
+
+Green local checks such as `npm run verify` are repo-side evidence only. They do not prove live cloud infrastructure, hosted Policy Foundry production readiness, live OpenAI or Anthropic calls, Snowflake or healthcare substrate readiness, customer-operated deployment readiness, or non-bypassable customer enforcement unless those specific opt-in live checks and customer-side PEP evidence have also run.
 
 Start review with:
 
@@ -241,6 +245,18 @@ A decision can include outcome, policy context, authority and evidence status, r
 
 The current evaluation baseline includes local proof packets, verification kits, signed proof paths, CI-backed smoke checks, and release artifact attestation for tagged evaluation releases. The exact boundary and non-claims are documented in the [Evaluation Packet](docs/00-evaluation/v0.1-evaluation-packet.md), [v0.1.2 release notes](docs/00-evaluation/v0.1.2-evaluation-release-notes.md), and [Artifact attestation plan](docs/08-deployment/artifact-attestation-plan.md).
 
+Read "proof material" as typed evidence, not one universal cryptographic guarantee:
+
+| Proof material | What it means here | What it does not prove |
+|---|---|---|
+| Decision and reason records | The local admission outcome, reason codes, and bounded retry posture. | Cryptographic integrity by itself. |
+| Canonical digests and refs | Hash-bound references that make replay and comparison possible without raw payloads. | That the referenced external fact is true or third-party immutable. |
+| Signed packets and certificates | Cryptographically signed artifacts when the configured signing path is present. | A production signing boundary unless external KMS/HSM readiness is specifically proven. |
+| Tamper-evident history | Hash-chained local records when the decision path writes through that ledger. | A hosted immutable ledger, third-party notarization, or customer audit completion. |
+| Release and CI artifacts | Evaluation release evidence, smoke checks, and artifact attestation for repo review. | Live customer deployment, live provider availability, or production control effectiveness. |
+
+When a live upstream model or external verifier is absent, proof verification can intentionally degrade instead of pretending full trust. For example, `verify:cert` may report `PROOF_DEGRADED`; that is evaluation honesty, not a production proof.
+
 ## Consequence Packs
 
 Attestor packs are organized by the type of consequence an AI action can create, not by the industry the customer happens to be in.
@@ -262,6 +278,8 @@ The current pack language is:
 
 The pack is the consequence class. Adapters sit underneath it. A refund service, payment processor, ERP, wallet RPC, Snowflake connector, CRM, identity provider, email sender, or deployment system can all attach to the same admission core without changing the public trust story.
 
+The pack list is taxonomy, not an equal-maturity claim. The clearest end-to-end repo path today is still Golden Path: Refund; other packs name consequence classes and integration boundaries that can mature at different speeds without becoming separate products.
+
 ## Architecture: Core And Packs
 
 Attestor is one product: an AI Action Control Plane with a shared consequence-admission core and modular packs for specific consequence domains.
@@ -269,6 +287,8 @@ Attestor is one product: an AI Action Control Plane with a shared consequence-ad
 One product. One platform core.
 
 The current engine shape is a reference-monitor-style consequence admission path, not a prompt filter. The deeper architecture decision is [AI Action Control Plane architecture](docs/02-architecture/ai-action-control-plane-architecture.md). It uses PDP / PEP / PIP / PAP-style separation inside a contract-first modular monolith. This is not a claim that every customer workflow is already non-bypassable; that posture requires a real customer-side enforcement point, gateway, verifier, or adapter.
+
+Attestor without that enforced downstream PEP is advisory, not control.
 
 For one visual map of the whole internal machine, start with the [Attestor internal machine map](docs/02-architecture/attestor-internal-machine-map.md). It shows the route lanes, all ten decision axes, current decision points, module groups, stores, packs, side loops, and terminal outcomes in one dark system-design SVG map.
 
