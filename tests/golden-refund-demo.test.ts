@@ -1,0 +1,162 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  createGoldenRefundDemoSummary,
+  renderGoldenRefundDemoJson,
+  renderGoldenRefundDemoMarkdown,
+} from '../src/consequence-admission/index.js';
+
+let passed = 0;
+
+function readProjectFile(...segments: string[]): string {
+  return readFileSync(join(process.cwd(), ...segments), 'utf8');
+}
+
+function equal<T>(actual: T, expected: T, message: string): void {
+  assert.equal(actual, expected, message);
+  passed += 1;
+}
+
+function ok(condition: unknown, message: string): void {
+  assert.ok(condition, message);
+  passed += 1;
+}
+
+function includes(content: string, expected: string, message: string): void {
+  assert.ok(
+    content.includes(expected),
+    `${message}\nExpected to find: ${expected}`,
+  );
+  passed += 1;
+}
+
+function excludes(content: string, unexpected: RegExp, message: string): void {
+  assert.doesNotMatch(content, unexpected, message);
+  passed += 1;
+}
+
+function testSummaryComposesGoldenPath(): void {
+  const summary = createGoldenRefundDemoSummary();
+
+  equal(summary.version, 'attestor.golden-refund-demo.v1', 'G07 summary: version is explicit');
+  equal(summary.step, 'G07', 'G07 summary: step is explicit');
+  equal(summary.actionSurface, 'refund_service.issue_refund', 'G07 summary: action surface is refund');
+  equal(summary.domain, 'money-movement', 'G07 summary: domain is money movement');
+  equal(summary.scenarioCount, 5, 'G07 summary: scenario count is fixed');
+  equal(summary.candidateMode, 'review', 'G07 summary: candidate mode is review');
+  equal(summary.namedGaps.length, 4, 'G07 summary: four named gaps are shown');
+  equal(summary.readinessVerdict, 'ready-for-shadow-pilot', 'G07 summary: readiness verdict is shadow-pilot ready');
+  equal(summary.readinessBlockers.length, 0, 'G07 summary: readiness blockers are empty');
+  equal(summary.markdownPrimary, true, 'G07 summary: markdown is primary');
+  equal(summary.jsonSecondary, true, 'G07 summary: JSON is secondary');
+  equal(summary.shadowOnly, true, 'G07 summary: shadow-only is true');
+  equal(summary.fixtureOnly, true, 'G07 summary: fixture-only is true');
+  equal(summary.previewOnly, true, 'G07 summary: preview-only is true');
+  equal(summary.noTargetSystemCall, true, 'G07 summary: no target-system call');
+  equal(summary.noAuditWrite, true, 'G07 summary: no audit write');
+  equal(summary.noPolicyActivation, true, 'G07 summary: no policy activation');
+  equal(summary.noLearningActivation, true, 'G07 summary: no learning activation');
+  equal(summary.noTrainingActivation, true, 'G07 summary: no training activation');
+  equal(summary.canAdmit, false, 'G07 summary: cannot admit');
+  equal(summary.productionReady, false, 'G07 summary: production readiness is false');
+  ok(/^sha256:[a-f0-9]{64}$/u.test(summary.digest), 'G07 summary: digest is canonical');
+}
+
+function testMarkdownAndJsonRenderers(): void {
+  const summary = createGoldenRefundDemoSummary();
+  const markdown = renderGoldenRefundDemoMarkdown(summary);
+  const json = renderGoldenRefundDemoJson(summary);
+  const parsed = JSON.parse(json) as { readonly version: string; readonly digest: string };
+
+  for (const expected of [
+    '# Golden Path: Refund',
+    'Verdict: ready-for-shadow-pilot',
+    'refund_service.issue_refund',
+    'missing-payment-evidence',
+    'stale-payment-evidence',
+    'prior-refund-relationship-review',
+    'human-approval-required',
+    'It does not execute refunds automatically.',
+  ]) {
+    includes(markdown, expected, `G07 markdown: records ${expected}`);
+  }
+
+  equal(parsed.version, 'attestor.golden-refund-demo.v1', 'G07 JSON: version is explicit');
+  equal(parsed.digest, summary.digest, 'G07 JSON: digest matches summary');
+  excludes(markdown, /\bcus_[a-zA-Z0-9_]+/u, 'G07 markdown: no raw customer id is rendered');
+  excludes(json, /\bpi_[a-zA-Z0-9_]+/u, 'G07 JSON: no raw payment intent id is rendered');
+  excludes(json, /\bch_[a-zA-Z0-9_]+/u, 'G07 JSON: no raw charge id is rendered');
+  excludes(json, /cardNumber|customerName|customerEmail|paymentIntentId|stripeChargeId|shopifyOrderId/iu, 'G07 JSON: no raw commerce identifiers are rendered');
+}
+
+function testPackageScriptRunsMarkdownAndJson(): void {
+  const markdown = spawnSync(
+    'npm',
+    ['run', 'demo:golden-refund'],
+    {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    },
+  );
+  const json = spawnSync(
+    'npm',
+    ['run', 'demo:golden-refund', '--', '--json'],
+    {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    },
+  );
+
+  equal(markdown.status, 0, 'G07 package script: markdown command exits cleanly');
+  equal(json.status, 0, 'G07 package script: JSON command exits cleanly');
+  includes(markdown.stdout, '# Golden Path: Refund', 'G07 package script: markdown is default');
+  includes(markdown.stdout, 'Verdict: ready-for-shadow-pilot', 'G07 package script: markdown includes verdict');
+  includes(json.stdout, '"version": "attestor.golden-refund-demo.v1"', 'G07 package script: JSON flag emits JSON');
+  includes(json.stdout, '"readinessVerdict": "ready-for-shadow-pilot"', 'G07 package script: JSON includes verdict');
+}
+
+function testDocsAndScriptsStayAligned(): void {
+  const doc = readProjectFile('docs', '02-architecture', 'golden-refund-shadow-pilot.md');
+  const ledger = readProjectFile('docs', 'research', 'attestor-research-provenance-ledger.md');
+  const packageJson = JSON.parse(readProjectFile('package.json')) as {
+    readonly scripts: Readonly<Record<string, string>>;
+  };
+
+  for (const expected of [
+    'Status: complete',
+    'Progress after G07 lands: 7/7 complete. 0 steps remain.',
+    '| G07 | complete | Demo CLI |',
+    '`npm run demo:golden-refund`',
+    'Markdown as the primary G07 output',
+    'JSON as secondary machine output',
+  ]) {
+    includes(doc, expected, `G07 doc: records ${expected}`);
+  }
+
+  includes(
+    ledger,
+    'G07 demo CLI',
+    'G07 ledger: records demo CLI',
+  );
+  equal(
+    packageJson.scripts['demo:golden-refund'],
+    'tsx scripts/demo-golden-refund.ts',
+    'G07 package script: demo command is registered',
+  );
+  equal(
+    packageJson.scripts['test:golden-refund-demo'],
+    'tsx tests/golden-refund-demo.test.ts',
+    'G07 package script: targeted test is registered',
+  );
+}
+
+testSummaryComposesGoldenPath();
+testMarkdownAndJsonRenderers();
+testPackageScriptRunsMarkdownAndJson();
+testDocsAndScriptsStayAligned();
+
+console.log(`golden-refund-demo: ${passed} assertions passed`);

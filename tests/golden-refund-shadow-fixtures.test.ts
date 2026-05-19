@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -169,8 +169,8 @@ function testDescriptorAndDocsStayAligned(): void {
   ok(descriptor.nonClaims.includes('not-live-refund-execution'), 'G03 descriptor: live refund execution is a non-claim');
 
   for (const expected of [
-    'Status: G06 pilot readiness probe',
-    'Progress after G06 lands: 6/7 complete. 1 step remains.',
+    'Status: complete',
+    'Progress after G07 lands: 7/7 complete. 0 steps remain.',
     '| G03 | complete | Refund shadow fixture builder |',
     'normal, missing-evidence, stale-evidence, repeated-refund, and approval-required',
   ]) {
@@ -195,3 +195,4 @@ testScenarioSemantics();
 testDescriptorAndDocsStayAligned();
 
 console.log(`golden-refund-shadow-fixtures: ${passed} assertions passed`);
+

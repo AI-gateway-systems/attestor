@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -30,7 +30,7 @@ function testDecisionPacketFreezesScope(): void {
 
   for (const expected of [
     '# Golden Path: Refund',
-    'Status: G06 pilot readiness probe',
+    'Status: complete',
     'Golden Path: Refund is the first concrete path.',
     'refund action surface',
     'synthetic canonical shadow events',
@@ -93,14 +93,14 @@ function testTrackerAndG06G07Boundaries(): void {
   );
 
   for (const expected of [
-    'Progress after G06 lands: 6/7 complete. 1 step remains.',
+    'Progress after G07 lands: 7/7 complete. 0 steps remain.',
     '| G01 | complete | Golden Path decision packet |',
     '| G02 | complete | Refund OpenAPI enrichment |',
     '| G03 | complete | Refund shadow fixture builder |',
     '| G04 | complete | Policy Foundry refund projection |',
     '| G05 | complete | Runtime smoke |',
     '| G06 | complete | Pilot readiness probe |',
-    '| G07 | planned | Demo CLI |',
+    '| G07 | complete | Demo CLI |',
     'ready-for-shadow-pilot',
     'not-ready',
     'ready-for-scoped-pilot` is outside the G-series',
@@ -188,3 +188,4 @@ testRelationshipBridgeAndDataBoundary();
 testArchitectureLinksAndPackageScriptStayAligned();
 
 console.log(`Golden Path: Refund tests passed (${passed} assertions)`);
+

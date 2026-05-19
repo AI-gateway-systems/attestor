@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -257,8 +257,8 @@ function testDocsAndScriptsRecordG02(): void {
   };
 
   for (const expected of [
-    'Status: G06 pilot readiness probe',
-    'Progress after G06 lands: 6/7 complete. 1 step remains.',
+    'Status: complete',
+    'Progress after G07 lands: 7/7 complete. 0 steps remain.',
     '| G02 | complete | Refund OpenAPI enrichment |',
     'G02 adds the prior refund signal',
   ]) {
@@ -280,3 +280,4 @@ testManifestStillRendersThroughActionSurfaceIntake();
 testDocsAndScriptsRecordG02();
 
 console.log(`Golden Path: Refund OpenAPI tests passed (${passed} assertions)`);
+

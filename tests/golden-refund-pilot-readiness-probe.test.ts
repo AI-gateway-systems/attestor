@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -149,8 +149,8 @@ function testDocsAndScriptsStayAligned(): void {
   };
 
   for (const expected of [
-    'Status: G06 pilot readiness probe',
-    'Progress after G06 lands: 6/7 complete. 1 step remains.',
+    'Status: complete',
+    'Progress after G07 lands: 7/7 complete. 0 steps remain.',
     '| G06 | complete | Pilot readiness probe |',
     'ready-for-shadow-pilot',
     'not-ready',
@@ -179,3 +179,4 @@ testDeterminismAndDataMinimization();
 testDocsAndScriptsStayAligned();
 
 console.log(`golden-refund-pilot-readiness-probe: ${passed} assertions passed`);
+
