@@ -257,8 +257,8 @@ function testDocsAndScriptsRecordG02(): void {
   };
 
   for (const expected of [
-    'Status: G03 refund shadow fixture builder',
-    'Progress after G03 lands: 3/7 complete. 4 steps remain.',
+    'Status: G04 Policy Foundry refund projection',
+    'Progress after G04 lands: 4/7 complete. 3 steps remain.',
     '| G02 | complete | Refund OpenAPI enrichment |',
     'G02 adds the prior refund signal',
   ]) {
