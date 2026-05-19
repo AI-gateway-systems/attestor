@@ -1,6 +1,6 @@
 # Golden Path: Refund
 
-Status: G03 refund shadow fixture builder for the first concrete golden path after the
+Status: G04 Policy Foundry refund projection for the first concrete golden path after the
 completed Shadow-to-Policy, Consequence Runtime Assurance, and Runtime
 Activation repository-side tracks. This is a planning and evidence-shaping
 artifact. It is not runtime code, not live connector coverage, not Google Cloud
@@ -45,6 +45,7 @@ surface; it does not get independent authority.
 |---|---|---|
 | Refund surface | `examples/action-surface-onboarding/refund.openapi.json` defines a refund action surface with `POST /refunds`, approval route material, refund reason, refund method, digest-bound evidence refs, and a prior refund signal. | repo-proven |
 | Refund fixtures | `src/consequence-admission/golden-refund-shadow-fixtures.ts` emits five synthetic digest-only canonical shadow events: normal, missing-evidence, stale-evidence, repeated-refund, and approval-required. | repo-proven |
+| Foundry refund projection | `src/consequence-admission/golden-refund-policy-foundry-projection.ts` projects the G03 fixtures into a review-only candidate, named evidence/authority/relationship gaps, backtest material, and an existing Policy Twin summary. | repo-proven |
 | Manifest intake | `src/consequence-admission/action-surface-manifest-intake.ts` accepts OpenAPI manifests as action-surface intake material. | repo-proven |
 | Shadow replay | `src/consequence-admission/shadow-runtime-fixture-replay-smoke.ts` replays synthetic fixtures through the R02-R07 shadow runtime activation chain without target-system calls. | repo-proven |
 | Foundry summary | `src/consequence-admission/policy-foundry-policy-twin-summary.ts` summarizes candidate, evidence, replay, and review material without activating policy. | repo-proven |
@@ -74,14 +75,14 @@ Policy and audit material stay schema-bound and replayable. Source anchors:
 
 ## G-Series Tracker
 
-Progress after G03 lands: 3/7 complete. 4 steps remain.
+Progress after G04 lands: 4/7 complete. 3 steps remain.
 
 | Step | Status | Slice | Evidence target |
 |---|---|---|---|
 | G01 | complete | Golden Path decision packet | This document, package script, and architecture links. |
 | G02 | complete | Refund OpenAPI enrichment | The refund surface includes refund reason, payment/order evidence refs, refund method, approval refs, and a prior refund signal. |
 | G03 | complete | Refund shadow fixture builder | Synthetic digest-only canonical shadow events for normal, missing-evidence, stale-evidence, repeated-refund, and approval-required paths. |
-| G04 | planned | Policy Foundry refund projection | Policy twin summary over refund fixtures with named gaps, review-only candidates, and backtest material. |
+| G04 | complete | Policy Foundry refund projection | Policy twin summary over refund fixtures with named gaps, review-only candidates, and backtest material. |
 | G05 | planned | Runtime smoke | Run the existing shadow runtime activation path over the refund fixtures end to end without target-system calls. |
 | G06 | planned | Pilot readiness probe | Emit only `ready-for-shadow-pilot` or `not-ready` for the golden path. `ready-for-scoped-pilot` is outside the G-series until real shadow observation, customer PEP, receipt evidence, and approval are present. |
 | G07 | planned | Demo CLI | `npm run demo:golden-refund` renders Markdown as the primary G07 output and JSON as secondary machine output. |
