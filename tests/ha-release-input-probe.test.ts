@@ -75,6 +75,7 @@ async function main(): Promise<void> {
     ATTESTOR_RELEASE_AUTHORITY_PG_URL: process.env.ATTESTOR_RELEASE_AUTHORITY_PG_URL,
     ATTESTOR_RELEASE_RUNTIME_PKI_PATH: process.env.ATTESTOR_RELEASE_RUNTIME_PKI_PATH,
     ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH: process.env.ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH,
+    ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS: process.env.ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS,
     ATTESTOR_ADMIN_API_KEY: process.env.ATTESTOR_ADMIN_API_KEY,
     ATTESTOR_METRICS_API_KEY: process.env.ATTESTOR_METRICS_API_KEY,
     ATTESTOR_ACCOUNT_MFA_ENCRYPTION_KEY: process.env.ATTESTOR_ACCOUNT_MFA_ENCRYPTION_KEY,
@@ -131,6 +132,7 @@ async function main(): Promise<void> {
     process.env.ATTESTOR_RELEASE_AUTHORITY_PG_URL = `${basePg}/release_authority`;
     process.env.ATTESTOR_RELEASE_RUNTIME_PKI_PATH = '/mnt/shared-attestor-release-pki/release-runtime-pki.json';
     process.env.ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH = 'true';
+    process.env.ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS = 'attestor-rwx-encrypted';
     process.env.ATTESTOR_ADMIN_API_KEY = 'admin-key';
     process.env.ATTESTOR_METRICS_API_KEY = 'metrics-key';
     process.env.ATTESTOR_ACCOUNT_MFA_ENCRYPTION_KEY = 'mfa-key';
@@ -166,6 +168,12 @@ async function main(): Promise<void> {
     ok(ready.connectivity?.checks.releaseAuthorityPg.reachable === true, 'HA release probe: release-authority PG connectivity is included in preflight');
     ok(ready.benchmark.p95LatencyMs === 620 && ready.benchmark.requestsPerSecond === 14.85, 'HA release probe: benchmark truth is echoed back');
     ok(ready.provider === 'generic' && ready.tlsMode === 'secret', 'HA release probe: provider and tls mode are captured');
+
+    delete process.env.ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS;
+    const missingStorageClass = await probeHaReleaseInputs({ provider: 'generic', benchmarkPath });
+    ok(missingStorageClass.rolloutReadiness.envComplete === false, 'HA release probe: missing release-runtime PKI StorageClass blocks promotion readiness');
+    ok(missingStorageClass.rolloutReadiness.issues.some((issue) => issue.includes('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS')), 'HA release probe: missing release-runtime PKI StorageClass issue is surfaced');
+    process.env.ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS = 'attestor-rwx-encrypted';
 
     delete process.env.STRIPE_API_KEY;
     const missingStripe = await probeHaReleaseInputs({ provider: 'generic', benchmarkPath });

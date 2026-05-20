@@ -10,13 +10,20 @@ const FILES = Object.freeze({
   apiDeployment: 'ops/kubernetes/ha/api-deployment.yaml',
   workerDeployment: 'ops/kubernetes/ha/worker-deployment.yaml',
   workerServiceAccount: 'ops/kubernetes/ha/worker-serviceaccount.yaml',
+  releaseRuntimePkiPvc: 'ops/kubernetes/ha/release-runtime-pki-pvc.yaml',
   networkPolicy: 'ops/kubernetes/ha/networkpolicy.yaml',
   backendPolicy: 'ops/kubernetes/ha/providers/gke/gcpbackendpolicy.yaml',
+  certManagerReadme: 'ops/kubernetes/ha/providers/cert-manager/README.md',
+  certManagerKustomization: 'ops/kubernetes/ha/providers/cert-manager/kustomization.yaml',
+  certManagerCertificate: 'ops/kubernetes/ha/providers/cert-manager/certificate.yaml',
   externalSecretsReadme: 'ops/kubernetes/ha/providers/external-secrets/README.md',
+  externalSecretsKustomization: 'ops/kubernetes/ha/providers/external-secrets/kustomization.yaml',
+  externalSecretsTlsSecret: 'ops/kubernetes/ha/providers/external-secrets/tls-secret.yaml',
   gkeClusterSecretStoreExample: 'ops/kubernetes/ha/providers/external-secrets/clustersecretstore.gke.example.yaml',
   releaseProbe: 'scripts/probe-ha-release-inputs.ts',
   releaseBundle: 'scripts/render-ha-release-bundle.ts',
   remediation: 'docs/audit/ops-sweep-01-live-shadow-remediation.md',
+  sweep02Remediation: 'docs/audit/ops-sweep-02-pki-tls-secrets-remediation.md',
 });
 
 const LIVE_PROOF_FLAGS = Object.freeze([
@@ -25,6 +32,8 @@ const LIVE_PROOF_FLAGS = Object.freeze([
   ['ATTESTOR_NETWORK_POLICY_PROOF', 'NetworkPolicy or equivalent cluster isolation was applied and tested.'],
   ['ATTESTOR_EDGE_WAF_PROOF', 'Cloud Armor or equivalent edge WAF/rate-limit policy was attached and tested.'],
   ['ATTESTOR_GCP_IAM_LEAST_PRIVILEGE_PROOF', 'GCP IAM least-privilege bindings were reviewed and verified.'],
+  ['ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF', 'Release-runtime PKI storage class, encryption, RWX semantics, and backup posture were verified.'],
+  ['ATTESTOR_TLS_MATERIAL_SOURCE_PROOF', 'Exactly one TLS material source was selected, applied, and verified.'],
 ]);
 
 function arg(name, fallback) {
@@ -92,6 +101,13 @@ function checkRepoReadiness() {
   includes(FILES.apiDeployment, 'drop:\n                - ALL', issues, 'API containers must drop Linux capabilities');
   includes(FILES.workerDeployment, 'drop:\n                - ALL', issues, 'worker container must drop Linux capabilities');
 
+  includes(FILES.releaseRuntimePkiPvc, 'attestor.dev/storage-boundary: release-runtime-pki', issues, 'release-runtime PKI PVC must be labeled as a key-material storage boundary');
+  includes(FILES.releaseRuntimePkiPvc, 'attestor.dev/live-shadow-proof: ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF', issues, 'release-runtime PKI PVC must name the live storage proof gate');
+  includes(FILES.releaseRuntimePkiPvc, 'storageClassName: attestor-release-runtime-pki-rwx', issues, 'release-runtime PKI PVC must not silently inherit the cluster default StorageClass');
+  includes(FILES.releaseRuntimePkiPvc, 'ReadWriteMany', issues, 'release-runtime PKI PVC must keep explicit RWX semantics for HA');
+  includes(FILES.releaseProbe, 'ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS', issues, 'release probe must require an explicit release-runtime PKI StorageClass');
+  includes(FILES.releaseBundle, 'ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS', issues, 'release bundle render must inject an explicit release-runtime PKI StorageClass');
+
   notIncludesNear(
     FILES.apiDeployment,
     'key: account-mfa-encryption-key',
@@ -106,9 +122,18 @@ function checkRepoReadiness() {
   includes(FILES.networkPolicy, 'port: 4318', issues, 'observability egress must be explicit');
   includes(FILES.networkPolicy, 'port: 3307', issues, 'Cloud SQL proxy egress must be explicit');
   includes(FILES.networkPolicy, 'port: 6379', issues, 'Redis egress must be explicit');
+  includes(FILES.networkPolicy, 'port: 443', issues, 'external HTTPS egress must stay explicit');
 
   includes(FILES.backendPolicy, 'securityPolicy: attestor-api-armor-policy', issues, 'active GKE backend policy must reference Cloud Armor');
 
+  includes(FILES.certManagerKustomization, 'certificate.yaml', issues, 'cert-manager overlay must compose the Certificate resource');
+  includes(FILES.certManagerCertificate, 'secretName: attestor-tls', issues, 'cert-manager Certificate must target the Gateway TLS Secret');
+  includes(FILES.certManagerReadme, 'Do not apply this overlay together with the External Secrets TLS overlay', issues, 'cert-manager docs must enforce a single TLS material source');
+  includes(FILES.certManagerReadme, 'ATTESTOR_TLS_MATERIAL_SOURCE_PROOF', issues, 'cert-manager docs must name the live TLS material proof gate');
+  includes(FILES.externalSecretsKustomization, 'tls-secret.yaml', issues, 'External Secrets overlay must compose TLS projection explicitly');
+  includes(FILES.externalSecretsTlsSecret, 'kubernetes.io/tls', issues, 'External Secrets TLS projection must create a Kubernetes TLS Secret');
+  includes(FILES.externalSecretsReadme, 'Do not apply this TLS ExternalSecret together with the cert-manager overlay', issues, 'External Secrets docs must enforce a single TLS material source');
+  includes(FILES.externalSecretsReadme, 'ATTESTOR_TLS_MATERIAL_SOURCE_PROOF', issues, 'External Secrets docs must name the live TLS material proof gate');
   includes(FILES.gkeClusterSecretStoreExample, 'kind: ClusterSecretStore', issues, 'GKE ClusterSecretStore example is required');
   includes(FILES.gkeClusterSecretStoreExample, 'gcpsm:', issues, 'GKE ClusterSecretStore example must use Google Secret Manager');
   includes(FILES.gkeClusterSecretStoreExample, 'workloadIdentity:', issues, 'GKE ClusterSecretStore example must use Workload Identity');
@@ -121,6 +146,9 @@ function checkRepoReadiness() {
   includes(FILES.remediation, 'OPS-02', issues, 'remediation record must account for ClusterSecretStore finding');
   includes(FILES.remediation, 'OPS-04', issues, 'remediation record must account for NetworkPolicy finding');
   includes(FILES.remediation, 'OPS-05', issues, 'remediation record must account for CloudArmor finding');
+  includes(FILES.sweep02Remediation, 'OPS-17', issues, 'Sweep 02 remediation record must account for release-runtime PKI storage');
+  includes(FILES.sweep02Remediation, 'OPS-18', issues, 'Sweep 02 remediation record must account for TLS material source selection');
+  includes(FILES.sweep02Remediation, 'OPS-21', issues, 'Sweep 02 remediation record must account for wildcard HTTPS egress');
 
   return issues;
 }

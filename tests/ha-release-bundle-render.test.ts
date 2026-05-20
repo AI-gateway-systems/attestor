@@ -61,6 +61,8 @@ function main(): void {
           ATTESTOR_WORKER_IMAGE: 'ghcr.io/example/attestor-worker@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
           ATTESTOR_PUBLIC_HOSTNAME: 'api.attestor.example.invalid',
           ATTESTOR_HA_PRODUCTION_MODE: 'true',
+          ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS: 'efs-rwx-encrypted',
+          ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_SIZE: '10Gi',
           ATTESTOR_TLS_MODE: 'aws-acm',
           ATTESTOR_AWS_ALB_CERTIFICATE_ARNS: 'arn:aws:acm:eu-west-1:123:certificate/aaa',
           ATTESTOR_AWS_ALB_SSL_POLICY: 'ELBSecurityPolicy-TLS13-1-2-2021-06',
@@ -86,6 +88,7 @@ function main(): void {
     ok(awsConfigMap.includes('ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH') && awsConfigMap.includes('/var/lib/attestor/release-runtime-pki/release-runtime-pki.json'), 'HA release bundle: AWS config carries shared release-runtime PKI boundary');
     ok(awsApiDeployment.includes('ATTESTOR_RELEASE_AUTHORITY_PG_URL'), 'HA release bundle: AWS API deployment wires release-authority PostgreSQL');
     ok(awsApiDeployment.includes('claimName: attestor-release-runtime-pki') && awsPkiPvc.includes('ReadWriteMany'), 'HA release bundle: AWS API deployment mounts a shared release-runtime PKI PVC');
+    ok(awsPkiPvc.includes('storageClassName: efs-rwx-encrypted') && awsPkiPvc.includes('storage: 10Gi'), 'HA release bundle: AWS PKI PVC carries explicit storage class and size');
     ok(awsApiScaled.includes('threshold: "18"') && awsApiScaled.includes('activationThreshold: "3"'), 'HA release bundle: AWS KEDA scaler is benchmark-tuned');
     ok(awsSummary.provider === 'aws' && awsSummary.apiImage.includes('@sha256:'), 'HA release bundle: AWS summary captures provider and digest-pinned image refs');
 
@@ -107,6 +110,8 @@ function main(): void {
           ATTESTOR_WORKER_IMAGE: 'ghcr.io/example/attestor-worker@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
           ATTESTOR_PUBLIC_HOSTNAME: 'gke.attestor.example.invalid',
           ATTESTOR_HA_PRODUCTION_MODE: 'true',
+          ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS: 'filestore-rwx-cmek',
+          ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_SIZE: '1Ti',
           ATTESTOR_TLS_MODE: 'cert-manager',
           ATTESTOR_TLS_CLUSTER_ISSUER: 'letsencrypt-prod',
           ATTESTOR_GKE_SSL_POLICY: 'attestor-modern-tls',
@@ -130,6 +135,7 @@ function main(): void {
     const gkePkiPvc = readFileSync(resolve(gkeOut, 'release-runtime-pki-pvc.yaml'), 'utf8');
     ok(gkeKustomization.includes('gateway.yaml') && gkeKustomization.includes('certificate.yaml'), 'HA release bundle: GKE bundle includes gateway and cert-manager certificate');
     ok(gkeKustomization.includes('release-runtime-pki-pvc.yaml') && gkePkiPvc.includes('ReadWriteMany'), 'HA release bundle: GKE bundle carries the shared release-runtime PKI PVC');
+    ok(gkePkiPvc.includes('storageClassName: filestore-rwx-cmek') && gkePkiPvc.includes('storage: 1Ti'), 'HA release bundle: GKE PKI PVC carries explicit storage class and size');
     ok(gkeGateway.includes('gke.attestor.example.invalid') && gkeRoute.includes('gke.attestor.example.invalid'), 'HA release bundle: GKE bundle rewires hostname across gateway and route');
     ok(
       gkeGateway.includes('protocol: HTTPS') &&
@@ -160,6 +166,7 @@ function main(): void {
           ATTESTOR_WORKER_IMAGE: 'ghcr.io/example/attestor-worker@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
           ATTESTOR_PUBLIC_HOSTNAME: 'gke.attestor.example.invalid',
           ATTESTOR_HA_PRODUCTION_MODE: 'true',
+          ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS: 'filestore-rwx-cmek',
           ATTESTOR_TLS_MODE: 'cert-manager',
           ATTESTOR_TLS_CLUSTER_ISSUER: 'letsencrypt-prod',
           ATTESTOR_GKE_SSL_POLICY: 'attestor-modern-tls',
@@ -177,6 +184,44 @@ function main(): void {
     ok(
       `${tagOnlyImage.stderr}\n${tagOnlyImage.stdout}`.includes('immutable image digest'),
       'HA release bundle: tag-only image error explains digest pinning requirement',
+    );
+
+    const missingStorageClassOut = resolve(tempDir, 'missing-storage-class-bundle');
+    const missingStorageClass = spawnSync(
+      process.execPath,
+      [
+        resolve('node_modules/tsx/dist/cli.mjs'),
+        'scripts/render-ha-release-bundle.ts',
+        '--provider=gke',
+        `--benchmark=${benchmarkPath}`,
+        `--output-dir=${missingStorageClassOut}`,
+      ],
+      {
+        cwd: resolve('.'),
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          ATTESTOR_API_IMAGE: 'ghcr.io/example/attestor-api@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+          ATTESTOR_WORKER_IMAGE: 'ghcr.io/example/attestor-worker@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+          ATTESTOR_PUBLIC_HOSTNAME: 'gke.attestor.example.invalid',
+          ATTESTOR_HA_PRODUCTION_MODE: 'true',
+          ATTESTOR_TLS_MODE: 'cert-manager',
+          ATTESTOR_TLS_CLUSTER_ISSUER: 'letsencrypt-prod',
+          ATTESTOR_GKE_SSL_POLICY: 'attestor-modern-tls',
+          REDIS_URL: 'redis://cache.example.invalid:6379/0',
+          ATTESTOR_CONTROL_PLANE_PG_URL: 'postgres://user:pass@db/control',
+          ATTESTOR_BILLING_LEDGER_PG_URL: 'postgres://user:pass@db/billing',
+          ATTESTOR_RELEASE_AUTHORITY_PG_URL: 'postgres://user:pass@db/release_authority',
+          ATTESTOR_ADMIN_API_KEY: 'admin-key',
+          ATTESTOR_TLS_CERT_PEM_FILE: certPath,
+          ATTESTOR_TLS_KEY_PEM_FILE: keyPath,
+        },
+      },
+    );
+    ok(missingStorageClass.status !== 0, 'HA release bundle: production mode rejects missing PKI StorageClass');
+    ok(
+      `${missingStorageClass.stderr}\n${missingStorageClass.stdout}`.includes('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS'),
+      'HA release bundle: missing PKI StorageClass error names the required field',
     );
 
     const invalidHostnameOut = resolve(tempDir, 'invalid-hostname-bundle');
@@ -198,6 +243,7 @@ function main(): void {
           ATTESTOR_WORKER_IMAGE: 'ghcr.io/example/attestor-worker@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
           ATTESTOR_PUBLIC_HOSTNAME: 'bad.example.invalid\nmalicious.example.invalid',
           ATTESTOR_HA_PRODUCTION_MODE: 'true',
+          ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS: 'filestore-rwx-cmek',
           ATTESTOR_TLS_MODE: 'cert-manager',
           ATTESTOR_TLS_CLUSTER_ISSUER: 'letsencrypt-prod',
           REDIS_URL: 'redis://cache.example.invalid:6379/0',

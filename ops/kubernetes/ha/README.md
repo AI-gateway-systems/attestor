@@ -103,9 +103,11 @@ Workload-aware autoscaling overlay:
 
 Notes:
 
-- the release-runtime PKI PVC must be backed by storage that is actually shared across API pods, such as EFS, Filestore, or another RWX-capable storage class; the runtime treats `ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH=true` as operator attestation and fails closed in HA mode without it
+- the release-runtime PKI PVC must be backed by storage that is actually shared across API pods, such as EFS, Filestore, or another RWX-capable storage class; the base PVC no longer silently inherits the cluster default StorageClass and live release rendering requires `ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS`; the runtime treats `ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH=true` as operator attestation and fails closed in HA mode without it
+- the release-runtime PKI StorageClass must be environment-owned and verified for encryption-at-rest, RWX semantics, backup/restore expectations, and key-material access controls before setting `ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF=verified`
 - live shadow must use digest-pinned image refs (`@sha256:<digest>`) in the rendered HA release bundle; tag-only image refs are accepted only in bootstrap/static examples
-- live shadow must pass `npm run check:ops-live-shadow -- --mode=live` with HTTPS, secret-store, NetworkPolicy, edge WAF, and IAM proof flags supplied from the target environment
+- live shadow must pass `npm run check:ops-live-shadow -- --mode=live` with HTTPS, secret-store, NetworkPolicy, edge WAF, IAM, release-runtime PKI storage, and TLS material source proof flags supplied from the target environment
+- the default NetworkPolicy intentionally allows outbound TCP 443 for external provider APIs; higher-risk deployments should add domain-aware egress control through a service mesh, egress gateway, or equivalent platform policy and treat that as part of `ATTESTOR_NETWORK_POLICY_PROOF`
 - the KEDA overlay replaces the base HPAs with:
   - Prometheus request-rate scaling for `attestor-api`
   - Redis waiting-list scaling for `attestor-worker`

@@ -8,6 +8,14 @@ It assumes:
 - External Secrets Operator is installed
 - a `ClusterSecretStore` exists and is reachable by the cluster
 - on GKE, the store uses Workload Identity rather than static cloud keys
+- this overlay is the selected TLS material source when it projects
+  `attestor-tls`
+
+Do not apply this TLS ExternalSecret together with the cert-manager overlay.
+Both paths write the same `attestor-tls` Secret; live shadow must choose exactly
+one source and record that choice with
+`ATTESTOR_TLS_MATERIAL_SOURCE_PROOF=verified` before treating the TLS boundary
+as proven.
 
 Before applying it, replace:
 
