@@ -48,6 +48,7 @@ The bundle now includes:
 
 - zero-downtime rolling updates (`maxUnavailable: 0`, `maxSurge: 1`, `minReadySeconds`)
 - a shared release-runtime PKI PVC mounted at `/var/lib/attestor/release-runtime-pki`
+- namespace-level NetworkPolicy resources with default deny, API/worker health ingress, DNS, observability, and external runtime egress allowlists
 - tuned HPA behavior for scale up/down
 - topology spread + pod anti-affinity for API and worker
 - API startup/readiness/liveness probes
@@ -104,6 +105,7 @@ Notes:
 
 - the release-runtime PKI PVC must be backed by storage that is actually shared across API pods, such as EFS, Filestore, or another RWX-capable storage class; the runtime treats `ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH=true` as operator attestation and fails closed in HA mode without it
 - live shadow must use digest-pinned image refs (`@sha256:<digest>`) in the rendered HA release bundle; tag-only image refs are accepted only in bootstrap/static examples
+- live shadow must pass `npm run check:ops-live-shadow -- --mode=live` with HTTPS, secret-store, NetworkPolicy, edge WAF, and IAM proof flags supplied from the target environment
 - the KEDA overlay replaces the base HPAs with:
   - Prometheus request-rate scaling for `attestor-api`
   - Redis waiting-list scaling for `attestor-worker`

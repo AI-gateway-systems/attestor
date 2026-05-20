@@ -7,11 +7,15 @@ It assumes:
 
 - External Secrets Operator is installed
 - a `ClusterSecretStore` exists and is reachable by the cluster
+- on GKE, the store uses Workload Identity rather than static cloud keys
 
 Before applying it, replace:
 
 - `platform-secrets`
 - the remote secret keys in both resources
+- the placeholders in
+  [clustersecretstore.gke.example.yaml](/C:/Users/thedi/attestor/ops/kubernetes/ha/providers/external-secrets/clustersecretstore.gke.example.yaml)
+  or the rendered `ha-clustersecretstore.yaml`
 
 Apply it with:
 
@@ -44,3 +48,11 @@ npm run render:secret-manager-bootstrap -- --provider=<aws|gke|all> --output-dir
 
 That bundle emits provider-ready `ClusterSecretStore` manifests plus the exact
 remote secret names expected by this HA overlay.
+
+Live-shadow gate:
+
+- do not apply this overlay for live shadow until the generated or hand-edited
+  `ClusterSecretStore` has been applied and the ExternalSecret status shows a
+  successful sync from the managed backend
+- use `npm run check:ops-live-shadow -- --mode=live` to require an explicit
+  operator proof flag before treating the secret-store boundary as verified

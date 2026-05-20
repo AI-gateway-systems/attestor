@@ -24,6 +24,7 @@ function main(): void {
   const workerServiceAccount = read('ops/kubernetes/ha/worker-serviceaccount.yaml');
   const runtimeConfigMap = read('ops/kubernetes/ha/configmap.yaml');
   const releasePkiPvc = read('ops/kubernetes/ha/release-runtime-pki-pvc.yaml');
+  const networkPolicy = read('ops/kubernetes/ha/networkpolicy.yaml');
   const apiHpa = read('ops/kubernetes/ha/api-hpa.yaml');
   const workerHpa = read('ops/kubernetes/ha/worker-hpa.yaml');
   const gateway = read('ops/kubernetes/ha/gateway.yaml');
@@ -51,6 +52,7 @@ function main(): void {
   const certManagerClusterIssuer = read('ops/kubernetes/ha/providers/cert-manager/clusterissuer.example.yaml');
   const externalSecretsOverlay = read('ops/kubernetes/ha/providers/external-secrets/kustomization.yaml');
   const externalSecretsReadme = read('ops/kubernetes/ha/providers/external-secrets/README.md');
+  const gkeClusterSecretStoreExample = read('ops/kubernetes/ha/providers/external-secrets/clustersecretstore.gke.example.yaml');
   const externalRuntimeSecret = read('ops/kubernetes/ha/providers/external-secrets/runtime-secrets.yaml');
   const externalTlsSecret = read('ops/kubernetes/ha/providers/external-secrets/tls-secret.yaml');
   const profilesReadme = read('ops/kubernetes/ha/profiles/README.md');
@@ -62,13 +64,15 @@ function main(): void {
   const gkeProfile = read('ops/kubernetes/ha/profiles/gke-production.json');
   const haReadme = read('ops/kubernetes/ha/README.md');
 
-  ok(kustomization.includes('api-deployment.yaml') && kustomization.includes('worker-serviceaccount.yaml') && kustomization.includes('gateway.yaml') && kustomization.includes('release-runtime-pki-pvc.yaml'), 'Kubernetes HA bundle: kustomization includes deployments, worker ServiceAccount, gateway, and shared release-runtime PKI resources');
+  ok(kustomization.includes('api-deployment.yaml') && kustomization.includes('worker-serviceaccount.yaml') && kustomization.includes('networkpolicy.yaml') && kustomization.includes('gateway.yaml') && kustomization.includes('release-runtime-pki-pvc.yaml'), 'Kubernetes HA bundle: kustomization includes deployments, worker ServiceAccount, NetworkPolicy, gateway, and shared release-runtime PKI resources');
   ok(apiDeployment.includes('ATTESTOR_HA_MODE') && apiDeployment.includes('ATTESTOR_CONTROL_PLANE_PG_URL'), 'Kubernetes HA bundle: API deployment enables HA mode and shared control-plane');
   ok(apiDeployment.includes('ATTESTOR_RELEASE_AUTHORITY_PG_URL') && apiDeployment.includes('release-authority-pg-url'), 'Kubernetes HA bundle: API deployment wires shared release-authority PostgreSQL');
   ok(apiDeployment.includes('ATTESTOR_STRIPE_PRICE_SCALE') && apiDeployment.includes('stripe-price-scale'), 'Kubernetes HA bundle: API deployment wires hosted Scale Stripe price');
   ok(apiDeployment.includes('ATTESTOR_STRIPE_OVERAGE_PRICE_STARTER') && apiDeployment.includes('ATTESTOR_STRIPE_OVERAGE_PRICE_PRO') && apiDeployment.includes('ATTESTOR_STRIPE_OVERAGE_PRICE_SCALE'), 'Kubernetes HA bundle: API deployment wires hosted Stripe overage prices');
   ok(apiDeployment.includes('claimName: attestor-release-runtime-pki') && apiDeployment.includes('/var/lib/attestor/release-runtime-pki'), 'Kubernetes HA bundle: API deployment mounts a shared release-runtime PKI path');
   ok(releasePkiPvc.includes('ReadWriteMany'), 'Kubernetes HA bundle: release-runtime PKI PVC requires shared read/write access across API pods');
+  ok(networkPolicy.includes('name: attestor-default-deny') && networkPolicy.includes('name: attestor-runtime-egress'), 'Kubernetes HA bundle: NetworkPolicy defines default deny and runtime egress allowlist');
+  ok(networkPolicy.includes('port: 4318') && networkPolicy.includes('port: 3307') && networkPolicy.includes('port: 6379'), 'Kubernetes HA bundle: NetworkPolicy names observability, Cloud SQL proxy, and Redis egress ports');
   ok(apiDeployment.includes('readinessProbe:') && apiDeployment.includes('livenessProbe:'), 'Kubernetes HA bundle: API deployment defines readiness and liveness probes');
   ok(apiDeployment.includes('rollingUpdate:') && apiDeployment.includes('maxUnavailable: 0'), 'Kubernetes HA bundle: API deployment uses zero-downtime rolling update settings');
   ok(apiDeployment.includes('startupProbe:') && apiDeployment.includes('preStop:'), 'Kubernetes HA bundle: API deployment defines startup probe and preStop drain');
@@ -95,7 +99,7 @@ function main(): void {
   ok(gkeOverlay.includes('../../'), 'Kubernetes HA bundle: GKE managed LB overlay composes the base bundle');
   ok(gkeReadme.includes('render:gke-domain-cutover') && gkeReadme.includes(dnsName('sslip', 'io')) && gkeReadme.includes('A` record'), 'Kubernetes HA bundle: GKE README documents bootstrap dynamic DNS and final delegated-domain cutover flow');
   ok(gkeHealthCheckPolicy.includes('HealthCheckPolicy') && gkeHealthCheckPolicy.includes('/api/v1/ready'), 'Kubernetes HA bundle: GKE overlay defines managed health check policy');
-  ok(gkeBackendPolicy.includes('GCPBackendPolicy') && gkeBackendPolicy.includes('connectionDraining') && !gkeBackendPolicy.includes('securityPolicy'), 'Kubernetes HA bundle: GKE overlay defines backend timeout/draining defaults without requiring Cloud Armor quota');
+  ok(gkeBackendPolicy.includes('GCPBackendPolicy') && gkeBackendPolicy.includes('connectionDraining') && gkeBackendPolicy.includes('securityPolicy: attestor-api-armor-policy'), 'Kubernetes HA bundle: GKE overlay defines backend timeout/draining defaults and active Cloud Armor policy reference');
   ok(gkeBackendPolicyCloudArmor.includes('securityPolicy: attestor-api-armor-policy'), 'Kubernetes HA bundle: GKE Cloud Armor example overlays the backend security policy when quota exists');
   ok(gkeGatewayPolicy.includes('GCPGatewayPolicy') && gkeGatewayPolicy.includes('sslPolicy') && !gkeGatewayPolicy.includes('allowGlobalAccess'), 'Kubernetes HA bundle: GKE overlay defines gateway TLS policy without relying on unsupported global-access fields');
   ok(gkeHttpsGateway.includes('protocol: HTTPS') && gkeHttpsGateway.includes('attestor-tls') && gkeHttpsGateway.includes(dnsName('attestor', 'example', 'com')), 'Kubernetes HA bundle: GKE HTTPS example finalizes TLS with the attestor-tls Secret and public hostname');
@@ -114,6 +118,7 @@ function main(): void {
   ok(certManagerClusterIssuer.includes('kind: ClusterIssuer') && certManagerClusterIssuer.includes('gatewayHTTPRoute') && certManagerClusterIssuer.includes('name: attestor'), 'Kubernetes HA bundle: cert-manager example ships a Gateway API HTTP-01 ClusterIssuer');
   ok(externalSecretsOverlay.includes('../../') && externalSecretsOverlay.includes('runtime-secrets.yaml'), 'Kubernetes HA bundle: external-secrets overlay composes runtime secret resources');
   ok(externalSecretsReadme.includes('External Secrets Operator') && externalSecretsReadme.includes('ClusterSecretStore') && externalSecretsReadme.includes('render:ha-credentials'), 'Kubernetes HA bundle: external-secrets README documents cluster secret store requirements and renderer flow');
+  ok(gkeClusterSecretStoreExample.includes('kind: ClusterSecretStore') && gkeClusterSecretStoreExample.includes('gcpsm:') && gkeClusterSecretStoreExample.includes('workloadIdentity:'), 'Kubernetes HA bundle: GKE ClusterSecretStore example binds External Secrets to Google Secret Manager with Workload Identity');
   ok(externalRuntimeSecret.includes('kind: ExternalSecret') && externalRuntimeSecret.includes('attestor-runtime-secrets'), 'Kubernetes HA bundle: external-secrets overlay manages runtime secret material');
   ok(externalRuntimeSecret.includes('release-authority-pg-url'), 'Kubernetes HA bundle: external-secrets overlay includes release-authority PostgreSQL');
   ok(externalRuntimeSecret.includes('stripe-price-scale') && externalRuntimeSecret.includes('stripe-overage-price-starter') && externalRuntimeSecret.includes('stripe-overage-price-pro') && externalRuntimeSecret.includes('stripe-overage-price-scale'), 'Kubernetes HA bundle: external-secrets overlay includes hosted Scale and overage Stripe prices');

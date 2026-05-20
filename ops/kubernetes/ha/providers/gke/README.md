@@ -68,3 +68,12 @@ If you are not ready for your delegated zone yet, the bootstrap hostname can sti
 - [https-httproute.example.yaml](/C:/Users/thedi/attestor/ops/kubernetes/ha/providers/gke/https-httproute.example.yaml)
 - [clusterissuer.example.yaml](/C:/Users/thedi/attestor/ops/kubernetes/ha/providers/cert-manager/clusterissuer.example.yaml)
 - [certificate.yaml](/C:/Users/thedi/attestor/ops/kubernetes/ha/providers/cert-manager/certificate.yaml)
+
+## Edge policy
+
+The active GKE backend policy references `attestor-api-armor-policy`.
+
+Before applying the GKE overlay for live shadow, create and verify the named
+Cloud Armor policy in the target project. If a live-shadow environment does not
+use Cloud Armor, that is a no-go until an equivalent edge WAF/rate-limit control
+is documented and tested.

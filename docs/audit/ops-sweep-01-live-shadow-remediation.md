@@ -1,6 +1,6 @@
 # Ops Sweep 01 Live Shadow Remediation
 
-Status: partial remediation for `origin/master`
+Status: repo-side remediation complete for Ops Sweep 01; live ops proof still required
 
 This record covers repository-side hardening after Ops Sweep 01. It does not
 claim ops readiness, live shadow readiness, production readiness, or enterprise
@@ -15,6 +15,10 @@ readiness.
 - `scripts/probe-ha-release-inputs.ts`
 - `scripts/render-ha-release-bundle.ts`
 - HA Kubernetes and release-bundle tests
+- `ops/kubernetes/ha/networkpolicy.yaml`
+- `ops/kubernetes/ha/providers/gke/gcpbackendpolicy.yaml`
+- `ops/kubernetes/ha/providers/external-secrets/clustersecretstore.gke.example.yaml`
+- `scripts/check-ops-live-shadow-readiness.mjs`
 
 ## External Anchors
 
@@ -66,29 +70,56 @@ readiness.
 ### OPS-01 - Active base Gateway is HTTP bootstrap
 
 - Previous state: open / needs ops proof.
-- New state: proof-gated, not fully closed.
+- New state: repo-side proof-gated; live closure requires proof.
 - Repository evidence: the base Gateway remains HTTP bootstrap, but the rendered
   HA release bundle rewrites GKE routes to the HTTPS Gateway listener and the HA
-  README now marks HTTP bootstrap as not live-shadow ready.
+  README marks HTTP bootstrap as not live-shadow ready. The live gate requires
+  `ATTESTOR_LIVE_SHADOW_HTTPS_PROOF=verified` before a live-shadow claim.
 - Why applicable: public live shadow traffic must use HTTPS.
 - Why not overclaimed: the active static bootstrap manifest is still HTTP by
   design; live closure requires applying and probing the rendered HTTPS bundle.
 
-## Findings Not Closed By This PR
+### OPS-02 - ClusterSecretStore backend proof
 
-- OPS-02 `ClusterSecretStore` backend proof: renderer support exists, but live
-  closure requires the generated ClusterSecretStore and cloud IAM binding.
-- OPS-04 NetworkPolicy: requires cluster-specific CNI, DNS, Redis, Postgres,
-  OTel, and Cloud SQL egress decisions. Blind default-deny would risk breaking
-  live shadow.
-- OPS-05 CloudArmor: an example exists, but activation depends on project quota
-  and named policy existence.
+- Previous state: open / needs ops proof.
+- New state: repo-side proof-gated; live closure requires proof.
+- Repository evidence: `clustersecretstore.gke.example.yaml` shows a GCP Secret
+  Manager `ClusterSecretStore` using Workload Identity, and the live gate
+  requires `ATTESTOR_CLUSTER_SECRET_STORE_PROOF=verified`.
+- Why applicable: live shadow cannot rely on an implicit external secret store.
+- Why not overclaimed: the manifest is an example; the target cluster must apply
+  a real store and prove ExternalSecret sync.
+
+### OPS-04 - No NetworkPolicy in ops
+
+- Previous state: open, repo-proven.
+- New state: fixed repo-side; live closure requires proof.
+- Repository evidence: `networkpolicy.yaml` is now part of the HA
+  kustomization. It defines default deny, API and worker health ingress, DNS,
+  observability, Cloud SQL proxy, Redis, and HTTPS egress allowlists.
+- Why applicable: live shadow needs explicit network isolation or an equivalent
+  cluster-level policy.
+- Why not overclaimed: CNI enforcement and target environment reachability still
+  need a live test, enforced by `ATTESTOR_NETWORK_POLICY_PROOF=verified`.
+
+### OPS-05 - CloudArmor WAF in example only
+
+- Previous state: open, repo-proven.
+- New state: fixed repo-side; live closure requires proof.
+- Repository evidence: active `gcpbackendpolicy.yaml` references
+  `securityPolicy: attestor-api-armor-policy`, and the live gate requires
+  `ATTESTOR_EDGE_WAF_PROOF=verified`.
+- Why applicable: live shadow should not leave edge L7 policy implicit.
+- Why not overclaimed: the named Cloud Armor policy must exist and be attached
+  in the target project.
 
 ## Verification
 
 - `npm run test:kubernetes-ha-bundle`
 - `npm run test:ha-release-bundle-render`
 - `npm run test:ha-release-input-probe`
+- `npm run test:ops-live-shadow-readiness`
+- `npm run check:ops-live-shadow`
 - `npm run typecheck`
 - `npm run typecheck:hygiene`
 
@@ -102,3 +133,6 @@ Live shadow remains `not proven` until:
 - NetworkPolicy or equivalent cluster isolation is documented and tested,
 - CloudArmor/WAF decision is documented and, if enabled, probed,
 - shared replay/introspection stores are live-tested across instances.
+
+These are live proof requirements, not unresolved repository remediation for
+Ops Sweep 01.
