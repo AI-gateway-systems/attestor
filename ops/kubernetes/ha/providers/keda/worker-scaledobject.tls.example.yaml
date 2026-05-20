@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: attestor-worker
+spec:
+  scaleTargetRef:
+    name: attestor-worker
+  triggers:
+    - type: redis-lists
+      metadata:
+        listName: bull:attestor-pipeline:wait
+        listLength: "20"
+        activationListLength: "1"
+        enableTLS: "true"
+        unsafeSsl: "false"
+      authenticationRef:
+        name: attestor-worker-redis

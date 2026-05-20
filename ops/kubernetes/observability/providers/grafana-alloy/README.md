@@ -10,12 +10,20 @@ It assumes:
 - you want Grafana Cloud as the managed OTLP backend
 - you want the Grafana-supported production distribution instead of the generic
   upstream collector image
+- you created the managed OTLP Secret through External Secrets or an
+  environment-owned Secret
 
 Required secret keys:
 
 - `grafana-cloud-otlp-endpoint`
 - `grafana-cloud-otlp-username`
 - `grafana-cloud-otlp-token`
+
+Do not apply `secret-template.yaml` directly. It is a shape example with
+`REPLACE_WITH_*` placeholders and is intentionally not listed as a kustomize
+resource. For managed environments, prefer
+`ops/kubernetes/observability/providers/external-secrets/` so rotation stays in
+the secret manager path.
 
 The recommended managed path is the **single Grafana Cloud OTLP gateway**, not
 the older split `prometheus/loki/tempo` destination pattern. In practice that
@@ -41,5 +49,6 @@ This overlay uses:
 Apply it with:
 
 ```powershell
+kubectl apply -k ops/kubernetes/observability/providers/external-secrets
 kubectl apply -k ops/kubernetes/observability/providers/grafana-alloy
 ```

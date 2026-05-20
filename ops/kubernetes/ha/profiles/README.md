@@ -22,4 +22,14 @@ The render step produces:
 - a provider-specific managed LB policy patch
 - `README.md` with apply guidance
 
+Renderer boundary:
+
+- Renderers always emit artifacts so operators can inspect the delta even when
+  `summary.json.slo.meetsP95Latency` or `summary.json.slo.meetsAvailability`
+  is `false`.
+- Do not apply emitted patches from a failed SLO render without an explicit
+  operator decision and a new benchmark.
+- Treat the generated artifacts as advisory calibration input. They do not
+  grant production or live-shadow readiness by themselves.
+
 These profiles are intentionally conservative defaults. They are designed to be rerun after benchmark or production traffic changes, not treated as one-time static truth.
