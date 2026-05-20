@@ -17,6 +17,7 @@ services:
       - postgres-dr-data:/var/lib/postgresql/data
       - postgres-dr-archive:/var/lib/postgresql/archive
       - ./ops/postgres/pitr/postgresql-pitr.conf:/etc/postgresql/postgresql.conf:ro
+      - ./ops/postgres/pitr/archive-wal.sh:/etc/postgresql/archive-wal.sh:ro
       - ./ops/postgres/pitr/restore-wal.sh:/etc/postgresql/restore-wal.sh:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U attestor -d attestor']
@@ -27,12 +28,22 @@ services:
   redis-dr:
     image: redis:7.4.7@sha256:976ab0f0939b78c06d802bcd3bea44c5142ea9a756a57b861e08819817f768c8
     restart: unless-stopped
-    command: ['redis-server', '/usr/local/etc/redis/redis.conf']
+    environment:
+      ATTESTOR_REDIS_DR_PASSWORD: ${ATTESTOR_REDIS_DR_PASSWORD:-attestor-dr-local}
+    command:
+      - sh
+      - -ec
+      - |
+        password="$${ATTESTOR_REDIS_DR_PASSWORD:-attestor-dr-local}"
+        mkdir -p /run/redis
+        chmod 700 /run/redis
+        printf 'user default off\nuser attestor on >%s ~* &* +@all -@dangerous\n' "$$password" > /run/redis/users.acl
+        exec redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redis-dr-data:/data
       - ./ops/redis/redis-recovery.conf:/usr/local/etc/redis/redis.conf:ro
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD-SHELL', 'redis-cli --user attestor --pass "$${ATTESTOR_REDIS_DR_PASSWORD:-attestor-dr-local}" ping']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -48,7 +59,7 @@ services:
         condition: service_healthy
     environment:
       PORT: 3700
-      REDIS_URL: redis://redis-dr:6379
+      REDIS_URL: redis://attestor:${ATTESTOR_REDIS_DR_PASSWORD:-attestor-dr-local}@redis-dr:6379
       ATTESTOR_CONTROL_PLANE_PG_URL: postgresql://attestor:attestor@postgres-dr:5432/attestor
       ATTESTOR_BILLING_LEDGER_PG_URL: postgresql://attestor:attestor@postgres-dr:5432/attestor
       ATTESTOR_HA_MODE: 'true'
@@ -65,7 +76,7 @@ services:
       redis-dr:
         condition: service_healthy
     environment:
-      REDIS_URL: redis://redis-dr:6379
+      REDIS_URL: redis://attestor:${ATTESTOR_REDIS_DR_PASSWORD:-attestor-dr-local}@redis-dr:6379
       ATTESTOR_CONTROL_PLANE_PG_URL: postgresql://attestor:attestor@postgres-dr:5432/attestor
       ATTESTOR_BILLING_LEDGER_PG_URL: postgresql://attestor:attestor@postgres-dr:5432/attestor
       ATTESTOR_HA_MODE: 'true'

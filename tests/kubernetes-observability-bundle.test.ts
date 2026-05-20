@@ -47,9 +47,12 @@ function main(): void {
   ok(configmap.includes('TEMPO_OTLP_ENDPOINT') && configmap.includes('LOKI_OTLP_ENDPOINT'), 'Kubernetes observability bundle: collector config is backend-endpoint aware');
   ok(configmap.includes('LOKI_TENANT_ID') && configmap.includes('LOKI_OTLP_INSECURE') && configmap.includes('TEMPO_OTLP_INSECURE'), 'Kubernetes observability bundle: local backend tenant and TLS posture are explicit');
   ok(deployment.includes('replicas: 2') && deployment.includes('otel/opentelemetry-collector-contrib:0.152.0@sha256:'), 'Kubernetes observability bundle: deployment runs a multi-replica digest-pinned collector gateway');
+  ok(deployment.includes('seccompProfile:') && deployment.includes('allowPrivilegeEscalation: false') && deployment.includes('readOnlyRootFilesystem: true') && deployment.includes('drop:\n                - ALL'), 'Kubernetes observability bundle: deployment hardens the collector security context');
+  ok(deployment.includes('automountServiceAccountToken: true') && readme.includes('Kubernetes attributes processor uses'), 'Kubernetes observability bundle: deployment documents the intentional Kubernetes metadata token dependency');
   ok(deployment.includes('readinessProbe:') && deployment.includes('livenessProbe:') && deployment.includes('startupProbe:'), 'Kubernetes observability bundle: deployment defines health probes');
   ok(deployment.includes('prometheus.io/scrape') && deployment.includes('containerPort: 8889'), 'Kubernetes observability bundle: deployment exposes Prometheus scrape annotations');
   ok(deployment.includes('LOKI_TENANT_ID') && deployment.includes('TEMPO_OTLP_INSECURE') && deployment.includes('LOKI_OTLP_INSECURE'), 'Kubernetes observability bundle: deployment supplies local backend tenant and TLS env');
+  ok(deployment.includes('tempo.attestor-observability.svc.cluster.local:4317') && deployment.includes('http://loki.attestor-observability.svc.cluster.local:3100/otlp') && readme.includes('namespace-scoped NetworkPolicy proof'), 'Kubernetes observability bundle: base local backend endpoints stay namespace-aligned');
   ok(service.includes('port: 4317') && service.includes('port: 4318') && service.includes('port: 8889'), 'Kubernetes observability bundle: service exposes OTLP and metrics ports');
   ok(hpa.includes('maxReplicas: 6') && hpa.includes('memory'), 'Kubernetes observability bundle: HPA scales on CPU and memory');
   ok(pdb.includes('PodDisruptionBudget') && pdb.includes('minAvailable: 1'), 'Kubernetes observability bundle: PDB protects collector availability');

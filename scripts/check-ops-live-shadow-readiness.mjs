@@ -23,15 +23,26 @@ const FILES = Object.freeze({
   releaseProbe: 'scripts/probe-ha-release-inputs.ts',
   releaseBundle: 'scripts/render-ha-release-bundle.ts',
   observabilityReadme: 'ops/observability/README.md',
+  observabilityDeployment: 'ops/kubernetes/observability/deployment.yaml',
+  observabilityKubernetesReadme: 'ops/kubernetes/observability/README.md',
   prometheusConfig: 'ops/observability/prometheus/prometheus.yml',
   prometheusAlerts: 'ops/observability/prometheus/alerts.yml',
   alertmanagerConfig: 'ops/observability/alertmanager/alertmanager.yml',
   lokiConfig: 'ops/observability/loki/loki.yml',
   localOtelConfig: 'ops/otel/collector-config.yaml',
   observabilityConfigmap: 'ops/kubernetes/observability/configmap.yaml',
+  redisRecoveryConfig: 'ops/redis/redis-recovery.conf',
+  redisRecoveryReadme: 'ops/redis/README.md',
+  drCompose: 'docker-compose.dr.yml',
+  postgresPitrConfig: 'ops/postgres/pitr/postgresql-pitr.conf',
+  postgresArchiveWal: 'ops/postgres/pitr/archive-wal.sh',
+  postgresRestoreWal: 'ops/postgres/pitr/restore-wal.sh',
+  postgresPitrReadme: 'ops/postgres/pitr/README.md',
+  backupRestoreDr: 'docs/08-deployment/backup-restore-dr.md',
   remediation: 'docs/audit/ops-sweep-01-live-shadow-remediation.md',
   sweep02Remediation: 'docs/audit/ops-sweep-02-pki-tls-secrets-remediation.md',
   sweep03Remediation: 'docs/audit/ops-sweep-03-observability-remediation.md',
+  sweep04Remediation: 'docs/audit/ops-sweep-04-storage-collector-remediation.md',
 });
 
 const LIVE_PROOF_FLAGS = Object.freeze([
@@ -172,6 +183,33 @@ function checkRepoReadiness() {
   includes(FILES.observabilityConfigmap, 'detectors: [system]', issues, 'Kubernetes collector must avoid env resource detector leakage');
   includes(FILES.observabilityReadme, 'Prometheus bearer-token file', issues, 'observability docs must document the Prometheus token-file contract');
   includes(FILES.observabilityReadme, 'Production storage, encryption-at-rest, and backup/restore evidence remain live ops proof', issues, 'observability docs must keep storage limitations explicit');
+  includes(FILES.observabilityDeployment, 'otel/opentelemetry-collector-contrib:0.152.0@sha256:', issues, 'observability collector image must be versioned and digest pinned');
+  includes(FILES.observabilityDeployment, 'seccompProfile:', issues, 'observability collector pod must declare seccomp profile');
+  includes(FILES.observabilityDeployment, 'allowPrivilegeEscalation: false', issues, 'observability collector must disallow privilege escalation');
+  includes(FILES.observabilityDeployment, 'readOnlyRootFilesystem: true', issues, 'observability collector must use a read-only root filesystem');
+  includes(FILES.observabilityDeployment, 'drop:\n                - ALL', issues, 'observability collector must drop Linux capabilities');
+  includes(FILES.observabilityDeployment, 'automountServiceAccountToken: true', issues, 'observability collector must make the Kubernetes metadata token dependency explicit');
+  includes(FILES.observabilityDeployment, 'tempo.attestor-observability.svc.cluster.local:4317', issues, 'base observability deployment must keep Tempo endpoint namespace-aligned');
+  includes(FILES.observabilityDeployment, 'http://loki.attestor-observability.svc.cluster.local:3100/otlp', issues, 'base observability deployment must keep Loki endpoint namespace-aligned');
+  includes(FILES.observabilityKubernetesReadme, 'Kubernetes attributes processor uses', issues, 'observability Kubernetes docs must document why the ServiceAccount token is intentionally mounted');
+  includes(FILES.observabilityKubernetesReadme, 'namespace-scoped NetworkPolicy proof', issues, 'observability Kubernetes docs must document endpoint namespace alignment');
+
+  includes(FILES.redisRecoveryConfig, 'protected-mode yes', issues, 'Redis recovery config must keep protected mode enabled');
+  includes(FILES.redisRecoveryConfig, 'aclfile /run/redis/users.acl', issues, 'Redis recovery config must require an ACL file');
+  includes(FILES.redisRecoveryConfig, 'rename-command FLUSHALL ""', issues, 'Redis recovery config must disable FLUSHALL');
+  includes(FILES.redisRecoveryConfig, 'rename-command CONFIG ""', issues, 'Redis recovery config must disable CONFIG');
+  includes(FILES.redisRecoveryReadme, 'default user disabled', issues, 'Redis docs must document the ACL boundary');
+  includes(FILES.drCompose, 'user default off', issues, 'DR compose must generate an ACL file with the default Redis user disabled');
+  includes(FILES.drCompose, 'ATTESTOR_REDIS_DR_PASSWORD: ${ATTESTOR_REDIS_DR_PASSWORD:-attestor-dr-local}', issues, 'DR compose must pass Redis DR password env into the Redis container');
+  includes(FILES.drCompose, 'redis://attestor:${ATTESTOR_REDIS_DR_PASSWORD:-attestor-dr-local}@redis-dr:6379', issues, 'DR compose must wire API and worker to authenticated Redis URLs');
+
+  includes(FILES.postgresPitrConfig, 'archive_command = \'sh /etc/postgresql/archive-wal.sh %p %f\'', issues, 'PostgreSQL PITR config must use the archive helper');
+  includes(FILES.postgresPitrConfig, 'restore_command = \'sh /etc/postgresql/restore-wal.sh %f %p\'', issues, 'PostgreSQL PITR config must use the restore helper through sh');
+  includes(FILES.postgresArchiveWal, 'ATTESTOR_PG_WAL_OFFSITE_ARCHIVE_DIR', issues, 'PostgreSQL WAL archive helper must support an offsite archive path');
+  includes(FILES.postgresArchiveWal, 'sha256sum "$wal_file"', issues, 'PostgreSQL WAL archive helper must write checksum sidecars');
+  includes(FILES.postgresRestoreWal, 'sha256sum -c', issues, 'PostgreSQL WAL restore helper must verify checksum sidecars');
+  includes(FILES.postgresPitrReadme, 'ATTESTOR_PG_WAL_OFFSITE_REQUIRED=true', issues, 'PostgreSQL PITR docs must document fail-closed offsite archive mode');
+  includes(FILES.backupRestoreDr, 'ATTESTOR_PG_WAL_OFFSITE_REQUIRED=true', issues, 'Backup/DR docs must keep offsite WAL proof explicit');
 
   includes(FILES.remediation, 'OPS-02', issues, 'remediation record must account for ClusterSecretStore finding');
   includes(FILES.remediation, 'OPS-04', issues, 'remediation record must account for NetworkPolicy finding');
@@ -182,6 +220,10 @@ function checkRepoReadiness() {
   includes(FILES.sweep03Remediation, 'OPS-25', issues, 'Sweep 03 remediation record must account for Alertmanager receiver routing');
   includes(FILES.sweep03Remediation, 'OPS-26', issues, 'Sweep 03 remediation record must account for Prometheus token-file auth');
   includes(FILES.sweep03Remediation, 'OPS-30', issues, 'Sweep 03 remediation record must account for security event alerts');
+  includes(FILES.sweep04Remediation, 'OPS-39', issues, 'Sweep 04 remediation record must account for Redis auth hardening');
+  includes(FILES.sweep04Remediation, 'OPS-40', issues, 'Sweep 04 remediation record must account for PostgreSQL PITR offsite/checksum boundary');
+  includes(FILES.sweep04Remediation, 'OPS-41', issues, 'Sweep 04 remediation record must account for observability collector securityContext');
+  includes(FILES.sweep04Remediation, 'OPS-44', issues, 'Sweep 04 remediation record must account for observability endpoint namespace alignment');
 
   return issues;
 }

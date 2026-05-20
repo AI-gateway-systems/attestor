@@ -140,14 +140,24 @@ The repo ships a PITR-oriented PostgreSQL config and restore helper:
   - `wal_level = replica`
   - `archive_mode = on`
   - `archive_timeout = 60s`
-  - `restore_command = '/etc/postgresql/restore-wal.sh %f %p'`
-- `restore-wal.sh` copies archived WAL files back into place during restore
+  - `archive_command = 'sh /etc/postgresql/archive-wal.sh %p %f'`
+  - `restore_command = 'sh /etc/postgresql/restore-wal.sh %f %p'`
+- `archive-wal.sh` copies archived WAL files into the local archive directory,
+  writes SHA-256 sidecar checksums, and can mirror WAL to an
+  operator-mounted offsite path when `ATTESTOR_PG_WAL_OFFSITE_ARCHIVE_DIR` is
+  set
+- `restore-wal.sh` verifies the checksum sidecar before copying archived WAL
+  files back into place during restore
 
 Recommended drill:
 
 1. Take the Attestor control-plane snapshot.
 2. Take a PostgreSQL base backup with `pg_basebackup`.
-3. Preserve the WAL archive directory.
+3. Preserve the WAL archive directory and `.sha256` sidecar files. For live
+   shadow or stronger environments, set
+   `ATTESTOR_PG_WAL_OFFSITE_ARCHIVE_DIR` and
+   `ATTESTOR_PG_WAL_OFFSITE_REQUIRED=true` so local-only WAL archiving cannot
+   silently satisfy the drill.
 4. Restore the base backup onto a replacement PostgreSQL node.
 5. Create `recovery.signal` in the target PostgreSQL data directory.
 6. Start PostgreSQL with `postgresql-pitr.conf` and the archived WAL directory mounted.
@@ -165,6 +175,11 @@ Current Redis recovery stance:
 - `appendonly yes`
 - `appendfsync everysec`
 - RDB snapshots remain enabled as an additional checkpoint layer
+- `protected-mode yes`
+- ACL-backed authentication with the default user disabled in the DR compose
+  profile
+- high-risk administrative commands such as `FLUSHALL`, `FLUSHDB`, `CONFIG`,
+  `DEBUG`, and `SHUTDOWN` disabled in the reference config
 
 BullMQ recovery expectation:
 

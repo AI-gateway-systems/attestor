@@ -26,19 +26,33 @@ spec:
         prometheus.io/port: "8889"
     spec:
       serviceAccountName: attestor-otel-gateway
+      automountServiceAccountToken: true
       terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:0.152.0@sha256:f41d7995565df3733b7568702073a9c490792f9c6ac60684fe6a4da21a313f8d
           args:
             - --config=/conf/collector-config.yaml
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: TEMPO_OTLP_ENDPOINT
-              value: tempo.monitoring.svc.cluster.local:4317
+              value: tempo.attestor-observability.svc.cluster.local:4317
             - name: TEMPO_OTLP_INSECURE
               value: "true"
             - name: LOKI_OTLP_ENDPOINT
-              value: http://loki.monitoring.svc.cluster.local:3100/otlp
+              value: http://loki.attestor-observability.svc.cluster.local:3100/otlp
             - name: LOKI_OTLP_INSECURE
               value: "true"
             - name: LOKI_TENANT_ID
@@ -77,7 +91,11 @@ spec:
             - name: config
               mountPath: /conf
               readOnly: true
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: config
           configMap:
             name: attestor-otel-gateway-config
+        - name: tmp
+          emptyDir: {}

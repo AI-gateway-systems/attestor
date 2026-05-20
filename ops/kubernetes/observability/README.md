@@ -19,12 +19,23 @@ The bundle includes:
   attributes processor
 - `k8sattributes` + `resourcedetection` + `memory_limiter` + `batch`
   processors
+- an explicit non-root collector security context. The ServiceAccount token is
+  intentionally mounted because the Kubernetes attributes processor uses
+  read-only Kubernetes metadata RBAC.
 
 Before applying it, replace:
 
-- `tempo.monitoring.svc.cluster.local:4317`
-- `http://loki.monitoring.svc.cluster.local:3100/otlp`
+- `tempo.attestor-observability.svc.cluster.local:4317`
+- `http://loki.attestor-observability.svc.cluster.local:3100/otlp`
 - `attestor-observability`
+
+The base manifest keeps the local Tempo/Loki endpoint placeholders in the same
+namespace as the collector gateway so namespace-scoped NetworkPolicy proof does
+not silently diverge from the rendered deployment. If a target cluster uses a
+shared `monitoring` namespace or a managed backend, render a release bundle with
+explicit `ATTESTOR_OBSERVABILITY_TEMPO_OTLP_ENDPOINT` and
+`ATTESTOR_OBSERVABILITY_LOKI_OTLP_ENDPOINT` values and include that in the live
+proof.
 
 Typical apply flow:
 

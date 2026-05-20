@@ -97,8 +97,8 @@ function main(): void {
   const collectorImage = env('ATTESTOR_OBSERVABILITY_COLLECTOR_IMAGE')
     ?? (provider === 'grafana-alloy' ? GRAFANA_ALLOY_IMAGE : UPSTREAM_OTEL_COLLECTOR_IMAGE);
   const imagePullPolicy = env('ATTESTOR_OBSERVABILITY_COLLECTOR_IMAGE_PULL_POLICY') ?? 'IfNotPresent';
-  const tempoEndpoint = env('ATTESTOR_OBSERVABILITY_TEMPO_OTLP_ENDPOINT') ?? 'tempo.monitoring.svc.cluster.local:4317';
-  const lokiEndpoint = env('ATTESTOR_OBSERVABILITY_LOKI_OTLP_ENDPOINT') ?? 'http://loki.monitoring.svc.cluster.local:3100/otlp';
+  const tempoEndpoint = env('ATTESTOR_OBSERVABILITY_TEMPO_OTLP_ENDPOINT') ?? 'tempo.attestor-observability.svc.cluster.local:4317';
+  const lokiEndpoint = env('ATTESTOR_OBSERVABILITY_LOKI_OTLP_ENDPOINT') ?? 'http://loki.attestor-observability.svc.cluster.local:3100/otlp';
   const secretMode = (arg(
     'secret-mode',
     env('ATTESTOR_OBSERVABILITY_SECRET_MODE') ?? ((provider === 'grafana-cloud' || provider === 'grafana-alloy') ? 'external-secret' : 'secret'),
@@ -177,10 +177,10 @@ function main(): void {
     }
 
     if (provider === 'generic') {
-      deployment = replaceAll(deployment, /value:\s*tempo\.monitoring\.svc\.cluster\.local:4317/, `value: ${tempoEndpoint}`);
+      deployment = replaceAll(deployment, /value:\s*tempo\.attestor-observability\.svc\.cluster\.local:4317/, `value: ${tempoEndpoint}`);
       deployment = replaceAll(
         deployment,
-        /value:\s*http:\/\/loki\.monitoring\.svc\.cluster\.local:3100\/otlp/,
+        /value:\s*http:\/\/loki\.attestor-observability\.svc\.cluster\.local:3100\/otlp/,
         `value: ${lokiEndpoint}`,
       );
     } else {

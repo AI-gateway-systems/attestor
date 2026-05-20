@@ -35,6 +35,9 @@ Do not mark these items closed from documentation-only remediation.
 | `LP-OBSERVABILITY-BACKEND-AUTH` | Live shadow | `repo-gated` | Loki/managed backend auth boundary, tenant header behavior, and namespace/network access proof. | Local Loki auth enabled; OTel/Grafana `X-Scope-OrgID` contract. | Managed backend or live cluster auth behavior is environment-specific. |
 | `LP-OBSERVABILITY-STORAGE` | Live shadow / limited enforcement | `required` | Loki/Tempo storage backend, encryption-at-rest, retention, and backup/restore proof. | OPS-SWEEP-03 documentation and retention env wiring. | Local filesystem backends are evaluation/shadow rehearsal only. |
 | `LP-BUDGET-ALERTING` | Live shadow | `repo-gated` | Cloud budget telemetry source and alert delivery proof. | `AttestorBudgetTelemetryMissing` alert makes absence visible. | Real GCP billing budget integration is live cloud state. |
+| `LP-POSTGRES-PITR-OFFSITE` | Live shadow / limited enforcement | `required` | PostgreSQL base backup, offsite WAL archive, checksum verification, encryption-at-rest, and restore-drill evidence. | OPS-SWEEP-04 adds offsite WAL archive hooks and checksum verification. | Repository scripts do not prove offsite object-store durability or a successful live restore. |
+| `LP-REDIS-AUTH-BOUNDARY` | Live shadow / limited enforcement | `repo-gated` | Redis ACL/password policy, network isolation, secret rotation, and replay/idempotency behavior under restart. | OPS-SWEEP-04 hardens the DR reference config and compose path. | Managed Redis behavior and cluster reachability are live environment facts. |
+| `LP-OBSERVABILITY-POD-SECURITY` | Live shadow | `repo-gated` | Pod Security Admission or equivalent runtime proof that collector securityContext constraints are enforced. | OPS-SWEEP-04 adds collector non-root/seccomp/no-privilege-escalation/read-only-rootfs manifest evidence. | Node/runtime enforcement is not proven by YAML alone. |
 
 ## Capture Rule
 
