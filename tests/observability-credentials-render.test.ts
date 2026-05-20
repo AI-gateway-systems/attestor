@@ -59,6 +59,8 @@ function main(): void {
     ok(grafanaSecret.includes('grafana-cloud-otlp-username') && grafanaSecret.includes('grafana-cloud-otlp-token'), 'Observability credentials render: Grafana secret manifest contains username/token keys');
     ok(alertSecret.includes('ALERTMANAGER_DEFAULT_WEBHOOK_URL') && alertSecret.includes('ALERTMANAGER_CRITICAL_PAGERDUTY_ROUTING_KEY'), 'Observability credentials render: Alertmanager secret manifest contains routing keys');
     ok(readme.includes('do not commit'), 'Observability credentials render: README warns about secret material');
+    ok(!run.stdout.includes('metrics-token-value') && !run.stdout.includes('grafana-token-value'), 'Observability credentials render: stdout does not expose token material');
+    ok(run.stdout.includes('Observability credential bundle rendered at'), 'Observability credentials render: stdout contains only a non-sensitive completion message');
 
     console.log(`\nObservability credentials render tests: ${passed} passed, 0 failed`);
   } finally {

@@ -153,7 +153,7 @@ This output intentionally contains secrets; do not commit it.
   writeFileSync(resolve(outputDir, 'grafana-cloud.secret.yaml'), `${grafanaSecretLines.join('\n')}\n`, 'utf8');
   writeFileSync(resolve(outputDir, 'alertmanager-routing.secret.yaml'), `${alertSecretLines.join('\n')}\n`, 'utf8');
   writeFileSync(resolve(outputDir, 'README.md'), readme, 'utf8');
-  console.log(JSON.stringify(summary, null, 2));
+  console.log(`Observability credential bundle rendered at ${outputDir}`);
 }
 
 try {
