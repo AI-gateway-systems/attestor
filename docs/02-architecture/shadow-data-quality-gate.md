@@ -106,7 +106,7 @@ Outputs:
 | `observation-lag` | freshness | Flags stale observation windows. |
 | `observed-fact-coverage` | coverage | Flags sparse observed facts. |
 | `inferred-fact-ratio` | coverage | Flags inferred material dominating observed material. |
-| `producer-trust` | provenance | Flags producers outside the scoped allow-list. |
+| `producer-trust` | provenance | Fails events without a scoped producer allow-list, and fails producers outside that allow-list. |
 | `decision-fail-closed-posture` | decision-integrity | Flags shadow records whose own decision posture admits without fail-closed evidence. |
 
 ## Assurance Case Role

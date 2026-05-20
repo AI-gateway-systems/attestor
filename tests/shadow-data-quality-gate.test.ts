@@ -241,6 +241,18 @@ function testSparseInferredStaleAndUntrustedEventsOpenDefeater(): void {
   equal(record.underminingDefeaterKind, 'undermining', 'Shadow data quality: defeater kind is undermining');
 }
 
+function testProducerTrustRequiresScopedAllowlist(): void {
+  const record = createShadowDataQualityGate(cleanGateInput({
+    trustedProducers: [],
+  }));
+
+  equal(record.outcome, 'quality-open-undermining-defeater', 'Shadow data quality: missing producer scope opens defeater');
+  equal(record.readyForAssuranceEvidence, false, 'Shadow data quality: unscoped producer trust is not evidence-ready');
+  equal(record.failedCheckCount, 1, 'Shadow data quality: unscoped producer trust is a failed check');
+  ok(record.dangerFlags.includes('producer-trust-unscoped'), 'Shadow data quality: unscoped producer flag is present');
+  ok(record.reasonCodes.includes('producer-trust-unscoped'), 'Shadow data quality: unscoped producer reason is retained');
+}
+
 function testMissingTraceAndReplayAreCorrelationDefeaterMaterial(): void {
   const event = createCanonicalShadowEvent(canonicalInput({
     traceRefDigest: null,
@@ -376,6 +388,7 @@ testCleanShadowEventIsReadyForAssuranceEvidence();
 testMissingProvenanceHoldsEvidence();
 testAssuranceCaseContextIsRequired();
 testSparseInferredStaleAndUntrustedEventsOpenDefeater();
+testProducerTrustRequiresScopedAllowlist();
 testMissingTraceAndReplayAreCorrelationDefeaterMaterial();
 testDecisionFailOpenIsDefeaterMaterial();
 testRawMaterialAndInvalidInputsFailClosed();

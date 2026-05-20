@@ -81,6 +81,7 @@ export const SHADOW_DATA_QUALITY_DANGER_FLAGS = [
   'observed-facts-sparse',
   'inferred-facts-dominate',
   'inferred-reference-origin',
+  'producer-trust-unscoped',
   'producer-untrusted',
   'decision-fail-open',
   'assurance-case-unbound',
@@ -366,6 +367,7 @@ function flagsFromChecks(
     ['observed-facts-sparse', 'observed-facts-sparse'],
     ['inferred-facts-dominate', 'inferred-facts-dominate'],
     ['inferred-reference-origin', 'inferred-reference-origin'],
+    ['producer-trust-unscoped', 'producer-trust-unscoped'],
     ['producer-untrusted', 'producer-untrusted'],
     ['decision-fail-open', 'decision-fail-open'],
   ];
@@ -432,8 +434,8 @@ function buildChecks(input: {
     ...event.receiptRefs,
     ...event.policyRefs,
   ].some((ref) => ref.origin === 'inferred');
-  const producerTrusted =
-    trustedProducers.size === 0 || trustedProducers.has(event.producer);
+  const producerTrustScoped = trustedProducers.size > 0;
+  const producerTrusted = producerTrustScoped && trustedProducers.has(event.producer);
   const rawBoundaryClean =
     event.rawPayloadStored === false &&
     event.rawMaterialBoundary.rawPayloadStored === false &&
@@ -556,8 +558,12 @@ function buildChecks(input: {
     check({
       checkId: 'producer-trust',
       dimension: 'provenance',
-      status: statusFor(producerTrusted, 'warn'),
-      reasonCodes: producerTrusted ? ['producer-trusted-or-unscoped'] : ['producer-untrusted'],
+      status: statusFor(producerTrusted, 'fail'),
+      reasonCodes: producerTrusted
+        ? ['producer-trusted']
+        : producerTrustScoped
+          ? ['producer-untrusted']
+          : ['producer-trust-unscoped'],
       evidenceRefDigests: [event.digest],
     }),
     check({
