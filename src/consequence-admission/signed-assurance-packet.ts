@@ -440,6 +440,9 @@ function normalizeSignature(
       'Signed assurance packet signature payloadDigest must match the signing payload digest.',
     );
   }
+  const productionBoundary =
+    (SIGNED_ASSURANCE_PACKET_PRODUCTION_SIGNING_BOUNDARIES as readonly SignedAssurancePacketSigningBoundary[])
+      .includes(signature.signingBoundary);
   const normalized = Object.freeze({
     algorithm: signature.algorithm,
     signature: normalizeIdentifier(signature.signature, 'signature.signature'),
@@ -457,7 +460,7 @@ function normalizeSignature(
     ),
     signingBoundary: signature.signingBoundary,
     payloadDigest,
-    productionReady: signature.productionReady === true,
+    productionReady: productionBoundary,
   });
   if (normalized.algorithm === 'ed25519') {
     if (!ED25519_SIGNATURE_HEX_PATTERN.test(normalized.signature)) {
@@ -509,10 +512,7 @@ function normalizeSignature(
 function productionSigningBoundaryReady(
   signature: SignedAssurancePacketSignature | null,
 ): boolean {
-  return signature !== null &&
-    signature.productionReady &&
-    (SIGNED_ASSURANCE_PACKET_PRODUCTION_SIGNING_BOUNDARIES as readonly SignedAssurancePacketSigningBoundary[])
-      .includes(signature.signingBoundary);
+  return signature !== null && signature.productionReady;
 }
 
 function signatureStatusFor(

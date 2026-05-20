@@ -317,9 +317,10 @@ function testRuntimeProductionClaimIsDowngraded(): void {
 
   equal(packet.signatureStatus, 'signed-evaluation', 'Signed assurance packet: runtime production claim is downgraded');
   equal(packet.productionSigningBoundaryReady, false, 'Signed assurance packet: unsafe boundary is not ready');
+  equal(packet.signature?.productionReady, false, 'Signed assurance packet: productionReady is derived from boundary, not caller flag');
   ok(
-    packet.remainingActivationBlockers.includes('production-signing-boundary-invalid'),
-    'Signed assurance packet: invalid production boundary blocker is retained',
+    !packet.remainingActivationBlockers.includes('production-signing-boundary-invalid'),
+    'Signed assurance packet: ignored caller production flag does not create production boundary readiness',
   );
 }
 
@@ -334,12 +335,13 @@ function testExternalKmsBoundaryCanBeProductionSignedButNotAuthority(): void {
     signedAt: '2026-05-17T15:45:01.000Z',
     signingBoundary: 'external-kms-hsm',
     payloadDigest: payload.digest,
-    productionReady: true,
+    productionReady: false,
   };
   const packet = createSignedAssurancePacket({ ...input, signature });
 
   equal(packet.signatureStatus, 'signed-production', 'Signed assurance packet: external KMS/HSM can be production-signed');
   equal(packet.productionSigningBoundaryReady, true, 'Signed assurance packet: production signing boundary is ready');
+  equal(packet.signature?.productionReady, true, 'Signed assurance packet: productionReady is derived from production signing boundary');
   equal(packet.packetReady, true, 'Signed assurance packet: production-signed packet is packet-ready');
   equal(packet.activationReady, false, 'Signed assurance packet: production signature still does not activate');
   equal(packet.canAdmit, false, 'Signed assurance packet: production-signed packet still cannot admit');
