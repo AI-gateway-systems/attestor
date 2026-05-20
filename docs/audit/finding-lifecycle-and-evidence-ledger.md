@@ -7,6 +7,11 @@ external audit, not a certification, not production readiness, and not a claim
 that every historical finding is closed. It is the operating contract for
 closing findings with evidence instead of closing them by assertion.
 
+Historical labels are mapped to canonical IDs in
+[`audit-id-alias-registry.md`](audit-id-alias-registry.md). New remediation and
+verification records should use canonical `AUD-*`, `REM-*`, and `VER-*`
+identifiers rather than `Round N` labels.
+
 ## Research Anchors
 
 - NIST SP 800-115: technical security testing should plan tests, analyze

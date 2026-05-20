@@ -148,7 +148,7 @@ external identity fabric.
 | `ATTESTOR_GCP_KMS_EXPECTED_PROTECTION_LEVEL` | No | `hsm` | Expected GCP KMS protection level for the proof probe. Supported values are `hsm`, `external`, and `external-vpc`; software protection is not accepted for production-oriented proof |
 | `ATTESTOR_GCP_KMS_ROTATION_REF` | No | None | Operator rotation reference recorded by the adapter config. It is not a key rotation implementation |
 | `ATTESTOR_ACCOUNT_STORE_PATH` | No | `.attestor/accounts.json` | File-backed hosted account registry used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
-| `ATTESTOR_ACCOUNT_USER_STORE_PATH` | No | `.attestor/account-users.json` | File-backed hosted account user registry used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
+| `ATTESTOR_ACCOUNT_USER_STORE_PATH` | No | `.attestor/account-users.json` | File-backed hosted account user registry for local, evaluation, and single-node durable use when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured. Production-shared/public hosted deployments require the shared control-plane store instead of this local JSON path. |
 | `ATTESTOR_ACCOUNT_SESSION_STORE_PATH` | No | `.attestor/account-sessions.json` | File-backed hosted customer session store used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
 | `ATTESTOR_ACCOUNT_USER_TOKEN_STORE_PATH` | No | `.attestor/account-user-tokens.json` | File-backed hosted invite/password-reset/MFA-login token store used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
 | `ATTESTOR_ACCOUNT_SAML_REPLAY_STORE_PATH` | No | `.attestor/account-saml-replays.json` | File-backed hosted SAML replay-consumption ledger used when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured |
