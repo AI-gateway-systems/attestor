@@ -33,6 +33,8 @@ function main(): void {
   ok(liveMissing.stderr.includes('ATTESTOR_NETWORK_POLICY_PROOF'), 'ops live-shadow live gate requires NetworkPolicy proof');
   ok(liveMissing.stderr.includes('ATTESTOR_EDGE_WAF_PROOF'), 'ops live-shadow live gate requires edge WAF proof');
   ok(liveMissing.stderr.includes('ATTESTOR_GCP_IAM_LEAST_PRIVILEGE_PROOF'), 'ops live-shadow live gate requires IAM proof');
+  ok(liveMissing.stderr.includes('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF'), 'ops live-shadow live gate requires release-runtime PKI storage proof');
+  ok(liveMissing.stderr.includes('ATTESTOR_TLS_MATERIAL_SOURCE_PROOF'), 'ops live-shadow live gate requires TLS material source proof');
 
   const liveReady = run('live', {
     ...process.env,
@@ -41,6 +43,8 @@ function main(): void {
     ATTESTOR_NETWORK_POLICY_PROOF: 'verified',
     ATTESTOR_EDGE_WAF_PROOF: 'verified',
     ATTESTOR_GCP_IAM_LEAST_PRIVILEGE_PROOF: 'verified',
+    ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF: 'verified',
+    ATTESTOR_TLS_MATERIAL_SOURCE_PROOF: 'verified',
   });
   ok(liveReady.status === 0, `ops live-shadow live gate passes with proof flags\nstdout:\n${liveReady.stdout}\nstderr:\n${liveReady.stderr}`);
   ok(liveReady.stdout.includes('live readiness check passed'), 'ops live-shadow live gate reports success');

@@ -66,6 +66,16 @@ function requireDigestPinnedImage(name: string, value: string | null, issues: st
   }
 }
 
+function requireStorageClassName(name: string, value: string | null, issues: string[]): void {
+  if (!value) {
+    issues.push(`${name} is required.`);
+    return;
+  }
+  if (!/^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$/u.test(value) || value.length > 253) {
+    issues.push(`${name} must be a Kubernetes DNS-style StorageClass name.`);
+  }
+}
+
 function pushInvalid(message: string, issues: string[]): void {
   issues.push(message);
 }
@@ -136,6 +146,7 @@ export async function probeHaReleaseInputs(options?: {
   if (!envTruthy('ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH')) {
     pushInvalid('ATTESTOR_RELEASE_RUNTIME_PKI_SHARED_PATH=true is required for HA release-token verification.', issues);
   }
+  requireStorageClassName('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS', env('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS'), issues);
   required('ATTESTOR_ADMIN_API_KEY', env('ATTESTOR_ADMIN_API_KEY'), issues);
   required('ATTESTOR_METRICS_API_KEY', env('ATTESTOR_METRICS_API_KEY'), issues);
   required('ATTESTOR_ACCOUNT_MFA_ENCRYPTION_KEY', env('ATTESTOR_ACCOUNT_MFA_ENCRYPTION_KEY'), issues);

@@ -2,9 +2,14 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: attestor-release-runtime-pki
+  annotations:
+    attestor.dev/storage-boundary: release-runtime-pki
+    attestor.dev/live-shadow-proof: ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF
 spec:
+  storageClassName: attestor-release-runtime-pki-rwx
   accessModes:
     - ReadWriteMany
+  volumeMode: Filesystem
   resources:
     requests:
       storage: 1Gi

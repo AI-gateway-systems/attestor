@@ -7,12 +7,23 @@ It assumes:
 
 - cert-manager is already installed
 - a `ClusterIssuer` exists in the cluster
+- this overlay is the selected TLS material source for `attestor-tls`
+
+Do not apply this overlay together with the External Secrets TLS overlay. Both
+paths write the same `attestor-tls` Secret; live shadow must choose exactly one
+source and record that choice with `ATTESTOR_TLS_MATERIAL_SOURCE_PROOF=verified`
+before treating the TLS boundary as proven.
 
 Before applying it, replace:
 
 - `letsencrypt-prod`
 - `attestor.example.com`
 - `ops@example.com` inside [clusterissuer.example.yaml](/C:/Users/thedi/attestor/ops/kubernetes/ha/providers/cert-manager/clusterissuer.example.yaml)
+
+The `clusterissuer.example.yaml` file is intentionally not part of this
+kustomization because issuer email, ACME account material, and Gateway solver
+details are environment-owned. Apply a real `ClusterIssuer` first, or render
+one through `render:gke-domain-cutover`.
 
 Apply it with:
 

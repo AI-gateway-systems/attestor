@@ -94,6 +94,20 @@ function requireDigestPinnedImage(value: string, name: string): void {
   }
 }
 
+function validateStorageClassName(value: string, name: string): string {
+  if (!/^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$/u.test(value) || value.length > 253) {
+    throw new Error(`${name} must be a Kubernetes DNS-style StorageClass name.`);
+  }
+  return value;
+}
+
+function validateStorageSize(value: string, name: string): string {
+  if (!/^[1-9]\d*(Mi|Gi|Ti)$/u.test(value)) {
+    throw new Error(`${name} must be a Kubernetes storage quantity such as 10Gi or 1Ti.`);
+  }
+  return value;
+}
+
 function yamlSingleQuote(value: string): string {
   return `'${value.replace(/'/gu, "''")}'`;
 }
@@ -163,6 +177,11 @@ function main(): void {
     requireDigestPinnedImage(apiImage, 'ATTESTOR_API_IMAGE');
     requireDigestPinnedImage(workerImage, 'ATTESTOR_WORKER_IMAGE');
   }
+  const releaseRuntimePkiStorageClass = env('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS');
+  if (productionMode && !releaseRuntimePkiStorageClass) {
+    throw new Error('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS must be set for production HA release bundles.');
+  }
+  const releaseRuntimePkiStorageSize = env('ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_SIZE');
   const imagePullPolicy = env('ATTESTOR_IMAGE_PULL_POLICY') ?? 'IfNotPresent';
   const hostname = normalizeDnsHostname(required(env('ATTESTOR_PUBLIC_HOSTNAME'), 'ATTESTOR_PUBLIC_HOSTNAME'));
   const gatewayClassName = env('ATTESTOR_GATEWAY_CLASS_NAME') ?? 'managed-external';
@@ -186,7 +205,21 @@ function main(): void {
     let httpRoute = read('ops/kubernetes/ha/httproute.yaml');
     const apiService = read('ops/kubernetes/ha/api-service.yaml');
     const namespaceYaml = read('ops/kubernetes/ha/namespace.yaml');
-    const releaseRuntimePkiPvc = read('ops/kubernetes/ha/release-runtime-pki-pvc.yaml');
+    let releaseRuntimePkiPvc = read('ops/kubernetes/ha/release-runtime-pki-pvc.yaml');
+    if (releaseRuntimePkiStorageClass) {
+      releaseRuntimePkiPvc = replaceYamlLine(
+        releaseRuntimePkiPvc,
+        'storageClassName',
+        `  storageClassName: ${validateStorageClassName(releaseRuntimePkiStorageClass, 'ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_CLASS')}`,
+      );
+    }
+    if (releaseRuntimePkiStorageSize) {
+      releaseRuntimePkiPvc = replaceYamlLine(
+        releaseRuntimePkiPvc,
+        'storage',
+        `      storage: ${validateStorageSize(releaseRuntimePkiStorageSize, 'ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_SIZE')}`,
+      );
+    }
     const apiPdb = read('ops/kubernetes/ha/api-pdb.yaml');
     const workerPdb = read('ops/kubernetes/ha/worker-pdb.yaml');
 
@@ -364,6 +397,8 @@ ${resources.map((resource) => `  - ${resource}`).join('\n')}
       hostname,
       apiImage,
       workerImage,
+      releaseRuntimePkiStorageClass: releaseRuntimePkiStorageClass ?? 'attestor-release-runtime-pki-rwx',
+      releaseRuntimePkiStorageSize: releaseRuntimePkiStorageSize ?? null,
       useKeda,
       runtimeSecretMode,
       tlsMode,
