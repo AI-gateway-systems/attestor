@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: attestor-keda-prometheus-auth
+type: Opaque
+stringData:
+  bearerToken: REPLACE_WITH_PROMETHEUS_QUERY_BEARER_TOKEN
+  ca: REPLACE_WITH_PROMETHEUS_CA_PEM
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: attestor-keda-prometheus
+spec:
+  secretTargetRef:
+    - parameter: bearerToken
+      name: attestor-keda-prometheus-auth
+      key: bearerToken
+    - parameter: ca
+      name: attestor-keda-prometheus-auth
+      key: ca

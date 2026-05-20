@@ -13,6 +13,17 @@ const FILES = Object.freeze({
   releaseRuntimePkiPvc: 'ops/kubernetes/ha/release-runtime-pki-pvc.yaml',
   networkPolicy: 'ops/kubernetes/ha/networkpolicy.yaml',
   backendPolicy: 'ops/kubernetes/ha/providers/gke/gcpbackendpolicy.yaml',
+  awsOverlay: 'ops/kubernetes/ha/providers/aws/kustomization.yaml',
+  awsIngress: 'ops/kubernetes/ha/providers/aws/alb-ingress.yaml',
+  awsHttpsIngressExample: 'ops/kubernetes/ha/providers/aws/alb-ingress.https.example.yaml',
+  awsReadme: 'ops/kubernetes/ha/providers/aws/README.md',
+  kedaKustomization: 'ops/kubernetes/ha/providers/keda/kustomization.yaml',
+  kedaReadme: 'ops/kubernetes/ha/providers/keda/README.md',
+  kedaApiScaledObject: 'ops/kubernetes/ha/providers/keda/api-scaledobject.yaml',
+  kedaWorkerScaledObject: 'ops/kubernetes/ha/providers/keda/worker-scaledobject.yaml',
+  kedaWorkerTriggerAuthentication: 'ops/kubernetes/ha/providers/keda/worker-triggerauthentication.yaml',
+  kedaWorkerScaledObjectTlsExample: 'ops/kubernetes/ha/providers/keda/worker-scaledobject.tls.example.yaml',
+  kedaPrometheusTriggerAuthenticationExample: 'ops/kubernetes/ha/providers/keda/api-prometheus-triggerauthentication.example.yaml',
   certManagerReadme: 'ops/kubernetes/ha/providers/cert-manager/README.md',
   certManagerKustomization: 'ops/kubernetes/ha/providers/cert-manager/kustomization.yaml',
   certManagerCertificate: 'ops/kubernetes/ha/providers/cert-manager/certificate.yaml',
@@ -48,18 +59,36 @@ const FILES = Object.freeze({
   sweep04Remediation: 'docs/audit/ops-sweep-04-storage-collector-remediation.md',
 });
 
+const LIVE_PROOF_STAGE_ORDER = Object.freeze([
+  'live-shadow',
+  'limited-enforcement',
+  'enterprise-pilot',
+]);
+
 const LIVE_PROOF_FLAGS = Object.freeze([
-  ['ATTESTOR_LIVE_SHADOW_HTTPS_PROOF', 'HTTPS Gateway/route was applied and probed with an https:// public URL.'],
-  ['ATTESTOR_CLUSTER_SECRET_STORE_PROOF', 'ClusterSecretStore backend and ExternalSecret sync were verified.'],
-  ['ATTESTOR_NETWORK_POLICY_PROOF', 'NetworkPolicy or equivalent cluster isolation was applied and tested.'],
-  ['ATTESTOR_EDGE_WAF_PROOF', 'Cloud Armor or equivalent edge WAF/rate-limit policy was attached and tested.'],
-  ['ATTESTOR_GCP_IAM_LEAST_PRIVILEGE_PROOF', 'GCP IAM least-privilege bindings were reviewed and verified.'],
-  ['ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF', 'Release-runtime PKI storage class, encryption, RWX semantics, and backup posture were verified.'],
-  ['ATTESTOR_TLS_MATERIAL_SOURCE_PROOF', 'Exactly one TLS material source was selected, applied, and verified.'],
-  ['ATTESTOR_OBSERVABILITY_ALERT_DELIVERY_PROOF', 'Alertmanager warning, critical, security, billing, and Watchdog routes were delivered or intentionally routed in the live environment.'],
-  ['ATTESTOR_OBSERVABILITY_BACKEND_AUTH_PROOF', 'Observability backend auth, tenant header behavior, and cluster/network access were verified.'],
-  ['ATTESTOR_OBSERVABILITY_STORAGE_PROOF', 'Loki/Tempo storage, retention, encryption-at-rest, and backup boundaries were verified.'],
-  ['ATTESTOR_BUDGET_ALERTING_PROOF', 'Cloud budget telemetry and alert delivery were verified.'],
+  { name: 'ATTESTOR_LIVE_SHADOW_HTTPS_PROOF', minStage: 'live-shadow', description: 'HTTPS Gateway/route was applied and probed with an https:// public URL.' },
+  { name: 'ATTESTOR_CLUSTER_SECRET_STORE_PROOF', minStage: 'live-shadow', description: 'ClusterSecretStore backend and ExternalSecret sync were verified.' },
+  { name: 'ATTESTOR_NETWORK_POLICY_PROOF', minStage: 'live-shadow', description: 'NetworkPolicy or equivalent cluster isolation was applied and tested.' },
+  { name: 'ATTESTOR_EDGE_WAF_PROOF', minStage: 'live-shadow', description: 'Cloud Armor, AWS WAFv2, or equivalent edge WAF/rate-limit policy was attached and tested.' },
+  { name: 'ATTESTOR_GCP_IAM_LEAST_PRIVILEGE_PROOF', minStage: 'live-shadow', description: 'GCP IAM least-privilege bindings were reviewed and verified when GKE/GCP providers are in use.' },
+  { name: 'ATTESTOR_RELEASE_RUNTIME_PKI_STORAGE_PROOF', minStage: 'live-shadow', description: 'Release-runtime PKI storage class, encryption, RWX semantics, and backup posture were verified.' },
+  { name: 'ATTESTOR_TLS_MATERIAL_SOURCE_PROOF', minStage: 'live-shadow', description: 'Exactly one TLS material source was selected, applied, and verified.' },
+  { name: 'ATTESTOR_OBSERVABILITY_ALERT_DELIVERY_PROOF', minStage: 'live-shadow', description: 'Alertmanager warning, critical, security, billing, and Watchdog routes were delivered or intentionally routed in the live environment.' },
+  { name: 'ATTESTOR_OBSERVABILITY_BACKEND_AUTH_PROOF', minStage: 'live-shadow', description: 'Observability backend auth, tenant header behavior, and cluster/network access were verified.' },
+  { name: 'ATTESTOR_OBSERVABILITY_STORAGE_PROOF', minStage: 'live-shadow', description: 'Loki/Tempo storage, retention, encryption-at-rest, and backup boundaries were verified.' },
+  { name: 'ATTESTOR_BUDGET_ALERTING_PROOF', minStage: 'live-shadow', description: 'Cloud budget telemetry and alert delivery were verified.' },
+  { name: 'ATTESTOR_SHARED_REPLAY_STORE_PROOF', minStage: 'live-shadow', description: 'Multi-instance replay and nonce rejection were verified against the shared replay store.' },
+  { name: 'ATTESTOR_POSTGRES_PITR_OFFSITE_PROOF', minStage: 'live-shadow', description: 'PostgreSQL base backup, offsite WAL archive, checksum verification, encryption-at-rest, and restore drill were verified.' },
+  { name: 'ATTESTOR_REDIS_AUTH_BOUNDARY_PROOF', minStage: 'live-shadow', description: 'Redis ACL/password policy, network isolation, secret rotation, and restart behavior were verified.' },
+  { name: 'ATTESTOR_OBSERVABILITY_POD_SECURITY_PROOF', minStage: 'live-shadow', description: 'Pod Security Admission or equivalent runtime enforcement was verified for the observability collector.' },
+  { name: 'ATTESTOR_ADMIN_ACTOR_ROLE_SPLIT_PROOF', minStage: 'live-shadow', description: 'Live admin deployment uses role-scoped keys and audit records show distinct actor labels and roles.' },
+  { name: 'ATTESTOR_ADMIN_RATE_LIMIT_PROOF', minStage: 'live-shadow', description: 'Admin abuse probe shows over-limit requests receive 429 before expensive admin credential comparison.' },
+  { name: 'ATTESTOR_KEDA_REDIS_TLS_PROOF', minStage: 'live-shadow', description: 'KEDA Redis scaler TLS posture was matched to the runtime Redis endpoint and verified when KEDA is enabled.' },
+  { name: 'ATTESTOR_KEDA_PROMETHEUS_AUTH_PROOF', minStage: 'live-shadow', description: 'KEDA Prometheus scaler authentication and namespace/network boundary were verified when KEDA is enabled.' },
+  { name: 'ATTESTOR_SHARED_INTROSPECTION_STORE_PROOF', minStage: 'limited-enforcement', description: 'Introspection cache/store behavior was verified under restart, outage, and stale-token scenarios.' },
+  { name: 'ATTESTOR_CUSTOMER_PEP_NO_BYPASS_PROOF', minStage: 'limited-enforcement', description: 'Reference customer PEP integration rejects direct downstream bypass attempts.' },
+  { name: 'ATTESTOR_KMS_RUNTIME_SIGNING_PROOF', minStage: 'limited-enforcement', description: 'KMS/HSM-backed runtime signing and key identity were verified without raw private key export.' },
+  { name: 'ATTESTOR_DEGRADED_MODE_OUTAGE_PROOF', minStage: 'limited-enforcement', description: 'Provider/Redis/Vault/DB outage behavior was verified as fail-closed or bounded break-glass with TTL/audit trail.' },
 ]);
 
 function arg(name, fallback) {
@@ -95,6 +124,15 @@ function notIncludesNear(path, anchor, forbidden, issues, message) {
 
 function envTruthy(name) {
   return /^(1|true|yes|on|verified)$/iu.test(process.env[name] ?? '');
+}
+
+function stageRank(stage) {
+  return LIVE_PROOF_STAGE_ORDER.indexOf(stage);
+}
+
+function proofFlagsForStage(stage) {
+  const requestedRank = stageRank(stage);
+  return LIVE_PROOF_FLAGS.filter((flag) => stageRank(flag.minStage) <= requestedRank);
 }
 
 function requireFile(path, issues) {
@@ -151,6 +189,26 @@ function checkRepoReadiness() {
   includes(FILES.networkPolicy, 'port: 443', issues, 'external HTTPS egress must stay explicit');
 
   includes(FILES.backendPolicy, 'securityPolicy: attestor-api-armor-policy', issues, 'active GKE backend policy must reference Cloud Armor');
+  includes(FILES.awsOverlay, '../../', issues, 'AWS managed LB overlay must compose the base bundle');
+  includes(FILES.awsIngress, 'alb.ingress.kubernetes.io/healthcheck-path', issues, 'AWS ALB overlay must define health checks');
+  includes(FILES.awsIngress, 'alb.ingress.kubernetes.io/target-group-attributes', issues, 'AWS ALB overlay must keep target-group tuning');
+  includes(FILES.awsHttpsIngressExample, 'alb.ingress.kubernetes.io/listen-ports: \'[{"HTTP":80},{"HTTPS":443}]\'', issues, 'AWS HTTPS example must declare HTTP and HTTPS listeners');
+  includes(FILES.awsHttpsIngressExample, 'alb.ingress.kubernetes.io/ssl-redirect: "443"', issues, 'AWS HTTPS example must redirect cleartext HTTP to HTTPS');
+  includes(FILES.awsHttpsIngressExample, 'alb.ingress.kubernetes.io/certificate-arn: REPLACE_WITH_ACM_CERTIFICATE_ARN', issues, 'AWS HTTPS example must require an ACM certificate ARN');
+  includes(FILES.awsHttpsIngressExample, 'alb.ingress.kubernetes.io/wafv2-acl-arn: REPLACE_WITH_AWS_WAFV2_WEB_ACL_ARN', issues, 'AWS HTTPS example must show the WAFv2 association contract');
+  includes(FILES.awsReadme, 'ATTESTOR_EDGE_WAF_PROOF', issues, 'AWS provider docs must name the edge WAF live proof gate');
+  includes(FILES.awsReadme, 'ATTESTOR_LIVE_SHADOW_HTTPS_PROOF', issues, 'AWS provider docs must name the HTTPS live proof gate');
+  includes(FILES.kedaKustomization, 'api-scaledobject.yaml', issues, 'KEDA overlay must compose API scaler');
+  includes(FILES.kedaKustomization, 'worker-scaledobject.yaml', issues, 'KEDA overlay must compose worker scaler');
+  includes(FILES.kedaReadme, 'redis-address', issues, 'KEDA docs must document Redis scaler secret requirements');
+  includes(FILES.kedaReadme, 'ATTESTOR_KEDA_REDIS_TLS_PROOF', issues, 'KEDA docs must name the Redis TLS proof gate');
+  includes(FILES.kedaReadme, 'ATTESTOR_KEDA_PROMETHEUS_AUTH_PROOF', issues, 'KEDA docs must name the Prometheus auth proof gate');
+  includes(FILES.kedaApiScaledObject, 'type: prometheus', issues, 'KEDA API scaler must use Prometheus');
+  includes(FILES.kedaWorkerScaledObject, 'type: redis-lists', issues, 'KEDA worker scaler must use Redis lists');
+  includes(FILES.kedaWorkerTriggerAuthentication, 'redis-password', issues, 'KEDA worker scaler must authenticate with Redis secret material');
+  includes(FILES.kedaWorkerScaledObjectTlsExample, 'enableTLS: "true"', issues, 'KEDA Redis TLS example must allow TLS-on runtime parity');
+  includes(FILES.kedaPrometheusTriggerAuthenticationExample, 'kind: TriggerAuthentication', issues, 'KEDA Prometheus auth example must ship a TriggerAuthentication');
+  includes(FILES.kedaPrometheusTriggerAuthenticationExample, 'bearerToken', issues, 'KEDA Prometheus auth example must support bearer-token auth');
 
   includes(FILES.certManagerKustomization, 'certificate.yaml', issues, 'cert-manager overlay must compose the Certificate resource');
   includes(FILES.certManagerCertificate, 'secretName: attestor-tls', issues, 'cert-manager Certificate must target the Gateway TLS Secret');
@@ -177,6 +235,8 @@ function checkRepoReadiness() {
   includes(FILES.prometheusAlerts, 'AttestorSecurityRejectionSpike', issues, 'Prometheus must alert on security-relevant rejection spikes');
   includes(FILES.prometheusAlerts, 'AttestorWebhookSignatureInvalid', issues, 'Prometheus must alert on invalid webhook signatures');
   includes(FILES.prometheusAlerts, 'AttestorBudgetTelemetryMissing', issues, 'Prometheus must make missing budget telemetry visible');
+  includes(FILES.prometheusAlerts, 'AttestorAvailabilityErrorBudgetFastBurn', issues, 'Prometheus must include fast burn-rate SLO availability alerts');
+  includes(FILES.prometheusAlerts, 'AttestorLatencyErrorBudgetFastBurn', issues, 'Prometheus must include fast burn-rate SLO latency alerts');
   includes(FILES.lokiConfig, 'auth_enabled: true', issues, 'local Loki must require tenant auth');
   includes(FILES.lokiConfig, 'ATTESTOR_OBSERVABILITY_LOKI_RETENTION_PERIOD', issues, 'Loki retention must be profile/env driven');
   includes(FILES.localOtelConfig, 'X-Scope-OrgID: ${LOKI_TENANT_ID}', issues, 'local OTel to Loki writes must carry a tenant header');
@@ -243,11 +303,11 @@ function checkRepoReadiness() {
   return issues;
 }
 
-function checkLiveProofs() {
+function checkLiveProofs(stage) {
   const issues = checkRepoReadiness();
-  for (const [name, description] of LIVE_PROOF_FLAGS) {
+  for (const { name, description, minStage } of proofFlagsForStage(stage)) {
     if (!envTruthy(name)) {
-      issues.push(`${name}: missing live proof. ${description}`);
+      issues.push(`${name}: missing ${stage} live proof (minimum stage: ${minStage}). ${description}`);
     }
   }
   return issues;
@@ -258,14 +318,18 @@ function main() {
   if (!['repo', 'live'].includes(mode)) {
     throw new Error('--mode must be repo or live');
   }
+  const stage = arg('stage', 'live-shadow');
+  if (!LIVE_PROOF_STAGE_ORDER.includes(stage)) {
+    throw new Error(`--stage must be one of: ${LIVE_PROOF_STAGE_ORDER.join(', ')}`);
+  }
 
-  const issues = mode === 'live' ? checkLiveProofs() : checkRepoReadiness();
+  const issues = mode === 'live' ? checkLiveProofs(stage) : checkRepoReadiness();
   if (issues.length > 0) {
-    console.error(`Ops live-shadow ${mode} readiness check failed:`);
+    console.error(`Ops live-shadow ${mode} readiness check failed${mode === 'live' ? ` for ${stage} stage` : ''}:`);
     for (const issue of issues) console.error(`- ${issue}`);
     process.exit(1);
   }
-  console.log(`Ops live-shadow ${mode} readiness check passed.`);
+  console.log(`Ops live-shadow ${mode} readiness check passed${mode === 'live' ? ` for ${stage} stage` : ''}.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

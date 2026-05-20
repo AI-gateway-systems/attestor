@@ -14,6 +14,7 @@ function ok(condition: unknown, message: string): void {
 function main(): void {
   const tempDir = mkdtempSync(resolve(tmpdir(), 'attestor-observability-profile-'));
   const benchmarkPath = resolve(tempDir, 'benchmark.json');
+  const invalidProfilePath = resolve(tempDir, 'invalid-profile.json');
   const outputDir = resolve(tempDir, 'rendered');
 
   writeFileSync(
@@ -22,6 +23,31 @@ function main(): void {
       requestsPerSecond: 22.4,
       p95LatencyMs: 420,
       successRate: 0.998
+    }, null, 2)}\n`,
+    'utf8',
+  );
+  writeFileSync(
+    invalidProfilePath,
+    `${JSON.stringify({
+      name: 'invalid-zero-budget',
+      slo: {
+        availabilityTarget: 1,
+        latencyP95Ms: 500,
+        latencySuccessTarget: 0.95
+      },
+      alerts: {
+        fastBurnRate: 10,
+        slowBurnRate: 2,
+        criticalForMinutes: 5,
+        warningForMinutes: 30,
+        repeatIntervalMinutes: 60
+      },
+      retention: {
+        prometheusDays: 15,
+        prometheusSizeGb: 5,
+        lokiHours: 336,
+        tempoHours: 336
+      }
     }, null, 2)}\n`,
     'utf8',
   );
@@ -56,6 +82,20 @@ function main(): void {
         && retention.includes('ATTESTOR_OBSERVABILITY_TEMPO_RETENTION_PERIOD=720h'),
       'Observability profile render: retention env output is generated',
     );
+
+    const invalid = spawnSync(
+      process.execPath,
+      [
+        'node_modules/tsx/dist/cli.mjs',
+        'scripts/render-observability-profile.ts',
+        `--input=${benchmarkPath}`,
+        `--profile=${invalidProfilePath}`,
+        `--output-dir=${resolve(tempDir, 'invalid-rendered')}`,
+      ],
+      { cwd: resolve('.'), encoding: 'utf8' },
+    );
+    ok(invalid.status !== 0, 'Observability profile render: zero availability error budget is rejected');
+    ok(invalid.stderr.includes('slo.availabilityTarget must be greater than 0 and less than 1'), 'Observability profile render: zero-budget rejection is explicit');
 
     console.log(`\nObservability profile render tests: ${passed} passed, 0 failed`);
   } finally {

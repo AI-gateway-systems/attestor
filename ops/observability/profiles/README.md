@@ -17,6 +17,15 @@ The render step produces:
 - `retention.env`
 - `README.md`
 
+Renderer boundary:
+
+- Renderers emit generated rules and alerts so operators can review the exact
+  Prometheus diff, but the output is not self-applying.
+- Do not apply generated files from a failed SLO render unless the operator
+  explicitly accepts the measured SLO miss and records the limitation.
+- Profiles must keep non-zero error budgets; a target that rounds to a zero
+  burn-rate divisor is rejected before files are written.
+
 Shipped profiles:
 
 - `regulated-production.json`

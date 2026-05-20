@@ -43,6 +43,18 @@ function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(resolve(path), 'utf8')) as T;
 }
 
+function formatNonZeroErrorBudget(target: number, label: string): string {
+  if (!Number.isFinite(target) || target <= 0 || target >= 1) {
+    throw new Error(`${label} must be greater than 0 and less than 1 so an error budget exists.`);
+  }
+  const budget = 1 - target;
+  const formatted = budget.toFixed(4);
+  if (Number(formatted) <= 0) {
+    throw new Error(`${label} produces an error budget that rounds to ${formatted}; lower the target or widen the profile precision before rendering Prometheus burn-rate rules.`);
+  }
+  return formatted;
+}
+
 function main(): void {
   const inputPath = arg('input');
   const profilePath = arg('profile');
@@ -56,8 +68,8 @@ function main(): void {
   const measuredAvailability = benchmark.successRate ?? ((benchmark.totalRequests ?? 0) > 0 && benchmark.successCount !== undefined
     ? benchmark.successCount / (benchmark.totalRequests ?? 1)
     : 1);
-  const availabilityErrorBudget = 1 - profile.slo.availabilityTarget;
-  const latencyErrorBudget = 1 - profile.slo.latencySuccessTarget;
+  const availabilityErrorBudget = formatNonZeroErrorBudget(profile.slo.availabilityTarget, 'slo.availabilityTarget');
+  const latencyErrorBudget = formatNonZeroErrorBudget(profile.slo.latencySuccessTarget, 'slo.latencySuccessTarget');
   const latencyBucketSeconds = (profile.slo.latencyP95Ms / 1000).toFixed(3).replace(/\.?0+$/, '');
 
   mkdirSync(outputDir, { recursive: true });
@@ -77,8 +89,8 @@ function main(): void {
       targetLatencyP95Ms: profile.slo.latencyP95Ms,
       meetsAvailability: measuredAvailability >= profile.slo.availabilityTarget,
       meetsLatency: benchmark.p95LatencyMs <= profile.slo.latencyP95Ms,
-      availabilityErrorBudget: Number(availabilityErrorBudget.toFixed(4)),
-      latencyErrorBudget: Number(latencyErrorBudget.toFixed(4)),
+      availabilityErrorBudget: Number(availabilityErrorBudget),
+      latencyErrorBudget: Number(latencyErrorBudget),
     },
     retention: profile.retention,
     alerts: profile.alerts,
@@ -109,13 +121,13 @@ function main(): void {
           clamp_min(sum(rate(attestor_http_requests_total{route!~"/api/v1/(metrics|admin/metrics|health|ready)"}[24h])), 0.001)
 
       - record: attestor:slo_api_availability_burn_rate:5m
-        expr: attestor:slo_api_error_ratio:5m / ${availabilityErrorBudget.toFixed(4)}
+        expr: attestor:slo_api_error_ratio:5m / ${availabilityErrorBudget}
 
       - record: attestor:slo_api_availability_burn_rate:1h
-        expr: attestor:slo_api_error_ratio:1h / ${availabilityErrorBudget.toFixed(4)}
+        expr: attestor:slo_api_error_ratio:1h / ${availabilityErrorBudget}
 
       - record: attestor:slo_api_availability_burn_rate:24h
-        expr: attestor:slo_api_error_ratio:24h / ${availabilityErrorBudget.toFixed(4)}
+        expr: attestor:slo_api_error_ratio:24h / ${availabilityErrorBudget}
 
       - record: attestor:slo_api_latency_good_ratio:5m
         expr: |
@@ -136,13 +148,13 @@ function main(): void {
           clamp_min(sum(rate(attestor_http_request_duration_seconds_count{route!~"/api/v1/(metrics|admin/metrics|health|ready)"}[24h])), 0.001)
 
       - record: attestor:slo_api_latency_burn_rate:5m
-        expr: (1 - attestor:slo_api_latency_good_ratio:5m) / ${latencyErrorBudget.toFixed(4)}
+        expr: (1 - attestor:slo_api_latency_good_ratio:5m) / ${latencyErrorBudget}
 
       - record: attestor:slo_api_latency_burn_rate:1h
-        expr: (1 - attestor:slo_api_latency_good_ratio:1h) / ${latencyErrorBudget.toFixed(4)}
+        expr: (1 - attestor:slo_api_latency_good_ratio:1h) / ${latencyErrorBudget}
 
       - record: attestor:slo_api_latency_burn_rate:24h
-        expr: (1 - attestor:slo_api_latency_good_ratio:24h) / ${latencyErrorBudget.toFixed(4)}
+        expr: (1 - attestor:slo_api_latency_good_ratio:24h) / ${latencyErrorBudget}
 `;
 
   const alerts = `groups:
