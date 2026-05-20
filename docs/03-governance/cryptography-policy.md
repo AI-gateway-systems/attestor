@@ -99,6 +99,22 @@ live AWS, GCP, Azure, HSM, or confidential-compute signer into release-token
 issuance. The structured proof envelope is the required shape for live adapter
 evidence; it is not itself production deployment evidence.
 
+## Release Policy Bundle Signing Boundary
+
+`src/release-policy-control-plane/bundle-signing.ts` signs policy bundles as
+DSSE envelopes with in-toto statements and Ed25519 signatures. That gives the
+bundle artifact a strong integrity boundary, but the current signer is
+`runtime-pem`: caller-provided PEM private key material is loaded into process
+memory before signing.
+
+The repository records this explicitly through
+`policyBundleSignerBoundaryDescriptor()` and
+`AUD-2026-POL-BUNDLESIGN-001`. The descriptor is `productionReady: false` and
+names external KMS/HSM custody as required before this signer can be treated as
+a production signing boundary. Do not describe policy bundle signing as
+non-exportable, external-KMS-backed, HSM-backed, or production signing until a
+separate provider-backed signer and live provider proof are implemented.
+
 ## Key Boundary
 
 The strongest production posture is:

@@ -33,6 +33,8 @@ export const POLICY_BUNDLE_VERIFICATION_KEY_SPEC_VERSION =
   'attestor.policy-bundle-verification-key.v1';
 export const POLICY_BUNDLE_VERIFICATION_SPEC_VERSION =
   'attestor.policy-bundle-verification.v1';
+export const POLICY_BUNDLE_SIGNER_BOUNDARY_SPEC_VERSION =
+  'attestor.policy-bundle-signer-boundary.v1';
 
 export type PolicyBundleSigningAlgorithm = Extract<
   PolicyBundleSignatureAlgorithm,
@@ -106,6 +108,32 @@ export interface PolicyBundleVerificationResult {
   readonly publicKeyFingerprint: string;
   readonly payloadDigest: string;
   readonly predicateType: string;
+}
+
+export interface PolicyBundleSignerBoundaryDescriptor {
+  readonly version: typeof POLICY_BUNDLE_SIGNER_BOUNDARY_SPEC_VERSION;
+  readonly signerKind: 'runtime-pem';
+  readonly privateKeyMaterial: 'process-memory';
+  readonly productionReady: false;
+  readonly externalKmsHsmRequiredForProduction: true;
+  readonly acceptedLimitationId: 'AUD-2026-POL-BUNDLESIGN-001';
+  readonly nonClaims: readonly string[];
+}
+
+export function policyBundleSignerBoundaryDescriptor(): PolicyBundleSignerBoundaryDescriptor {
+  return Object.freeze({
+    version: POLICY_BUNDLE_SIGNER_BOUNDARY_SPEC_VERSION,
+    signerKind: 'runtime-pem',
+    privateKeyMaterial: 'process-memory',
+    productionReady: false,
+    externalKmsHsmRequiredForProduction: true,
+    acceptedLimitationId: 'AUD-2026-POL-BUNDLESIGN-001',
+    nonClaims: Object.freeze([
+      'not-external-kms-hsm',
+      'not-non-exportable-key-custody',
+      'not-production-signing-boundary',
+    ]),
+  });
 }
 
 function resolveSignedAt(value?: string): string {

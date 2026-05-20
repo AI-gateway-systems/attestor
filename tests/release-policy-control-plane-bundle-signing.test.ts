@@ -7,6 +7,7 @@ import {
 } from '../src/release-policy-control-plane/object-model.js';
 import {
   createPolicyBundleSigner,
+  policyBundleSignerBoundaryDescriptor,
   verifyIssuedPolicyBundle,
 } from '../src/release-policy-control-plane/bundle-signing.js';
 import {
@@ -84,6 +85,17 @@ function testSignAndVerifyRoundTrip(): void {
   assert.equal(verification.bundleId, issued.artifact.bundleId);
   assert.equal(issued.signatureRecord.algorithm, 'EdDSA');
   assert.equal(issued.signatureRecord.envelopeType, 'dsse');
+}
+
+function testSignerBoundaryIsNotProductionKms(): void {
+  const descriptor = policyBundleSignerBoundaryDescriptor();
+  assert.equal(descriptor.signerKind, 'runtime-pem');
+  assert.equal(descriptor.privateKeyMaterial, 'process-memory');
+  assert.equal(descriptor.productionReady, false);
+  assert.equal(descriptor.externalKmsHsmRequiredForProduction, true);
+  assert.equal(descriptor.acceptedLimitationId, 'AUD-2026-POL-BUNDLESIGN-001');
+  assert.ok(descriptor.nonClaims.includes('not-external-kms-hsm'));
+  assert.ok(descriptor.nonClaims.includes('not-production-signing-boundary'));
 }
 
 function testVerificationRequiresExplicitTrustedKey(): void {
@@ -249,6 +261,7 @@ function testSignatureRecordBundleMismatchFails(): void {
 }
 
 testSignAndVerifyRoundTrip();
+testSignerBoundaryIsNotProductionKms();
 testVerificationRequiresExplicitTrustedKey();
 testEmbeddedSelfAttestingKeyIsNotTrustedByDefault();
 testWrongKeyFails();
@@ -256,4 +269,4 @@ testPayloadTamperFails();
 testSignatureRecordPayloadDigestMismatchFails();
 testSignatureRecordBundleMismatchFails();
 
-console.log('Release policy control-plane bundle-signing tests: 7 passed, 0 failed');
+console.log('Release policy control-plane bundle-signing tests: 8 passed, 0 failed');

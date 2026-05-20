@@ -36,6 +36,11 @@ function run(): void {
   );
   includes(
     registry,
+    'AUD-2026-POL-BUNDLESIGN-001',
+    'Audit alias registry: policy bundle signer limitation has canonical ID',
+  );
+  includes(
+    registry,
     'Do not include auditor or model names in PR titles or bodies.',
     'Audit alias registry: PR naming excludes auditor/model names',
   );
