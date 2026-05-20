@@ -125,6 +125,7 @@ function main(): void {
     const gkeGateway = readFileSync(resolve(gkeOut, 'gateway.yaml'), 'utf8');
     const gkeRoute = readFileSync(resolve(gkeOut, 'httproute.yaml'), 'utf8');
     const gkePolicy = readFileSync(resolve(gkeOut, 'gcpgatewaypolicy.yaml'), 'utf8');
+    const gkeBackendPolicy = readFileSync(resolve(gkeOut, 'gcpbackendpolicy.yaml'), 'utf8');
     const gkeCertificate = readFileSync(resolve(gkeOut, 'certificate.yaml'), 'utf8');
     const gkePkiPvc = readFileSync(resolve(gkeOut, 'release-runtime-pki-pvc.yaml'), 'utf8');
     ok(gkeKustomization.includes('gateway.yaml') && gkeKustomization.includes('certificate.yaml'), 'HA release bundle: GKE bundle includes gateway and cert-manager certificate');
@@ -137,6 +138,7 @@ function main(): void {
       'HA release bundle: GKE route targets the HTTPS Gateway listener',
     );
     ok(gkePolicy.includes('sslPolicy: attestor-modern-tls'), 'HA release bundle: GKE gateway policy carries SSL policy wiring');
+    ok(gkeBackendPolicy.includes('securityPolicy: attestor-api-armor-policy'), 'HA release bundle: GKE backend policy carries active Cloud Armor policy reference');
     ok(gkeCertificate.includes('letsencrypt-prod') && gkeCertificate.includes('gke.attestor.example.invalid'), 'HA release bundle: GKE certificate carries issuer and hostname');
 
     const tagOnlyImageOut = resolve(tempDir, 'tag-only-image-bundle');
