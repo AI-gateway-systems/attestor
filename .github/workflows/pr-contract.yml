@@ -20,3 +20,9 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: node scripts/validate-pr-contract.mjs
+
+      - name: Validate baseline alignment
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node scripts/check-baseline-alignment.mjs

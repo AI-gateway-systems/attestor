@@ -32,6 +32,26 @@ Repository evidence checked:
 
 Official / primary sources checked:
 
+### Baseline alignment
+Current baseline file:
+- docs/audit/current-posture-baseline.md
+
+This PR advances:
+- [ ] Live Shadow Readiness
+- [ ] Limited Live Enforcement
+- [ ] Public Demo / Marketing safety
+- [ ] Enterprise Pilot readiness
+- [ ] P0/P1 blocker closure
+- [ ] Baseline update only
+
+Baseline blocker addressed:
+
+Baseline phase:
+
+Baseline checked against current origin/master:
+
+If this PR does not map to the current baseline, explain why:
+
 ### Changes
 Files changed:
 
