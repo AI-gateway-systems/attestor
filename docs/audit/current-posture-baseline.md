@@ -17,14 +17,14 @@ It is the current calibrated execution baseline.
 ## Baseline Status
 
 - Source of truth: `origin/master`
-- Baseline HEAD: `5ebab103648967db48652949eacff4dd794ec2ce`
+- Baseline HEAD: `1c6092332eb9bf98fc1c4eb4d5b9c3178a955db6`
 - Package: `attestor@0.2.0-evaluation`
 - Date: 2026-05-21
 - Repository-side posture: credible
 - Production-side posture: not proven
 - Enterprise-side posture: not ready
 - Calibrated security score: about 6.8 / 10
-- Finding catalog estimate: about 118
+- Finding catalog estimate: about 124
 - Closed or effectively closed finding estimate: about 62
 - Evidence state: partial-repo, calibrated from audit reports plus spot repo validation
 - Evidence system: index layer active; see `docs/audit/README.md`
@@ -79,7 +79,7 @@ These anchors are used for control mapping only. They are not certifications.
 | Area | Score | Confidence | Current state | Main remaining risk | Next action |
 |---|---:|---|---|---|---|
 | Data minimization | 8 | partial-repo | Strong no-raw-data design in audited core; digest/redaction patterns present; OPS-SWEEP-16 confirms Stripe-focused operator-output redaction, synthetic demo fixture, and public-key-only committed evidence inventory. | Broader provider secret redaction patterns, public artifact scans, local artifacts, proof output, and dashboard summaries still need broader verification. | Remediate OPS-129 provider patterns and OPS-132 public artifact scan before public demo. |
-| Proof / signature / key authority | 8 | repo-proven for core, needs ops proof for KMS | Ed25519 verification, trusted fingerprint matching, DSSE/in-toto policy bundle signing. | Runtime production signing still needs external KMS/HSM proof. | Add KMS-backed signing path and live proof. |
+| Proof / signature / key authority | 8 | repo-proven for core, needs ops proof for KMS | Ed25519 verification, trusted fingerprint matching, strict Attestor-specific signing canonical JSON, SPKI-DER fingerprints, PKI trust-chain verification, PKI-bound certificate verification, and DSSE/in-toto-shaped release evidence paths outside the primitive signing layer; OPS-SWEEP-18 maps the signing surface and localizes lazy keyless CA fallback to OPS-141. | Runtime production signing still needs external KMS/HSM proof; keyless CA must fail closed in production-like runtime before stronger runtime signing claims. | Remediate OPS-141 and wire OPS-142 KMS runtime signing path before limited enforcement. |
 | Enforcement boundary | 7 | partial-repo | Enforcement primitives are strong: DPoP, mTLS/workload binding, token exchange, verifier composition. | Customer PEP no-bypass is not live-proven. | Build one reference PEP integration and prove direct bypass fails. |
 | Token / replay / idempotency | 8 | partial-repo | Explicit token TTL policy, DPoP binding, replay/freshness primitives, and OPS-SWEEP-10 pipeline `Idempotency-Key` replay protection for `/pipeline/run` and `/pipeline/run-async`. | Multi-instance replay/introspection stores and pipeline idempotency need live shared-store proof; async submit/consume atomicity remains a follow-up. | Run Redis/Postgres-backed replay, pipeline idempotency, and outage tests. |
 | Tenant isolation | 6 | partial-repo | Tenant middleware and scoped checks exist. | Optional tenant payload binding and cross-tenant proof chain are not fully proven. | Add tenant mismatch tests across route, token, proof, and dashboard outputs. |
@@ -103,7 +103,7 @@ These anchors are used for control mapping only. They are not certifications.
 | B-028 secret redaction coverage | open | open | OPS-SWEEP-16 confirms Stripe/Bearer/Postgres/Redis redaction but localizes missing AWS/GCP/GitHub/JWT/private-key/Slack/Anthropic/OpenAI provider patterns and public-artifact scan to OPS-129/132. | Expand provider redaction patterns/tests and add public artifact scan before public demo. |
 | Admin API key blast radius | not fully elevated | partial / live-proof-only | OPS-SWEEP-06 adds role-scoped admin credentials, admin-route role allowlists, actor-role audit fields, admin auth rate limiting, and HTTP tests; OPS-SWEEP-12 extends credential-bound role enforcement to release-review and release-policy-control routes; legacy `ATTESTOR_ADMIN_API_KEY` remains a superuser compatibility fallback. | Prove live role-scoped operator key deployment, release-route role enforcement, and rotate or tightly hold the legacy superuser key. |
 | Customer PEP no-bypass | not proven | needs live test | Repo primitives exist, but downstream non-bypassable integration is not live-proven. | Build reference integration and bypass test. |
-| External KMS runtime signing | accepted limitation | needs ops proof | In-process/private-key boundary is acceptable for evaluation, not production. | Wire external KMS/HSM signer path for live enforcement. |
+| External KMS runtime signing | accepted limitation | needs ops proof | In-process/private-key boundary is acceptable for evaluation, not production; OPS-SWEEP-18 confirms the GCP KMS adapter is contract-ready but `activatesRuntimeSigning` remains false. | Track OPS-142; wire external KMS/HSM signer path and capture `LP-KMS-RUNTIME-SIGNING` before live enforcement. |
 | Shared replay/introspection store | partial | needs live test | Replay/freshness primitives exist; HA/shared backend proof is missing. | Test Redis/Postgres-backed replay/introspection behavior across instances. |
 | `ops/**` audit gap | partial | not proven / live-proof-only for remediated slices | OPS-SWEEP-01 through OPS-SWEEP-15 are indexed; profile/provider/webhook/account/pipeline/shadow/release-route/live-proof capture and branch-governance audit have repo-side hardening or localized remediation paths, while live cloud, provider, and GitHub settings proof remains incomplete. | Continue ops audit and capture live proof before live shadow. |
 | `src/service` admin routes gap | open | closed repo-side / live-proof-only | OPS-SWEEP-06 maps all 32 admin routes and closes repo-side P1/P2 route findings; admin reads and one-time response key material remain accepted limitations. | Capture admin role-key deployment and rate-limit abuse proof before stronger live claims. |
@@ -123,7 +123,7 @@ These anchors are used for control mapping only. They are not certifications.
 | Priority | Blocker | Why it matters | Blocks | Required proof |
 |---|---|---|---|---|
 | P0 | Customer PEP no-bypass proof | Without a non-bypassable downstream enforcement point, Attestor can be advisory only. | Limited enforcement, enterprise pilot | Live request bypassing Attestor must fail downstream. |
-| P0 | External KMS/HSM runtime signing | Production authority should not depend on raw private keys in process memory. | Limited enforcement, enterprise pilot | KMS-backed signing/verification test with key identity evidence. |
+| P0 | External KMS/HSM runtime signing | Production authority should not depend on raw private keys in process memory; OPS-SWEEP-18 localizes the repo-side Phase 2 path to OPS-142. | Limited enforcement, enterprise pilot | KMS-backed signing/verification test with key identity evidence and downstream verifier acceptance. |
 | P0 | Shared replay/introspection store proof | Single-node memory state is insufficient for HA replay safety. | Limited enforcement, enterprise pilot | Multi-instance replay test with shared Redis/Postgres state. |
 | P0 | Ops/IAM/K8s/secrets review | Deployment misconfiguration can invalidate strong repo-side controls. | Live shadow, limited enforcement, enterprise pilot | Static ops review plus live secret/IAM/KMS probes. |
 | P1 | Admin and release-route live role-key proof | Admin and release-decision routes are high-authority hosted attack surfaces even after repo-side route hardening. | Limited enforcement, enterprise pilot; recommended before live shadow | Live role-scoped key deployment, release-route role escalation denial, legacy superuser-key rotation/holding proof, and admin rate-limit abuse probe. |
