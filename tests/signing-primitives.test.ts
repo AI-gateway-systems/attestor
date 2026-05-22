@@ -10,14 +10,14 @@ import {
   ATTESTOR_SIGNING_FINGERPRINT_HEX_LENGTH,
   derivePublicKeyIdentity,
   generateKeyPair,
-} from './keys.js';
+} from '../src/signing/keys.js';
 import {
   ATTESTOR_SIGNING_CANONICALIZATION_SPEC_VERSION,
   canonicalize,
   signPayload,
   verifySignature,
-} from './sign.js';
-import { issueCertificate, verifyCertificate, type CertificateInput } from './certificate.js';
+} from '../src/signing/sign.js';
+import { issueCertificate, verifyCertificate, type CertificateInput } from '../src/signing/certificate.js';
 
 function makeCertInput(): CertificateInput {
   return {
@@ -199,8 +199,8 @@ async function runSigningTests(): Promise<number> {
   // ═══ PKI TRUST CHAIN ═══
   console.log('\n  [PKI Trust Chain]');
   {
-    const { verifyTrustChain, generatePkiHierarchy } = await import('./pki-chain.js');
-    const { createKeylessSigner, resetKeylessCaForTesting } = await import('./keyless-signer.js');
+    const { verifyTrustChain, generatePkiHierarchy } = await import('../src/signing/pki-chain.js');
+    const { createKeylessSigner, resetKeylessCaForTesting } = await import('../src/signing/keyless-signer.js');
 
     // Generate full PKI hierarchy
     const pki = generatePkiHierarchy('Test CA', 'Test Signer', 'Test Reviewer');
@@ -306,7 +306,7 @@ async function runSigningTests(): Promise<number> {
   // ═══ OIDC IDENTITY ═══
   console.log('\n  [OIDC Identity]');
   {
-    const { decodeTokenUnsafe, classifyIdentitySource } = await import('../identity/oidc-identity.js');
+    const { decodeTokenUnsafe, classifyIdentitySource } = await import('../src/identity/oidc-identity.js');
 
     // Decode a real JWT structure (unsigned test token)
     // Header: {"alg":"none","typ":"JWT"}, Payload: {"sub":"user123","name":"Jane Chen","email":"jchen@bank.internal","roles":["risk_officer"],"iss":"https://login.example.com","aud":"attestor","exp":9999999999}
@@ -346,9 +346,9 @@ async function runSigningTests(): Promise<number> {
   // ═══ DOMAIN PACKS ═══
   console.log('\n  [Domain Packs]');
   {
-    const { DomainPackRegistry } = await import('../domains/domain-pack.js');
-    const { financeDomainPack } = await import('../domains/finance-pack.js');
-    const { healthcareDomainPack } = await import('../domains/healthcare-pack.js');
+    const { DomainPackRegistry } = await import('../src/domains/domain-pack.js');
+    const { financeDomainPack } = await import('../src/domains/finance-pack.js');
+    const { healthcareDomainPack } = await import('../src/domains/healthcare-pack.js');
 
     const registry = new DomainPackRegistry();
 
@@ -406,7 +406,7 @@ async function runSigningTests(): Promise<number> {
   // ═══ HEALTHCARE CLAUSE EVALUATORS ═══
   console.log('\n  [Healthcare Clauses]');
   {
-    const { evaluatePatientCountConsistency, evaluateRateBound, evaluateSmallCellSuppression, evaluatePhiCompleteness, evaluateTemporalConsistency } = await import('../domains/healthcare-clauses.js');
+    const { evaluatePatientCountConsistency, evaluateRateBound, evaluateSmallCellSuppression, evaluatePhiCompleteness, evaluateTemporalConsistency } = await import('../src/domains/healthcare-clauses.js');
 
     // Patient count consistency — valid
     const validPop = [
