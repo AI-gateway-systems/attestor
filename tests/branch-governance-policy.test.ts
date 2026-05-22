@@ -27,9 +27,23 @@ includes(policy, 'delete_branch_on_merge', 'Branch policy: automatic branch dele
 includes(policy, 'Do not ask users, reviewers, customers, scripts, or documentation to install or clone Attestor from a `codex/*` branch', 'Branch policy: direct codex branch consumption is forbidden');
 
 includes(workflow, 'name: Branch Governance', 'Branch workflow: named');
+includes(workflow, 'pull_request:', 'Branch workflow: runs on pull requests touching governance files');
+includes(workflow, 'push:', 'Branch workflow: runs on master pushes touching governance files');
+includes(workflow, "'.github/**'", 'Branch workflow: watches GitHub governance files');
+includes(workflow, "'SECURITY.md'", 'Branch workflow: watches SECURITY.md');
 includes(workflow, 'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6', 'Branch workflow: checkout action is SHA-pinned');
 includes(workflow, 'node scripts/check-stale-branches.mjs --require-master-only', 'Branch workflow: stale branch checker runs in master-only mode');
 includes(workflow, "delete_branch_on_merge", 'Branch workflow: repository auto-delete setting is checked');
+matches(workflow, /Verify stale branch policy\s+if: github\.event_name != 'pull_request'/u, 'Branch workflow: stale branch inventory enforcement is not run from pull_request branches');
+matches(workflow, /Verify delete-branch-on-merge\s+if: github\.event_name != 'pull_request'/u, 'Branch workflow: repository setting probe is not run from pull_request tokens');
+includes(workflow, "github.event_name != 'pull_request'", 'Branch workflow: live branch protection probe is not run from pull_request tokens');
+includes(workflow, 'protection/required_signatures', 'Branch workflow: required signed commits setting is checked');
+includes(workflow, 'required_signatures.enabled must remain true', 'Branch workflow: required signed commits failure is explicit');
+includes(workflow, 'protection/required_pull_request_reviews', 'Branch workflow: required PR review settings are checked');
+includes(workflow, 'required_approving_review_count', 'Branch workflow: required approving review count is checked');
+includes(workflow, 'require_code_owner_reviews', 'Branch workflow: CODEOWNER review setting is checked');
+includes(workflow, 'dismiss_stale_reviews', 'Branch workflow: stale review dismissal setting is checked');
+includes(workflow, 'require_last_push_approval', 'Branch workflow: last-push approval setting is checked');
 
 includes(script, '--require-master-only', 'Branch script: supports master-only enforcement');
 includes(script, 'mergedCodexBranches', 'Branch script: reports merged codex branches');

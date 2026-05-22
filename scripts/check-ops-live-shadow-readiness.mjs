@@ -95,6 +95,8 @@ const LIVE_PROOF_FLAGS = Object.freeze([
   { name: 'ATTESTOR_RELEASE_ROUTE_ROLE_ENFORCEMENT_PROOF', minStage: 'live-shadow', description: 'Release-review and release-policy-control routes reject role escalation attempts across deployed role-scoped admin keys.' },
   { name: 'ATTESTOR_HEALTH_DIAGNOSTIC_SPLIT_PROOF', minStage: 'live-shadow', description: 'Public health/ready probes expose only the minimal unauthenticated response through the deployed edge path.' },
   { name: 'ATTESTOR_VERIFY_RATE_LIMIT_PROOF', minStage: 'live-shadow', description: 'Public /api/v1/verify abuse probes return 429 before expensive verification work through the deployed edge path.' },
+  { name: 'ATTESTOR_BRANCH_PROTECTION_SIGNATURES_PROOF', minStage: 'live-shadow', description: 'GitHub branch protection required signed commits are enabled for master and unsigned-commit merge bypass was negatively tested.' },
+  { name: 'ATTESTOR_BRANCH_PROTECTION_REVIEWS_PROOF', minStage: 'live-shadow', description: 'GitHub branch protection required reviews, CODEOWNER review, stale-review dismissal, and last-push approval are enabled for master and self-merge bypass was negatively tested.' },
   { name: 'ATTESTOR_KEDA_REDIS_TLS_PROOF', minStage: 'live-shadow', description: 'KEDA Redis scaler TLS posture was matched to the runtime Redis endpoint and verified when KEDA is enabled.' },
   { name: 'ATTESTOR_KEDA_PROMETHEUS_AUTH_PROOF', minStage: 'live-shadow', description: 'KEDA Prometheus scaler authentication and namespace/network boundary were verified when KEDA is enabled.' },
   { name: 'ATTESTOR_SHARED_INTROSPECTION_STORE_PROOF', minStage: 'limited-enforcement', description: 'Introspection cache/store behavior was verified under restart, outage, and stale-token scenarios.' },
