@@ -2178,7 +2178,6 @@ app.post('/api/v1/account/users', async (c) => {
     accountId: access.accountId,
     email,
     displayName,
-    passwordDigest: createHash('sha256').update(password).digest('hex'),
     role,
   };
   const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
