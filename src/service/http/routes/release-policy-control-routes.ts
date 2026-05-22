@@ -77,6 +77,23 @@ const {
 } = controlPlaneTypes;
 
 type JsonRecord = Record<string, unknown>;
+type PolicyControlPlaneErrorCode =
+  | 'bad_request'
+  | 'not_found'
+  | 'conflict'
+  | 'forbidden'
+  | 'internal';
+type PolicyControlPlaneHttpStatus = 400 | 403 | 404 | 409 | 500;
+
+const DEFAULT_RELEASE_POLICY_LIST_LIMIT = 50;
+const MAX_RELEASE_POLICY_LIST_LIMIT = 100;
+const POLICY_CONTROL_ERROR_STATUS: Record<PolicyControlPlaneErrorCode, PolicyControlPlaneHttpStatus> = {
+  bad_request: 400,
+  not_found: 404,
+  conflict: 409,
+  forbidden: 403,
+  internal: 500,
+};
 
 export interface ReleasePolicyControlRouteDeps {
   currentAdminAuthorized(c: Context): Response | null;
@@ -109,6 +126,110 @@ function noStore(c: Context): void {
   c.header('cache-control', 'no-store');
 }
 
+class PolicyControlPlaneRouteError extends Error {
+  readonly code: PolicyControlPlaneErrorCode;
+
+  constructor(code: PolicyControlPlaneErrorCode, message: string) {
+    super(message);
+    this.name = 'PolicyControlPlaneRouteError';
+    this.code = code;
+  }
+}
+
+function policyControlPlaneError(
+  code: PolicyControlPlaneErrorCode,
+  message: string,
+): PolicyControlPlaneRouteError {
+  return new PolicyControlPlaneRouteError(code, message);
+}
+
+function badRequest(message: string): PolicyControlPlaneRouteError {
+  return policyControlPlaneError('bad_request', message);
+}
+
+function policyErrorResponse(c: Context, error: unknown): Response {
+  const mapped = mapPolicyControlPlaneError(error);
+  return c.json({
+    error: mapped.message,
+    code: mapped.code,
+  }, mapped.status);
+}
+
+function mapPolicyControlPlaneError(error: unknown): {
+  readonly code: PolicyControlPlaneErrorCode;
+  readonly status: PolicyControlPlaneHttpStatus;
+  readonly message: string;
+} {
+  if (error instanceof PolicyControlPlaneRouteError) {
+    return {
+      code: error.code,
+      status: POLICY_CONTROL_ERROR_STATUS[error.code],
+      message: error.message,
+    };
+  }
+  if (!(error instanceof Error)) {
+    return internalPolicyError();
+  }
+
+  const message = error.message;
+  const normalized = message.toLowerCase();
+  if (normalized.includes('was not found') || normalized.includes(' not found')) {
+    return knownPolicyError('not_found', message);
+  }
+  if (
+    normalized.includes('already ') ||
+    normalized.includes('ambiguous') ||
+    normalized.includes('conflict') ||
+    normalized.includes('cannot rollback policy activation')
+  ) {
+    return knownPolicyError('conflict', message);
+  }
+  if (
+    normalized.includes('cannot be granted by the same actor') ||
+    normalized.includes('is not allowed for this policy activation approval')
+  ) {
+    return knownPolicyError('forbidden', message);
+  }
+  if (
+    normalized.includes(' must ') ||
+    normalized.includes(' requires ') ||
+    normalized.includes(' require ') ||
+    normalized.includes(' cannot be blank') ||
+    normalized.startsWith('unsupported ') ||
+    normalized.includes(' invalid ')
+  ) {
+    return knownPolicyError('bad_request', message);
+  }
+  return internalPolicyError();
+}
+
+function knownPolicyError(
+  code: PolicyControlPlaneErrorCode,
+  message: string,
+): {
+  readonly code: PolicyControlPlaneErrorCode;
+  readonly status: PolicyControlPlaneHttpStatus;
+  readonly message: string;
+} {
+  return {
+    code,
+    status: POLICY_CONTROL_ERROR_STATUS[code],
+    message,
+  };
+}
+
+function internalPolicyError(): {
+  readonly code: PolicyControlPlaneErrorCode;
+  readonly status: PolicyControlPlaneHttpStatus;
+  readonly message: string;
+} {
+  return {
+    code: 'internal',
+    status: 500,
+    message: 'Release policy control-plane operation failed.',
+  };
+}
+
 function isJsonRecord(value: unknown): value is JsonRecord {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -116,7 +237,7 @@ function isJsonRecord(value: unknown): value is JsonRecord {
 function requiredString(source: JsonRecord, key: string): string {
   const value = source[key];
   if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`${key} is required and must be a non-empty string.`);
+    throw badRequest(`${key} is required and must be a non-empty string.`);
   }
   return value.trim();
 }
@@ -127,7 +248,7 @@ function optionalString(source: JsonRecord, key: string): string | null {
     return null;
   }
   if (typeof value !== 'string') {
-    throw new Error(`${key} must be a string when provided.`);
+    throw badRequest(`${key} must be a string when provided.`);
   }
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
@@ -139,7 +260,7 @@ function optionalStringArray(source: JsonRecord, key: string): readonly string[]
     return [];
   }
   if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
-    throw new Error(`${key} must be an array of strings when provided.`);
+    throw badRequest(`${key} must be an array of strings when provided.`);
   }
   return value.map((entry) => entry.trim()).filter(Boolean).sort();
 }
@@ -150,7 +271,7 @@ function optionalConsequenceType(source: JsonRecord): string | null {
     return null;
   }
   if (!(vocabulary.CONSEQUENCE_TYPES as readonly string[]).includes(value)) {
-    throw new Error(`consequenceType must be one of: ${vocabulary.CONSEQUENCE_TYPES.join(', ')}.`);
+    throw badRequest(`consequenceType must be one of: ${vocabulary.CONSEQUENCE_TYPES.join(', ')}.`);
   }
   return value;
 }
@@ -161,7 +282,7 @@ function optionalRiskClass(source: JsonRecord): string | null {
     return null;
   }
   if (!(vocabulary.RISK_CLASSES as readonly string[]).includes(value)) {
-    throw new Error(`riskClass must be one of: ${vocabulary.RISK_CLASSES.join(', ')}.`);
+    throw badRequest(`riskClass must be one of: ${vocabulary.RISK_CLASSES.join(', ')}.`);
   }
   return value;
 }
@@ -174,7 +295,7 @@ function parseLifecycleState(value: unknown): PolicyPackLifecycleState | undefin
     typeof value !== 'string' ||
     !(POLICY_PACK_LIFECYCLE_STATES as readonly string[]).includes(value)
   ) {
-    throw new Error(`lifecycleState must be one of: ${POLICY_PACK_LIFECYCLE_STATES.join(', ')}.`);
+    throw badRequest(`lifecycleState must be one of: ${POLICY_PACK_LIFECYCLE_STATES.join(', ')}.`);
   }
   return value as PolicyPackLifecycleState;
 }
@@ -184,7 +305,7 @@ function parseBundleReference(value: unknown): PolicyBundleReference | null {
     return null;
   }
   if (!isJsonRecord(value)) {
-    throw new Error('latestBundleRef must be an object when provided.');
+    throw badRequest('latestBundleRef must be an object when provided.');
   }
   return {
     packId: requiredString(value, 'packId'),
@@ -196,7 +317,7 @@ function parseBundleReference(value: unknown): PolicyBundleReference | null {
 
 function parsePackMetadata(value: unknown): PolicyPackMetadata {
   if (!isJsonRecord(value)) {
-    throw new Error('pack must be an object.');
+    throw badRequest('pack must be an object.');
   }
   const now = new Date().toISOString();
   return createPolicyPackMetadata({
@@ -214,7 +335,7 @@ function parsePackMetadata(value: unknown): PolicyPackMetadata {
 
 function parseActivationTarget(value: unknown): PolicyActivationTarget {
   if (!isJsonRecord(value)) {
-    throw new Error('target must be an object.');
+    throw badRequest('target must be an object.');
   }
   return createPolicyActivationTarget({
     environment: requiredString(value, 'environment'),
@@ -234,7 +355,7 @@ function parseRolloutMode(value: unknown): ReleasePolicyRolloutMode {
     return 'enforce';
   }
   if (typeof value !== 'string' || !(ROLLOUT_MODES as readonly string[]).includes(value)) {
-    throw new Error(`rolloutMode must be one of: ${ROLLOUT_MODES.join(', ')}.`);
+    throw badRequest(`rolloutMode must be one of: ${ROLLOUT_MODES.join(', ')}.`);
   }
   return value as ReleasePolicyRolloutMode;
 }
@@ -243,7 +364,7 @@ function parseApprovalState(value: string | undefined): PolicyActivationApproval
   if (value === undefined || value.trim().length === 0) return null;
   const normalized = value.trim();
   if (!['pending', 'approved', 'rejected'].includes(normalized)) {
-    throw new Error('state must be one of: pending, approved, rejected.');
+    throw badRequest('state must be one of: pending, approved, rejected.');
   }
   return normalized as PolicyActivationApprovalState;
 }
@@ -435,6 +556,69 @@ function requireBreakGlassAuthorization(
   };
 }
 
+function parseBoundedListInteger(
+  value: string | undefined,
+  fieldName: 'cursor' | 'limit',
+): number | Response | null {
+  if (value === undefined) return null;
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized)) {
+    return new Response(JSON.stringify({
+      error: `${fieldName} must be a ${fieldName === 'cursor' ? 'non-negative' : 'positive'} integer.`,
+      code: 'bad_request',
+    }), {
+      status: 400,
+      headers: { 'content-type': 'application/json; charset=UTF-8' },
+    });
+  }
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || (fieldName === 'limit' && parsed === 0)) {
+    return new Response(JSON.stringify({
+      error: `${fieldName} must be a ${fieldName === 'cursor' ? 'non-negative' : 'positive'} integer.`,
+      code: 'bad_request',
+    }), {
+      status: 400,
+      headers: { 'content-type': 'application/json; charset=UTF-8' },
+    });
+  }
+  if (fieldName === 'limit' && parsed > MAX_RELEASE_POLICY_LIST_LIMIT) {
+    return new Response(JSON.stringify({
+      error: `limit must be less than or equal to ${MAX_RELEASE_POLICY_LIST_LIMIT}.`,
+      code: 'bad_request',
+    }), {
+      status: 400,
+      headers: { 'content-type': 'application/json; charset=UTF-8' },
+    });
+  }
+  return parsed;
+}
+
+function paginateReleasePolicyList<T>(
+  entries: readonly T[],
+  c: Context,
+): {
+  readonly items: readonly T[];
+  readonly pageInfo: Record<string, unknown>;
+} | Response {
+  const parsedLimit = parseBoundedListInteger(c.req.query('limit'), 'limit');
+  if (parsedLimit instanceof Response) return parsedLimit;
+  const parsedCursor = parseBoundedListInteger(c.req.query('cursor'), 'cursor');
+  if (parsedCursor instanceof Response) return parsedCursor;
+  const limit = parsedLimit ?? DEFAULT_RELEASE_POLICY_LIST_LIMIT;
+  const cursor = parsedCursor ?? 0;
+  const items = entries.slice(cursor, cursor + limit);
+  const nextOffset = cursor + items.length;
+  return {
+    items,
+    pageInfo: {
+      limit,
+      cursor: String(cursor),
+      nextCursor: nextOffset < entries.length ? String(nextOffset) : null,
+      totalItems: entries.length,
+    },
+  };
+}
+
 function parsePositiveLimit(value: string | undefined): number | null {
   if (value === undefined) return null;
   const parsed = Number.parseInt(value, 10);
@@ -596,10 +780,10 @@ async function applyPolicyLifecycle(
 function parseBundleUpsertInput(body: JsonRecord): UpsertStoredPolicyBundleInput {
   const source = isJsonRecord(body.bundle) ? body.bundle : body;
   if (!isJsonRecord(source.manifest)) {
-    throw new Error('manifest must be provided as an object.');
+    throw badRequest('manifest must be provided as an object.');
   }
   if (!isJsonRecord(source.artifact)) {
-    throw new Error('artifact must be provided as an object.');
+    throw badRequest('artifact must be provided as an object.');
   }
   const signedBundle = isJsonRecord(source.signedBundle) ? source.signedBundle : null;
   return {
@@ -646,8 +830,13 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
     const authorized = authorizeReleaseAdminRoute(c, RELEASE_ADMIN_READ_ROLES, deps.currentAdminAuthorized);
     if (authorized instanceof Response) return authorized;
 
+    const page = paginateReleasePolicyList(await store.listPacks(), c);
+    if (page instanceof Response) return page;
     noStore(c);
-    return c.json({ packs: (await store.listPacks()).map(packView) });
+    return c.json({
+      packs: page.items.map(packView),
+      pageInfo: page.pageInfo,
+    });
   });
 
   app.post('/api/v1/admin/release-policy/packs', async (c) => {
@@ -688,7 +877,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 200);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -708,10 +897,13 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
     const authorized = authorizeReleaseAdminRoute(c, RELEASE_ADMIN_READ_ROLES, deps.currentAdminAuthorized);
     if (authorized instanceof Response) return authorized;
 
+    const page = paginateReleasePolicyList(await store.listBundleHistory(c.req.param('packId')), c);
+    if (page instanceof Response) return page;
     noStore(c);
     return c.json({
       packId: c.req.param('packId'),
-      bundles: (await store.listBundleHistory(c.req.param('packId'))).map(bundleSummaryView),
+      bundles: page.items.map(bundleSummaryView),
+      pageInfo: page.pageInfo,
     });
   });
 
@@ -720,10 +912,13 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
     if (authorized instanceof Response) return authorized;
 
     const history = await store.listBundleHistory(c.req.param('packId'));
+    const page = paginateReleasePolicyList(history, c);
+    if (page instanceof Response) return page;
     noStore(c);
     return c.json({
       packId: c.req.param('packId'),
-      versions: history.map(bundleSummaryView),
+      versions: page.items.map(bundleSummaryView),
+      pageInfo: page.pageInfo,
     });
   });
 
@@ -776,7 +971,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 201);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -819,10 +1014,15 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
         packId: c.req.query('packId')?.trim() || null,
         bundleId: c.req.query('bundleId')?.trim() || null,
       });
+      const page = paginateReleasePolicyList(requests, c);
+      if (page instanceof Response) return page;
       noStore(c);
-      return c.json({ approvalRequests: requests.map(approvalRequestView) });
+      return c.json({
+        approvalRequests: page.items.map(approvalRequestView),
+        pageInfo: page.pageInfo,
+      });
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -895,7 +1095,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 201);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -970,7 +1170,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 200);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -1031,7 +1231,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 200);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -1045,8 +1245,13 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       .listActivations())
       .filter((record) => !targetLabel || record.targetLabel === targetLabel)
       .filter((record) => !state || record.state === state);
+    const page = paginateReleasePolicyList(activations, c);
+    if (page instanceof Response) return page;
     noStore(c);
-    return c.json({ activations: activations.map(activationView) });
+    return c.json({
+      activations: page.items.map(activationView),
+      pageInfo: page.pageInfo,
+    });
   });
 
   app.post('/api/v1/admin/release-policy/activations', async (c) => {
@@ -1125,7 +1330,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 201);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -1205,7 +1410,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 201);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -1300,7 +1505,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 201);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -1385,7 +1590,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json(finalized, 201);
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -1401,7 +1606,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json({ resolution: result });
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
@@ -1441,7 +1646,7 @@ export function registerReleasePolicyControlRoutes(app: Hono, deps: ReleasePolic
       noStore(c);
       return c.json({ preview });
     } catch (error) {
-      return c.json({ error: (error as Error).message }, 400);
+      return policyErrorResponse(c, error);
     }
   });
 
