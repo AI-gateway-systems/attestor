@@ -89,7 +89,7 @@ layer.
 |---|---:|---|---|---|---|---|
 | OPS-147 | P1 | `disputed/closed` | OPS-143 evidence-pack clarification: release evidence packs are DSSE + in-toto-shaped, while primitive signing remains Attestor-specific canonical JSON. | `release-evidence-pack.ts:34-36` defines DSSE payload type and in-toto Statement v1; `:143-159` defines statement/envelope shapes; `:633-641` uses DSSE PAE; Sweep 18 OPS-143 already scoped the ambiguity to primitive signing wording. | proof integrity; no overclaim | Mark OPS-143 closed by narrower wording; keep the distinction in control-map and baseline. |
 | OPS-148 | P2 | `open / partial-repo` | Two canonicalization implementations exist without a parity test. | `src/signing/sign.ts:10-56,72-153` and `src/release-kernel/release-canonicalization.ts:19-59,153-203` both implement strict key-sorted canonical JSON with different spec IDs. | proof integrity; auditability | Add `tests/canonicalization-parity.test.ts` or consolidate into one shared canonicalization module. |
-| OPS-149 | P2 | `open / partial-repo` | File-backed decision-log writer is serialized but not a multi-instance production proof. | `release-decision-log.ts:549-583` uses per-path file locks; production HA claims require a shared control-plane/Postgres-backed writer proof, not file-lock behavior alone. | replay and idempotency safety; auditability | Document production bootstrap requirement and add a future live proof only when a gate/probe exists. |
+| OPS-149 | P2 | `closed repo-side / live-proof-only` | Original audit evidence: `release-decision-log.ts:549-583` used per-path file locks and could not prove multi-instance production behavior. Post-remediation evidence: `src/service/release-decision-log-store.ts`, `src/service/bootstrap/release-runtime.ts`, `tests/release-decision-log-store.test.ts`, `tests/production-shared-request-path-cutover.test.ts`, and `tests/production-shared-multi-instance-recovery.test.ts` now provide the shared PostgreSQL release-decision-log path and embedded multi-instance proof. | replay and idempotency safety; auditability | Capture `LP-RELEASE-DECISION-LOG-SHARED-STORE` before external customer-operated production or limited-enforcement HA claims. |
 | OPS-150 | P2 | `accepted limitation` | Decision-log `entryId` is intentionally non-deterministic. | `release-decision-log.ts:453-474` uses `randomUUID()` before digesting the entry. | auditability; replay and idempotency safety | Keep; tests should assert digest, sequence, and chain integrity rather than exact UUIDs. |
 | OPS-151 | P2 | `open / partial-repo` | No direct parity test locks the frozen wedge against the dynamic first gateway policy. | `first-hard-gateway-wedge.ts:37-98`; `release-policy.ts:182-238`; default engine policy at `release-decision-engine.ts:443`. | release provenance; no overclaim | Add a parity test asserting target kinds, consequence type, risk class, and review/enforcement mode remain aligned. |
 | OPS-152 | P3 | `open / partial-repo` | Deterministic checks have no explicit per-evaluation resource budget. | `release-deterministic-checks.ts:68-251` iterates observations and policy allowlists mechanically, but no array-length/resource budget is enforced in this module. | operational boundedness | Bound observation arrays at route/API boundaries and add an adversarial-size regression test if this surface becomes externally reachable. |
@@ -143,7 +143,7 @@ discipline, not new behavioral P0/P1 runtime defects.
 | OPS-143 | `open / partial-repo`, P2 wording ambiguity | clarified: evidence pack is DSSE + in-toto-shaped; primitive signing remains Attestor-specific canonical JSON | mark OPS-143 `disputed/closed` and add OPS-147 clarification row |
 | `Proof / signature / key authority` | score 8 | evidence-pack layer now explicitly repo-proven as DSSE/in-toto-shaped; parity and KMS gaps remain | update row text but keep score 8 until OPS-148/141/142 close |
 | `OPS-SWEEP-19` report-index row | absent | this report is partial/read-only | add row |
-| Live proof register | no `LP-RELEASE-DECISION-LOG-SHARED-STORE` row | future live proof may be useful, but no repo gate exists yet | defer LP row until OPS-149 remediation/gate exists |
+| Live proof register | original audit had no `LP-RELEASE-DECISION-LOG-SHARED-STORE` row | post-remediation now adds the gate through OPS-149 | keep `ATTESTOR_RELEASE_DECISION_LOG_SHARED_STORE_PROOF` live-only until external customer-operated PostgreSQL proof is captured |
 
 ## 9. Chain Reactions
 
@@ -179,9 +179,11 @@ This report updates:
 - `docs/audit/control-map.md`
 - `docs/audit/current-posture-baseline.md`
 
-This report intentionally does not update `docs/audit/live-proof-register.md`.
-`LP-RELEASE-DECISION-LOG-SHARED-STORE` should land only with an OPS-149
-remediation or gate that can be checked by the live-proof script.
+Post-remediation note: the original read-only audit did not update
+`docs/audit/live-proof-register.md`. OPS-149 remediation now adds
+`LP-RELEASE-DECISION-LOG-SHARED-STORE` and
+`ATTESTOR_RELEASE_DECISION_LOG_SHARED_STORE_PROOF`, because the shared
+PostgreSQL release-decision-log path and runtime cutover are now repo-proven.
 
 ## 12. Verdict
 
@@ -190,9 +192,10 @@ remediation or gate that can be checked by the live-proof script.
 - Is there a repo-proven P1? OPS-147 is P1-severity in audit bookkeeping because
   it corrects/narrows a proof-integrity wording ambiguity; it is not a new
   behavioral P1.
-- Is remediation required? Yes, but small: OPS-148 and OPS-151 should be closed
-  with parity tests; OPS-149/153 need bootstrap documentation and future live
-  proof, not report-only LP rows.
+- Is remediation required? Post-remediation status: OPS-148, OPS-149, and
+  OPS-151 are repo-side closed; OPS-149 remains live-proof-only for external
+  customer-operated PostgreSQL/rehearsal evidence; OPS-153 remains accepted
+  bootstrap discipline.
 - Can the next sweep proceed? Yes.
 - Recommended Sweep 20: `src/release-enforcement-plane/**`, the runtime
   enforcement counterpart to this release-kernel decision layer.
