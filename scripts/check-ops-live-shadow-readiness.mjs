@@ -89,6 +89,7 @@ const LIVE_PROOF_FLAGS = Object.freeze([
   { name: 'ATTESTOR_EMAIL_WEBHOOK_REPLAY_STORE_PROOF', minStage: 'live-shadow', description: 'Email provider webhook replay/idempotency behavior was verified against shared control-plane storage across instances.' },
   { name: 'ATTESTOR_FEDERATED_CALLBACK_RATE_LIMIT_PROOF', minStage: 'live-shadow', description: 'Federated OIDC/SAML callback abuse probes return 429 before expensive callback verification while legitimate IdP retries still pass.' },
   { name: 'ATTESTOR_ACCOUNT_MUTATION_AUDIT_CHAIN_PROOF', minStage: 'live-shadow', description: 'Account-session mutations write hash-linked audit records through shared storage with account actor attribution.' },
+  { name: 'ATTESTOR_ACCOUNT_MUTATION_IDEMPOTENCY_PROOF', minStage: 'live-shadow', description: 'Account-admin mutation Idempotency-Key replay/conflict behavior was verified across retries and shared control-plane storage.' },
   { name: 'ATTESTOR_SHARED_AUTH_ABUSE_STORE_PROOF', minStage: 'live-shadow', description: 'Auth abuse buckets are backed by shared Redis state across API replicas and cannot be bypassed per instance.' },
   { name: 'ATTESTOR_PIPELINE_IDEMPOTENCY_PROOF', minStage: 'live-shadow', description: 'Pipeline run/run-async idempotency was verified across retries and shared control-plane storage.' },
   { name: 'ATTESTOR_SHADOW_MUTATION_AUDIT_CHAIN_PROOF', minStage: 'live-shadow', description: 'Shadow POST/PATCH mutations write hash-linked audit records through shared storage with tenant-context actor attribution.' },

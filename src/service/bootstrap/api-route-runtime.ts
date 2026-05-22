@@ -499,6 +499,9 @@ export async function createApiHttpRouteRuntime(
   const accountRouteDeps = buildAccountRouteDeps({
     hashJsonValue,
     appendAdminAuditRecordState,
+    ensurePipelineIdempotencyStateReady,
+    lookupPipelineIdempotencyState,
+    recordPipelineIdempotencyState,
     countAccountUsersForAccountState,
     createAccountUserState,
     findAccountUserByEmailState,
