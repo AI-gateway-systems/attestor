@@ -594,6 +594,7 @@ async function testProtectedReleaseTokenIssuerReturnsAuthorizationWithoutRecordi
     protectedReleaseToken: {
       tokenId: string;
       tokenDigest: string;
+      tenantId: string;
       rawReleaseTokenStored: boolean;
       introspectionAuthorityRegistered: boolean;
     };
@@ -638,6 +639,16 @@ async function testProtectedReleaseTokenIssuerReturnsAuthorizationWithoutRecordi
     introspectionStore.findToken(body.protectedReleaseTokenAuthorization.tokenId)?.status,
     'issued',
     'Generic admission route: route issuer registers the token in the introspection store',
+  );
+  equal(
+    body.protectedReleaseToken.tenantId,
+    'tenant_route',
+    'Generic admission route: protected token summary is tenant-bound to the route context',
+  );
+  equal(
+    introspectionStore.findToken(body.protectedReleaseTokenAuthorization.tokenId)?.tenantId,
+    'tenant_route',
+    'Generic admission route: introspection authority stores the route tenant binding',
   );
   equal(
     body.admission.proof.some((proof) =>

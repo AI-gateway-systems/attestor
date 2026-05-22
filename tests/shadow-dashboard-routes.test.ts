@@ -28,12 +28,13 @@ function createEvent(input?: {
   readonly evidenceRefs?: readonly string[];
   readonly occurredAt?: string;
   readonly blocked?: boolean;
+  readonly tenantId?: string;
 }): ShadowAdmissionEvent {
   const mode = input?.mode ?? 'observe';
   return createShadowAdmissionEvent({
     admission: createGenericAdmissionEnvelope({
       mode,
-      tenantId: 'tenant_shadow_dashboard',
+      tenantId: input?.tenantId ?? 'tenant_shadow_dashboard',
       environment: 'production',
       actor: 'support-ai-agent',
       action: input?.action ?? 'issue_refund',
@@ -415,9 +416,45 @@ async function testEmptyDashboardRoutesAreExplicit(): Promise<void> {
   equal(summaryBody.summary.autoEnforce, false, 'Shadow dashboard summary route: empty summary never auto-enforces');
 }
 
+async function expectDashboardTenantBoundaryFailure(
+  route: string,
+  message: string,
+): Promise<void> {
+  const foreignTenantId = 'tenant_shadow_dashboard_foreign';
+  const app = createApp([
+    createEvent({ tenantId: foreignTenantId }),
+  ]);
+  const response = await app.request(route);
+  const text = await response.text();
+  const body = JSON.parse(text) as { readonly detail?: string };
+
+  equal(response.status, 503, `${message}: foreign tenant event fails closed`);
+  ok(
+    typeof body.detail === 'string' && body.detail.includes('tenant boundary violation'),
+    `${message}: safe tenant-boundary reason is returned`,
+  );
+  ok(!text.includes(foreignTenantId), `${message}: foreign tenant id is not disclosed`);
+}
+
+async function testDashboardRoutesRejectForeignTenantEvents(): Promise<void> {
+  await expectDashboardTenantBoundaryFailure(
+    '/api/v1/shadow/audit-evidence',
+    'Shadow audit evidence route',
+  );
+  await expectDashboardTenantBoundaryFailure(
+    '/api/v1/shadow/business-risk-dashboard',
+    'Shadow business risk route',
+  );
+  await expectDashboardTenantBoundaryFailure(
+    '/api/v1/shadow/dashboard-summary',
+    'Shadow dashboard summary route',
+  );
+}
+
 await testAuditEvidenceRouteIsNoStoreAndRedacted();
 await testBusinessRiskDashboardRouteIsDecisionSupportOnly();
 await testDashboardSummaryRouteReturnsCompactBusinessView();
 await testEmptyDashboardRoutesAreExplicit();
+await testDashboardRoutesRejectForeignTenantEvents();
 
 console.log(`Shadow dashboard route tests: ${passed} passed, 0 failed`);
