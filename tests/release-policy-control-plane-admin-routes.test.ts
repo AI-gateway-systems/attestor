@@ -67,6 +67,25 @@ function samplePackMetadata(bundleId = 'bundle_finance_core_2026_04_18') {
   });
 }
 
+function sampleSecondaryPackMetadata(id: string, name: string) {
+  const bundleId = `bundle_${id.replaceAll('-', '_')}_2026_04_18`;
+  return createPolicyPackMetadata({
+    id,
+    name,
+    description: `${name} release policy pack.`,
+    lifecycleState: 'draft',
+    owners: ['risk-platform'],
+    labels: ['release-gateway'],
+    createdAt: '2026-04-18T09:00:00.000Z',
+    latestBundleRef: {
+      packId: id,
+      bundleId,
+      bundleVersion: bundleId.replace('bundle_', '').replaceAll('_', '.'),
+      digest: `sha256:${bundleId}`,
+    },
+  });
+}
+
 function createEntry() {
   const definition = policy.createFirstHardGatewayReleasePolicy();
   const target = createPolicyActivationTarget({
@@ -160,7 +179,7 @@ function sampleResolverInput() {
   } as const;
 }
 
-function createFixture(options?: { idempotency?: boolean }): TestAppFixture {
+function createFixture(options?: { idempotency?: boolean; finalizeError?: Error }): TestAppFixture {
   resetReleaseAdminRouteAuthLimiterForTests();
   const app = new Hono();
   const store = createInMemoryPolicyControlPlaneStore();
@@ -202,7 +221,11 @@ function createFixture(options?: { idempotency?: boolean }): TestAppFixture {
           });
         }
       : undefined,
-    finalizeAdminMutation: options?.idempotency
+    finalizeAdminMutation: options?.finalizeError
+      ? async () => {
+          throw options.finalizeError;
+        }
+      : options?.idempotency
       ? async (input) => {
           if (input.idempotencyKey) {
             idempotency.set(input.idempotencyKey, {
@@ -243,8 +266,11 @@ async function requestJson(
   };
 }
 
-async function publishBundleThroughRoutes(fixture: TestAppFixture) {
-  const bundle = createSignedBundle();
+async function publishBundleThroughRoutes(
+  fixture: TestAppFixture,
+  bundleId = 'bundle_finance_core_2026_04_18',
+) {
+  const bundle = createSignedBundle(bundleId);
   await requestJson(fixture.app, '/api/v1/admin/release-policy/packs', {
     method: 'POST',
     body: { pack: bundle.pack },
@@ -662,6 +688,188 @@ async function testAuditSurfaceFiltersAndSnapshotDisclosure(): Promise<void> {
   assert.equal(verification.body.verification.valid, true);
 }
 
+async function testListRoutesApplyPaginationBounds(): Promise<void> {
+  const fixture = createFixture();
+  await publishBundleThroughRoutes(fixture, 'bundle_finance_core_2026_04_18');
+  await publishBundleThroughRoutes(fixture, 'bundle_finance_core_2026_04_19');
+  await publishBundleThroughRoutes(fixture, 'bundle_finance_core_2026_04_20');
+  await fixture.store.upsertPack(sampleSecondaryPackMetadata('ops-core', 'Ops Core'));
+  await requestJson(fixture.app, '/api/v1/admin/release-policy/activation-approvals', {
+    method: 'POST',
+    body: {
+      approvalRequestId: 'approval_page_one',
+      packId: 'finance-core',
+      bundleId: 'bundle_finance_core_2026_04_18',
+      target: sampleTarget(),
+      rationale: 'Request first paginated approval.',
+    },
+  });
+  await requestJson(fixture.app, '/api/v1/admin/release-policy/activation-approvals', {
+    method: 'POST',
+    body: {
+      approvalRequestId: 'approval_page_two',
+      packId: 'finance-core',
+      bundleId: 'bundle_finance_core_2026_04_18',
+      target: sampleTarget(),
+      rationale: 'Request second paginated approval.',
+    },
+  });
+  const approvalRequestId = await requestAndApproveActivation(fixture);
+  await requestJson(fixture.app, '/api/v1/admin/release-policy/activations', {
+    method: 'POST',
+    body: {
+      activationId: 'activation_prod_current',
+      packId: 'finance-core',
+      bundleId: 'bundle_finance_core_2026_04_18',
+      approvalRequestId,
+      target: sampleTarget(),
+      activatedAt: '2026-04-18T09:11:00.000Z',
+      rationale: 'Promote finance record release policy.',
+    },
+  });
+  await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/activations/activation_prod_current/rollback',
+    {
+      method: 'POST',
+      body: {
+        activationId: 'activation_prod_rollback',
+        rationale: 'Exercise rollback route.',
+      },
+    },
+  );
+
+  const packs = await requestJson(fixture.app, '/api/v1/admin/release-policy/packs?limit=1');
+  const bundles = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/packs/finance-core/bundles?limit=2',
+  );
+  const versions = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/packs/finance-core/versions?cursor=2&limit=2',
+  );
+  const approvals = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/activation-approvals?limit=1',
+  );
+  const activations = await requestJson(fixture.app, '/api/v1/admin/release-policy/activations?limit=1');
+  const excessiveLimit = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/packs?limit=101',
+  );
+  const invalidCursor = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/packs?cursor=-1',
+  );
+
+  assert.equal(packs.status, 200);
+  assert.equal(packs.body.packs.length, 1);
+  assert.equal(packs.body.pageInfo.nextCursor, '1');
+  assert.equal(packs.body.pageInfo.totalItems, 2);
+  assert.equal(bundles.body.bundles.length, 2);
+  assert.equal(bundles.body.pageInfo.nextCursor, '2');
+  assert.equal(versions.body.versions.length, 1);
+  assert.equal(versions.body.pageInfo.nextCursor, null);
+  assert.equal(approvals.body.approvalRequests.length, 1);
+  assert.equal(approvals.body.pageInfo.totalItems, 3);
+  assert.equal(activations.body.activations.length, 1);
+  assert.equal(activations.body.pageInfo.totalItems, 2);
+  assert.equal(excessiveLimit.status, 400);
+  assert.equal(excessiveLimit.body.code, 'bad_request');
+  assert.equal(invalidCursor.status, 400);
+  assert.equal(invalidCursor.body.code, 'bad_request');
+}
+
+async function testTypedErrorsUseBoundedStatusMappings(): Promise<void> {
+  const fixture = createFixture();
+  await publishBundleThroughRoutes(fixture);
+  const missingApproval = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/activation-approvals/missing_approval/approve',
+    {
+      method: 'POST',
+      body: {
+        rationale: 'Attempt to approve a missing request.',
+      },
+    },
+  );
+  const request = await requestJson(fixture.app, '/api/v1/admin/release-policy/activation-approvals', {
+    method: 'POST',
+    headers: adminHeaders({
+      'x-attestor-admin-actor-id': 'requester_policy_admin',
+      'x-attestor-admin-actor-role': 'policy-admin',
+    }),
+    body: {
+      approvalRequestId: 'approval_error_mapping',
+      packId: 'finance-core',
+      bundleId: 'bundle_finance_core_2026_04_18',
+      target: sampleTarget(),
+      rationale: 'Request policy activation approval.',
+    },
+  });
+  const requesterCannotApprove = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/activation-approvals/approval_error_mapping/approve',
+    {
+      method: 'POST',
+      headers: adminHeaders({
+        'x-attestor-admin-actor-id': 'requester_policy_admin',
+        'x-attestor-admin-actor-role': 'policy-admin',
+      }),
+      body: {
+        rationale: 'Requester attempts to approve its own activation request.',
+      },
+    },
+  );
+  const firstReviewer = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/activation-approvals/approval_error_mapping/approve',
+    {
+      method: 'POST',
+      headers: adminHeaders({
+        'x-attestor-admin-actor-id': 'risk_owner',
+        'x-attestor-admin-actor-role': 'risk-owner',
+      }),
+      body: {
+        rationale: 'Risk owner approves activation.',
+      },
+    },
+  );
+  const duplicateReviewer = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-policy/activation-approvals/approval_error_mapping/approve',
+    {
+      method: 'POST',
+      headers: adminHeaders({
+        'x-attestor-admin-actor-id': 'risk_owner',
+        'x-attestor-admin-actor-role': 'risk-owner',
+      }),
+      body: {
+        rationale: 'Risk owner attempts a duplicate approval.',
+      },
+    },
+  );
+  const failingFinalizeFixture = createFixture({
+    finalizeError: new Error('storage backend exposed raw failure detail'),
+  });
+  const internalFailure = await requestJson(failingFinalizeFixture.app, '/api/v1/admin/release-policy/packs', {
+    method: 'POST',
+    body: { pack: samplePackMetadata() },
+  });
+
+  assert.equal(missingApproval.status, 404);
+  assert.equal(missingApproval.body.code, 'not_found');
+  assert.equal(request.status, 201);
+  assert.equal(requesterCannotApprove.status, 403);
+  assert.equal(requesterCannotApprove.body.code, 'forbidden');
+  assert.equal(firstReviewer.status, 200);
+  assert.equal(duplicateReviewer.status, 409);
+  assert.equal(duplicateReviewer.body.code, 'conflict');
+  assert.equal(internalFailure.status, 500);
+  assert.equal(internalFailure.body.code, 'internal');
+  assert.equal(internalFailure.body.error, 'Release policy control-plane operation failed.');
+}
+
 async function testIdempotentMutationReplayDoesNotAppendAuditTwice(): Promise<void> {
   const fixture = createFixture({ idempotency: true });
   const bundle = createSignedBundle();
@@ -708,8 +916,10 @@ async function run(): Promise<void> {
     await testEmergencyFreezeAndRollbackRequireBreakGlassAndFailClosed();
     await testResolveAndSimulationSurfaces();
     await testAuditSurfaceFiltersAndSnapshotDisclosure();
+    await testListRoutesApplyPaginationBounds();
+    await testTypedErrorsUseBoundedStatusMappings();
     await testIdempotentMutationReplayDoesNotAppendAuditTwice();
-    console.log('Release policy control-plane admin-route tests: 11 passed, 0 failed');
+    console.log('Release policy control-plane admin-route tests: 13 passed, 0 failed');
   } finally {
     process.env.ATTESTOR_ADMIN_API_KEY = originalAdminApiKey;
     process.env.ATTESTOR_ADMIN_READ_API_KEY = originalAdminReadApiKey;
