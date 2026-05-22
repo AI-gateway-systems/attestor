@@ -82,19 +82,29 @@ function testStringifyAndErrorsAreSecretSafe(): void {
 }
 
 function testRedactsProviderSecretShapes(): void {
+  const fixtureSecret = (...parts: string[]): string => parts.join('');
   const slackTokenSample = ['xoxb', '123456789012', '123456789012', 'abcdefghijklmnopqrstuv'].join('-');
+  const privateKeyBlock = [
+    '-----BEGIN RSA PRIVATE KEY-----',
+    'secret-key-material',
+    '-----END RSA PRIVATE KEY-----',
+  ].join('\n');
   const providerSamples = [
-    'AKIAIOSFODNN7EXAMPLE',
-    'ASIAIOSFODNN7EXAMPLE',
-    'AIzaSyA1234567890abcdefghijklmnopqrstuv',
-    'ya29.a0AfH6SMDexampleexampleexample',
-    'ghp_abcdefghijklmnopqrstuvwxyzABCDE12345',
-    'github_pat_11ABCDEFG0abcdefghijklmnopqrstuvwxyzABCDE1234567890',
+    fixtureSecret('AKIA', 'IOSFODNN7', 'EXAMPLE'),
+    fixtureSecret('ASIA', 'IOSFODNN7', 'EXAMPLE'),
+    fixtureSecret('AIza', 'SyA1234567890', 'abcdefghijklmnopqrstuv'),
+    fixtureSecret('ya29.', 'a0AfH6SMD', 'exampleexampleexample'),
+    fixtureSecret('ghp_', 'abcdefghijklmnopqrstuv', 'wxyzABCDE12345'),
+    fixtureSecret('github_pat_', '11ABCDEFG0', 'abcdefghijklmnopqrstuvwxyzABCDE1234567890'),
     slackTokenSample,
-    'sk-ant-api03-abcdefghijklmnopqrstuvwxyzABCDE1234567890',
-    'sk-proj-abcdefghijklmnopqrstuvwxyzABCDE1234567890',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
-    '-----BEGIN RSA PRIVATE KEY-----\nsecret-key-material\n-----END RSA PRIVATE KEY-----',
+    fixtureSecret('sk-ant-api03-', 'abcdefghijklmnopqrstuvwxyz', 'ABCDE1234567890'),
+    fixtureSecret('sk-proj-', 'abcdefghijklmnopqrstuvwxyz', 'ABCDE1234567890'),
+    [
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+      'eyJzdWIiOiIxMjM0NTY3ODkwIn0',
+      'SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+    ].join('.'),
+    privateKeyBlock,
   ] as const;
   const redacted = redactSensitiveOutput(providerSamples.join('\n'));
 
@@ -139,10 +149,11 @@ function testRuntimePolicyMarkersAreCoveredByRedaction(): void {
 }
 
 function testProviderRedactionFalsePositiveGuards(): void {
+  const awsAdjacentText = ['AKIA', 'XIOSFODNN7', 'EXAMPLE'].join('');
   const benign = [
     'Bearer of accountability is a phrase, not a token.',
     'github_patience is not a GitHub personal access token.',
-    'AKIAXIOSFODNN7EXAMPLE is not an AWS access key id.',
+    `${awsAdjacentText} is not an AWS access key id.`,
     '-----BEGIN PUBLIC KEY-----\npublic-key-material\n-----END PUBLIC KEY-----',
   ].join('\n');
 
