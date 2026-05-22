@@ -1,6 +1,16 @@
 name: Branch Governance
 
 on:
+  pull_request:
+    paths:
+      - '.github/**'
+      - 'SECURITY.md'
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/**'
+      - 'SECURITY.md'
   workflow_dispatch:
   schedule:
     - cron: '17 4 * * 1'
@@ -21,9 +31,11 @@ jobs:
         run: git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
 
       - name: Verify stale branch policy
+        if: github.event_name != 'pull_request'
         run: node scripts/check-stale-branches.mjs --require-master-only
 
       - name: Verify delete-branch-on-merge
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -31,5 +43,41 @@ jobs:
           enabled="$(gh api "repos/${GH_REPO}" --jq '.delete_branch_on_merge')"
           if [ "$enabled" != "true" ]; then
             echo "Repository setting delete_branch_on_merge must remain enabled." >&2
+            exit 1
+          fi
+
+      - name: Verify branch protection signatures and reviews
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_BRANCH: master
+        run: |
+          signatures_enabled="$(gh api "repos/${GH_REPO}/branches/${GH_BRANCH}/protection/required_signatures" --jq '.enabled')"
+          if [ "$signatures_enabled" != "true" ]; then
+            echo "Branch protection required_signatures.enabled must remain true for ${GH_BRANCH}." >&2
+            exit 1
+          fi
+
+          reviews="$(gh api "repos/${GH_REPO}/branches/${GH_BRANCH}/protection/required_pull_request_reviews")"
+          approving_count="$(printf '%s' "$reviews" | jq -r '.required_approving_review_count // 0')"
+          require_code_owner_reviews="$(printf '%s' "$reviews" | jq -r '.require_code_owner_reviews // false')"
+          dismiss_stale_reviews="$(printf '%s' "$reviews" | jq -r '.dismiss_stale_reviews // false')"
+          require_last_push_approval="$(printf '%s' "$reviews" | jq -r '.require_last_push_approval // false')"
+
+          if [ "$approving_count" -lt 1 ]; then
+            echo "Branch protection required_approving_review_count must be at least 1 for ${GH_BRANCH}." >&2
+            exit 1
+          fi
+          if [ "$require_code_owner_reviews" != "true" ]; then
+            echo "Branch protection require_code_owner_reviews must remain true for ${GH_BRANCH}." >&2
+            exit 1
+          fi
+          if [ "$dismiss_stale_reviews" != "true" ]; then
+            echo "Branch protection dismiss_stale_reviews must remain true for ${GH_BRANCH}." >&2
+            exit 1
+          fi
+          if [ "$require_last_push_approval" != "true" ]; then
+            echo "Branch protection require_last_push_approval must remain true for ${GH_BRANCH}." >&2
             exit 1
           fi
