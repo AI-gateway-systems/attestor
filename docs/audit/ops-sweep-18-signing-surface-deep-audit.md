@@ -7,8 +7,9 @@ changed by this report.
 Remediation follow-up: OPS-141 and OPS-146 are now repo-side closed by
 `src/signing/keyless-signer.ts` production-like runtime guards and
 `tests/f5-keyless-ca-injection-boundary-validation.test.ts`. OPS-142 remains an
-accepted Phase 2 limitation for external KMS/HSM runtime signing, and OPS-145
-remains a low-priority signing test layout follow-up.
+accepted Phase 2 limitation for external KMS/HSM runtime signing. OPS-145 is
+repo-side closed by moving the primitive signing suite to
+`tests/signing-primitives.test.ts`.
 
 This is the first engine-substrate sweep after the route, ops, governance,
 redaction, and meta-audit chain covered by Sweeps 01-17.
@@ -61,7 +62,7 @@ claim RFC, SLSA, Sigstore, in-toto, DSSE, or CWE certification.
 | `src/signing/keyless-signer.ts` | full | Sigstore-inspired keyless signer and CA singleton |
 | `src/signing/verification-trust-binding.ts` | full | PKI-bound certificate verifier |
 | `src/service/bootstrap/gcp-kms-release-signer.ts` | targeted | GCP KMS adapter contract for the P0 KMS gap |
-| `src/signing/signing.test.ts` | targeted | Primary signing primitive coverage |
+| `tests/signing-primitives.test.ts` | targeted | Primary signing primitive coverage |
 | Signing-related tests under `tests/` | inventory | Additional KMS, release-signing, bundle-signing, and boundary coverage |
 
 ## 3. Skipped Files
@@ -94,7 +95,7 @@ No critical primitive-layer file was skipped.
 | OPS18-POS-13 | CA replacement requires both `allowReplace: true` and a non-empty `replacementReason`. | CA rotation cannot silently swap trust roots. |
 | OPS18-POS-14 | `resetKeylessCaForTesting` requires a non-empty reason. | Test escape hatch is at least intentional at call site. |
 | OPS18-POS-15 | GCP KMS adapter contract declares `activatesRuntimeSigning: false`, no raw provider response storage, no raw payload storage, no raw access token storage, and native `EC_SIGN_ED25519`. | External KMS is contract-ready but not runtime-claimed. |
-| OPS18-POS-16 | `src/signing/signing.test.ts` covers sign/verify, tamper rejection, canonicalization rejection cases, certificate verification, PKI chain tamper cases, OIDC identity, and domain-pack certificate paths. | Primitive regression coverage includes adversarial cases. |
+| OPS18-POS-16 | `tests/signing-primitives.test.ts` covers sign/verify, tamper rejection, canonicalization rejection cases, certificate verification, PKI chain tamper cases, OIDC identity, and domain-pack certificate paths. | Primitive regression coverage includes adversarial cases. |
 | OPS18-POS-17 | Additional tests cover KMS/HSM provider decisions, GCP KMS adapter contract, production release signing provider behavior, release-policy bundle signing, and F7 signing-boundary validation. | Signing behavior is covered beyond one primitive file. |
 
 ## 5. Findings
@@ -105,7 +106,7 @@ No critical primitive-layer file was skipped.
 | OPS-142 | P2 | `accepted limitation` | GCP KMS adapter is contract-ready but not runtime-wired. | `GcpKmsReleaseTenantSignerConfig.activatesRuntimeSigning` is literally `false`; tests cover the adapter contract, not an end-to-end KMS-issued artifact reaching downstream verification. | Keep as Phase 1 limitation; close during Phase 2 with operator opt-in, live KMS roundtrip, and verifier acceptance proof. |
 | OPS-143 | P2 | `open / partial-repo` | Signing evidence wording is too broad and can blur two different surfaces: DSSE/in-toto-shaped release evidence exists elsewhere, while the `src/signing/*` certificate/trust-chain primitive is Attestor-specific canonical JSON and not DSSE/in-toto interoperable. | `src/release-kernel/release-evidence-pack.ts`, `src/release-policy-control-plane/bundle-signing.ts`, and tests use DSSE/in-toto shapes; `src/signing/sign.ts` and `certificate.ts` explicitly use Attestor-specific canonical JSON and describe SLSA/in-toto/Sigstore as inspiration. | Tighten docs to distinguish release evidence bundles from the signing primitive; avoid implying `src/signing/*` is a DSSE/in-toto signer. |
 | OPS-144 | P2 | `accepted limitation` | Legacy unbounded certificate sunset is declared but not CI-asserted. | `LEGACY_UNBOUNDED_CERTIFICATE_SUNSET_AT = '2026-12-31T23:59:59.999Z'`; current tests validate the warning, not a future sunset fail/warn policy. | Add a sunset-window test before Phase 2 or before the sunset approaches. |
-| OPS-145 | P3 | `open / partial-repo` | Primary signing test is co-located under `src/signing/signing.test.ts` while most suite tests live in `tests/`. | Test exists and passes by package script convention, but layout is inconsistent for a critical primitive. | Move/rename to `tests/signing-primitives.test.ts` when touching signing tests next. |
+| OPS-145 | P3 | `closed` | Primary signing test was co-located under `src/signing/signing.test.ts` while most suite tests live in `tests/`. | `tests/signing-primitives.test.ts` now carries the primitive signing suite and `package.json` keeps `test:signing` pointed at it. | Keep `npm run test:signing` green before touching signing primitives. |
 | OPS-146 | P3 | `open / partial-repo` | `resetKeylessCaForTesting` is reason-gated but not production-runtime-gated. | Function only requires a non-empty `testOnlyReason`; a buggy production bootstrap could call it with a string. | Add a production-like runtime check mirroring existing fail-closed patterns. |
 
 ## 6. Signing Surface Matrix
@@ -122,7 +123,7 @@ No critical primitive-layer file was skipped.
 | 8 | reviewer and multi-query signing files | cert variants | reviewer + multi-query paths | inventoried |
 | 9 | `src/signing/verify-cli.ts` | CLI | wrapper over PKI-bound verifier | none new |
 | 10 | `src/service/bootstrap/gcp-kms-release-signer.ts` | adapter | GCP KMS signer probe contract | OPS-142 |
-| 11 | `src/signing/signing.test.ts` | test | primitive test suite | OPS-145 |
+| 11 | `tests/signing-primitives.test.ts` | test | primitive test suite | OPS-145 |
 | 12 | signing-related `tests/*.test.ts` files | tests | KMS, release signing, bundle signing, boundary validation | none new |
 
 Coverage: the primitive layer was line-verified. Downstream release evidence

@@ -22,7 +22,7 @@ Known limitations: repository evidence only; no live HSM, TUF, Rekor, or multi-r
 
 | ID | Status | Severity | Validation result |
 |---|---|---:|---|
-| F-5.1 leaf validity rounding | disputed as stated | high | Current `src/signing/keyless-signer.ts` uses `issueLeafCertificateForDuration(... leafValidityMinutes * 60 * 1000)`, and `src/signing/signing.test.ts` asserts sub-day validity. |
+| F-5.1 leaf validity rounding | disputed as stated | high | Current `src/signing/keyless-signer.ts` uses `issueLeafCertificateForDuration(... leafValidityMinutes * 60 * 1000)`, and `tests/signing-primitives.test.ts` asserts sub-day validity. |
 | F-5.3 attestation certificate validity | disputed as stated | medium-high | Current `AttestationCertificate` includes `notBefore` and `notAfter`; `verifyCertificate` checks validity with clock skew. |
 | F-5.4 certificate revocation inputs | disputed as stated | medium | Current `verifyCertificate` and `verifyTrustChain` accept revoked certificate IDs and fingerprints. |
 | F-5.5 trust-chain clock skew | disputed as stated | low-medium | Current `verifyTrustChain` uses `clockSkewMs` with 60s default. |
@@ -55,7 +55,7 @@ Exact file/path: src/signing/verification-trust-binding.ts; src/signing/verify-c
 Observed behavior: PKI details were returned, but successful certificate signature verification could still surface as overall valid even when PKI binding failed.
 Expected behavior: PKI verification path must mark the result invalid unless certificate signature, chain validity, leaf binding, and optional CA pin all match.
 Risk: a verifier can over-read a flat valid signature as fully PKI verified when the chain binding is broken.
-Validation evidence: targeted tests in tests/pipeline-verification-routes.test.ts and src/signing/signing.test.ts.
+Validation evidence: targeted tests in tests/pipeline-verification-routes.test.ts and tests/signing-primitives.test.ts.
 Research anchors for fix: Sigstore trust-root model; SLSA artifact verification guidance; NIST SP 800-57 key lifecycle guidance.
 Smallest safe fix: central PKI trust-binding helper and route/CLI use of the helper for overall decisions.
 Regression test or probe: npm run test:pipeline-verification-routes; npm run test:signing

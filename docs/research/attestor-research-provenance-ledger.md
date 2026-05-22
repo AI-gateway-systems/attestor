@@ -258,7 +258,7 @@ This index records research and buildout sources found in the repository. A sour
 - Research anchor / source used, if recorded: `docs/research/domains-and-pki-default.md` records PKI-by-default signing, Sigstore/Fulcio/SLSA provenance patterns, and flat-key-to-chain verification transition. `docs/research/implementation-wave2.md` records the PKI default verifier implementation direction.
 - Repository evidence:
   - Code evidence: `src/service/bootstrap/release-runtime.ts`, `src/signing/keyless-signer.ts`, `src/signing/pki-chain.ts`, `src/signing/bundle.ts`, `src/signing/certificate.ts`.
-  - Test evidence: `src/signing/signing.test.ts`, `tests/production-runtime-restart-recovery.test.ts`, `tests/production-runtime-pki-rotation.test.ts`, `tests/production-release-signing-provider.test.ts`, `tests/ha-release-input-probe.test.ts`, `tests/ha-promotion-packet.test.ts`, `tests/kubernetes-ha-bundle.test.ts`.
+  - Test evidence: `tests/signing-primitives.test.ts`, `tests/production-runtime-restart-recovery.test.ts`, `tests/production-runtime-pki-rotation.test.ts`, `tests/production-release-signing-provider.test.ts`, `tests/ha-release-input-probe.test.ts`, `tests/ha-promotion-packet.test.ts`, `tests/kubernetes-ha-bundle.test.ts`.
   - Contract/documentation evidence: `docs/06-signing/signing-verification.md`, `docs/08-deployment/deployment.md`, `docs/08-deployment/production-readiness.md`, `ops/kubernetes/ha/release-runtime-pki-pvc.yaml`.
   - PR evidence: PR #97 title `Harden release PKI for HA deployments`; PR #109 title `Harden release signing PKI validity`.
 - Implemented control: Persists release runtime issuer PKI, adds shared-path HA checks, wires release-input/promotion gates to shared PKI requirements, and hardens PKI trust-chain validity handling.
