@@ -66,6 +66,7 @@ export type BuildAccountRouteDepsInput =
   AccountApiKeyServiceDeps &
   AccountUserManagementServiceDeps &
   AccountStateServiceDeps &
+  PipelineIdempotencyServiceDeps &
   {
     hashJsonValue: typeof hashJsonValue;
     appendAdminAuditRecordState: typeof ControlPlaneStore.appendAdminAuditRecordState;
@@ -80,6 +81,7 @@ export function buildAccountRouteDeps(input: BuildAccountRouteDepsInput): Accoun
   const apiKeyService = createAccountApiKeyService(input);
   const stateService = createAccountStateService(input);
   const userManagementService = createAccountUserManagementService(input);
+  const accountMutationIdempotencyService = createPipelineIdempotencyService(input);
 
   return {
     authService,
@@ -147,6 +149,7 @@ export function buildAccountRouteDeps(input: BuildAccountRouteDepsInput): Accoun
     buildHostedBillingReconciliation: input.buildHostedBillingReconciliation,
     billingEntitlementView: input.billingEntitlementView,
     currentTenant: input.currentTenant,
+    accountMutationIdempotencyService,
     async recordAccountMutationAudit(auditInput) {
       await input.appendAdminAuditRecordState({
         actorType: 'account_session',

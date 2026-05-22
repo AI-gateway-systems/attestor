@@ -29,6 +29,10 @@ import {
   AccountUserManagementServiceError,
   type AccountUserManagementService,
 } from '../../application/account-user-management-service.js';
+import type {
+  PipelineIdempotencyReadyResult,
+  PipelineIdempotencyService,
+} from '../../application/pipeline-idempotency-service.js';
 import type { HostedAccountRecord } from '../../account-store.js';
 import type {
   AccountUserPasskeyCredentialRecord,
@@ -337,6 +341,7 @@ export interface AccountRouteDeps {
   billingEntitlementView(record: HostedBillingEntitlementRecord): Record<string, unknown>;
   currentTenant(context: Context): TenantContext;
   recordAccountMutationAudit(input: AccountMutationAuditInput): Promise<void>;
+  accountMutationIdempotencyService?: PipelineIdempotencyService;
 }
 
 export function registerAccountRoutes(app: Hono, deps: AccountRouteDeps): void {
@@ -405,6 +410,7 @@ export function registerAccountRoutes(app: Hono, deps: AccountRouteDeps): void {
     billingEntitlementView,
     currentTenant,
     recordAccountMutationAudit,
+    accountMutationIdempotencyService,
   } = deps;
 
   async function recordPasskeyAuthenticationFailure(record: AccountUserActionTokenRecord): Promise<void> {
@@ -421,6 +427,110 @@ export function registerAccountRoutes(app: Hono, deps: AccountRouteDeps): void {
 
   async function recordAccountSessionMutationAudit(input: AccountMutationAuditInput): Promise<void> {
     await recordAccountMutationAudit(input);
+  }
+
+  type AccountMutationIdempotencyBegin =
+    | { readonly kind: 'ready'; readonly ready: PipelineIdempotencyReadyResult | null }
+    | { readonly kind: 'response'; readonly response: Response };
+
+  function accountIdempotencyKeyFor(c: Context): string | null {
+    const normalized = c.req.header('Idempotency-Key')?.trim() ?? '';
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  function accountIdempotencyReplayResponse(input: {
+    readonly statusCode: number;
+    readonly responseBody: unknown;
+    readonly replay: boolean;
+  }): Response {
+    return new Response(JSON.stringify(input.responseBody), {
+      status: input.statusCode,
+      headers: {
+        'content-type': 'application/json; charset=UTF-8',
+        'cache-control': 'no-store',
+        ...(input.replay ? { 'x-attestor-idempotent-replay': 'true' } : {}),
+      },
+    });
+  }
+
+  async function beginAccountMutationIdempotency(
+    c: Context,
+    access: AccountAccessContext,
+    routeId: string,
+    requestPayload: unknown,
+  ): Promise<AccountMutationIdempotencyBegin> {
+    const idempotencyKey = accountIdempotencyKeyFor(c);
+    if (!idempotencyKey) {
+      return { kind: 'ready', ready: null };
+    }
+
+    if (!accountMutationIdempotencyService) {
+      return {
+        kind: 'response',
+        response: c.json({
+          error: 'Account mutation idempotency store is not configured.',
+        }, 503),
+      };
+    }
+
+    const begin = await accountMutationIdempotencyService.begin({
+      idempotencyKey,
+      tenantId: `account:${access.accountId}`,
+      routeId,
+      requestPayload,
+    });
+
+    if (begin.kind === 'ready') {
+      return { kind: 'ready', ready: begin };
+    }
+
+    if (begin.kind === 'replay') {
+      return {
+        kind: 'response',
+        response: accountIdempotencyReplayResponse({
+          statusCode: begin.statusCode,
+          responseBody: begin.responseBody,
+          replay: true,
+        }),
+      };
+    }
+
+    if (begin.kind === 'conflict') {
+      return {
+        kind: 'response',
+        response: c.json({
+          error: 'Idempotency-Key was already used for a different account mutation request.',
+        }, 409),
+      };
+    }
+
+    return {
+      kind: 'response',
+      response: c.json({
+        error: 'Account mutation idempotency store is not configured.',
+      }, 503),
+    };
+  }
+
+  async function finalizeAccountMutationIdempotency(
+    access: AccountAccessContext,
+    routeId: string,
+    requestPayload: unknown,
+    idempotency: PipelineIdempotencyReadyResult | null,
+    statusCode: number,
+    responseBody: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (!idempotency?.idempotencyKey || !accountMutationIdempotencyService) {
+      return responseBody;
+    }
+    return accountMutationIdempotencyService.finalize({
+      idempotencyKey: idempotency.idempotencyKey,
+      tenantId: `account:${access.accountId}`,
+      routeId,
+      requestPayload,
+      statusCode,
+      responseBody,
+    });
   }
 
 app.post('/api/v1/account/users/bootstrap', async (c) => {
@@ -1841,11 +1951,14 @@ app.post('/api/v1/account/api-keys', async (c) => {
   });
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
+  const routeId = 'account.api_keys.issue';
   const requestPayload = { accountId: access.accountId, action: 'issue' };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const issued = await apiKeyService.issue(access.accountId);
     await recordAccountSessionMutationAudit({
-      routeId: 'account.api_keys.issue',
+      routeId,
       action: 'account.api_key.issued',
       access,
       requestPayload,
@@ -1853,16 +1966,18 @@ app.post('/api/v1/account/api-keys', async (c) => {
       tenantId: issued.record.tenantId,
       tenantKeyId: issued.record.id,
       planId: issued.record.planId,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         keyStatus: issued.record.status,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 201, {
       key: {
         ...accountApiKeyView(issued.record),
         apiKey: issued.apiKey,
       },
-    }, 201);
+    });
+    return c.json(responseBody, 201);
   } catch (err) {
     const mapped = accountApiKeyServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -1877,11 +1992,14 @@ app.post('/api/v1/account/api-keys/:id/rotate', async (c) => {
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
   const keyId = c.req.param('id');
+  const routeId = 'account.api_keys.rotate';
   const requestPayload = { accountId: access.accountId, keyId };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const rotated = await apiKeyService.rotate(access.accountId, keyId);
     await recordAccountSessionMutationAudit({
-      routeId: 'account.api_keys.rotate',
+      routeId,
       action: 'account.api_key.rotated',
       access,
       requestPayload,
@@ -1889,17 +2007,19 @@ app.post('/api/v1/account/api-keys/:id/rotate', async (c) => {
       tenantId: rotated.record.tenantId,
       tenantKeyId: rotated.record.id,
       planId: rotated.record.planId,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         rotatedFromKeyId: rotated.previousRecord.id,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 201, {
       previousKey: accountApiKeyView(rotated.previousRecord),
       newKey: {
         ...accountApiKeyView(rotated.record),
         apiKey: rotated.apiKey,
       },
-    }, 201);
+    });
+    return c.json(responseBody, 201);
   } catch (err) {
     const mapped = accountApiKeyServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -1914,11 +2034,14 @@ app.post('/api/v1/account/api-keys/:id/deactivate', async (c) => {
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
   const keyId = c.req.param('id');
+  const routeId = 'account.api_keys.deactivate';
   const requestPayload = { accountId: access.accountId, keyId, status: 'inactive' };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const result = await apiKeyService.setStatus(access.accountId, keyId, 'inactive');
     await recordAccountSessionMutationAudit({
-      routeId: 'account.api_keys.deactivate',
+      routeId,
       action: 'account.api_key.deactivated',
       access,
       requestPayload,
@@ -1926,13 +2049,15 @@ app.post('/api/v1/account/api-keys/:id/deactivate', async (c) => {
       tenantId: result.record.tenantId,
       tenantKeyId: result.record.id,
       planId: result.record.planId,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         keyStatus: result.record.status,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 200, {
       key: accountApiKeyView(result.record),
     });
+    return c.json(responseBody);
   } catch (err) {
     const mapped = accountApiKeyServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -1947,11 +2072,14 @@ app.post('/api/v1/account/api-keys/:id/reactivate', async (c) => {
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
   const keyId = c.req.param('id');
+  const routeId = 'account.api_keys.reactivate';
   const requestPayload = { accountId: access.accountId, keyId, status: 'active' };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const result = await apiKeyService.setStatus(access.accountId, keyId, 'active');
     await recordAccountSessionMutationAudit({
-      routeId: 'account.api_keys.reactivate',
+      routeId,
       action: 'account.api_key.reactivated',
       access,
       requestPayload,
@@ -1959,13 +2087,15 @@ app.post('/api/v1/account/api-keys/:id/reactivate', async (c) => {
       tenantId: result.record.tenantId,
       tenantKeyId: result.record.id,
       planId: result.record.planId,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         keyStatus: result.record.status,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 200, {
       key: accountApiKeyView(result.record),
     });
+    return c.json(responseBody);
   } catch (err) {
     const mapped = accountApiKeyServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -1980,11 +2110,14 @@ app.post('/api/v1/account/api-keys/:id/revoke', async (c) => {
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
   const keyId = c.req.param('id');
+  const routeId = 'account.api_keys.revoke';
   const requestPayload = { accountId: access.accountId, keyId };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const result = await apiKeyService.revoke(access.accountId, keyId);
     await recordAccountSessionMutationAudit({
-      routeId: 'account.api_keys.revoke',
+      routeId,
       action: 'account.api_key.revoked',
       access,
       requestPayload,
@@ -1992,13 +2125,15 @@ app.post('/api/v1/account/api-keys/:id/revoke', async (c) => {
       tenantId: result.record.tenantId,
       tenantKeyId: result.record.id,
       planId: result.record.planId,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         keyStatus: result.record.status,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 200, {
       key: accountApiKeyView(result.record),
     });
+    return c.json(responseBody);
   } catch (err) {
     const mapped = accountApiKeyServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -2038,10 +2173,15 @@ app.post('/api/v1/account/users', async (c) => {
     email,
   });
   if (passwordPolicyError) return passwordPolicyError;
+  const routeId = 'account.users.create';
   const requestPayload = {
     accountId: access.accountId,
+    email,
+    displayName,
     role,
   };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
 
   try {
     const created = await userManagementService.createUser({
@@ -2052,19 +2192,21 @@ app.post('/api/v1/account/users', async (c) => {
       role,
     });
     await recordAccountSessionMutationAudit({
-      routeId: 'account.users.create',
+      routeId,
       action: 'account.user.created',
       access,
       requestPayload,
       statusCode: 201,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         targetUserId: created.id,
         targetRole: created.role,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 201, {
       user: accountUserView(created),
-    }, 201);
+    });
+    return c.json(responseBody, 201);
   } catch (err) {
     const mapped = accountUserManagementServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -2099,11 +2241,16 @@ app.post('/api/v1/account/users/invites', async (c) => {
   if (!email || !displayName || !role) {
     return c.json({ error: 'email, displayName, and role are required.' }, 400);
   }
+  const routeId = 'account.users.invites.issue';
   const requestPayload = {
     accountId: access.accountId,
+    email,
+    displayName,
     role,
     expiresHours,
   };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const issued = await userManagementService.issueInvite({
       accountId: access.accountId,
@@ -2114,11 +2261,12 @@ app.post('/api/v1/account/users/invites', async (c) => {
       expiresHours,
     });
     await recordAccountSessionMutationAudit({
-      routeId: 'account.users.invites.issue',
+      routeId,
       action: 'account.user.invite_issued',
       access,
       requestPayload,
       statusCode: 201,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         inviteId: issued.record.id,
         targetRole: issued.record.role,
@@ -2126,11 +2274,12 @@ app.post('/api/v1/account/users/invites', async (c) => {
         deliveryMode: issued.delivery.mode,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 201, {
       invite: accountUserActionTokenView(issued.record),
       ...(issued.delivery.tokenReturned ? { inviteToken: issued.token } : {}),
       delivery: issued.delivery,
-    }, 201);
+    });
+    return c.json(responseBody, 201);
   } catch (err) {
     const mapped = accountUserManagementServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -2145,23 +2294,28 @@ app.post('/api/v1/account/users/invites/:id/revoke', async (c) => {
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
   const inviteId = c.req.param('id');
+  const routeId = 'account.users.invites.revoke';
   const requestPayload = { accountId: access.accountId, inviteId };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const revoked = await userManagementService.revokeInvite(access.accountId, inviteId);
     await recordAccountSessionMutationAudit({
-      routeId: 'account.users.invites.revoke',
+      routeId,
       action: 'account.user.invite_revoked',
       access,
       requestPayload,
       statusCode: 200,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         inviteId: revoked.id,
         targetRole: revoked.role,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 200, {
       invite: accountUserActionTokenView(revoked),
     });
+    return c.json(responseBody);
   } catch (err) {
     const mapped = accountUserManagementServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -2213,23 +2367,28 @@ app.post('/api/v1/account/users/:id/deactivate', async (c) => {
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
   const targetUserId = c.req.param('id');
+  const routeId = 'account.users.deactivate';
   const requestPayload = { accountId: access.accountId, targetUserId, status: 'inactive' };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const updated = await userManagementService.setUserStatus(access.accountId, targetUserId, 'inactive');
     await recordAccountSessionMutationAudit({
-      routeId: 'account.users.deactivate',
+      routeId,
       action: 'account.user.deactivated',
       access,
       requestPayload,
       statusCode: 200,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         targetUserId: updated.record.id,
         targetRole: updated.record.role,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 200, {
       user: accountUserView(updated.record),
     });
+    return c.json(responseBody);
   } catch (err) {
     const mapped = accountUserManagementServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -2244,23 +2403,28 @@ app.post('/api/v1/account/users/:id/reactivate', async (c) => {
   if (unauthorized) return unauthorized;
   const access = currentAccountAccess(c)!;
   const targetUserId = c.req.param('id');
+  const routeId = 'account.users.reactivate';
   const requestPayload = { accountId: access.accountId, targetUserId, status: 'active' };
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   try {
     const updated = await userManagementService.setUserStatus(access.accountId, targetUserId, 'active');
     await recordAccountSessionMutationAudit({
-      routeId: 'account.users.reactivate',
+      routeId,
       action: 'account.user.reactivated',
       access,
       requestPayload,
       statusCode: 200,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         targetUserId: updated.record.id,
         targetRole: updated.record.role,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 200, {
       user: accountUserView(updated.record),
     });
+    return c.json(responseBody);
   } catch (err) {
     const mapped = accountUserManagementServiceErrorResponse(c, err);
     if (mapped) return mapped;
@@ -2286,6 +2450,9 @@ app.post('/api/v1/account/users/:id/password-reset', async (c) => {
   ));
   const resetIssueRateLimit = await maybeRateLimitAuthAttempt(c, authAttempt);
   if (resetIssueRateLimit) return resetIssueRateLimit;
+  const routeId = 'account.users.password_reset.issue';
+  const idempotency = await beginAccountMutationIdempotency(c, access, routeId, requestPayload);
+  if (idempotency.kind === 'response') return idempotency.response;
   await recordAuthAttemptUse(authAttempt);
   try {
     const issued = await userManagementService.issuePasswordReset({
@@ -2295,11 +2462,12 @@ app.post('/api/v1/account/users/:id/password-reset', async (c) => {
       ttlMinutes,
     });
     await recordAccountSessionMutationAudit({
-      routeId: 'account.users.password_reset.issue',
+      routeId,
       action: 'account.user.password_reset_issued',
       access,
       requestPayload,
       statusCode: 201,
+      idempotencyKey: idempotency.ready?.idempotencyKey ?? null,
       metadata: {
         resetTokenId: issued.record.id,
         targetUserId: issued.record.accountUserId,
@@ -2307,11 +2475,12 @@ app.post('/api/v1/account/users/:id/password-reset', async (c) => {
         deliveryMode: issued.delivery.mode,
       },
     });
-    return c.json({
+    const responseBody = await finalizeAccountMutationIdempotency(access, routeId, requestPayload, idempotency.ready, 201, {
       reset: accountUserActionTokenView(issued.record),
       ...(issued.delivery.tokenReturned ? { resetToken: issued.token } : {}),
       delivery: issued.delivery,
-    }, 201);
+    });
+    return c.json(responseBody, 201);
   } catch (err) {
     const mapped = accountUserManagementServiceErrorResponse(c, err);
     if (mapped) return mapped;

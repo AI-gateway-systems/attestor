@@ -1,12 +1,24 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Hono, type Context } from 'hono';
 import {
   registerAccountRoutes,
   type AccountMutationAuditInput,
   type AccountRouteDeps,
 } from '../src/service/http/routes/account-routes.js';
+import { createPipelineIdempotencyService } from '../src/service/application/pipeline-idempotency-service.js';
+import type { PipelineIdempotencyService } from '../src/service/application/pipeline-idempotency-service.js';
 import { resetAuthAbuseGuardForTests } from '../src/service/auth-abuse-guard.js';
+import {
+  ensurePipelineIdempotencyStateReady,
+  lookupPipelineIdempotencyState,
+  recordPipelineIdempotencyState,
+} from '../src/service/control-plane-store.js';
+import { hashJsonValue } from '../src/service/json-stable.js';
+import { resetPipelineIdempotencyStoreForTests } from '../src/service/pipeline-idempotency-store.js';
 import type { AccountAccessContext } from '../src/service/tenant-isolation.js';
 
 const accountAccess: AccountAccessContext = {
@@ -41,6 +53,9 @@ function withEnv(overrides: Record<string, string | undefined>): () => void {
 
 function testDeps(options: {
   readonly auditInputs?: AccountMutationAuditInput[];
+  readonly accountMutationIdempotencyService?: PipelineIdempotencyService;
+  readonly issueApiKeyCalls?: { count: number };
+  readonly createUserCalls?: { count: number };
   readonly completeOidcCalls?: { count: number };
   readonly completeSamlCalls?: { count: number };
 } = {}): AccountRouteDeps {
@@ -49,6 +64,7 @@ function testDeps(options: {
     currentAccountAccess: () => accountAccess,
     apiKeyService: {
       async issue() {
+        if (options.issueApiKeyCalls) options.issueApiKeyCalls.count += 1;
         return {
           record: {
             id: 'tkey_route_authz',
@@ -63,6 +79,27 @@ function testDeps(options: {
         };
       },
     },
+    userManagementService: {
+      async createUser(input: { readonly email: string; readonly displayName: string; readonly role: string }) {
+        if (options.createUserCalls) options.createUserCalls.count += 1;
+        return {
+          id: `ausr_${options.createUserCalls?.count ?? 1}`,
+          accountId: accountAccess.accountId,
+          email: input.email,
+          displayName: input.displayName,
+          role: input.role,
+          status: 'active',
+        };
+      },
+    },
+    accountMutationIdempotencyService: options.accountMutationIdempotencyService,
+    accountUserView: (record: Record<string, unknown>) => ({
+      id: record.id,
+      email: record.email,
+      displayName: record.displayName,
+      role: record.role,
+      status: record.status,
+    }),
     accountApiKeyView: (record: Record<string, unknown>) => ({
       id: record.id,
       tenantId: record.tenantId,
@@ -81,6 +118,31 @@ function testDeps(options: {
       throw new Error('SAML callback rejected for test');
     },
   } as unknown as AccountRouteDeps;
+}
+
+function withPipelineIdempotencyEnv(): () => void {
+  const restore = withEnv({
+    ATTESTOR_PIPELINE_IDEMPOTENCY_ENCRYPTION_KEY: 'account-mutation-idempotency-test-key',
+    ATTESTOR_PIPELINE_IDEMPOTENCY_STORE_PATH: join(
+      tmpdir(),
+      `attestor-account-mutation-idempotency-${randomUUID()}.json`,
+    ),
+    ATTESTOR_CONTROL_PLANE_DATABASE_URL: undefined,
+  });
+  resetPipelineIdempotencyStoreForTests();
+  return () => {
+    restore();
+    resetPipelineIdempotencyStoreForTests();
+  };
+}
+
+function pipelineIdempotencyService(): PipelineIdempotencyService {
+  return createPipelineIdempotencyService({
+    hashJsonValue,
+    ensurePipelineIdempotencyStateReady,
+    lookupPipelineIdempotencyState,
+    recordPipelineIdempotencyState,
+  });
 }
 
 async function json(response: Response): Promise<Record<string, unknown>> {
@@ -222,11 +284,105 @@ async function testAccountRouteJsonAndAuthAttemptVocabularyIsLocked(): Promise<v
   assert.equal(source.includes('acceptsJsonRequestBody'), true);
 }
 
+async function testAccountApiKeyIssueReplaysWithIdempotencyKey(): Promise<void> {
+  const restore = withPipelineIdempotencyEnv();
+  try {
+    const auditInputs: AccountMutationAuditInput[] = [];
+    const issueApiKeyCalls = { count: 0 };
+    const app = new Hono();
+    registerAccountRoutes(app, testDeps({
+      auditInputs,
+      issueApiKeyCalls,
+      accountMutationIdempotencyService: pipelineIdempotencyService(),
+    }));
+
+    const first = await app.request('/api/v1/account/api-keys', {
+      method: 'POST',
+      headers: {
+        'x-attestor-account-session': 'session-token',
+        'Idempotency-Key': 'account-api-key-issue-1',
+      },
+    });
+    const replay = await app.request('/api/v1/account/api-keys', {
+      method: 'POST',
+      headers: {
+        'x-attestor-account-session': 'session-token',
+        'Idempotency-Key': 'account-api-key-issue-1',
+      },
+    });
+    const firstBody = await json(first);
+    const replayBody = await json(replay);
+
+    assert.equal(first.status, 201);
+    assert.equal(replay.status, 201);
+    assert.deepEqual(replayBody, firstBody);
+    assert.equal(replay.headers.get('x-attestor-idempotent-replay'), 'true');
+    assert.equal(replay.headers.get('x-attestor-idempotency-key'), null);
+    assert.equal(issueApiKeyCalls.count, 1);
+    assert.equal(auditInputs.length, 1);
+    assert.equal(auditInputs[0]?.idempotencyKey, 'account-api-key-issue-1');
+  } finally {
+    restore();
+  }
+}
+
+async function testAccountUserCreateRejectsIdempotencyKeyConflicts(): Promise<void> {
+  const restore = withPipelineIdempotencyEnv();
+  try {
+    const createUserCalls = { count: 0 };
+    const app = new Hono();
+    registerAccountRoutes(app, testDeps({
+      createUserCalls,
+      accountMutationIdempotencyService: pipelineIdempotencyService(),
+    }));
+
+    const firstBody = {
+      email: 'ops-one@example.com',
+      displayName: 'Ops One',
+      password: 'very-strong-route-password-1',
+      role: 'account_admin',
+    };
+    const conflictBody = {
+      ...firstBody,
+      email: 'ops-two@example.com',
+    };
+    const first = await app.request('/api/v1/account/users', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-attestor-account-session': 'session-token',
+        'Idempotency-Key': 'account-user-create-conflict-1',
+      },
+      body: JSON.stringify(firstBody),
+    });
+    const conflict = await app.request('/api/v1/account/users', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-attestor-account-session': 'session-token',
+        'Idempotency-Key': 'account-user-create-conflict-1',
+      },
+      body: JSON.stringify(conflictBody),
+    });
+    const conflictResponse = await json(conflict);
+
+    assert.equal(first.status, 201);
+    assert.equal(conflict.status, 409);
+    assert.equal(conflictResponse.error, 'Idempotency-Key was already used for a different account mutation request.');
+    assert.equal(conflict.headers.get('x-attestor-idempotency-key'), null);
+    assert.equal(createUserCalls.count, 1);
+  } finally {
+    restore();
+  }
+}
+
 await testAccountApiKeyIssueWritesAccountSessionAudit();
 await testOidcCallbackRateLimitRunsBeforeCrypto();
 await testSamlCallbackRateLimitRunsBeforeCrypto();
 await testAccountJsonRoutesRejectNonJsonMediaType();
 await testAccountJsonRoutesRejectMalformedJson();
 await testAccountRouteJsonAndAuthAttemptVocabularyIsLocked();
+await testAccountApiKeyIssueReplaysWithIdempotencyKey();
+await testAccountUserCreateRejectsIdempotencyKeyConflicts();
 
-console.log('Service account routes authorization tests: 6 passed, 0 failed');
+console.log('Service account routes authorization tests: 8 passed, 0 failed');
