@@ -16,6 +16,8 @@ function matches(haystack: string, pattern: RegExp, message: string): void {
 const policy = readFileSync(new URL('../.github/BRANCH_POLICY.md', import.meta.url), 'utf8');
 const workflow = readFileSync(new URL('../.github/workflows/branch-governance.yml', import.meta.url), 'utf8');
 const script = readFileSync(new URL('../scripts/check-stale-branches.mjs', import.meta.url), 'utf8');
+const codeowners = readFileSync(new URL('../.github/CODEOWNERS', import.meta.url), 'utf8');
+const contributing = readFileSync(new URL('../CONTRIBUTING.md', import.meta.url), 'utf8');
 const remediation = readFileSync(
   new URL('../docs/audit/v0.2.0-round12-stale-branch-governance-remediation.md', import.meta.url),
   'utf8',
@@ -51,6 +53,17 @@ includes(workflow, 'require_last_push_approval', 'Branch workflow: last-push app
 includes(script, '--require-master-only', 'Branch script: supports master-only enforcement');
 includes(script, 'mergedCodexBranches', 'Branch script: reports merged codex branches');
 includes(script, 'Remote branch policy requires master-only public branches.', 'Branch script: fails non-master branch inventory when required');
+
+includes(codeowners, '/CONTRIBUTING.md @AI-gateway-systems', 'CODEOWNERS: contributing guidance requires owner review');
+
+includes(contributing, '## Workflow Permission Discipline', 'Contributing: workflow permission discipline section exists');
+includes(contributing, '`contents: read`', 'Contributing: contents read is the default workflow token posture');
+includes(contributing, 'attestations: write', 'Contributing: release provenance attestation write scope is named');
+includes(contributing, 'id-token: write', 'Contributing: OIDC write scope is named');
+includes(contributing, 'security-events: write', 'Contributing: CodeQL security-events write scope is named');
+includes(contributing, 'CODEOWNER review', 'Contributing: elevated write scopes require owner review');
+includes(contributing, 'Do not add broad `write-all`, `contents: write`,', 'Contributing: broad write grants are forbidden');
+includes(contributing, 'or unrelated write permissions for convenience.', 'Contributing: unrelated write grants are forbidden');
 
 includes(remediation, 'delete_branch_on_merge=true', 'Branch remediation: final delete-branch-on-merge state is recorded');
 matches(remediation, /branch inventory: `\["master"\]`/u, 'Branch remediation: final branch inventory is recorded');
