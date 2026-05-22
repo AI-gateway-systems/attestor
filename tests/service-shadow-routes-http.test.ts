@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Hono } from 'hono';
@@ -12,6 +12,7 @@ import {
 } from '../src/consequence-admission/index.js';
 import {
   registerShadowRoutes,
+  resetShadowMutationRateLimiterForTests,
   type ShadowMutationAuditInput,
 } from '../src/service/http/routes/shadow-routes.js';
 import {
@@ -73,7 +74,10 @@ function createEvent(index: number): ShadowAdmissionEvent {
   });
 }
 
-function createApp(auditInputs: ShadowMutationAuditInput[]): Hono {
+function createApp(
+  auditInputs: ShadowMutationAuditInput[],
+  options?: { readonly now?: () => string },
+): Hono {
   const simulationStore = createFileBackedShadowPolicySimulationReportStore({
     path: join(tempDir, `simulations-${auditInputs.length}-${Date.now()}.json`),
   });
@@ -144,7 +148,7 @@ function createApp(auditInputs: ShadowMutationAuditInput[]): Hono {
         tenantId: routeTenant.tenantId,
         receiptId,
       }).record,
-    now: () => '2026-05-21T09:10:00.000Z',
+    now: options?.now ?? (() => '2026-05-21T09:10:00.000Z'),
   });
   return app;
 }
@@ -398,10 +402,163 @@ async function testMissingStoreAndJsonValidationRemainFailClosed(): Promise<void
   equal(auditInputs.length, 0, 'Shadow routes HTTP coverage: failed mutations do not write success audit');
 }
 
+async function testShadowMutationRateLimitIsTenantRouteScoped(): Promise<void> {
+  const previousLimit = process.env.ATTESTOR_SHADOW_MUTATION_RATE_LIMIT_PER_MINUTE;
+  process.env.ATTESTOR_SHADOW_MUTATION_RATE_LIMIT_PER_MINUTE = '1';
+  resetShadowMutationRateLimiterForTests();
+  try {
+    const auditInputs: ShadowMutationAuditInput[] = [];
+    const app = createApp(auditInputs);
+    const firstSimulation = await postJson(app, '/api/v1/shadow/simulations', { proposedMode: 'review' });
+    const secondSimulation = await postJson(app, '/api/v1/shadow/simulations', { proposedMode: 'review' });
+    const materialize = await app.request('/api/v1/shadow/policy-candidates/materialize', {
+      method: 'POST',
+    });
+    const problem = await secondSimulation.json() as { readonly detail: string; readonly reasonCodes: readonly string[] };
+
+    equal(firstSimulation.status, 200, 'Shadow mutation rate limit: first same-route mutation is allowed');
+    equal(secondSimulation.status, 429, 'Shadow mutation rate limit: second same-route mutation is rejected');
+    equal(materialize.status, 200, 'Shadow mutation rate limit: separate route scope remains available');
+    equal(secondSimulation.headers.get('retry-after') !== null, true, 'Shadow mutation rate limit: 429 includes Retry-After');
+    equal(problem.reasonCodes.includes('shadow-mutation-rate-limit-exceeded'), true, 'Shadow mutation rate limit: bounded reason code is returned');
+    equal(
+      auditInputs.filter((input) => input.routeId === 'shadow.simulations.create').length,
+      1,
+      'Shadow mutation rate limit: rejected retry does not write success audit',
+    );
+    const routeSource = readFileSync('src/service/http/routes/shadow-routes.ts', 'utf8');
+    for (const routeId of [
+      'shadow.simulations.create',
+      'shadow.policy_candidates.materialize',
+      'shadow.policy_candidates.status.update',
+      'shadow.downstream_integration_proof.create',
+      'shadow.activation_readiness.create',
+      'shadow.customer_activation_handoff.create',
+      'shadow.customer_activation_receipt.create',
+    ]) {
+      ok(
+        routeSource.includes(`currentTenantForShadowMutation(c, deps, '${routeId}')`),
+        `Shadow mutation rate limit: ${routeId} is wired through the route-scoped guard`,
+      );
+    }
+  } finally {
+    if (previousLimit === undefined) {
+      delete process.env.ATTESTOR_SHADOW_MUTATION_RATE_LIMIT_PER_MINUTE;
+    } else {
+      process.env.ATTESTOR_SHADOW_MUTATION_RATE_LIMIT_PER_MINUTE = previousLimit;
+    }
+    resetShadowMutationRateLimiterForTests();
+  }
+}
+
+async function testShadowListRoutesApplyPaginationBounds(): Promise<void> {
+  const auditInputs: ShadowMutationAuditInput[] = [];
+  let tick = 0;
+  const app = createApp(auditInputs, {
+    now: () => `2026-05-21T09:${String(10 + tick++).padStart(2, '0')}:00.000Z`,
+  });
+  const seeded = await seedShadowState(app);
+  await postJson(app, '/api/v1/shadow/simulations', { proposedMode: 'review', minimumPromotionEvents: 6 });
+  await postJson(app, '/api/v1/shadow/simulations', { proposedMode: 'review', minimumPromotionEvents: 7 });
+  await postJson(app, '/api/v1/shadow/customer-activation-receipt', {
+    handoff: seeded.handoff,
+    activationStatus: 'activated',
+    attemptedAt: '2026-05-21T09:31:00.000Z',
+    observedAt: '2026-05-21T09:32:00.000Z',
+    completedAt: '2026-05-21T09:33:00.000Z',
+    activationDigest: digestB,
+    externalReceiptDigest: digestC,
+    rollbackStatus: 'not-triggered',
+    killSwitchStatus: 'verified',
+    monitoringStatus: 'healthy',
+  });
+
+  const simulationResponse = await app.request('/api/v1/shadow/simulations?limit=2');
+  const simulationPage = await simulationResponse.json() as {
+    readonly recordCount: number;
+    readonly records: readonly unknown[];
+    readonly pageInfo: { readonly limit: number; readonly hasMore: boolean; readonly nextCursor: string | null; readonly totalRecordCount: number };
+  };
+  const simulationNextResponse = await app.request(`/api/v1/shadow/simulations?limit=2&cursor=${simulationPage.pageInfo.nextCursor ?? ''}`);
+  const simulationNextPage = await simulationNextResponse.json() as {
+    readonly recordCount: number;
+    readonly pageInfo: { readonly cursor: string | null; readonly hasMore: boolean };
+  };
+  const policyCandidatesResponse = await app.request('/api/v1/shadow/policy-candidates?limit=1');
+  const policyCandidates = await policyCandidatesResponse.json() as {
+    readonly candidateCount: number;
+    readonly returnedCandidateCount: number;
+    readonly candidates: readonly unknown[];
+    readonly pageInfo: { readonly limit: number; readonly hasMore: boolean; readonly totalRecordCount: number };
+  };
+  const candidateRecordsResponse = await app.request('/api/v1/shadow/policy-candidate-records?limit=1');
+  const candidateRecords = await candidateRecordsResponse.json() as {
+    readonly recordCount: number;
+    readonly pageInfo: { readonly limit: number; readonly totalRecordCount: number };
+  };
+  const receiptsResponse = await app.request('/api/v1/shadow/customer-activation-receipts?limit=1');
+  const receipts = await receiptsResponse.json() as {
+    readonly recordCount: number;
+    readonly pageInfo: { readonly limit: number; readonly hasMore: boolean; readonly totalRecordCount: number };
+  };
+  const invalidLimit = await app.request('/api/v1/shadow/simulations?limit=1000');
+
+  equal(simulationResponse.status, 200, 'Shadow list pagination: simulations accept bounded limit');
+  equal(simulationPage.recordCount, 2, 'Shadow list pagination: simulations return the requested page size');
+  equal(simulationPage.records.length, 2, 'Shadow list pagination: simulations records are sliced');
+  equal(simulationPage.pageInfo.limit, 2, 'Shadow list pagination: simulations report limit');
+  equal(simulationPage.pageInfo.hasMore, true, 'Shadow list pagination: simulations report more pages');
+  equal(simulationPage.pageInfo.totalRecordCount >= 3, true, 'Shadow list pagination: simulations report total count');
+  equal(simulationNextPage.pageInfo.cursor, '2', 'Shadow list pagination: cursor advances by offset');
+  equal(simulationNextPage.recordCount >= 1, true, 'Shadow list pagination: cursor returns remaining simulations');
+  equal(policyCandidatesResponse.status, 200, 'Shadow list pagination: policy candidates accept bounded limit');
+  equal(policyCandidates.returnedCandidateCount, 1, 'Shadow list pagination: policy candidates are sliced');
+  equal(policyCandidates.candidates.length, 1, 'Shadow list pagination: candidate list length matches returned count');
+  equal(policyCandidates.pageInfo.totalRecordCount, policyCandidates.candidateCount, 'Shadow list pagination: candidate total count is preserved');
+  equal(candidateRecordsResponse.status, 200, 'Shadow list pagination: candidate records accept bounded limit');
+  equal(candidateRecords.recordCount, 1, 'Shadow list pagination: candidate records are sliced');
+  equal(candidateRecords.pageInfo.limit, 1, 'Shadow list pagination: candidate records report limit');
+  equal(receiptsResponse.status, 200, 'Shadow list pagination: activation receipts accept bounded limit');
+  equal(receipts.recordCount, 1, 'Shadow list pagination: activation receipts are sliced');
+  equal(receipts.pageInfo.hasMore, true, 'Shadow list pagination: activation receipts report more pages');
+  equal(receipts.pageInfo.totalRecordCount >= 2, true, 'Shadow list pagination: activation receipts report total count');
+  equal(invalidLimit.status, 400, 'Shadow list pagination: oversized limit is rejected');
+}
+
+async function testShadowProblemDetailsAreBounded(): Promise<void> {
+  const app = new Hono();
+  registerShadowRoutes(app, {
+    currentTenant: () => tenant,
+    listShadowEvents: () => {
+      throw new Error('raw downstream store failure sk_live_shadow_secret_marker');
+    },
+    listShadowPolicySimulationReports: () => {
+      throw new Error('database url postgres://shadow:secret@example.invalid/db');
+    },
+    now: () => '2026-05-21T09:10:00.000Z',
+  });
+
+  const summary = await app.request('/api/v1/shadow/summary');
+  const summaryProblem = await summary.json() as { readonly detail: string };
+  const simulations = await app.request('/api/v1/shadow/simulations');
+  const simulationsProblem = await simulations.json() as { readonly detail: string };
+  const combined = JSON.stringify([summaryProblem, simulationsProblem]);
+
+  equal(summary.status, 503, 'Shadow problem detail redaction: summary failures remain fail-closed');
+  equal(simulations.status, 503, 'Shadow problem detail redaction: listing failures remain fail-closed');
+  ok(!combined.includes('sk_live_shadow_secret_marker'), 'Shadow problem detail redaction: raw secret-shaped message is not echoed');
+  ok(!combined.includes('postgres://shadow:secret@example.invalid/db'), 'Shadow problem detail redaction: raw store URL is not echoed');
+  equal(summaryProblem.detail, 'The shadow summary could not be evaluated.', 'Shadow problem detail redaction: summary detail is bounded');
+  equal(simulationsProblem.detail, 'The shadow simulation reports could not be listed.', 'Shadow problem detail redaction: list detail is bounded');
+}
+
 try {
   await testAllShadowRoutesHaveHttpCoverage();
   await testShadowMutationsEmitRedactedTenantAudit();
   await testMissingStoreAndJsonValidationRemainFailClosed();
+  await testShadowMutationRateLimitIsTenantRouteScoped();
+  await testShadowListRoutesApplyPaginationBounds();
+  await testShadowProblemDetailsAreBounded();
 
   console.log(`Service shadow routes HTTP tests: ${passed} passed, 0 failed`);
 } finally {

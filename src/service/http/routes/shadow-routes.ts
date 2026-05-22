@@ -65,7 +65,29 @@ import {
 import type { TenantContext } from '../../tenant-isolation.js';
 import { acceptsJsonRequestBody } from '../route-response-helpers.js';
 
-type ShadowProblemStatus = 400 | 404 | 409 | 415 | 503;
+type ShadowProblemStatus = 400 | 404 | 409 | 415 | 429 | 503;
+
+const SHADOW_LIST_DEFAULT_LIMIT = 50;
+const SHADOW_LIST_MAX_LIMIT = 100;
+const SHADOW_MUTATION_RATE_LIMIT_DEFAULT = 60;
+const SHADOW_MUTATION_RATE_LIMIT_MAX = 600;
+const SHADOW_MUTATION_RATE_LIMIT_WINDOW_MS = 60_000;
+
+const shadowMutationAttempts = new Map<string, {
+  count: number;
+  resetAtMs: number;
+}>();
+
+type ShadowListPage<T> = {
+  readonly records: readonly T[];
+  readonly pageInfo: {
+    readonly limit: number;
+    readonly cursor: string | null;
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+    readonly totalRecordCount: number;
+  };
+};
 
 export interface ShadowMutationAuditInput {
   readonly routeId: string;
@@ -156,6 +178,63 @@ function tenantSummary(tenant: TenantContext): {
   });
 }
 
+function configuredShadowMutationRateLimit(): number {
+  const raw = process.env.ATTESTOR_SHADOW_MUTATION_RATE_LIMIT_PER_MINUTE?.trim();
+  const parsed = raw ? Number.parseInt(raw, 10) : SHADOW_MUTATION_RATE_LIMIT_DEFAULT;
+  if (!Number.isFinite(parsed) || parsed <= 0) return SHADOW_MUTATION_RATE_LIMIT_DEFAULT;
+  return Math.min(parsed, SHADOW_MUTATION_RATE_LIMIT_MAX);
+}
+
+function shadowMutationRateLimitResponse(
+  c: Context,
+  tenant: TenantContext,
+  routeId: string,
+): Response | null {
+  const limit = configuredShadowMutationRateLimit();
+  const now = Date.now();
+  for (const [key, attempt] of shadowMutationAttempts.entries()) {
+    if (attempt.resetAtMs <= now) shadowMutationAttempts.delete(key);
+  }
+
+  const key = `${tenant.tenantId}:${routeId}`;
+  const current = shadowMutationAttempts.get(key);
+  const attempt = current && current.resetAtMs > now
+    ? current
+    : { count: 0, resetAtMs: now + SHADOW_MUTATION_RATE_LIMIT_WINDOW_MS };
+  attempt.count += 1;
+  shadowMutationAttempts.set(key, attempt);
+
+  const remaining = Math.max(0, limit - attempt.count);
+  const retryAfterSeconds = Math.max(1, Math.ceil((attempt.resetAtMs - now) / 1000));
+  c.header('cache-control', 'no-store');
+  c.header('x-attestor-rate-limit-limit', String(limit));
+  c.header('x-attestor-rate-limit-remaining', String(remaining));
+  c.header('x-attestor-rate-limit-reset', new Date(attempt.resetAtMs).toISOString());
+  if (attempt.count <= limit) return null;
+
+  c.header('retry-after', String(retryAfterSeconds));
+  return problem(c, {
+    type: 'https://attestor.dev/problems/shadow-mutation-rate-limit-exceeded',
+    title: 'Shadow mutation rate limit exceeded',
+    status: 429,
+    detail: 'Shadow mutation writes are rate limited per tenant and route.',
+    reasonCodes: ['shadow-mutation-rate-limit-exceeded'],
+  });
+}
+
+function currentTenantForShadowMutation(
+  c: Context,
+  deps: ShadowRouteDeps,
+  routeId: string,
+): TenantContext | Response {
+  const tenant = deps.currentTenant(c);
+  return shadowMutationRateLimitResponse(c, tenant, routeId) ?? tenant;
+}
+
+export function resetShadowMutationRateLimiterForTests(): void {
+  shadowMutationAttempts.clear();
+}
+
 type TenantBoundRecord = {
   readonly tenantId: string | null;
 };
@@ -185,11 +264,99 @@ function assertTenantBoundRecords<T extends TenantBoundRecord>(
   return records;
 }
 
-function safeShadowSummary(c: Context, deps: ShadowRouteDeps) {
+function caughtErrorMessage(error: unknown): string | null {
+  return error instanceof Error ? error.message : null;
+}
+
+function boundedErrorDetail(
+  error: unknown,
+  fallback: string,
+  options?: {
+    readonly safeMarkers?: readonly string[];
+    readonly safeDetail?: string;
+  },
+): string {
+  const message = caughtErrorMessage(error);
+  if (
+    message &&
+    options?.safeMarkers?.some((marker) => message.includes(marker))
+  ) {
+    return options.safeDetail ?? fallback;
+  }
+  return fallback;
+}
+
+function caughtErrorStatus(
+  error: unknown,
+  input: {
+    readonly statusMarkers?: readonly {
+      readonly marker: string;
+      readonly status: ShadowProblemStatus;
+    }[];
+    readonly defaultStatus: ShadowProblemStatus;
+  },
+): ShadowProblemStatus {
+  const message = caughtErrorMessage(error);
+  if (message) {
+    const match = input.statusMarkers?.find((candidate) => message.includes(candidate.marker));
+    if (match) return match.status;
+  }
+  return input.defaultStatus;
+}
+
+function shadowListPage<T>(
+  c: Context,
+  records: readonly T[],
+  resourceName: string,
+): ShadowListPage<T> | Response {
+  const limitRaw = c.req.query('limit');
+  const cursorRaw = c.req.query('cursor');
+  const limit = limitRaw === undefined || limitRaw.trim() === ''
+    ? SHADOW_LIST_DEFAULT_LIMIT
+    : Number.parseInt(limitRaw, 10);
+  const offset = cursorRaw === undefined || cursorRaw.trim() === ''
+    ? 0
+    : Number.parseInt(cursorRaw, 10);
+
+  if (!Number.isInteger(limit) || limit <= 0 || limit > SHADOW_LIST_MAX_LIMIT) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/shadow-list-pagination-invalid',
+      title: 'Invalid shadow list pagination',
+      status: 400,
+      detail: `${resourceName} limit must be an integer from 1 to ${SHADOW_LIST_MAX_LIMIT}.`,
+      reasonCodes: ['invalid-shadow-list-pagination'],
+    });
+  }
+  if (!Number.isInteger(offset) || offset < 0) {
+    return problem(c, {
+      type: 'https://attestor.dev/problems/shadow-list-pagination-invalid',
+      title: 'Invalid shadow list pagination',
+      status: 400,
+      detail: `${resourceName} cursor must be a non-negative offset cursor.`,
+      reasonCodes: ['invalid-shadow-list-pagination'],
+    });
+  }
+
+  const pageRecords = records.slice(offset, offset + limit);
+  const nextOffset = offset + pageRecords.length;
+  const hasMore = nextOffset < records.length;
+  return {
+    records: pageRecords,
+    pageInfo: {
+      limit,
+      cursor: cursorRaw === undefined || cursorRaw.trim() === '' ? null : String(offset),
+      nextCursor: hasMore ? String(nextOffset) : null,
+      hasMore,
+      totalRecordCount: records.length,
+    },
+  };
+}
+
+function safeShadowSummary(c: Context, deps: ShadowRouteDeps, tenantInput?: TenantContext) {
   c.header('cache-control', 'no-store');
 
   try {
-    const tenant = deps.currentTenant(c);
+    const tenant = tenantInput ?? deps.currentTenant(c);
     const events = assertTenantBoundRecords(
       tenant,
       deps.listShadowEvents({ tenant }),
@@ -211,15 +378,11 @@ function safeShadowSummary(c: Context, deps: ShadowRouteDeps) {
       surface,
     };
   } catch (error) {
-    const detail =
-      error instanceof Error
-        ? error.message
-        : 'The shadow summary could not be evaluated.';
     const problem = createConsequenceAdmissionProblem({
       type: 'https://attestor.dev/problems/shadow-summary-unavailable',
       title: 'Shadow summary unavailable',
       status: 503,
-      detail,
+      detail: boundedErrorDetail(error, 'The shadow summary could not be evaluated.'),
       instance: c.req.path,
       reasonCodes: ['shadow-summary-unavailable'],
     });
@@ -1231,7 +1394,8 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
     }
 
     try {
-      const tenant = deps.currentTenant(c);
+      const tenant = currentTenantForShadowMutation(c, deps, 'shadow.simulations.create');
+      if (tenant instanceof Response) return tenant;
       const events = assertTenantBoundRecords(
         tenant,
         deps.listShadowEvents({ tenant }),
@@ -1281,16 +1445,18 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         },
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'The shadow simulation report could not be recorded.';
-      const status: ShadowProblemStatus = detail.includes('exceeds maximum') ? 400 : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [{ marker: 'exceeds maximum', status: 400 }],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/shadow-simulation-record-failed',
         title: 'Shadow simulation record failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'The shadow simulation report could not be recorded.', {
+          safeMarkers: ['exceeds maximum'],
+          safeDetail: 'The shadow simulation request exceeds the supported event bound.',
+        }),
         reasonCodes: ['shadow-simulation-record-failed'],
       });
     }
@@ -1325,24 +1491,23 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         deps.listShadowPolicySimulationReports({ tenant, proposedMode }),
         'shadow simulation',
       );
+      const page = shadowListPage(c, records, 'Shadow simulation');
+      if (page instanceof Response) return page;
       return c.json({
         tenant: tenantSummary(tenant),
         storageMode: 'file-backed-evaluation',
-        recordCount: records.length,
+        recordCount: page.records.length,
+        pageInfo: page.pageInfo,
         rawPayloadStored: false,
         productionReady: false,
-        records,
+        records: page.records,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'The shadow simulation reports could not be listed.';
       return problem(c, {
         type: 'https://attestor.dev/problems/shadow-simulation-list-failed',
         title: 'Shadow simulation list failed',
         status: 503,
-        detail,
+        detail: boundedErrorDetail(error, 'The shadow simulation reports could not be listed.'),
         reasonCodes: ['shadow-simulation-list-failed'],
       });
     }
@@ -1383,15 +1548,11 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         record: tenantRecord,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'The shadow simulation report could not be loaded.';
       return problem(c, {
         type: 'https://attestor.dev/problems/shadow-simulation-load-failed',
         title: 'Shadow simulation load failed',
         status: 503,
-        detail,
+        detail: boundedErrorDetail(error, 'The shadow simulation report could not be loaded.'),
         reasonCodes: ['shadow-simulation-load-failed'],
       });
     }
@@ -1400,13 +1561,19 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
   app.get('/api/v1/shadow/policy-candidates', (c) => {
     const result = safeShadowSummary(c, deps);
     if (result instanceof Response) return result;
+    const bundle = createShadowPolicyDiscoveryCandidates({
+      report: result.surface.latestSimulation,
+      generatedAt: deps.now?.() ?? null,
+    });
+    const page = shadowListPage(c, bundle.candidates, 'Shadow policy candidate');
+    if (page instanceof Response) return page;
 
     return c.json({
       tenant: tenantSummary(result.tenant),
-      ...createShadowPolicyDiscoveryCandidates({
-        report: result.surface.latestSimulation,
-        generatedAt: deps.now?.() ?? null,
-      }),
+      ...bundle,
+      candidates: page.records,
+      returnedCandidateCount: page.records.length,
+      pageInfo: page.pageInfo,
     });
   });
 
@@ -1681,9 +1848,8 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
   });
 
   app.post('/api/v1/shadow/policy-candidates/materialize', async (c) => {
-    const result = safeShadowSummary(c, deps);
-    if (result instanceof Response) return result;
     if (!deps.materializeShadowPolicyCandidates) {
+      c.header('cache-control', 'no-store');
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-candidate-store-unavailable',
         title: 'Policy candidate store unavailable',
@@ -1692,6 +1858,10 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         reasonCodes: ['policy-candidate-store-unavailable'],
       });
     }
+    const tenant = currentTenantForShadowMutation(c, deps, 'shadow.policy_candidates.materialize');
+    if (tenant instanceof Response) return tenant;
+    const result = safeShadowSummary(c, deps, tenant);
+    if (result instanceof Response) return result;
 
     const bundle = createShadowPolicyDiscoveryCandidates({
       report: result.surface.latestSimulation,
@@ -1740,15 +1910,11 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         },
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Policy candidates could not be materialized.';
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-candidate-materialize-failed',
         title: 'Policy candidate materialization failed',
         status: 503,
-        detail,
+        detail: boundedErrorDetail(error, 'Policy candidates could not be materialized.'),
         reasonCodes: ['policy-candidate-materialize-failed'],
       });
     }
@@ -1783,26 +1949,25 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         deps.listShadowPolicyCandidateRecords({ tenant, status }),
         'shadow policy candidate',
       );
+      const page = shadowListPage(c, records, 'Shadow policy candidate record');
+      if (page instanceof Response) return page;
       return c.json({
         tenant: tenantSummary(tenant),
         storageMode: 'file-backed-evaluation',
-        recordCount: records.length,
+        recordCount: page.records.length,
+        pageInfo: page.pageInfo,
         approvalRequired: true,
         autoEnforce: false,
         rawPayloadStored: false,
         productionReady: false,
-        records,
+        records: page.records,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Policy candidate records could not be listed.';
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-candidate-records-unavailable',
         title: 'Policy candidate records unavailable',
         status: 503,
-        detail,
+        detail: boundedErrorDetail(error, 'Policy candidate records could not be listed.'),
         reasonCodes: ['policy-candidate-records-unavailable'],
       });
     }
@@ -1858,15 +2023,11 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         draft,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Policy promotion draft could not be generated.';
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-promotion-draft-failed',
         title: 'Policy promotion draft failed',
         status: 503,
-        detail,
+        detail: boundedErrorDetail(error, 'Policy promotion draft could not be generated.'),
         reasonCodes: ['policy-promotion-draft-failed'],
       });
     }
@@ -1926,15 +2087,11 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         packet,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Policy promotion packet could not be generated.';
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-promotion-packet-failed',
         title: 'Policy promotion packet failed',
         status: 503,
-        detail,
+        detail: boundedErrorDetail(error, 'Policy promotion packet could not be generated.'),
         reasonCodes: ['policy-promotion-packet-failed'],
       });
     }
@@ -2004,16 +2161,18 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         simulation,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Policy promotion simulation could not be generated.';
-      const status: ShadowProblemStatus = detail.includes('exceeds maximum') ? 400 : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [{ marker: 'exceeds maximum', status: 400 }],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-promotion-simulation-failed',
         title: 'Policy promotion simulation failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Policy promotion simulation could not be generated.', {
+          safeMarkers: ['exceeds maximum'],
+          safeDetail: 'The policy promotion simulation exceeds the supported event bound.',
+        }),
         reasonCodes: ['policy-promotion-simulation-failed'],
       });
     }
@@ -2093,16 +2252,18 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         publication,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Policy bundle publication could not be generated.';
-      const status: ShadowProblemStatus = detail.includes('exceeds maximum') ? 400 : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [{ marker: 'exceeds maximum', status: 400 }],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-bundle-publication-failed',
         title: 'Policy bundle publication failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Policy bundle publication could not be generated.', {
+          safeMarkers: ['exceeds maximum'],
+          safeDetail: 'The policy bundle publication exceeds the supported event bound.',
+        }),
         reasonCodes: ['policy-bundle-publication-failed'],
       });
     }
@@ -2176,16 +2337,18 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         binding,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Downstream verification binding could not be generated.';
-      const status: ShadowProblemStatus = detail.includes('exceeds maximum') ? 400 : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [{ marker: 'exceeds maximum', status: 400 }],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/downstream-verification-binding-failed',
         title: 'Downstream verification binding failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Downstream verification binding could not be generated.', {
+          safeMarkers: ['exceeds maximum'],
+          safeDetail: 'The downstream verification binding exceeds the supported event bound.',
+        }),
         reasonCodes: ['downstream-verification-binding-failed'],
       });
     }
@@ -2218,7 +2381,8 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
     }
 
     try {
-      const tenant = deps.currentTenant(c);
+      const tenant = currentTenantForShadowMutation(c, deps, 'shadow.downstream_integration_proof.create');
+      if (tenant instanceof Response) return tenant;
       const records = assertTenantBoundRecords(
         tenant,
         deps.listShadowPolicyCandidateRecords({
@@ -2301,19 +2465,21 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         proof,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Downstream integration proof could not be generated.';
-      const status: ShadowProblemStatus =
-        detail.includes('Shadow downstream integration proof') || detail.includes('exceeds maximum')
-          ? 400
-          : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [
+          { marker: 'Shadow downstream integration proof', status: 400 },
+          { marker: 'exceeds maximum', status: 400 },
+        ],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/downstream-integration-proof-failed',
         title: 'Downstream integration proof failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Downstream integration proof could not be generated.', {
+          safeMarkers: ['Shadow downstream integration proof', 'exceeds maximum'],
+          safeDetail: 'The downstream integration proof input did not satisfy the shadow proof contract.',
+        }),
         reasonCodes: ['downstream-integration-proof-failed'],
       });
     }
@@ -2346,7 +2512,8 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
     }
 
     try {
-      const tenant = deps.currentTenant(c);
+      const tenant = currentTenantForShadowMutation(c, deps, 'shadow.activation_readiness.create');
+      if (tenant instanceof Response) return tenant;
       const records = assertTenantBoundRecords(
         tenant,
         deps.listShadowPolicyCandidateRecords({
@@ -2435,21 +2602,26 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         activationReadiness,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Activation readiness could not be generated.';
-      const status: ShadowProblemStatus =
-        detail.includes('Shadow downstream integration proof') ||
-        detail.includes('Shadow activation readiness gate') ||
-        detail.includes('exceeds maximum')
-          ? 400
-          : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [
+          { marker: 'Shadow downstream integration proof', status: 400 },
+          { marker: 'Shadow activation readiness gate', status: 400 },
+          { marker: 'exceeds maximum', status: 400 },
+        ],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/activation-readiness-failed',
         title: 'Activation readiness failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Activation readiness could not be generated.', {
+          safeMarkers: [
+            'Shadow downstream integration proof',
+            'Shadow activation readiness gate',
+            'exceeds maximum',
+          ],
+          safeDetail: 'The activation readiness input did not satisfy the shadow activation contract.',
+        }),
         reasonCodes: ['activation-readiness-failed'],
       });
     }
@@ -2482,7 +2654,8 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
     }
 
     try {
-      const tenant = deps.currentTenant(c);
+      const tenant = currentTenantForShadowMutation(c, deps, 'shadow.customer_activation_handoff.create');
+      if (tenant instanceof Response) return tenant;
       const records = assertTenantBoundRecords(
         tenant,
         deps.listShadowPolicyCandidateRecords({
@@ -2589,22 +2762,28 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         handoff,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Customer activation handoff could not be generated.';
-      const status: ShadowProblemStatus =
-        detail.includes('Shadow downstream integration proof') ||
-        detail.includes('Shadow activation readiness gate') ||
-        detail.includes('Shadow customer activation handoff') ||
-        detail.includes('exceeds maximum')
-          ? 400
-          : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [
+          { marker: 'Shadow downstream integration proof', status: 400 },
+          { marker: 'Shadow activation readiness gate', status: 400 },
+          { marker: 'Shadow customer activation handoff', status: 400 },
+          { marker: 'exceeds maximum', status: 400 },
+        ],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/customer-activation-handoff-failed',
         title: 'Customer activation handoff failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Customer activation handoff could not be generated.', {
+          safeMarkers: [
+            'Shadow downstream integration proof',
+            'Shadow activation readiness gate',
+            'Shadow customer activation handoff',
+            'exceeds maximum',
+          ],
+          safeDetail: 'The customer activation handoff input did not satisfy the shadow activation contract.',
+        }),
         reasonCodes: ['customer-activation-handoff-failed'],
       });
     }
@@ -2616,7 +2795,8 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
     if (body instanceof Response) return body;
 
     try {
-      const tenant = deps.currentTenant(c);
+      const tenant = currentTenantForShadowMutation(c, deps, 'shadow.customer_activation_receipt.create');
+      if (tenant instanceof Response) return tenant;
       const receipt = createShadowCustomerActivationReceipt({
         handoff: body.handoff,
         activationStatus: body.activationStatus,
@@ -2687,19 +2867,18 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
           : null,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Customer activation receipt could not be generated.';
-      const status: ShadowProblemStatus =
-        detail.includes('Shadow customer activation receipt')
-          ? 400
-          : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [{ marker: 'Shadow customer activation receipt', status: 400 }],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/customer-activation-receipt-failed',
         title: 'Customer activation receipt failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Customer activation receipt could not be generated.', {
+          safeMarkers: ['Shadow customer activation receipt'],
+          safeDetail: 'The customer activation receipt input did not satisfy the shadow receipt contract.',
+        }),
         reasonCodes: ['customer-activation-receipt-failed'],
       });
     }
@@ -2755,28 +2934,23 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         }),
         'shadow customer activation receipt',
       );
+      const page = shadowListPage(c, records, 'Shadow customer activation receipt');
+      if (page instanceof Response) return page;
       return c.json({
         tenant: tenantSummary(tenant),
         storageMode: 'file-backed-evaluation',
         productionReady: false,
         rawPayloadStored: false,
-        recordCount: records.length,
-        records,
+        recordCount: page.records.length,
+        pageInfo: page.pageInfo,
+        records: page.records,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Customer activation receipt history could not be listed.';
-      const status: ShadowProblemStatus =
-        detail.includes('corruption detected') || detail.includes('tenant boundary violation')
-          ? 503
-          : 400;
       return problem(c, {
         type: 'https://attestor.dev/problems/customer-activation-receipt-list-failed',
         title: 'Customer activation receipt list failed',
-        status,
-        detail,
+        status: 503,
+        detail: boundedErrorDetail(error, 'Customer activation receipt history could not be listed.'),
         reasonCodes: ['customer-activation-receipt-list-failed'],
       });
     }
@@ -2822,15 +2996,11 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         record: tenantRecord,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Customer activation receipt lookup failed.';
       return problem(c, {
         type: 'https://attestor.dev/problems/customer-activation-receipt-lookup-failed',
         title: 'Customer activation receipt lookup failed',
         status: 503,
-        detail,
+        detail: boundedErrorDetail(error, 'Customer activation receipt lookup failed.'),
         reasonCodes: ['customer-activation-receipt-lookup-failed'],
       });
     }
@@ -2851,7 +3021,8 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
     if (body instanceof Response) return body;
 
     try {
-      const tenant = deps.currentTenant(c);
+      const tenant = currentTenantForShadowMutation(c, deps, 'shadow.policy_candidates.status.update');
+      if (tenant instanceof Response) return tenant;
       const record = assertTenantBoundRecord(
         tenant,
         deps.transitionShadowPolicyCandidateStatus({
@@ -2889,20 +3060,25 @@ export function registerShadowRoutes(app: Hono, deps: ShadowRouteDeps): void {
         record,
       });
     } catch (error) {
-      const detail =
-        error instanceof Error
-          ? error.message
-          : 'Policy candidate status could not be transitioned.';
-      const status: ShadowProblemStatus = detail.includes('was not found')
-        ? 404
-        : detail.includes('cannot transition')
-          ? 409
-          : 503;
+      const status = caughtErrorStatus(error, {
+        statusMarkers: [
+          { marker: 'was not found', status: 404 },
+          { marker: 'cannot transition', status: 409 },
+        ],
+        defaultStatus: 503,
+      });
       return problem(c, {
         type: 'https://attestor.dev/problems/policy-candidate-status-transition-failed',
         title: 'Policy candidate status transition failed',
         status,
-        detail,
+        detail: boundedErrorDetail(error, 'Policy candidate status could not be transitioned.', {
+          safeMarkers: ['was not found', 'cannot transition'],
+          safeDetail: status === 404
+            ? 'No policy candidate was found for this tenant and candidate id.'
+            : status === 409
+              ? 'The requested policy candidate status transition is not allowed.'
+              : 'Policy candidate status could not be transitioned.',
+        }),
         reasonCodes: ['policy-candidate-status-transition-failed'],
       });
     }
