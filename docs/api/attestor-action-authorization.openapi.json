@@ -171,6 +171,29 @@
         "operationId": "getPolicyCandidates",
         "summary": "Read draft policy candidates.",
         "description": "Candidates are recommendations requiring customer approval. This route never activates policy and never auto-enforces.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "description": "Maximum number of candidates to return."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Offset cursor returned by the previous page."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Approval-required policy candidate bundle.",
@@ -730,6 +753,46 @@
               "candidateCount": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "returnedCandidateCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "pageInfo": {
+                "type": "object",
+                "required": [
+                  "limit",
+                  "cursor",
+                  "nextCursor",
+                  "hasMore",
+                  "totalRecordCount"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "cursor": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "nextCursor": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "hasMore": {
+                    "type": "boolean"
+                  },
+                  "totalRecordCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
               },
               "approvalRequired": {
                 "const": true
