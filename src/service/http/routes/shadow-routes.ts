@@ -362,6 +362,8 @@ type TenantBoundRecord = {
   readonly tenantId: string | null;
 };
 
+const SHADOW_TENANT_BOUNDARY_MARKER = 'Shadow tenant boundary violation';
+
 function assertTenantBoundRecord<T extends TenantBoundRecord>(
   tenant: TenantContext,
   record: T,
@@ -371,7 +373,7 @@ function assertTenantBoundRecord<T extends TenantBoundRecord>(
   if (record.tenantId === null && options?.allowNullTenantId === true) return record;
   if (record.tenantId !== tenant.tenantId) {
     throw new Error(
-      `Shadow tenant boundary violation: ${resource} record does not belong to the authenticated tenant.`,
+      `${SHADOW_TENANT_BOUNDARY_MARKER}: ${resource} record does not belong to the authenticated tenant.`,
     );
   }
   return record;
@@ -397,9 +399,13 @@ function boundedErrorDetail(
   options?: {
     readonly safeMarkers?: readonly string[];
     readonly safeDetail?: string;
+    readonly tenantBoundarySafeDetail?: string;
   },
 ): string {
   const message = caughtErrorMessage(error);
+  if (message?.includes(SHADOW_TENANT_BOUNDARY_MARKER)) {
+    return options?.tenantBoundarySafeDetail ?? 'The shadow route rejected a tenant boundary violation.';
+  }
   if (
     message &&
     options?.safeMarkers?.some((marker) => message.includes(marker))
@@ -505,7 +511,9 @@ function safeShadowSummary(c: Context, deps: ShadowRouteDeps, tenantInput?: Tena
       type: 'https://attestor.dev/problems/shadow-summary-unavailable',
       title: 'Shadow summary unavailable',
       status: 503,
-      detail: boundedErrorDetail(error, 'The shadow summary could not be evaluated.'),
+      detail: boundedErrorDetail(error, 'The shadow summary could not be evaluated.', {
+        tenantBoundarySafeDetail: 'The shadow summary rejected a tenant boundary violation.',
+      }),
       instance: c.req.path,
       reasonCodes: ['shadow-summary-unavailable'],
     });

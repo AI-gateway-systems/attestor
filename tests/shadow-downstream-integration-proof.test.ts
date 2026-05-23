@@ -5,10 +5,13 @@ import { join } from 'node:path';
 import { Hono } from 'hono';
 import {
   createGenericAdmissionEnvelope,
+  createShadowDownstreamIntegrationProof,
   createShadowAdmissionEvent,
   SHADOW_DOWNSTREAM_VERIFICATION_CHECKS,
   type ShadowAdmissionEvent,
+  type ShadowDownstreamVerificationBinding,
   type ShadowPolicyBundlePublicationSignature,
+  type ShadowPolicyBundlePublication,
   type ShadowPolicyBundleSigningPayload,
 } from '../src/consequence-admission/index.js';
 import { registerShadowRoutes } from '../src/service/http/routes/shadow-routes.js';
@@ -51,6 +54,9 @@ const tenant: TenantContext = {
 const signingKey = generateKeyPair();
 const signingIdentity = derivePublicKeyIdentity(signingKey.publicKeyPem);
 const evidenceDigest = 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+const sourcePacketDigest = 'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+const sourceBundleDraftDigest = 'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
+const sourceSimulationDigest = 'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd';
 
 function createSafeEvent(index: number): ShadowAdmissionEvent {
   return createShadowAdmissionEvent({
@@ -333,6 +339,144 @@ async function testProofRejectsInvalidEvidenceDigest(): Promise<void> {
   );
 }
 
+function tenantMismatchPublication(): ShadowPolicyBundlePublication {
+  const signingPayload = {
+    version: 'attestor.shadow-policy-bundle-signing-payload.v1',
+    tenantId: 'tenant_shadow_downstream_publication',
+    sourcePacketId: 'shadow-packet:tenant-boundary',
+    sourcePacketDigest,
+    sourceBundleDraftDigest,
+    sourceSimulationId: 'shadow-simulation:tenant-boundary',
+    sourceSimulationDigest,
+    targetModes: Object.freeze(['review']),
+    ruleCount: 0,
+    ruleDigests: Object.freeze([]),
+    canonical: '{"tenantId":"tenant_shadow_downstream_publication"}',
+    digest: 'sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  } as const satisfies ShadowPolicyBundleSigningPayload;
+
+  return Object.freeze({
+    version: 'attestor.shadow-policy-bundle-publication.v1',
+    publicationId: 'shadow-policy-publication:tenant-boundary',
+    generatedAt: '2026-05-02T15:08:00.000Z',
+    tenantId: 'tenant_shadow_downstream_publication',
+    sourcePacketId: signingPayload.sourcePacketId,
+    sourcePacketDigest,
+    sourceBundleDraftDigest,
+    sourceSimulationId: signingPayload.sourceSimulationId,
+    sourceSimulationDigest,
+    signingPayload,
+    signatureStatus: 'signed-evaluation',
+    signatureRequired: true,
+    signature: {
+      algorithm: 'ed25519',
+      signature: 'test-signature',
+      signerRef: 'test-local-ed25519-signer',
+      publicKeyFingerprint: signingIdentity.fingerprint,
+      signedAt: '2026-05-02T15:08:01.000Z',
+      signingBoundary: 'runtime-memory',
+      productionReady: false,
+    },
+    productionSigningBoundaryRequired: true,
+    productionSigningBoundaryReady: false,
+    publicationReady: true,
+    activationReady: false,
+    remainingActivationBlockers: Object.freeze(['production-signing-provider-required']),
+    approvalRequired: true,
+    autoEnforce: false,
+    rawPayloadStored: false,
+    productionReady: false,
+    canonical: '{"publicationId":"shadow-policy-publication:tenant-boundary"}',
+    digest: 'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+  });
+}
+
+function tenantMismatchBinding(): ShadowDownstreamVerificationBinding {
+  return Object.freeze({
+    version: 'attestor.shadow-downstream-verification-binding.v1',
+    bindingId: 'shadow-downstream-binding:tenant-boundary',
+    generatedAt: '2026-05-02T15:08:02.000Z',
+    tenantId: 'tenant_shadow_downstream_binding',
+    sourceSimulationId: 'shadow-simulation:tenant-boundary',
+    sourceSimulationDigest,
+    sourcePacketId: 'shadow-packet:tenant-boundary',
+    sourcePacketDigest,
+    sourceBundleDraftDigest,
+    eventCount: 3,
+    matchedEventCount: 3,
+    ruleCount: 0,
+    ruleBindings: Object.freeze([]),
+    requiredVerificationChecks: Object.freeze(
+      SHADOW_DOWNSTREAM_VERIFICATION_CHECKS.map((check) => Object.freeze({
+        check,
+        required: true,
+        failClosed: true,
+        summary: `Verify ${check}.`,
+        bindingFields: Object.freeze(['tenantId']),
+      })),
+    ),
+    downstreamVerificationDraftReady: true,
+    activationReady: false,
+    remainingActivationBlockers: Object.freeze(['downstream-integration-proof-required']),
+    approvalRequired: true,
+    autoEnforce: false,
+    rawPayloadStored: false,
+    productionReady: false,
+    canonical: '{"bindingId":"shadow-downstream-binding:tenant-boundary"}',
+    digest: 'sha256:1111111111111111111111111111111111111111111111111111111111111111',
+  });
+}
+
+function testProofChainTenantMismatchCannotActivate(): void {
+  const proof = createShadowDownstreamIntegrationProof({
+    publication: tenantMismatchPublication(),
+    binding: tenantMismatchBinding(),
+    enforcementPointId: 'refund-service/ext-authz',
+    boundaryKind: 'http-handler',
+    verifierRef: 'verifier:refund-service-ci',
+    observedVerificationChecks: SHADOW_DOWNSTREAM_VERIFICATION_CHECKS,
+    evidenceRefs: [
+      {
+        id: 'ci:run:tenant-boundary',
+        kind: 'adapter-test',
+        digest: evidenceDigest,
+        uri: 'https://example.invalid/attestor/evidence/tenant-boundary',
+      },
+    ],
+    generatedAt: '2026-05-02T15:08:03.000Z',
+  });
+
+  equal(
+    proof.tenantId,
+    'tenant_shadow_downstream_binding',
+    'Downstream integration proof: proof remains bound to the binding tenant',
+  );
+  equal(
+    proof.sourceChainMatches,
+    false,
+    'Downstream integration proof: publication/binding tenant mismatch breaks the source chain',
+  );
+  equal(
+    proof.integrationProofReady,
+    false,
+    'Downstream integration proof: tenant mismatch cannot close the integration proof gate',
+  );
+  equal(
+    proof.activationReady,
+    false,
+    'Downstream integration proof: tenant mismatch cannot activate enforcement',
+  );
+  equal(
+    proof.productionReady,
+    false,
+    'Downstream integration proof: tenant mismatch does not claim production readiness',
+  );
+  ok(
+    proof.remainingActivationBlockers.includes('source-artifact-chain-mismatch'),
+    'Downstream integration proof: tenant mismatch carries a source-chain blocker',
+  );
+}
+
 try {
   resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
   await testIncompleteProofKeepsIntegrationBlocker();
@@ -342,6 +486,7 @@ try {
   await testProofRejectsInvalidBoundaryKind();
   resetShadowPersistenceStoresForTests({ policyCandidatePath: candidatePath });
   await testProofRejectsInvalidEvidenceDigest();
+  testProofChainTenantMismatchCannotActivate();
 
   console.log(`Shadow downstream integration proof tests: ${passed} passed, 0 failed`);
 } finally {
