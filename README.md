@@ -2,9 +2,9 @@
 
 ![Attestor: proof before consequence](docs/assets/attestor-readme-hero.png)
 
-**AI Action Control Plane for high-risk AI actions.**
+**Control infrastructure for high-risk AI actions.**
 
-Attestor controls the boundary between AI intent and real-world consequence.
+Attestor is an AI Action Control Plane that controls the boundary between AI intent and real-world consequence.
 
 A prompt is not a formal rule; it is linguistic context interpreted by a probabilistic model. That makes it useful for guidance, but insufficient as deterministic control. The control point has to move from the model's text to the proposed action: the action intent can be structured, checked, admitted, narrowed, reviewed, or blocked before it becomes a real consequence.
 
