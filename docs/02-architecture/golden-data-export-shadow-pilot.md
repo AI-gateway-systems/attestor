@@ -1,0 +1,161 @@
+# Golden Path: Controlled Data Export
+
+Status: D01 complete only. This is the first repository-side contract slice for
+the Data Movement golden path. It is not a live Snowflake or Databricks
+connector, not a data warehouse, not a customer export service, not customer PEP
+proof, not production readiness, and not enterprise readiness.
+
+## Decision
+
+Controlled Data Export is the next golden path after Golden Path: Refund. It
+keeps the same Attestor consequence grammar, but moves the example from Money
+Movement into Data Movement:
+
+```text
+data export or report-release action intent
+  -> synthetic canonical shadow events
+  -> digest-only evidence, approval, recipient, tenant, purpose, and replay refs
+  -> admit / narrow / review / block shadow decisions
+  -> later runtime smoke, demo CLI, and reviewer sandbox
+```
+
+Non-split boundary:
+
+```text
+Not a warehouse connector.
+Not a report builder.
+Not a customer data export service.
+Not a records system.
+Not a workflow workspace.
+Not a new Attestor mode.
+```
+
+The data domain supplies the example surface; it does not get independent
+authority. Every scenario remains shadow-only and review material until a later
+customer-controlled PEP/gate consumes an Attestor decision.
+
+## Repository Evidence
+
+| Area | Evidence | State |
+|---|---|---|
+| Data Movement taxonomy | `README.md` lists Data Movement as warehouse queries, customer exports, report releases, and controlled data packages, and says the pack list is taxonomy, not equal-maturity claim. | repo-proven |
+| Data tool recipes | `src/consequence-admission/domain-consequence-recipes.ts` maps Snowflake Cortex Agents and Databricks AI agent tools into `data-tool-gate` recipe entries with `customer.export`, `semantic.query.publish`, `workspace.job.run`, and `data.export` examples. | repo-proven |
+| D01 fixture contract | `src/consequence-admission/golden-data-export-shadow-fixtures.ts` emits eight synthetic digest-only canonical shadow events for controlled data export and report-release scenarios. | repo-proven |
+| D01 tests | `tests/golden-data-export-shadow-fixtures.test.ts` locks the suite shape, digest-only canonical events, scenario semantics, no-target-system-call flags, and no raw SQL/row/customer identifier posture. | repo-proven |
+
+## Research Anchors
+
+Snowflake Cortex Agents and Databricks AI agent tools anchor the modern data/AI
+tool-call shape: an AI agent can invoke tools, functions, SQL-adjacent actions,
+jobs, or data export paths. Attestor's placement is before those operations
+cause a write, export, external call, or report release.
+
+- [Snowflake Cortex Agents REST API](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-rest-api)
+- [Databricks AI agent tools](https://docs.databricks.com/aws/en/generative-ai/agent-framework/agent-tool)
+
+OWASP API1 anchors object-level authorization pressure: route-level access is
+not enough when the proposed object, report, dataset, recipient, or tenant can
+change. OWASP LLM01 and LLM02 anchor the need to treat untrusted/instruction-like
+evidence as evidence, not authority, while avoiding sensitive information
+disclosure.
+
+- [OWASP API1: Broken Object Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/)
+- [OWASP LLM01: Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)
+- [OWASP LLM02: Sensitive Information Disclosure](https://genai.owasp.org/llmrisk/llm02-sensitive-information-disclosure/)
+
+NIST SP 800-53 Rev. 5 supplies control vocabulary for access enforcement, least
+privilege, audit event generation, and audit records. The NIST Privacy
+Framework supplies privacy-risk and data-minimization framing. These are
+engineering anchors only, not compliance certification.
+
+- [NIST SP 800-53 Rev. 5](https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final)
+- [NIST Privacy Framework](https://www.nist.gov/privacy-framework)
+
+## D-Series Tracker
+
+Progress after D01 lands: 1/4 complete. 3 steps remain.
+
+| Step | Status | Slice | Evidence target |
+|---|---|---|---|
+| D01 | complete | Controlled data export shadow fixture contract | Synthetic digest-only canonical shadow events for aggregate-report-release, customer-export-approved, pii-column-narrowing, external-recipient-review, tenant-scope-mismatch, stale-approval, prompt-injection-in-evidence, and write-query-blocked scenarios. |
+| D02 | planned | Policy Foundry data export projection | Review-only candidate, named gaps, decision counts, and Policy Twin summary over D01 fixtures. |
+| D03 | planned | Runtime smoke and pilot readiness | Run the existing shadow runtime chain over D01/D02 material and emit only `ready-for-shadow-pilot` or `not-ready`. |
+| D04 | planned | Demo CLI and reviewer sandbox | Markdown-first local demo plus strict local JSON reviewer input, with no target-system calls and no raw data material. |
+
+## D01 Scenario Contract
+
+D01 covers eight fixture-only cases:
+
+```text
+aggregate-report-release
+customer-export-approved
+pii-column-narrowing
+external-recipient-review
+tenant-scope-mismatch
+stale-approval
+prompt-injection-in-evidence
+write-query-blocked
+```
+
+Every fixture records:
+
+```text
+tenantRefDigest
+actorRefDigest
+targetAccountRefDigest
+resourceRefDigest
+data class
+query class
+recipient class
+field class
+row-count bucket
+approval freshness
+purpose binding
+evidence refs
+approval refs
+policy refs
+replay/idempotency/trace refs
+```
+
+Every fixture forbids:
+
+```text
+raw SQL
+raw rows
+raw customer identifiers
+raw provider body
+target-system calls
+auto enforcement
+production readiness claims
+```
+
+## No-Claims
+
+D01 does not prove:
+
+- live Snowflake execution;
+- live Databricks execution;
+- native connector coverage;
+- real customer export;
+- report correctness;
+- customer PEP no-bypass enforcement;
+- live replay/idempotency store wiring;
+- compliance certification;
+- production readiness;
+- enterprise readiness.
+
+## Next Locked Target
+
+D02 should project the D01 fixture suite into review-only Policy Foundry material
+with named Data Movement gaps:
+
+- field narrowing required;
+- recipient approval gap;
+- tenant scope mismatch;
+- stale approval;
+- instruction-like evidence text;
+- write-side-effect block;
+- missing purpose binding.
+
+No D02 output may activate enforcement, mutate policy, execute a query, export
+data, or write to a target warehouse.
