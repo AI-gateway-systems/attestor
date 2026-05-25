@@ -44,6 +44,7 @@ export * from './golden-refund-demo.js';
 export * from './golden-refund-engine-visibility.js';
 export * from './golden-refund-reviewer-sandbox.js';
 export * from './golden-data-export-shadow-fixtures.js';
+export * from './golden-data-export-policy-foundry-projection.js';
 export * from './decision-trace-logger.js';
 export * from './baseline-cohort-contract.js';
 export * from './candidate-invariants-catalog.js';

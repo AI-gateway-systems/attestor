@@ -1,9 +1,10 @@
 # Golden Path: Controlled Data Export
 
-Status: D01 complete only. This is the first repository-side contract slice for
-the Data Movement golden path. It is not a live Snowflake or Databricks
-connector, not a data warehouse, not a customer export service, not customer PEP
-proof, not production readiness, and not enterprise readiness.
+Status: D02 complete. D01-D02 are repository-side only. This is the first
+repository-side contract/projection slice for the Data Movement golden path. It
+is not a live Snowflake or Databricks connector, not a data warehouse, not a
+customer export service, not customer PEP proof, not production readiness, and
+not enterprise readiness.
 
 ## Decision
 
@@ -42,6 +43,8 @@ customer-controlled PEP/gate consumes an Attestor decision.
 | Data tool recipes | `src/consequence-admission/domain-consequence-recipes.ts` maps Snowflake Cortex Agents and Databricks AI agent tools into `data-tool-gate` recipe entries with `customer.export`, `semantic.query.publish`, `workspace.job.run`, and `data.export` examples. | repo-proven |
 | D01 fixture contract | `src/consequence-admission/golden-data-export-shadow-fixtures.ts` emits eight synthetic digest-only canonical shadow events for controlled data export and report-release scenarios. | repo-proven |
 | D01 tests | `tests/golden-data-export-shadow-fixtures.test.ts` locks the suite shape, digest-only canonical events, scenario semantics, no-target-system-call flags, and no raw SQL/row/customer identifier posture. | repo-proven |
+| D02 Policy Foundry projection | `src/consequence-admission/golden-data-export-policy-foundry-projection.ts` projects the D01 suite into review-only Policy Foundry material with named recipient, field, tenant, approval, and purpose gaps. | repo-proven |
+| D02 tests | `tests/golden-data-export-policy-foundry-projection.test.ts` locks the review-only candidate, decision/gap counts, Policy Twin summary, no-raw-data posture, docs, ledger, and package script alignment. | repo-proven |
 
 ## Research Anchors
 
@@ -73,12 +76,12 @@ engineering anchors only, not compliance certification.
 
 ## D-Series Tracker
 
-Progress after D01 lands: 1/4 complete. 3 steps remain.
+Progress after D02 lands: 2/4 complete. 2 steps remain.
 
 | Step | Status | Slice | Evidence target |
 |---|---|---|---|
 | D01 | complete | Controlled data export shadow fixture contract | Synthetic digest-only canonical shadow events for aggregate-report-release, customer-export-approved, pii-column-narrowing, external-recipient-review, tenant-scope-mismatch, stale-approval, prompt-injection-in-evidence, and write-query-blocked scenarios. |
-| D02 | planned | Policy Foundry data export projection | Review-only candidate, named gaps, decision counts, and Policy Twin summary over D01 fixtures. |
+| D02 | complete | Policy Foundry data export projection | Review-only candidate, named gaps, decision counts, and Policy Twin summary over D01 fixtures. |
 | D03 | planned | Runtime smoke and pilot readiness | Run the existing shadow runtime chain over D01/D02 material and emit only `ready-for-shadow-pilot` or `not-ready`. |
 | D04 | planned | Demo CLI and reviewer sandbox | Markdown-first local demo plus strict local JSON reviewer input, with no target-system calls and no raw data material. |
 
@@ -129,9 +132,41 @@ auto enforcement
 production readiness claims
 ```
 
+## D02 Policy Foundry Projection
+
+D02 projects the D01 fixtures into Policy Foundry review material. The projection
+emits a review-only candidate for `data_movement.controlled_export`, a Policy
+Twin summary, decision counts, gap counts, fixture/event digests, and named gaps.
+
+The review-only candidate binds the same consequence boundary as D01:
+
+```text
+AI-prepared report/export intent
+  -> digest-only shadow fixture material
+  -> review-only Policy Foundry projection
+  -> recipient, field, tenant, approval, and purpose gaps
+  -> later runtime smoke and reviewer demo material
+```
+
+Named D02 gaps:
+
+```text
+overbroad-personal-data
+external-recipient-unapproved
+tenant-scope-mismatch
+stale-approval
+instruction-like-evidence-review
+write-side-effect
+purpose-binding-missing
+```
+
+D02 remains review material only. It cannot activate enforcement, mutate policy,
+execute a warehouse query, export rows, call Snowflake or Databricks, or prove a
+customer PEP/gate.
+
 ## No-Claims
 
-D01 does not prove:
+D01-D02 do not prove:
 
 - live Snowflake execution;
 - live Databricks execution;
