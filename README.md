@@ -20,9 +20,9 @@ AI proposes -> Attestor checks -> consequence is admitted, narrowed, reviewed, o
 
 ## Why This Matters Now
 
-AI systems are moving from chat into tools that can touch payment flows, data exports, access changes, customer messages, infrastructure, and programmable money. Security guidance now treats LLM prompt injection and excessive agency as concrete application risks, not science-fiction edge cases; see the [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/). Regulatory pressure is also increasing as the [EU AI Act implementation timeline](https://ai-act-service-desk.ec.europa.eu/en/ai-act/eu-ai-act-implementation-timeline) rolls forward for high-risk AI obligations.
+AI systems are moving from chat into tools that can touch payment flows, data exports, access changes, customer messages, infrastructure, and programmable money. In regulated environments, that pushes AI actions into the same world as AI risk management, third-party oversight, operational resilience, ICT risk management, incident accountability, and high-risk AI governance; see the [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework), the U.S. banking agencies' [Interagency Guidance on Third-Party Relationships](https://www.federalreserve.gov/frrs/guidance/interagency-guidance-on-third-party-relationships.htm), the [EU Digital Operational Resilience Act](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32022R2554), and the [EU AI Act](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32024R1689).
 
-Attestor does not claim compliance or production readiness from this repository. It gives teams a concrete control point to structure, check, record, and stop high-risk AI actions before they create consequences that are hard to undo.
+Attestor does not claim compliance, framework coverage, supervisory approval, or production readiness from this repository. It gives teams a concrete control point to structure, check, record, and stop high-risk AI actions before they create consequences that are hard to undo.
 
 ## Where It Sits In A Customer Stack
 
