@@ -8,6 +8,8 @@ Attestor is an AI Action Control Plane that controls the boundary between AI int
 
 A prompt is not a formal rule; it is linguistic context interpreted by a probabilistic model. That makes it useful for guidance, but insufficient as deterministic control. The control point has to move from the model's text to the proposed action: the action intent can be structured, checked, admitted, narrowed, reviewed, or blocked before it becomes a real consequence.
 
+That is the short version of Attestor: proof before consequence. Before an AI-prepared action changes money, data, access, infrastructure, or a wallet, the system should know what was requested, who or what had authority, what evidence supported it, what scope was allowed, and why the action was admitted, narrowed, sent to review, or blocked.
+
 AI agents draft refunds, prepare supplier payments, request data exports, trigger operational changes, and build wallet transactions. The dangerous moment is not the text the model produced. It is the point where that output becomes a real action in a downstream system.
 
 Attestor treats that proposed action as a consequence to admit, narrow, review, or block before the customer system changes state.
@@ -15,6 +17,12 @@ Attestor treats that proposed action as a consequence to admit, narrow, review, 
 ```text
 AI proposes -> Attestor checks -> consequence is admitted, narrowed, reviewed, or blocked -> proof remains
 ```
+
+## Why This Matters Now
+
+AI systems are moving from chat into tools that can touch payment flows, data exports, access changes, customer messages, infrastructure, and programmable money. Security guidance now treats LLM prompt injection and excessive agency as concrete application risks, not science-fiction edge cases; see the [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/). Regulatory pressure is also increasing as the [EU AI Act implementation timeline](https://ai-act-service-desk.ec.europa.eu/en/ai-act/eu-ai-act-implementation-timeline) rolls forward for high-risk AI obligations.
+
+Attestor does not claim compliance or production readiness from this repository. It gives teams a concrete control point to structure, check, record, and stop high-risk AI actions before they create consequences that are hard to undo.
 
 ## Where It Sits In A Customer Stack
 
