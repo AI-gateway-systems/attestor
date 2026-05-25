@@ -23,6 +23,11 @@ function equal<T>(actual: T, expected: T, message: string): void {
   passed += 1;
 }
 
+function deepEqual<T>(actual: T, expected: T, message: string): void {
+  assert.deepEqual(actual, expected, message);
+  passed += 1;
+}
+
 function withEnv(overrides: Record<string, string | undefined>): () => void {
   const previous = new Map<string, string | undefined>();
   for (const [key, value] of Object.entries(overrides)) {
@@ -186,10 +191,14 @@ async function testWildcardOriginConfigFailsClosedWithoutLeakingValue(): Promise
       reasonCodes(response.body).includes('account-session-origin-config-invalid'),
       'Account browser boundary: invalid config rejection names config reason code',
     );
-    equal(
-      JSON.stringify(response.body).includes('https://app.attestor.test') || JSON.stringify(response.body).includes('*'),
-      false,
-      'Account browser boundary: invalid config response does not echo origin or wildcard material',
+    deepEqual(
+      response.body,
+      {
+        error: 'Account-session browser origin allowlist is invalid.',
+        requiredEnv: ACCOUNT_SESSION_ALLOWED_ORIGINS_ENV,
+        reasonCodes: ['account-session-origin-config-invalid'],
+      },
+      'Account browser boundary: invalid config response uses a bounded shape without echoing origin material',
     );
   } finally {
     restore();
