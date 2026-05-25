@@ -254,6 +254,7 @@
     "test:release-evidence-pack-store": "tsx tests/release-evidence-pack-store.test.ts",
     "test:release-degraded-mode-grant-store": "tsx tests/release-degraded-mode-grant-store.test.ts",
     "test:release-policy-authority-store": "tsx tests/release-policy-authority-store.test.ts",
+    "test:release-policy-control-plane-store-mapper-split": "tsx tests/release-policy-control-plane-store-mapper-split.test.ts",
     "test:shared-authority-runtime-readiness": "tsx tests/shared-authority-runtime-readiness.test.ts",
     "test:production-shared-request-guard": "tsx tests/production-shared-request-guard.test.ts",
     "test:production-shared-preflight-bootstrap": "tsx tests/production-shared-preflight-bootstrap.test.ts",
