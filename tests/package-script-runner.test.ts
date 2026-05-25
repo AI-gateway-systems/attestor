@@ -119,6 +119,7 @@ function testFastSuiteKeepsCriticalCoverage(): void {
     'test:production-readiness-secret-safe-output',
     'test:public-artifacts-redaction',
     'test:audit-finding-test-coverage',
+    'test:shadow-route-helper-split',
     'tsx tests/account-session-cookie-security.test.ts',
     'tsx tests/release-kernel-release-decision-engine.test.ts',
     'tsx tests/release-layer-platform-surface.test.ts',

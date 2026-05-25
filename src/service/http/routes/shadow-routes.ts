@@ -1,7 +1,6 @@
 import type { Context, Hono } from 'hono';
 import type { AdminAuditAction } from '../../admin-audit-log.js';
 import {
-  createConsequenceAdmissionProblem,
   createActionRiskInventory,
   createConsequenceAuditEvidenceExport,
   createConsequenceBusinessRiskDashboard,
@@ -68,11 +67,17 @@ import type {
 } from '../../application/pipeline-idempotency-service.js';
 import type { TenantContext } from '../../tenant-isolation.js';
 import { acceptsJsonRequestBody } from '../route-response-helpers.js';
+import {
+  assertTenantBoundRecord,
+  assertTenantBoundRecords,
+  boundedErrorDetail,
+  caughtErrorStatus,
+  isRecord,
+  problem,
+  shadowListPage,
+  tenantSummary,
+} from './shadow-route-helpers.js';
 
-type ShadowProblemStatus = 400 | 404 | 409 | 415 | 429 | 503;
-
-const SHADOW_LIST_DEFAULT_LIMIT = 50;
-const SHADOW_LIST_MAX_LIMIT = 100;
 const SHADOW_MUTATION_RATE_LIMIT_DEFAULT = 60;
 const SHADOW_MUTATION_RATE_LIMIT_MAX = 600;
 const SHADOW_MUTATION_RATE_LIMIT_WINDOW_MS = 60_000;
@@ -81,17 +86,6 @@ const shadowMutationAttempts = new Map<string, {
   count: number;
   resetAtMs: number;
 }>();
-
-type ShadowListPage<T> = {
-  readonly records: readonly T[];
-  readonly pageInfo: {
-    readonly limit: number;
-    readonly cursor: string | null;
-    readonly nextCursor: string | null;
-    readonly hasMore: boolean;
-    readonly totalRecordCount: number;
-  };
-};
 
 export interface ShadowMutationAuditInput {
   readonly routeId: string;
@@ -169,18 +163,6 @@ export interface ShadowRouteDeps {
     readonly payload: ShadowPolicyBundleSigningPayload;
   }): ShadowPolicyBundlePublicationSignature;
   now?(): string;
-}
-
-function tenantSummary(tenant: TenantContext): {
-  readonly tenantId: string;
-  readonly source: TenantContext['source'];
-  readonly planId: string | null;
-} {
-  return Object.freeze({
-    tenantId: tenant.tenantId,
-    source: tenant.source,
-    planId: tenant.planId,
-  });
 }
 
 function configuredShadowMutationRateLimit(): number {
@@ -358,129 +340,6 @@ export function resetShadowMutationRateLimiterForTests(): void {
   shadowMutationAttempts.clear();
 }
 
-type TenantBoundRecord = {
-  readonly tenantId: string | null;
-};
-
-const SHADOW_TENANT_BOUNDARY_MARKER = 'Shadow tenant boundary violation';
-
-function assertTenantBoundRecord<T extends TenantBoundRecord>(
-  tenant: TenantContext,
-  record: T,
-  resource: string,
-  options?: { readonly allowNullTenantId?: boolean },
-): T {
-  if (record.tenantId === null && options?.allowNullTenantId === true) return record;
-  if (record.tenantId !== tenant.tenantId) {
-    throw new Error(
-      `${SHADOW_TENANT_BOUNDARY_MARKER}: ${resource} record does not belong to the authenticated tenant.`,
-    );
-  }
-  return record;
-}
-
-function assertTenantBoundRecords<T extends TenantBoundRecord>(
-  tenant: TenantContext,
-  records: readonly T[],
-  resource: string,
-  options?: { readonly allowNullTenantId?: boolean },
-): readonly T[] {
-  for (const record of records) assertTenantBoundRecord(tenant, record, resource, options);
-  return records;
-}
-
-function caughtErrorMessage(error: unknown): string | null {
-  return error instanceof Error ? error.message : null;
-}
-
-function boundedErrorDetail(
-  error: unknown,
-  fallback: string,
-  options?: {
-    readonly safeMarkers?: readonly string[];
-    readonly safeDetail?: string;
-    readonly tenantBoundarySafeDetail?: string;
-  },
-): string {
-  const message = caughtErrorMessage(error);
-  if (message?.includes(SHADOW_TENANT_BOUNDARY_MARKER)) {
-    return options?.tenantBoundarySafeDetail ?? 'The shadow route rejected a tenant boundary violation.';
-  }
-  if (
-    message &&
-    options?.safeMarkers?.some((marker) => message.includes(marker))
-  ) {
-    return options.safeDetail ?? fallback;
-  }
-  return fallback;
-}
-
-function caughtErrorStatus(
-  error: unknown,
-  input: {
-    readonly statusMarkers?: readonly {
-      readonly marker: string;
-      readonly status: ShadowProblemStatus;
-    }[];
-    readonly defaultStatus: ShadowProblemStatus;
-  },
-): ShadowProblemStatus {
-  const message = caughtErrorMessage(error);
-  if (message) {
-    const match = input.statusMarkers?.find((candidate) => message.includes(candidate.marker));
-    if (match) return match.status;
-  }
-  return input.defaultStatus;
-}
-
-function shadowListPage<T>(
-  c: Context,
-  records: readonly T[],
-  resourceName: string,
-): ShadowListPage<T> | Response {
-  const limitRaw = c.req.query('limit');
-  const cursorRaw = c.req.query('cursor');
-  const limit = limitRaw === undefined || limitRaw.trim() === ''
-    ? SHADOW_LIST_DEFAULT_LIMIT
-    : Number.parseInt(limitRaw, 10);
-  const offset = cursorRaw === undefined || cursorRaw.trim() === ''
-    ? 0
-    : Number.parseInt(cursorRaw, 10);
-
-  if (!Number.isInteger(limit) || limit <= 0 || limit > SHADOW_LIST_MAX_LIMIT) {
-    return problem(c, {
-      type: 'https://attestor.dev/problems/shadow-list-pagination-invalid',
-      title: 'Invalid shadow list pagination',
-      status: 400,
-      detail: `${resourceName} limit must be an integer from 1 to ${SHADOW_LIST_MAX_LIMIT}.`,
-      reasonCodes: ['invalid-shadow-list-pagination'],
-    });
-  }
-  if (!Number.isInteger(offset) || offset < 0) {
-    return problem(c, {
-      type: 'https://attestor.dev/problems/shadow-list-pagination-invalid',
-      title: 'Invalid shadow list pagination',
-      status: 400,
-      detail: `${resourceName} cursor must be a non-negative offset cursor.`,
-      reasonCodes: ['invalid-shadow-list-pagination'],
-    });
-  }
-
-  const pageRecords = records.slice(offset, offset + limit);
-  const nextOffset = offset + pageRecords.length;
-  const hasMore = nextOffset < records.length;
-  return {
-    records: pageRecords,
-    pageInfo: {
-      limit,
-      cursor: cursorRaw === undefined || cursorRaw.trim() === '' ? null : String(offset),
-      nextCursor: hasMore ? String(nextOffset) : null,
-      hasMore,
-      totalRecordCount: records.length,
-    },
-  };
-}
-
 function safeShadowSummary(c: Context, deps: ShadowRouteDeps, tenantInput?: TenantContext) {
   c.header('cache-control', 'no-store');
 
@@ -507,22 +366,16 @@ function safeShadowSummary(c: Context, deps: ShadowRouteDeps, tenantInput?: Tena
       surface,
     };
   } catch (error) {
-    const problem = createConsequenceAdmissionProblem({
+    return problem(c, {
       type: 'https://attestor.dev/problems/shadow-summary-unavailable',
       title: 'Shadow summary unavailable',
       status: 503,
       detail: boundedErrorDetail(error, 'The shadow summary could not be evaluated.', {
         tenantBoundarySafeDetail: 'The shadow summary rejected a tenant boundary violation.',
       }),
-      instance: c.req.path,
       reasonCodes: ['shadow-summary-unavailable'],
     });
-    return c.json(problem, 503);
   }
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function parseCandidateStatus(value: string | null | undefined): ShadowPolicyCandidateStatus | null {
@@ -563,19 +416,6 @@ function selectPolicyFoundryCandidate(input: {
     if (input.domain && candidate.domain !== input.domain) return false;
     return true;
   }) ?? null;
-}
-
-function problem(c: Context, input: {
-  readonly type: string;
-  readonly title: string;
-  readonly status: ShadowProblemStatus;
-  readonly detail: string;
-  readonly reasonCodes: readonly string[];
-}) {
-  return c.json(createConsequenceAdmissionProblem({
-    ...input,
-    instance: c.req.path,
-  }), input.status);
 }
 
 async function recordShadowMutationAudit(
