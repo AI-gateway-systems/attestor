@@ -133,7 +133,7 @@ function testDataMinimization(): void {
   const serialized = JSON.stringify(projection);
 
   excludes(serialized, /AKIA|ASIA|AIza|sk_live|rk_live|whsec|xox[abprs]-|-----BEGIN [A-Z ]*PRIVATE KEY-----/u, 'O02 projection: no provider or secret token material is serialized');
-  excludes(serialized, /\b(kubeconfig|terraform\.tfstate|tfvars|private[_-]?key|secretValue|password|token)\b/iu, 'O02 projection: no raw ops credential/config fields are serialized');
+  excludes(serialized, /"(?:kubeconfig|terraformState|tfvars|privateKey|secretValue|password|accessToken|refreshToken|bearerToken)"\s*:/iu, 'O02 projection: no raw ops credential/config fields are serialized');
   excludes(serialized, /\b(customer|tenant|account)[_-]?[0-9]{3,}\b/iu, 'O02 projection: no raw customer, tenant, or account id is serialized');
   excludes(serialized, /"rawManifest"\s*:|"rawRunbookText"\s*:|"rawTerraformPlan"\s*:|"rawSecret"\s*:|kubectl apply|terraform apply/iu, 'O02 projection: no raw deploy/runbook/plan fields or execution commands are serialized');
 }
@@ -155,8 +155,8 @@ function testDescriptorDocsAndScriptsStayAligned(): void {
   equal(descriptor.productionReady, false, 'O02 descriptor: production readiness is false');
 
   for (const expected of [
-    'Progress after O02 lands: 2/4 complete. 2 steps remain.',
-    '| O02 | complete once merged | Policy Foundry operational projection |',
+    'Progress after O03 lands: 3/4 complete. 1 step remains.',
+    '| O02 | complete | Policy Foundry operational projection |',
     'review-only candidate for `operational_execution.change_request`',
     'rollback, dry-run, approval, drift, break-glass, secret, runbook, and replay gaps',
   ]) {

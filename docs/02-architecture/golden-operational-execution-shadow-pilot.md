@@ -1,6 +1,6 @@
 # Golden Path: Operational Execution
 
-Status: in progress. O01-O02 are repository-side only. This is not a live
+Status: in progress. O01-O03 are repository-side only. This is not a live
 Kubernetes, Terraform, GitHub deployment environment, incident automation,
 secret manager, CI/CD, cloud, or runbook connector, not customer PEP proof,
 not production readiness, and not enterprise readiness.
@@ -48,6 +48,9 @@ until a later customer-controlled PEP/gate consumes an Attestor decision.
 | O01 tests | `tests/golden-operational-execution-shadow-fixtures.test.ts` locks the suite shape, digest-only canonical events, scenario semantics, no-deployment flags, no secret material, no raw runbook text, and no raw customer identifiers. | repo-proven once merged |
 | O02 Policy Foundry projection | `src/consequence-admission/golden-operational-execution-policy-foundry-projection.ts` projects the O01 suite into review-only Policy Foundry material with named rollback, dry-run, approval, drift, break-glass, secret, runbook, and replay gaps. | repo-proven once merged |
 | O02 tests | `tests/golden-operational-execution-policy-foundry-projection.test.ts` locks the review-only candidate, decision/gap counts, Policy Twin summary, no-raw-ops posture, docs, ledger, and package script alignment. | repo-proven once merged |
+| O03 runtime smoke | `src/consequence-admission/golden-operational-execution-runtime-smoke.ts` runs all O01 fixtures through the existing R02-R07 shadow runtime smoke chain without deployment, infrastructure, secret-manager, incident-automation, runbook, provider, audit, or policy-activation side effects. | repo-proven once merged |
+| O03 pilot readiness probe | `src/consequence-admission/golden-operational-execution-pilot-readiness-probe.ts` wraps the runtime smoke in a shadow-entry Pilot Readiness Packet and allows only `ready-for-shadow-pilot` or `not-ready`. | repo-proven once merged |
+| O03 tests | `tests/golden-operational-execution-runtime-smoke.test.ts` and `tests/golden-operational-execution-pilot-readiness-probe.test.ts` lock deterministic replay, no-raw-operational-material posture, tamper fail-closed behavior, docs, ledger, and package script alignment. | repo-proven once merged |
 
 ## Research Anchors
 
@@ -68,13 +71,13 @@ customer PEP, or production readiness.
 
 ## O-Series Tracker
 
-Progress after O02 lands: 2/4 complete. 2 steps remain.
+Progress after O03 lands: 3/4 complete. 1 step remains.
 
 | Step | Status | Slice | Evidence target |
 |---|---|---|---|
 | O01 | complete | Operational Execution shadow fixture contract | Synthetic digest-only canonical shadow events for canary deploy, production deploy without rollback, stale secret-rotation approval, infrastructure drift, incident restart, rollback, runbook prompt injection, and duplicate operation replay scenarios. |
-| O02 | complete once merged | Policy Foundry operational projection | Review-only candidate, named gaps, decision counts, and Policy Twin summary over O01 fixtures. |
-| O03 | pending | Runtime smoke and pilot readiness | Run the existing shadow runtime chain over O01/O02 material and emit only `ready-for-shadow-pilot` or `not-ready`. |
+| O02 | complete | Policy Foundry operational projection | Review-only candidate, named gaps, decision counts, and Policy Twin summary over O01 fixtures. |
+| O03 | complete once merged | Runtime smoke and pilot readiness | Run the existing shadow runtime chain over O01/O02 material and emit only `ready-for-shadow-pilot` or `not-ready`. |
 | O04 | pending | Demo CLI and reviewer sandbox | Markdown-first local demo plus strict local JSON reviewer input, with no deployment, no provider calls, and no secret material. |
 
 ## O01 Scenario Contract
@@ -164,9 +167,36 @@ O02 remains review material only. It cannot activate enforcement, mutate
 policy, deploy infrastructure, apply Terraform, call Kubernetes, write a
 secret, execute a runbook, or prove a customer PEP/gate.
 
+## O03 Runtime Smoke And Pilot Readiness
+
+O03 replays every O01 fixture through the existing R02-R07 shadow runtime smoke
+chain:
+
+```text
+O01 digest-only fixture
+  -> O02 review-only projection
+  -> R02-R07 shadow runtime smoke chain
+  -> digest-bound envelope / assurance / lineage refs
+  -> Pilot Readiness Packet
+  -> ready-for-shadow-pilot | not-ready
+```
+
+This is the operational equivalent of a dry-run / plan / protected-review
+rehearsal. It proves that the demo material can move through Attestor's
+shadow-only runtime contracts without executing the proposed operation. The
+probe explicitly checks for no deployment, no infrastructure change, no
+secret-manager write, no incident automation execution, and no runbook
+execution. It also preserves the existing no-audit-write, no-policy-activation,
+no-learning/training, no-raw-payload, and no-production-readiness boundary.
+
+O03 does not emit `ready-for-scoped-pilot`. Scoped or enforced operational
+execution still needs customer PEP/gate integration, live replay/idempotency
+proof, operator approval paths, provider credentials, rollback runbooks, and
+deployment-specific proof.
+
 ## No-Claims
 
-O01 does not prove:
+O01-O03 do not prove:
 
 - live Kubernetes deployment;
 - live Terraform apply;
