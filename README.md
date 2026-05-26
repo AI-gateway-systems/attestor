@@ -110,7 +110,7 @@ These paths do not execute refunds, export data, change access, send messages, d
 
 Green local checks such as `npm run verify` are repo-side evidence only. They do not prove live cloud infrastructure, hosted Policy Foundry production readiness, live OpenAI or Anthropic calls, Snowflake or healthcare substrate readiness, customer-operated deployment readiness, or non-bypassable customer enforcement unless those specific opt-in live checks and customer-side PEP evidence have also run.
 
-Review path:
+Start review with:
 
 1. Run one or more Golden Path commands in the next section.
 2. Use the evaluation packet, release notes, security policy, smoke workflow, artifact attestation plan, and audit tracker only when you need deeper evidence.
