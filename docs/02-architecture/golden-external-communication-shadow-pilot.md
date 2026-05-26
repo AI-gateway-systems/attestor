@@ -1,9 +1,9 @@
 # Golden Path: External Communication
 
-Status: in progress. E01 is repository-side only and E02 is repository-side
-review material once merged. This is not a live email, SMS, ticketing, social,
-CRM, SendGrid, or Mailgun connector, not customer PEP proof, not compliance
-certification, not production readiness, and not enterprise readiness.
+Status: in progress. E01-E03 are repository-side only. This is not a live
+email, SMS, ticketing, social, CRM, SendGrid, or Mailgun connector, not
+customer PEP proof, not compliance certification, not production readiness,
+and not enterprise readiness.
 
 ## Decision
 
@@ -47,6 +47,9 @@ until a later customer-controlled PEP/gate consumes an Attestor decision.
 | E01 tests | `tests/golden-external-communication-shadow-fixtures.test.ts` locks the suite shape, digest-only canonical events, scenario semantics, no-target-system-call flags, no raw message bodies, no raw recipient identifiers, and no raw customer identifiers. | repo-proven |
 | E02 Policy Foundry projection | `src/consequence-admission/golden-external-communication-policy-foundry-projection.ts` projects the E01 suite into review-only Policy Foundry material with named message, recipient, claim, evidence, public-claim, commercial-email, and replay gaps. | repo-proven once merged |
 | E02 tests | `tests/golden-external-communication-policy-foundry-projection.test.ts` locks the review-only candidate, decision/gap counts, Policy Twin summary, no-raw-message posture, docs, ledger, and package script alignment. | repo-proven once merged |
+| E03 runtime smoke | `src/consequence-admission/golden-external-communication-runtime-smoke.ts` runs all E01/E02 material through the existing R02-R07 shadow runtime smoke chain without provider, delivery, CRM, ticketing, audit-write, policy-activation, or raw-message access. | repo-proven once merged |
+| E03 pilot readiness probe | `src/consequence-admission/golden-external-communication-pilot-readiness-probe.ts` wraps the runtime smoke in a shadow-entry readiness packet that can emit only `ready-for-shadow-pilot` or `not-ready`. | repo-proven once merged |
+| E03 tests | `tests/golden-external-communication-runtime-smoke.test.ts` and `tests/golden-external-communication-pilot-readiness-probe.test.ts` lock deterministic digests, no-claim flags, data minimization, fail-closed tamper behavior, docs, ledger, and package script alignment. | repo-proven once merged |
 
 ## Research Anchors
 
@@ -75,13 +78,13 @@ actions. This is an engineering anchor only, not a NIST conformance claim.
 
 ## E-Series Tracker
 
-Progress after E02 lands: 2/4 complete. 2 steps remain.
+Progress after E03 lands: 3/4 complete. 1 step remains.
 
 | Step | Status | Slice | Evidence target |
 |---|---|---|---|
 | E01 | complete | External Communication shadow fixture contract | Synthetic digest-only canonical shadow events for support-reply-approved, refund-promise-review, legal-claim-blocked, wrong-recipient-blocked, public-overclaim-narrowing, commercial-email-control-gap, prompt-injection-in-ticket, and duplicate-send-replay-blocked scenarios. |
-| E02 | complete once merged | Policy Foundry communication projection | Review-only candidate, named gaps, decision counts, and Policy Twin summary over E01 fixtures. |
-| E03 | pending | Runtime smoke and pilot readiness | Run the existing shadow runtime chain over E01/E02 material and emit only `ready-for-shadow-pilot` or `not-ready`. |
+| E02 | complete | Policy Foundry communication projection | Review-only candidate, named gaps, decision counts, and Policy Twin summary over E01 fixtures. |
+| E03 | complete once merged | Runtime smoke and pilot readiness | Run the existing shadow runtime chain over E01/E02 material and emit only `ready-for-shadow-pilot` or `not-ready`. |
 | E04 | pending | Demo CLI and reviewer sandbox | Markdown-first local demo plus strict local JSON reviewer input, with no provider calls and no raw message material. |
 
 ## E01 Scenario Contract
@@ -165,11 +168,51 @@ E02 remains review material only. It cannot activate enforcement, mutate
 policy, send a message, call SendGrid, Mailgun, a CRM, or a ticketing system,
 or prove a customer PEP/gate.
 
-## E03-E04 Planned Shape
+## E03 Runtime Smoke And Pilot Readiness
 
-E03 should replay E01/E02 through the existing shadow runtime smoke chain and
-produce a shadow-entry pilot readiness packet only. It must not send a message,
-write an audit record, activate policy, or claim scoped enforcement readiness.
+E03 replays E01/E02 through the existing R02-R07 shadow runtime smoke chain.
+It produces digest-only phase references, envelope references, assurance
+packet references, final assurance-case references, and lineage-graph
+references for every External Communication scenario.
+
+The E03 runtime smoke is deliberately narrow:
+
+```text
+E01 digest-only fixture
+  -> E02 review-only Policy Foundry projection
+  -> R02-R07 shadow runtime smoke chain
+  -> E03 runtime digest bundle
+  -> E03 shadow-entry readiness packet
+```
+
+The readiness probe can emit only:
+
+```text
+ready-for-shadow-pilot
+not-ready
+```
+
+`ready-for-scoped-pilot` is outside E03. That stronger state would require a
+customer-controlled PEP/gate, live replay/idempotency proof, provider routing
+proof, and operator approval evidence that this repository-side demo does not
+claim.
+
+E03 explicitly keeps:
+
+```text
+no provider call, no CRM/ticketing call, and no message delivery
+no audit write
+no policy activation
+no learning or training activation
+no raw message body read or storage
+no raw recipient identifier read or storage
+no raw customer identifier read or storage
+productionReady=false
+activatesEnforcement=false
+autoEnforce=false
+```
+
+## E04 Planned Shape
 
 E04 should make the path locally inspectable:
 
@@ -184,7 +227,7 @@ README until the CLI and reviewer sandbox exist.
 
 ## No-Claims
 
-E01 does not prove:
+E01-E03 do not prove:
 
 - live email, SMS, ticketing, CRM, or public-post delivery;
 - native SendGrid, Mailgun, CRM, Zendesk, Slack, or social-platform connector coverage;
