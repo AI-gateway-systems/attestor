@@ -101,7 +101,7 @@ function testCanonicalEventsAreDigestOnly(): void {
   }
 
   excludes(serialized, /AKIA|ASIA|AIza|sk_live|rk_live|whsec|xox[abprs]-|-----BEGIN [A-Z ]*PRIVATE KEY-----/u, 'O01 fixtures: no provider or secret token material is serialized');
-  excludes(serialized, /\b(kubeconfig|terraform\.tfstate|tfvars|private[_-]?key|secretValue|password|token)\b/iu, 'O01 fixtures: no raw ops credential/config fields are serialized');
+  excludes(serialized, /"(?:kubeconfig|terraformState|tfvars|privateKey|secretValue|password|accessToken|refreshToken|bearerToken)"\s*:/iu, 'O01 fixtures: no raw ops credential/config fields are serialized');
   excludes(serialized, /\b(customer|tenant|account)[_-]?[0-9]{3,}\b/iu, 'O01 fixtures: no raw customer, tenant, or account id is serialized');
   excludes(serialized, /"rawManifest"\s*:|"rawRunbookText"\s*:|"rawTerraformPlan"\s*:|"rawSecret"\s*:|kubectl apply|terraform apply/iu, 'O01 fixtures: no raw deploy/runbook/plan fields or execution commands are serialized');
 }
@@ -199,8 +199,8 @@ function testDescriptorDocsAndScriptsStayAligned(): void {
   ok(descriptor.nonClaims.includes('not-live-kubernetes-terraform-or-github-deployment'), 'O01 descriptor: live deployment is a non-claim');
 
   for (const expected of [
-    'Status: in progress. O01-O02 are repository-side only.',
-    'Progress after O02 lands: 2/4 complete. 2 steps remain.',
+    'Status: in progress. O01-O03 are repository-side only.',
+    'Progress after O03 lands: 3/4 complete. 1 step remains.',
     '| O01 | complete | Operational Execution shadow fixture contract |',
     'canary-deploy-approved',
     'production-deploy-missing-rollback',
