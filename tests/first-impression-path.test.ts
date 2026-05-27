@@ -37,8 +37,9 @@ function appearsBefore(content: string, earlier: string, later: string, message:
 function testReadmeHasAFirstImpressionPath(): void {
   const readme = readProjectFile('README.md');
 
-  includes(readme, 'AI Action Control Plane for high-risk AI actions.', 'README: opens with the AI Action Control Plane category');
-  includes(readme, 'Attestor controls the boundary between AI intent and real-world consequence.', 'README: opens with the canonical control-plane sentence');
+  includes(readme, 'Attestor is an AI Action Control Plane that sits between AI intent and real-world consequence.', 'README: opens with the AI Action Control Plane category');
+  includes(readme, 'It does not try to make the model perfect. It controls the proposed action.', 'README: opens with the proposed-action control point');
+  includes(readme, 'it needs enough structured action context and proof references to decide whether the action is sufficiently bound to policy, authority, evidence, scope, freshness, replay posture, and downstream enforcement.', 'README: explains data minimization as proof-bound action context');
   includes(readme, 'Attestor treats that proposed action as a consequence to admit, narrow, review, or block before the customer system changes state.', 'README: explains the control point before architecture');
   includes(readme, 'The trust boundary is the action, not the model response.', 'README: frames the risk before architecture');
   includes(readme, '## Where It Sits In A Customer Stack', 'README: shows real customer stack placement near the top');

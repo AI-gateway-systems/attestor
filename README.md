@@ -4,11 +4,11 @@
 
 **Control infrastructure for high-risk AI actions.**
 
-AI Action Control Plane for high-risk AI actions.
+Attestor is an AI Action Control Plane that sits between AI intent and real-world consequence.
 
-Attestor controls the boundary between AI intent and real-world consequence.
+It does not try to make the model perfect. It controls the proposed action.
 
-Attestor is an AI Action Control Plane that controls the boundary between AI intent and real-world consequence.
+Attestor is designed as a control point, not a data lake. It is not built to collect all of the customer's raw data; it needs enough structured action context and proof references to decide whether the action is sufficiently bound to policy, authority, evidence, scope, freshness, replay posture, and downstream enforcement.
 
 A prompt is not a formal rule; it is linguistic context interpreted by a probabilistic model. That makes it useful for guidance, but insufficient as deterministic control. The control point has to move from the model's text to the proposed action: the action intent can be structured, checked, admitted, narrowed, reviewed, or blocked before it becomes a real consequence.
 
