@@ -28,7 +28,7 @@ function testReadmePublicClaimBoundary(): void {
   );
   includes(
     readme,
-    'Attestor is an AI Action Control Plane that controls the boundary between AI intent and real-world consequence.',
+    'Attestor is an AI Action Control Plane that sits between AI intent and real-world consequence.',
     'Final claim alignment: README keeps primary category and core consequence sentence',
   );
   includes(readme, 'evaluation release', 'Final claim alignment: README keeps evaluation-release status');
