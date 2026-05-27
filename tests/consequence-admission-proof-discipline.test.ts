@@ -40,18 +40,28 @@ function testObservedFeaturesStayEvidenceOnly(): void {
   );
   includes(
     source,
+    'observedFeatureOrigins: normalizeGenericObservedFeatureOrigins(input.observedFeatureOrigins)',
+    'Consequence admission proof discipline: observed feature origins are normalized from caller input',
+  );
+  includes(
+    source,
     "return input.observedFeatures?.[key] === true",
     'Consequence admission proof discipline: feature checks are boolean evidence reads',
   );
   includes(
     source,
-    "!observedFeatureTrue(input, 'adapterReady')",
-    'Consequence admission proof discipline: adapter readiness remains an explicit check input',
+    "trustedObservedFeatureTrue(input, 'adapterReady')",
+    'Consequence admission proof discipline: adapter readiness requires trusted feature origin',
   );
   includes(
     source,
-    "adapterReady: observedFeatureTrue(input, 'adapterReady')",
-    'Consequence admission proof discipline: adapter readiness is exposed as material evidence',
+    "adapterReadyObserved: observedFeatureTrue(input, 'adapterReady')",
+    'Consequence admission proof discipline: raw adapter readiness remains audit-visible',
+  );
+  includes(
+    source,
+    "adapterReady: trustedObservedFeatureTrue(input, 'adapterReady')",
+    'Consequence admission proof discipline: trusted adapter readiness is exposed as material evidence',
   );
 
   const quickstart = readProjectFile('docs', '01-overview', 'consequence-admission-quickstart.md');
@@ -62,13 +72,28 @@ function testObservedFeaturesStayEvidenceOnly(): void {
   );
   includes(
     quickstart,
-    'they cannot grant authority, reduce evidence requirements, bypass review, or',
+    'they cannot grant',
     'Consequence admission proof discipline: quickstart keeps feature observations from becoming authority',
   );
   includes(
     quickstart,
-    'activate downstream execution.',
+    'authority, reduce evidence requirements, bypass review, or activate downstream',
+    'Consequence admission proof discipline: quickstart keeps feature observations from reducing review',
+  );
+  includes(
+    quickstart,
+    'activate downstream',
     'Consequence admission proof discipline: quickstart keeps feature observations from activating execution',
+  );
+  includes(
+    quickstart,
+    '`observedFeatureOrigins.adapterReady` is one of `operator-attested`,',
+    'Consequence admission proof discipline: quickstart documents trusted adapter readiness origins',
+  );
+  includes(
+    quickstart,
+    '`adapter-readiness-origin-untrusted`',
+    'Consequence admission proof discipline: quickstart documents untrusted origin hold',
   );
 
   const hostedApi = readProjectFile('docs', '01-overview', 'hosted-action-authorization-api.md');
@@ -76,6 +101,11 @@ function testObservedFeaturesStayEvidenceOnly(): void {
     hostedApi,
     '`observedFeatures` are upstream/operator-derived evidence, not authority',
     'Consequence admission proof discipline: hosted API boundary documents feature trust origin',
+  );
+  includes(
+    hostedApi,
+    '`observedFeatureOrigins.adapterReady` marker is trusted',
+    'Consequence admission proof discipline: hosted API boundary documents trusted origin marker',
   );
 }
 
@@ -136,13 +166,13 @@ function testAuditIndexesAndLiveProofGateAgree(): void {
   includes(ops167, '`closed`', 'OPS-167 is closed repo-side');
   includes(
     ops167,
-    'Locking test: `tests/consequence-admission-proof-discipline.test.ts`.',
+    'Locking tests: `tests/generic-admission-mode-ladder.test.ts`; `tests/consequence-admission-proof-discipline.test.ts`.',
     'OPS-167 cites the proof-discipline locking test',
   );
   includes(
     ops167,
-    'Stronger hosted admission claims still require an operator-attested feature-origin marker or route-side restriction.',
-    'OPS-167 keeps the stronger hosted admission limitation visible',
+    '`adapter-readiness-origin-untrusted`',
+    'OPS-167 records the trusted-origin runtime hold',
   );
 
   const ops168 = lineFor(findingIndex, 'OPS-168 consequence retry-attempt ledger shared-store proof gap');
@@ -178,7 +208,7 @@ function testBaselineAndControlMapKeepNoClaims(): void {
   const baseline = readProjectFile('docs', 'audit', 'current-posture-baseline.md');
   includes(
     baseline,
-    'OPS-167 is repo-side closed by evidence-only trust-origin documentation',
+    'OPS-167 is repo-side closed by a trusted-origin runtime marker for `observedFeatures.adapterReady`',
     'Baseline records OPS-167 repo-side closure',
   );
   includes(
@@ -195,7 +225,7 @@ function testBaselineAndControlMapKeepNoClaims(): void {
   const controlMap = readProjectFile('docs', 'audit', 'control-map.md');
   includes(
     controlMap,
-    'observedFeatures are documented as upstream/operator-derived evidence only',
+    'observedFeatures upstream/operator-derived evidence only',
     'Control map records observedFeatures authority boundary',
   );
   includes(

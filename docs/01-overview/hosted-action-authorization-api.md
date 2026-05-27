@@ -28,7 +28,8 @@ It keeps these constraints explicit:
 - the published admission route is `POST /api/v1/admissions`
 - admission feedback is model-safe feedback only: reason codes, missing field names, evidence kind names, operator-only reason codes, and safe instruction
 - admission responses do not grant tool execution authority or unsafe retry authority
-- `observedFeatures` are upstream/operator-derived evidence, not authority; they cannot reduce policy, evidence, review, token, tenant, replay, or downstream PEP requirements
+- `observedFeatures` are upstream/operator-derived evidence, not authority; they cannot reduce policy, evidence, token, tenant, replay, or downstream PEP requirements
+- positive readiness observations such as `observedFeatures.adapterReady` reduce review pressure only when the matching `observedFeatureOrigins.adapterReady` marker is trusted (`operator-attested`, `customer-gateway`, `attestor-runtime`, or `trusted-adapter`)
 - shadow reads are read-only and served with `cache-control: no-store`
 - failure responses use RFC 9457-style problem details with Attestor fail-closed fields
 - shadow reads do not activate policy, approve candidates, infer business impact, or auto-enforce
