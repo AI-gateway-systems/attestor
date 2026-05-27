@@ -779,6 +779,104 @@ function scopedMoneyAdmission() {
   };
 }
 
+function currentStaleAuthorityPolicy() {
+  return {
+    policyVersion: 'policy.refunds.v4',
+    currentPolicyVersion: 'policy.refunds.v4',
+    policyDigest: digest('p'),
+    currentPolicyDigest: digest('p'),
+    policyUpdatedAt: '2026-05-01T16:00:00.000Z',
+    approvalIssuedAt: '2026-05-01T17:00:00.000Z',
+    approvalValidFrom: '2026-05-01T17:00:00.000Z',
+    approvalValidUntil: '2026-05-01T18:00:00.000Z',
+    authorityCheckedAt: '2026-05-01T17:00:00.000Z',
+    authorityExpiresAt: '2026-05-01T18:00:00.000Z',
+    maxAuthorityAgeSeconds: 300,
+    driftState: 'clean',
+  };
+}
+
+function testCurrentStaleAuthorityPolicyCanAdmitCompleteRequest(): void {
+  const envelope = createGenericAdmissionEnvelope({
+    ...baseMoneyAdmission('enforce'),
+    staleAuthorityPolicy: currentStaleAuthorityPolicy(),
+  });
+
+  equal(envelope.shadowDecision, 'would_admit', 'Generic admission: current policy and fresh authority admit');
+  equal(envelope.admission.decision, 'admit', 'Generic admission: stale guard pass does not hold complete request');
+  equal(envelope.admission.allowed, true, 'Generic admission: stale guard pass remains allowed');
+  equal(
+    envelope.admission.request.policyScope.dimensions.staleAuthorityPolicyGuardOutcome,
+    'pass',
+    'Generic admission: stale guard pass outcome is carried',
+  );
+}
+
+function testStalePolicyMismatchBlocksEnforceMode(): void {
+  const envelope = createGenericAdmissionEnvelope({
+    ...baseMoneyAdmission('enforce'),
+    staleAuthorityPolicy: {
+      ...currentStaleAuthorityPolicy(),
+      policyVersion: 'policy.refunds.v3-private',
+      currentPolicyVersion: 'policy.refunds.v4-private',
+      noGoReasons: ['private-fraud-hold-ticket-123'],
+    },
+  });
+  const serialized = JSON.stringify(envelope);
+
+  equal(envelope.shadowDecision, 'would_block', 'Generic admission: stale policy mismatch shadows block');
+  equal(envelope.admission.decision, 'block', 'Generic admission: stale policy mismatch blocks enforce mode');
+  equal(envelope.admission.allowed, false, 'Generic admission: stale policy mismatch is not allowed');
+  equal(envelope.admission.failClosed, true, 'Generic admission: stale policy mismatch fails closed');
+  ok(
+    envelope.admission.reasonCodes.includes('policy-version-mismatch'),
+    'Generic admission: stale policy mismatch reason is present',
+  );
+  ok(
+    envelope.admission.reasonCodes.includes('stale-policy-block'),
+    'Generic admission: stale policy block reason is present',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.staleAuthorityPolicyGuardOutcome,
+    'block',
+    'Generic admission: stale policy block outcome is carried',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.staleAuthorityPolicyNoGoReasonCount,
+    1,
+    'Generic admission: stale no-go reason count is carried',
+  );
+  assert.doesNotMatch(
+    serialized,
+    /policy\.refunds\.v3-private|policy\.refunds\.v4-private|private-fraud-hold-ticket-123/u,
+    'Generic admission: serialized envelope does not leak raw stale policy/no-go text',
+  );
+  passed += 1;
+}
+
+function testMissingAuthorityFreshnessRequiresReview(): void {
+  const envelope = createGenericAdmissionEnvelope({
+    ...baseMoneyAdmission('enforce'),
+    staleAuthorityPolicy: {
+      ...currentStaleAuthorityPolicy(),
+      authorityCheckedAt: null,
+    },
+  });
+
+  equal(envelope.shadowDecision, 'would_review', 'Generic admission: missing authority freshness shadows review');
+  equal(envelope.admission.decision, 'review', 'Generic admission: missing authority freshness holds enforce mode');
+  equal(envelope.admission.allowed, false, 'Generic admission: missing authority freshness is not allowed');
+  ok(
+    envelope.admission.reasonCodes.includes('authority-freshness-missing'),
+    'Generic admission: missing authority freshness reason is present',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.staleAuthorityPolicyGuardOutcome,
+    'review',
+    'Generic admission: stale guard review outcome is carried',
+  );
+}
+
 function testScopeExpansionNarrowsEnforceMode(): void {
   const envelope = createGenericAdmissionEnvelope(scopedMoneyAdmission());
   const serialized = JSON.stringify(envelope);
@@ -950,6 +1048,9 @@ testCleanNoGoLedgerCanStillAdmitCompleteRequest();
 testUntrustedToolResultCannotAuthorizeEnforceMode();
 testTrustedToolResultEvidenceCanAdmitCompleteRequest();
 testModelGeneratedToolResultEvidenceRequiresReview();
+testCurrentStaleAuthorityPolicyCanAdmitCompleteRequest();
+testStalePolicyMismatchBlocksEnforceMode();
+testMissingAuthorityFreshnessRequiresReview();
 testScopeExpansionNarrowsEnforceMode();
 testScopeEscalationBlocksEnforceMode();
 testEnforceModeBlocksKnownUnsafeSignals();

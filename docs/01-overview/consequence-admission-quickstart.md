@@ -173,6 +173,19 @@ summaries. The generic hosted route does not expose signed-attestation PKI
 verification input in this slice; signed tool-result attestation remains a
 customer/operator provenance boundary.
 
+Generic admissions can also run the stale authority/policy guard when the
+request supplies structured `staleAuthorityPolicy` metadata. This metadata
+binds the proposed action to a policy version, the current policy version,
+optional policy digests, approval issue and validity times, authority
+freshness and expiry times, drift state, and no-go reason labels. Policy
+mismatch, superseded policy, policy update after approval, expired approval,
+expired authority, drift `no-go`, or no-go reasons block. Missing policy or
+freshness metadata holds for review. The admission response carries only
+reason codes, counts, and digests; it must not return raw policy text, raw
+approval records, private IdP records, or raw no-go case text. This does not
+prove the customer policy store, IdP, approval workflow, or downstream verifier
+is live-wired to the latest source-of-truth state.
+
 Generic admissions can also run the no-go condition ledger guard when the
 request supplies `noGoLedgerRef`, `noGoConditions`, or no-go bypass signals.
 No-go records must be structured hold metadata such as fraud, legal,

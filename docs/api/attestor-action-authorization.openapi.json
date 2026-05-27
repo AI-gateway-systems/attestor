@@ -675,6 +675,121 @@
               }
             }
           },
+          "staleAuthorityPolicy": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Digest-first policy-version, approval-window, authority-freshness, drift, and no-go metadata for the stale-authority-policy guard. Raw policy text, raw approval records, private IdP records, and raw no-go case details must not be included.",
+            "additionalProperties": false,
+            "properties": {
+              "policyVersion": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Opaque policy version reference observed by the integration."
+              },
+              "currentPolicyVersion": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Opaque current policy version reference from the customer/operator source of truth."
+              },
+              "policyDigest": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Digest for the policy version used by the proposed action."
+              },
+              "currentPolicyDigest": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Digest for the current policy version."
+              },
+              "policyUpdatedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "policySupersededAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "approvalIssuedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "approvalValidFrom": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "approvalValidUntil": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "authorityCheckedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "authorityExpiresAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "maxAuthorityAgeSeconds": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "description": "Maximum accepted age of the authority freshness check."
+              },
+              "driftState": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "clean",
+                  "watch",
+                  "debt-detected",
+                  "no-go",
+                  null
+                ]
+              },
+              "noGoReasons": {
+                "type": "array",
+                "description": "Opaque no-go reason labels. The generic route digests them and does not return raw private case text.",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "noGoLedgerRef": {
             "type": [
               "string",

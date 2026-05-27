@@ -83,7 +83,6 @@ Remaining work:
 - customer policy stores must provide current policy version and digest metadata
 - IdP or authority services must provide freshness and expiry metadata
 - approval workflows must emit issued-at and validity-window metadata
-- admission routes must consume the guard where policy and authority evidence is accepted
-- downstream verifier helpers must reject review/block outcomes
-- no-go hold ledger tightening is handled in a later list step
-- README positioning is handled in the final docs alignment step
+- generic admission routes consume the guard only when structured `staleAuthorityPolicy` metadata is supplied
+- downstream verifier helpers must reject review/block outcomes before non-bypassable enforcement can be claimed
+- live customer/operator integrations must prove the metadata is sourced from current policy, authority, approval, and no-go systems
