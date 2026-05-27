@@ -158,23 +158,21 @@ function testDocsAndScriptsStayAligned(): void {
     'G08 engine visibility report',
     'G07 ledger: records demo CLI',
   );
-  for (const expected of [
-    '## Golden Path: Refund',
-    'is the first end-to-end repo path a reviewer should run',
-    'refund action surface -> canonical shadow fixtures -> runtime assurance smoke -> Policy Foundry summary -> pilot readiness packet -> Engine Visibility -> optional reviewer sandbox -> demo output',
-    'Without Attestor in this repo path: no gate trace, no issue-code/no-claim boundary, no digest-bound shadow readiness evidence.',
-    'With Attestor in this repo path:    8 scenarios, 7 visible gate stages, named Foundry gaps, 0 target-system calls, shadow-pilot readiness verdict.',
-    '[Golden Path: Refund](docs/02-architecture/golden-refund-shadow-pilot.md)',
-    'npm ci',
-    'npm run demo:golden-refund',
-    '--determinism-check',
-    'no live Stripe or Shopify refund',
-    'no customer deployment',
-    'no policy activation',
-    'no auto-enforcement',
-  ]) {
-    includes(readme, expected, `G07 README: records ${expected}`);
-  }
+    for (const expected of [
+      '## One Concrete Workflow',
+      'Refund $380 to customer_123.',
+      'missing approval + duplicate-refund risk',
+      'What the reviewer sees:',
+      'the AI-generated refund request can reach the refund service with no gate trace',
+      'money does not move unless the action is admitted, narrowed, or approved',
+      '[Golden Path: Refund](docs/02-architecture/golden-refund-shadow-pilot.md)',
+      'npm ci',
+      'npm run demo:golden-refund',
+      'the refund path is synthetic and shadow-only',
+      'It does not call Stripe, Shopify, a bank, or a live customer deployment.',
+    ]) {
+      includes(readme, expected, `G07 README: records ${expected}`);
+    }
   for (const expected of [
     'npm run demo:golden-refund',
     'refund action surface -> canonical shadow events -> runtime assurance smoke -> Policy Foundry summary -> pilot readiness packet',
