@@ -383,6 +383,32 @@
               "type": "string"
             }
           },
+          "observedFeatures": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "description": "Upstream or operator-derived feature observations. Positive readiness observations cannot satisfy adapter-readiness without a matching trusted observedFeatureOrigins entry."
+          },
+          "observedFeatureOrigins": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "caller-supplied",
+                "operator-attested",
+                "customer-gateway",
+                "attestor-runtime",
+                "trusted-adapter"
+              ]
+            },
+            "description": "Origin marker for observedFeatures. Only operator-attested, customer-gateway, attestor-runtime, and trusted-adapter origins can satisfy positive adapter-readiness."
+          },
           "amount": {
             "type": "object",
             "additionalProperties": false,

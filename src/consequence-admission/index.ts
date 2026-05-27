@@ -186,6 +186,24 @@ export const GENERIC_ADMISSION_MODES = [
 export type GenericAdmissionMode =
   typeof GENERIC_ADMISSION_MODES[number];
 
+export const GENERIC_ADMISSION_OBSERVED_FEATURE_ORIGINS = [
+  'caller-supplied',
+  'operator-attested',
+  'customer-gateway',
+  'attestor-runtime',
+  'trusted-adapter',
+] as const;
+export type GenericAdmissionObservedFeatureOrigin =
+  typeof GENERIC_ADMISSION_OBSERVED_FEATURE_ORIGINS[number];
+
+const GENERIC_ADMISSION_TRUSTED_OBSERVED_FEATURE_ORIGINS:
+ReadonlySet<GenericAdmissionObservedFeatureOrigin> = new Set([
+  'operator-attested',
+  'customer-gateway',
+  'attestor-runtime',
+  'trusted-adapter',
+]);
+
 export const GENERIC_ADMISSION_SHADOW_DECISIONS = [
   'would_admit',
   'would_narrow',
@@ -545,6 +563,8 @@ export interface ConsequenceAdmissionDescriptor {
   readonly retryDefaultWindowSeconds: typeof CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS;
   readonly decisions: typeof CONSEQUENCE_ADMISSION_DECISIONS;
   readonly genericAdmissionModes: typeof GENERIC_ADMISSION_MODES;
+  readonly genericAdmissionObservedFeatureOrigins:
+    typeof GENERIC_ADMISSION_OBSERVED_FEATURE_ORIGINS;
   readonly genericAdmissionShadowDecisions: typeof GENERIC_ADMISSION_SHADOW_DECISIONS;
   readonly genericAdmissionDownstreamPostures: typeof GENERIC_ADMISSION_DOWNSTREAM_POSTURES;
   readonly packFamilies: typeof CONSEQUENCE_ADMISSION_PACK_FAMILIES;
@@ -700,6 +720,8 @@ export interface CreateGenericAdmissionInput {
   readonly evidenceRefs?: readonly string[];
   readonly nativeInputRefs?: readonly string[];
   readonly observedFeatures?: Readonly<Record<string, GenericAdmissionFeatureValue>>;
+  readonly observedFeatureOrigins?:
+    Readonly<Record<string, GenericAdmissionObservedFeatureOrigin>>;
   readonly retryAttempt?: ConsequenceAdmissionRetryAttemptBinding | null;
   readonly summary?: string | null;
 }
@@ -1051,6 +1073,30 @@ function normalizeGenericObservedFeatures(
   return Object.freeze(normalized);
 }
 
+function normalizeGenericObservedFeatureOrigins(
+  value: unknown,
+): Readonly<Record<string, GenericAdmissionObservedFeatureOrigin>> {
+  if (value === undefined || value === null) return Object.freeze({});
+  if (!isRecord(value)) {
+    throw new Error('Consequence admission observedFeatureOrigins must be an object when provided.');
+  }
+  const normalized: Record<string, GenericAdmissionObservedFeatureOrigin> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    const normalizedKey = normalizeIdentifier(key, 'observedFeatureOrigins key');
+    if (typeof entry !== 'string') {
+      throw new Error(
+        `Consequence admission observedFeatureOrigins.${normalizedKey} must be a string.`,
+      );
+    }
+    normalized[normalizedKey] = normalizeEnumValue(
+      entry,
+      GENERIC_ADMISSION_OBSERVED_FEATURE_ORIGINS,
+      `observedFeatureOrigins.${normalizedKey}`,
+    );
+  }
+  return Object.freeze(normalized);
+}
+
 function retryAttemptIdFor(
   input: Omit<ConsequenceAdmissionRetryAttemptBinding, 'attemptId'>,
 ): string {
@@ -1159,6 +1205,7 @@ function normalizeCreateGenericAdmissionInput(input: unknown): CreateGenericAdmi
     evidenceRefs: normalizeStringArray(input.evidenceRefs, 'evidenceRefs'),
     nativeInputRefs: normalizeStringArray(input.nativeInputRefs, 'nativeInputRefs'),
     observedFeatures: normalizeGenericObservedFeatures(input.observedFeatures),
+    observedFeatureOrigins: normalizeGenericObservedFeatureOrigins(input.observedFeatureOrigins),
     retryAttempt: normalizeRetryAttemptBinding(input.retryAttempt),
     summary: readOptionalString(input, 'summary'),
   });
@@ -1169,6 +1216,28 @@ function observedFeatureTrue(
   key: string,
 ): boolean {
   return input.observedFeatures?.[key] === true;
+}
+
+function observedFeatureOriginFor(
+  input: CreateGenericAdmissionInput,
+  key: string,
+): GenericAdmissionObservedFeatureOrigin | null {
+  return input.observedFeatureOrigins?.[key] ?? null;
+}
+
+function observedFeatureHasTrustedOrigin(
+  input: CreateGenericAdmissionInput,
+  key: string,
+): boolean {
+  const origin = observedFeatureOriginFor(input, key);
+  return origin !== null && GENERIC_ADMISSION_TRUSTED_OBSERVED_FEATURE_ORIGINS.has(origin);
+}
+
+function trustedObservedFeatureTrue(
+  input: CreateGenericAdmissionInput,
+  key: string,
+): boolean {
+  return observedFeatureTrue(input, key) && observedFeatureHasTrustedOrigin(input, key);
 }
 
 function genericAdmissionReviewReasons(
@@ -1196,11 +1265,12 @@ function genericAdmissionReviewReasons(
     reasons.push('authority-mode-missing');
   }
 
-  if (
-    profile.requiredChecks.includes('adapter-readiness') &&
-    !observedFeatureTrue(input, 'adapterReady')
-  ) {
-    reasons.push('adapter-readiness-missing');
+  if (profile.requiredChecks.includes('adapter-readiness')) {
+    if (!observedFeatureTrue(input, 'adapterReady')) {
+      reasons.push('adapter-readiness-missing');
+    } else if (!trustedObservedFeatureTrue(input, 'adapterReady')) {
+      reasons.push('adapter-readiness-origin-untrusted');
+    }
   }
 
   if (input.domain === 'custom') {
@@ -1414,7 +1484,9 @@ function genericAdmissionDimensions(
     hasAmount: input.amount !== null && input.amount !== undefined,
     hasRecipient: input.recipient !== null && input.recipient !== undefined,
     hasDataScope: input.dataScope !== null && input.dataScope !== undefined,
-    adapterReady: observedFeatureTrue(input, 'adapterReady'),
+    adapterReady: trustedObservedFeatureTrue(input, 'adapterReady'),
+    adapterReadyObserved: observedFeatureTrue(input, 'adapterReady'),
+    adapterReadyOrigin: observedFeatureOriginFor(input, 'adapterReady'),
   });
 }
 
@@ -1592,6 +1664,16 @@ readonly ConsequenceAdmissionCorrectionCatalogEntry[] = Object.freeze([
     retryableByModel: false,
     operatorOnly: true,
     safeSummary: 'Adapter readiness is an operator or customer integration control.',
+  },
+  {
+    reasonCode: 'adapter-readiness-origin-untrusted',
+    audience: 'operator-control',
+    disclosureLevel: 'minimal',
+    missingFields: ['observedFeatureOrigins.adapterReady'],
+    requiredEvidenceKinds: ['adapter_readiness_origin_ref'],
+    retryableByModel: false,
+    operatorOnly: true,
+    safeSummary: 'Adapter readiness must be attested by an operator, customer gateway, Attestor runtime, or trusted adapter.',
   },
   {
     reasonCode: 'custom-domain-review-required',
@@ -2214,6 +2296,7 @@ ConsequenceAdmissionDescriptor {
     retryDefaultWindowSeconds: CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS,
     decisions: CONSEQUENCE_ADMISSION_DECISIONS,
     genericAdmissionModes: GENERIC_ADMISSION_MODES,
+    genericAdmissionObservedFeatureOrigins: GENERIC_ADMISSION_OBSERVED_FEATURE_ORIGINS,
     genericAdmissionShadowDecisions: GENERIC_ADMISSION_SHADOW_DECISIONS,
     genericAdmissionDownstreamPostures: GENERIC_ADMISSION_DOWNSTREAM_POSTURES,
     packFamilies: CONSEQUENCE_ADMISSION_PACK_FAMILIES,

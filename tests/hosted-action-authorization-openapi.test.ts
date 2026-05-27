@@ -147,6 +147,9 @@ function testOpenApiContractPreservesShadowBoundaries(): void {
   includes(text, '"safeForModel"', 'Hosted OpenAPI: model-safe feedback flag is documented');
   includes(text, '"safeInstruction"', 'Hosted OpenAPI: safe instruction boundary is documented');
   includes(text, '"operatorOnlyReasonCodes"', 'Hosted OpenAPI: operator-only retry boundary is documented');
+  includes(text, '"observedFeatureOrigins"', 'Hosted OpenAPI: observed feature origin markers are documented');
+  includes(text, '"operator-attested"', 'Hosted OpenAPI: operator-attested feature origin is documented');
+  includes(text, '"caller-supplied"', 'Hosted OpenAPI: caller-supplied feature origin is explicitly classified');
   includes(text, '"approvalRequired"', 'Hosted OpenAPI: approval boundary is documented');
   includes(text, '"autoEnforce"', 'Hosted OpenAPI: autoEnforce boundary is documented');
   includes(text, '"decisionSupportOnly"', 'Hosted OpenAPI: dashboard is decision support only');

@@ -60,6 +60,17 @@ function testDescriptorExposesModeLadder(): void {
     ['observe-only', 'warn-only', 'hold-for-review', 'enforce-decision'],
   );
   passed += 1;
+  assert.deepEqual(
+    [...descriptor.genericAdmissionObservedFeatureOrigins],
+    [
+      'caller-supplied',
+      'operator-attested',
+      'customer-gateway',
+      'attestor-runtime',
+      'trusted-adapter',
+    ],
+  );
+  passed += 1;
 }
 
 function testObserveModeRecordsShadowWithoutBlocking(): void {
@@ -211,12 +222,26 @@ function testProgrammableMoneyRequiresAdapterReadiness(): void {
     domain: 'programmable-money',
     downstreamSystem: 'wallet-rpc',
   });
+  const callerOnly = createGenericAdmissionEnvelope({
+    ...baseMoneyAdmission('enforce'),
+    domain: 'programmable-money',
+    downstreamSystem: 'wallet-rpc',
+    observedFeatures: {
+      adapterReady: true,
+    },
+    observedFeatureOrigins: {
+      adapterReady: 'caller-supplied',
+    },
+  });
   const complete = createGenericAdmissionEnvelope({
     ...baseMoneyAdmission('enforce'),
     domain: 'programmable-money',
     downstreamSystem: 'wallet-rpc',
     observedFeatures: {
       adapterReady: true,
+    },
+    observedFeatureOrigins: {
+      adapterReady: 'operator-attested',
     },
   });
 
@@ -228,8 +253,38 @@ function testProgrammableMoneyRequiresAdapterReadiness(): void {
     incomplete.admission.feedback.operatorOnlyReasonCodes.includes('adapter-readiness-missing'),
     'Generic admission: adapter readiness is operator-only feedback',
   );
-  equal(complete.shadowDecision, 'would_admit', 'Generic admission: adapter-ready programmable money can admit');
-  equal(complete.admission.allowed, true, 'Generic admission: adapter-ready programmable money is allowed');
+  equal(callerOnly.shadowDecision, 'would_review', 'Generic admission: caller-only adapter readiness cannot admit');
+  equal(callerOnly.admission.decision, 'review', 'Generic admission: caller-only adapter readiness holds execution');
+  ok(
+    callerOnly.admission.reasonCodes.includes('adapter-readiness-origin-untrusted'),
+    'Generic admission: caller-only adapter readiness origin is explicit',
+  );
+  ok(
+    callerOnly.admission.feedback.operatorOnlyReasonCodes.includes('adapter-readiness-origin-untrusted'),
+    'Generic admission: untrusted adapter origin is operator-only feedback',
+  );
+  equal(
+    callerOnly.admission.request.policyScope.dimensions.adapterReady,
+    false,
+    'Generic admission: caller-only adapter readiness is not materialized as trusted readiness',
+  );
+  equal(
+    callerOnly.admission.request.policyScope.dimensions.adapterReadyObserved,
+    true,
+    'Generic admission: caller-only adapter observation remains visible as an observation',
+  );
+  equal(
+    callerOnly.admission.request.policyScope.dimensions.adapterReadyOrigin,
+    'caller-supplied',
+    'Generic admission: caller-only adapter origin is preserved for audit',
+  );
+  equal(complete.shadowDecision, 'would_admit', 'Generic admission: trusted adapter-ready programmable money can admit');
+  equal(complete.admission.allowed, true, 'Generic admission: trusted adapter-ready programmable money is allowed');
+  equal(
+    complete.admission.request.policyScope.dimensions.adapterReady,
+    true,
+    'Generic admission: trusted adapter readiness is materialized as readiness',
+  );
 }
 
 function testEnforceModeBlocksKnownUnsafeSignals(): void {
@@ -266,6 +321,20 @@ function testInvalidInputFailsClosed(): void {
       }),
     /domain must be one of/u,
     'Generic admission: invalid domains fail closed',
+  );
+  throws(
+    () =>
+      createGenericAdmissionEnvelope({
+        ...baseMoneyAdmission('enforce'),
+        observedFeatures: {
+          adapterReady: true,
+        },
+        observedFeatureOrigins: {
+          adapterReady: 'self-asserted-by-model',
+        },
+      }),
+    /observedFeatureOrigins\.adapterReady must be one of/u,
+    'Generic admission: invalid observed feature origins fail closed',
   );
 }
 
