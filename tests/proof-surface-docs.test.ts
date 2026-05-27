@@ -41,7 +41,7 @@ function testProofSurfaceIsFindableFromReadme(): void {
   );
   includes(
     readme,
-    'It is a local static proof surface; it does not start a hosted console or claim a public hosted crypto route.',
+    'It is a local static proof surface. It does not start a hosted console or claim a public hosted crypto route.',
     'Proof surface docs: README keeps the proof surface local and avoids hosted-route claims',
   );
 }

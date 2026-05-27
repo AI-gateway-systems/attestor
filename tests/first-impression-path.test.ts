@@ -34,86 +34,67 @@ function appearsBefore(content: string, earlier: string, later: string, message:
   passed += 1;
 }
 
-function testReadmeHasAFirstImpressionPath(): void {
+function testReadmeHasAPlainFirstThirtySeconds(): void {
   const readme = readProjectFile('README.md');
 
-  includes(readme, 'Attestor is an AI Action Control Plane that sits between AI intent and real-world consequence.', 'README: opens with the AI Action Control Plane category');
-  includes(readme, 'It does not try to make the model perfect. It controls the proposed action.', 'README: opens with the proposed-action control point');
-  includes(readme, 'it needs enough structured action context and proof references to decide whether the action is sufficiently bound to policy, authority, evidence, scope, freshness, replay posture, and downstream enforcement.', 'README: explains data minimization as proof-bound action context');
-  includes(readme, 'Attestor treats that proposed action as a consequence to admit, narrow, review, or block before the customer system changes state.', 'README: explains the control point before architecture');
-  includes(readme, 'The trust boundary is the action, not the model response.', 'README: frames the risk before architecture');
-  includes(readme, '## Where It Sits In A Customer Stack', 'README: shows real customer stack placement near the top');
-  includes(readme, 'AI agent / workflow', 'README: starts the real-stack diagram with the AI workflow');
-  includes(readme, 'Customer PEP / gateway / verifier / adapter', 'README: shows the customer enforcement point before Attestor');
-  includes(readme, 'Downstream system', 'README: shows the downstream system after Attestor');
-  includes(readme, 'With that enforced downstream point, Attestor becomes the control point before consequence.', 'README: explains advisory versus control posture');
-  includes(readme, 'Without an enforced customer-side PEP, gateway, verifier, or adapter in front of the downstream system, Attestor is advisory evidence, not a control point.', 'README: makes the PEP dependency explicit near the top');
-  includes(readme, 'Start in shadow mode. See what your AI agents would have done before you let them act.', 'README: makes shadow mode visible immediately');
-  includes(readme, 'AI proposes -> Attestor checks -> consequence is admitted, narrowed, reviewed, or blocked -> proof remains', 'README: keeps the front-page control flow short');
-  includes(readme, '- [Golden Path: Refund](docs/02-architecture/golden-refund-shadow-pilot.md)', 'README: starts the review list with the Golden Path');
-  includes(readme, 'Every case has the same shape: a proposed consequence must pass policy, authority, evidence, freshness, scope, replay, and enforcement checks before a downstream system acts.', 'README: explains the fail-closed gateway result');
-  includes(readme, 'Attestor does not replace the model, agent runtime, wallet, custody platform, orchestration layer, or downstream system.', 'README: keeps replacement non-claim near the top');
-  includes(readme, '## Current Repository Truth', 'README: exposes the evaluation boundary near the top');
-  includes(readme, 'proposed consequence -> consequence admission -> proof material -> customer enforcement', 'README: keeps one product language near the top');
-  includes(readme, 'not a finished public SaaS', 'README: avoids public SaaS overclaim');
-  includes(readme, 'Green local checks such as `npm run verify` are repo-side evidence only.', 'README: keeps local verification separate from production readiness');
-  includes(readme, '## Golden Path: Refund', 'README: gives the golden path its own first-reading block');
-  includes(readme, 'is the first end-to-end repo path a reviewer should run', 'README: makes the golden path the first concrete story');
-  includes(readme, 'not a refund product, finance-only product, or separate engine', 'README: keeps the golden path inside the one product');
-  includes(readme, 'refund action surface -> canonical shadow fixtures -> runtime assurance smoke -> Policy Foundry summary -> pilot readiness packet -> Engine Visibility -> optional reviewer sandbox -> demo output', 'README: shows the golden path pipeline in one line');
-  includes(readme, 'Use it to inspect whether the Attestor consequence engine is coherent before looking at lower-level admission primitives.', 'README: positions lower-level demos after the golden path');
-  includes(readme, '## The Control Boundary', 'README: names the operating model before architecture');
-  includes(readme, 'Use Attestor where a capable AI-assisted system should not be able to act just because it can form a request:', 'README: moves quickly from category to use cases');
-  includes(readme, 'a procurement agent proposes paying a supplier after reading a changed bank-account instruction', 'README: frames money movement by consequence');
-  includes(readme, 'an analytics agent requests a customer-data export or live database-backed report', 'README: frames data movement by consequence');
-  includes(readme, 'a treasury or wallet workflow prepares a programmable-money transaction', 'README: frames programmable money by consequence');
-  includes(readme, '## Adoption Path', 'README: exposes shadow mode as the adoption path');
-  includes(readme, 'observe -> warn -> review -> enforce', 'README: explains the adoption mode ladder');
-  includes(readme, 'observe -> recommend -> simulate -> approve -> enforce -> prove', 'README: explains shadow-to-enforcement sequence');
-  includes(readme, '## Core Operating Loop', 'README: names the operating loop before deeper architecture');
-  includes(readme, 'shadow events', 'README: starts the operating loop from shadow events');
-  includes(readme, 'review-only policy candidates', 'README: keeps Policy Foundry candidate generation review-only');
-  includes(readme, 'reviewer approval', 'README: keeps policy promotion human-approved');
-  includes(readme, '## Why It Exists', 'README: explains the category before architecture');
-  includes(readme, 'AI action control-plane infrastructure', 'README: positions Attestor as infrastructure, not a generic tool');
-  includes(readme, '## Try It In 60 Seconds', 'README: exposes a fast first run near the top');
+  includes(readme, '**Control infrastructure for high-risk AI actions.**', 'README: opens with the short product promise');
+  includes(readme, 'Attestor sits between AI intent and real-world action.', 'README: opens with plain placement language');
+  includes(readme, 'It does not try to make the model perfect.', 'README: states what Attestor does not try to solve');
+  includes(readme, 'It controls the proposed action before a customer system acts.', 'README: states the proposed-action control point');
+  includes(readme, 'Prompts guide. They do not enforce.', 'README: keeps the prompt-control contrast');
+  includes(readme, '## One Concrete Workflow', 'README: starts with one concrete workflow before abstract categories');
+  includes(readme, 'Refund $380 to customer_123.', 'README: shows one high-risk action immediately');
+  includes(readme, 'missing approval + duplicate-refund risk', 'README: gives the concrete stop reason');
+  includes(readme, 'What the reviewer sees:', 'README: shows what a user sees');
+  includes(readme, 'the AI-generated refund request can reach the refund service with no gate trace', 'README: shows the without-Attestor failure mode');
+  includes(readme, 'money does not move unless the action is admitted, narrowed, or approved', 'README: shows the with-Attestor result');
+  includes(readme, 'the refund path is synthetic and shadow-only', 'README: keeps local-demo no-claims close to the example');
+  appearsBefore(readme, '## One Concrete Workflow', '## What Attestor Does', 'README: concrete story comes before broad mechanism');
+  appearsBefore(readme, '## One Concrete Workflow', '## The Same Pattern Across Actions', 'README: concrete story comes before pack taxonomy');
+}
+
+function testReadmeKeepsTheControlBoundaryAndLocalRunPath(): void {
+  const readme = readProjectFile('README.md');
+
+  includes(readme, 'AI proposes action', 'README: keeps the core flow start');
+  includes(readme, 'Attestor checks policy, authority, evidence, scope, freshness, replay, tenant, token, and proof', 'README: keeps the check vocabulary');
+  includes(readme, 'downstream action executes only through the customer PEP / gate', 'README: keeps the customer gate boundary');
+  includes(readme, 'Without an enforced customer-side PEP, gateway, verifier, or adapter, Attestor is advisory evidence.', 'README: makes advisory versus control posture explicit');
+  includes(readme, 'Start in shadow mode.', 'README: keeps the adoption wedge simple');
   includes(readme, 'npm ci', 'README: uses reproducible install for the reviewer path');
-  includes(readme, 'npm run demo:golden-refund', 'README: shows the current golden path command');
-  includes(readme, 'npm run example:admission', 'README: shows the first runnable command');
-  includes(readme, 'npm run example:action-surface-onboarding', 'README: shows the first onboarding packet command');
-  includes(readme, 'digest-only canonical shadow fixtures', 'README: explains digest-only golden path fixtures');
-  includes(readme, 'runtime assurance smoke over the refund scenarios', 'README: explains runtime assurance golden path');
-  includes(readme, 'Policy Foundry summary material with named gaps', 'README: explains Foundry summary material');
-  includes(readme, 'Engine Visibility over 8 scenarios', 'README: explains engine visibility in the golden path');
-  includes(readme, 'explicit no-claims: no live Stripe or Shopify refund, no customer deployment, no policy activation, no auto-enforcement', 'README: keeps golden path no-claims visible');
-  includes(readme, '## Decision Model', 'README: makes the decision vocabulary prominent');
-  includes(readme, 'Admission responses also carry model-safe feedback.', 'README: exposes safe retry feedback near the decision model');
-  includes(readme, 'sameRequestReplayAllowed', 'README: makes replay unsafe for model repair');
-  includes(readme, '## Proof Model', 'README: surfaces proof as a first-class concept near the top');
-  includes(readme, 'local proof artifacts that can be reviewed later', 'README: explains why proof matters');
-  includes(readme, 'Read "proof material" as typed evidence, not one universal cryptographic guarantee:', 'README: narrows the proof vocabulary');
-  includes(readme, 'A production signing boundary unless external KMS/HSM readiness is specifically proven.', 'README: prevents signed artifact production-boundary overclaim');
-  includes(readme, '`verify:cert` may report `PROOF_DEGRADED`', 'README: explains degraded proof verification honestly');
-  includes(readme, 'npm run proof:surface', 'README: exposes the proof surface command near the first proof explanation');
-  includes(readme, 'POST /api/v1/admissions', 'README: exposes the generic admission route');
-  includes(readme, '`observe`, `warn`, `review`, or `enforce`', 'README: explains the generic mode ladder');
-  includes(readme, '"domain": "money-movement"', 'README: shows the route is consequence-domain based');
-  includes(readme, '## Consequence Packs', 'README: introduces consequence packs before architecture');
-  includes(readme, 'The pack is the consequence class. Adapters sit underneath it.', 'README: keeps consequence packs above adapters');
-  includes(readme, 'The pack list is taxonomy, not an equal-maturity claim.', 'README: blocks consequence-pack maturity overclaim');
-  includes(readme, 'Attestor is designed as a control point, not a data lake.', 'README: explains data handling posture early');
-  appearsBefore(readme, '- [Golden Path: Refund](docs/02-architecture/golden-refund-shadow-pilot.md)', '- [Attestor Evaluation Packet v0.1](docs/00-evaluation/v0.1-evaluation-packet.md)', 'README: review list starts with the Golden Path');
-  includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'README: links to the guided first run');
-  appearsBefore(readme, '## Current Repository Truth', '## Architecture: Core And Packs', 'README: keeps evaluation boundary before architecture');
-  appearsBefore(readme, '## Golden Path: Refund', '## The Control Boundary', 'README: puts the concrete golden path before the broad domain list');
-  appearsBefore(readme, '## Where It Sits In A Customer Stack', '## Current Repository Truth', 'README: shows customer placement before repository detail');
-  appearsBefore(readme, '## Try It In 60 Seconds', '## Current Repository Truth', 'README: puts the runnable path before repository detail');
-  appearsBefore(readme, '## Core Operating Loop', '## Why It Exists', 'README: explains the loop before category argument');
-  appearsBefore(readme, '## Adoption Path', '## Why It Exists', 'README: positions shadow mode before deeper category explanation');
-  appearsBefore(readme, '## Try It In 60 Seconds', '## Architecture: Core And Packs', 'README: keeps the runnable path before product packaging');
-  appearsBefore(readme, '## Consequence Packs', '## Architecture: Core And Packs', 'README: names consequence packs before architecture detail');
-  appearsBefore(readme, 'npm run proof:surface', '## Architecture: Core And Packs', 'README: keeps proof inspection before platform packaging');
-  appearsBefore(readme, '## Data And Security Posture', '## What Attestor Is Not', 'README: explains trust boundaries before non-claims');
+  includes(readme, 'npm run demo:golden-refund', 'README: shows the first concrete runnable path');
+  includes(readme, 'npm run demo:golden-paths', 'README: shows the all-pack local evaluator');
+  includes(readme, 'npm run proof:surface', 'README: exposes the local proof surface command');
+  includes(readme, 'Read proof material as typed evidence, not a universal cryptographic guarantee.', 'README: narrows proof vocabulary');
+  includes(readme, 'It is a local static proof surface. It does not start a hosted console or claim a public hosted crypto route.', 'README: blocks proof-surface hosted-route overclaim');
+}
+
+function testReadmeKeepsEvaluationTruthBeforeDeepDocs(): void {
+  const readme = readProjectFile('README.md');
+
+  includes(readme, '## Current Repository Truth', 'README: exposes repository truth section');
+  includes(readme, 'Attestor is an **evaluation release**.', 'README: states evaluation release plainly');
+  includes(readme, 'not a finished public SaaS, a production-use guarantee, a completed customer-operated deployment, or a substitute for an external security audit', 'README: keeps public no-claims visible');
+  includes(readme, 'They do not prove live cloud infrastructure, live customer enforcement, external KMS/HSM signing, shared replay stores, production readiness, or enterprise readiness.', 'README: keeps local checks separate from live proof');
+  includes(readme, 'direct downstream bypass must fail', 'README: states customer PEP proof requirement');
+  includes(readme, 'These are domain packs over one Attestor engine.', 'README: keeps one-engine pack framing');
+  includes(readme, 'They are not separate products and not equal-maturity claims.', 'README: keeps pack maturity scoped');
+  includes(readme, 'Attestor is a control point, not a data lake.', 'README: states data posture plainly');
+  appearsBefore(readme, '## Current Repository Truth', '## Data Posture', 'README: repository truth comes before deeper trust posture');
+  appearsBefore(readme, '## Decision Model', '## Proof Model', 'README: bounded decision vocabulary comes before proof details');
+}
+
+function testReadmeStaysReadableInsteadOfDense(): void {
+  const readme = readProjectFile('README.md');
+
+  excludes(readme, /## Core Operating Loop/u, 'README: should not reintroduce the old dense operating-loop section');
+  excludes(readme, /## Architecture: Core And Packs/u, 'README: should not reintroduce the old architecture wall');
+  excludes(readme, /<details>/u, 'README: should not hide a maintainer link wall');
+  excludes(readme, /digest-only canonical shadow fixtures/u, 'README: should not lead with internal fixture language');
+  excludes(readme, /runtime assurance smoke over the refund scenarios/u, 'README: should not lead with internal smoke-test language');
+  excludes(readme, /\| Layer \| Role \| Current status \|/u, 'README: should not use the old layer table');
+  excludes(readme, /\b\d+\s*\/\s*\d+\b/u, 'README: should not expose frozen step fractions');
+  excludes(readme, /\bfirst[- ]slice\b/iu, 'README: should not use first-slice posture');
 }
 
 function testTryFirstDocKeepsTheBoundaryHonest(): void {
@@ -169,7 +150,10 @@ function testPackageScriptsProtectThePath(): void {
   includes(packageJson.scripts.verify, 'scripts/run-suite.mjs verify', 'Package: verify delegates to the suite runner');
 }
 
-testReadmeHasAFirstImpressionPath();
+testReadmeHasAPlainFirstThirtySeconds();
+testReadmeKeepsTheControlBoundaryAndLocalRunPath();
+testReadmeKeepsEvaluationTruthBeforeDeepDocs();
+testReadmeStaysReadableInsteadOfDense();
 testTryFirstDocKeepsTheBoundaryHonest();
 testQuickstartPointsToTheFastPath();
 testDemoOutputIsPitchReady();

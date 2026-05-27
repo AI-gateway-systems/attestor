@@ -28,8 +28,13 @@ function testReadmePublicClaimBoundary(): void {
   );
   includes(
     readme,
-    'Attestor is an AI Action Control Plane that sits between AI intent and real-world consequence.',
-    'Final claim alignment: README keeps primary category and core consequence sentence',
+    'Attestor sits between AI intent and real-world action.',
+    'Final claim alignment: README keeps primary placement sentence',
+  );
+  includes(
+    readme,
+    'It controls the proposed action before a customer system acts.',
+    'Final claim alignment: README keeps proposed-action control sentence',
   );
   includes(readme, 'evaluation release', 'Final claim alignment: README keeps evaluation-release status');
   includes(
@@ -39,8 +44,8 @@ function testReadmePublicClaimBoundary(): void {
   );
   includes(
     readme,
-    'It does not train models, write policy automatically, or prove production readiness.',
-    'Final claim alignment: README keeps Policy Foundry non-claim boundary',
+    'These links are context anchors, not compliance claims.',
+    'Final claim alignment: README keeps regulatory-anchor non-claim boundary',
   );
   includes(
     readme,

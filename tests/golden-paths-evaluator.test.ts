@@ -160,8 +160,8 @@ function testDocsAndScriptsStayAligned(): void {
   };
 
   includes(readme, 'npm run demo:golden-paths', 'Golden paths evaluator README: documents aggregate command');
-  includes(readme, 'Start review with:', 'Golden paths evaluator README: keeps baseline review marker');
-  includes(readme, 'Start with the all-pack evaluator:', 'Golden paths evaluator README: gives evaluator first-run placement');
+  includes(readme, 'Then run all local golden paths:', 'Golden paths evaluator README: gives evaluator first-run placement');
+  includes(readme, 'Golden paths are repo-side examples through the shared control engine.', 'Golden paths evaluator README: keeps local golden path scope');
   includes(
     ledger,
     'All Golden Paths Evaluator',
