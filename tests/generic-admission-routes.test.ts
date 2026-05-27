@@ -311,6 +311,62 @@ async function testPostAdmissionRouteBlocksUntrustedToolResultAuthority(): Promi
   passed += 1;
 }
 
+async function testPostAdmissionRouteBlocksStaleAuthorityPolicy(): Promise<void> {
+  const app = createApp();
+  const response = await app.request('/api/v1/admissions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(validAdmissionPayload({
+      staleAuthorityPolicy: {
+        policyVersion: 'policy.refunds.v2-private',
+        currentPolicyVersion: 'policy.refunds.v3-private',
+        policyDigest: digest('a'),
+        currentPolicyDigest: digest('b'),
+        policyUpdatedAt: '2026-05-01T18:00:30.000Z',
+        approvalIssuedAt: '2026-05-01T18:00:00.000Z',
+        approvalValidFrom: '2026-05-01T18:00:00.000Z',
+        approvalValidUntil: '2026-05-01T19:00:00.000Z',
+        authorityCheckedAt: '2026-05-01T18:00:00.000Z',
+        authorityExpiresAt: '2026-05-01T19:00:00.000Z',
+        maxAuthorityAgeSeconds: 300,
+        driftState: 'no-go',
+        noGoReasons: ['private-fraud-hold-ticket-456'],
+      },
+    })),
+  });
+  const body = await response.json() as GenericAdmissionEnvelope;
+  const serialized = JSON.stringify(body);
+
+  equal(response.status, 200, 'Generic admission route: stale policy guard request returns an envelope');
+  equal(body.shadowDecision, 'would_block', 'Generic admission route: stale policy shadows block');
+  equal(body.admission.decision, 'block', 'Generic admission route: stale policy blocks enforce mode');
+  ok(
+    body.admission.reasonCodes.includes('policy-version-mismatch'),
+    'Generic admission route: stale policy mismatch reason is explicit',
+  );
+  ok(
+    body.admission.reasonCodes.includes('policy-updated-after-approval'),
+    'Generic admission route: policy update after approval reason is explicit',
+  );
+  ok(
+    body.admission.reasonCodes.includes('stale-policy-block'),
+    'Generic admission route: stale policy block reason is explicit',
+  );
+  equal(
+    body.admission.request.policyScope.dimensions.staleAuthorityPolicyGuardOutcome,
+    'block',
+    'Generic admission route: stale policy outcome is dimensioned',
+  );
+  assert.doesNotMatch(
+    serialized,
+    /policy\.refunds\.v2-private|policy\.refunds\.v3-private|private-fraud-hold-ticket-456/u,
+    'Generic admission route: response does not leak raw stale policy/no-go text',
+  );
+  passed += 1;
+}
+
 async function testTenantMismatchFailsClosedBeforeShadowRecording(): Promise<void> {
   const app = new Hono();
   let shadowRecords = 0;
@@ -958,6 +1014,7 @@ async function testProtectedReleaseTokenIssuerFailsClosedWithoutDpopConfirmation
 await testEvaluationPlansRejectEnforcingModes();
 await testPostAdmissionRouteReturnsEnvelope();
 await testPostAdmissionRouteBlocksUntrustedToolResultAuthority();
+await testPostAdmissionRouteBlocksStaleAuthorityPolicy();
 await testTenantMismatchFailsClosedBeforeShadowRecording();
 await testLoopGuardUnavailableFailsClosedBeforeShadowRecording();
 await testNonJsonMediaTypeReturnsFailClosedProblem();

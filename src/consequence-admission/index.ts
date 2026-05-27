@@ -195,6 +195,12 @@ import {
   type ConsequenceToolResultPoisoningDecision,
 } from './tool-result-poisoning-guard.js';
 import {
+  CONSEQUENCE_STALE_AUTHORITY_POLICY_DRIFT_STATES,
+  evaluateConsequenceStaleAuthorityPolicy,
+  type ConsequenceStaleAuthorityPolicyDecision,
+  type EvaluateConsequenceStaleAuthorityPolicyInput,
+} from './stale-authority-policy-guard.js';
+import {
   PROTECTED_ADMISSION_E2E_PROOF_PLAN_VERSION,
   protectedAdmissionE2eProofPlanDescriptor,
   type ProtectedAdmissionE2eProofPlanDescriptor,
@@ -771,6 +777,9 @@ export type GenericAdmissionScopeInput =
 export type GenericAdmissionToolResult =
   ConsequenceToolResultClaim;
 
+export type GenericAdmissionStaleAuthorityPolicy =
+  Omit<EvaluateConsequenceStaleAuthorityPolicyInput, 'generatedAt' | 'actionSurface' | 'action'>;
+
 export interface CreateGenericAdmissionInput {
   readonly mode: GenericAdmissionMode;
   readonly actor: string;
@@ -800,6 +809,7 @@ export interface CreateGenericAdmissionInput {
   readonly allowedToolResultEvidenceClasses?:
     readonly ConsequenceToolResultEvidenceClass[] | null;
   readonly toolResults?: readonly GenericAdmissionToolResult[] | null;
+  readonly staleAuthorityPolicy?: GenericAdmissionStaleAuthorityPolicy | null;
   readonly noGoLedgerRef?: string | null;
   readonly noGoConditions?: readonly GenericAdmissionNoGoCondition[] | null;
   readonly noGoNaturalLanguageBypassAttempted?: boolean | null;
@@ -824,6 +834,7 @@ export interface GenericAdmissionModeEvaluation {
   readonly approvalGuardDecision: ConsequenceApprovalProvenanceDecision | null;
   readonly scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null;
   readonly toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null;
+  readonly staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null;
   readonly noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null;
 }
 
@@ -1160,6 +1171,14 @@ function normalizeOptionalNonNegativeFiniteNumber(
   return value;
 }
 
+function normalizeOptionalPositiveInteger(
+  value: unknown,
+  fieldName: string,
+): number | null {
+  if (value === undefined || value === null) return null;
+  return normalizePositiveInteger(value, fieldName);
+}
+
 function normalizeOptionalEnumArray<T extends string>(
   value: unknown,
   allowed: readonly T[],
@@ -1328,6 +1347,44 @@ function normalizeGenericToolResults(
       });
     }),
   );
+}
+
+function normalizeGenericStaleAuthorityPolicy(
+  value: unknown,
+): GenericAdmissionStaleAuthorityPolicy | null {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error(
+      'Consequence admission staleAuthorityPolicy must be an object when provided.',
+    );
+  }
+  const driftState = readOptionalString(value, 'driftState');
+
+  return Object.freeze({
+    policyVersion: readOptionalString(value, 'policyVersion'),
+    currentPolicyVersion: readOptionalString(value, 'currentPolicyVersion'),
+    policyDigest: readOptionalString(value, 'policyDigest'),
+    currentPolicyDigest: readOptionalString(value, 'currentPolicyDigest'),
+    policyUpdatedAt: readOptionalTimestamp(value, 'policyUpdatedAt'),
+    policySupersededAt: readOptionalTimestamp(value, 'policySupersededAt'),
+    approvalIssuedAt: readOptionalTimestamp(value, 'approvalIssuedAt'),
+    approvalValidFrom: readOptionalTimestamp(value, 'approvalValidFrom'),
+    approvalValidUntil: readOptionalTimestamp(value, 'approvalValidUntil'),
+    authorityCheckedAt: readOptionalTimestamp(value, 'authorityCheckedAt'),
+    authorityExpiresAt: readOptionalTimestamp(value, 'authorityExpiresAt'),
+    maxAuthorityAgeSeconds: normalizeOptionalPositiveInteger(
+      value.maxAuthorityAgeSeconds,
+      'staleAuthorityPolicy.maxAuthorityAgeSeconds',
+    ),
+    driftState: driftState === null
+      ? null
+      : normalizeEnumValue(
+        driftState,
+        CONSEQUENCE_STALE_AUTHORITY_POLICY_DRIFT_STATES,
+        'staleAuthorityPolicy.driftState',
+      ),
+    noGoReasons: normalizeStringArray(value.noGoReasons, 'staleAuthorityPolicy.noGoReasons'),
+  });
 }
 
 function normalizeGenericObservedFeatures(
@@ -1685,6 +1742,7 @@ function normalizeCreateGenericAdmissionInput(input: unknown): CreateGenericAdmi
       'allowedToolResultEvidenceClasses',
     ),
     toolResults: normalizeGenericToolResults(input.toolResults),
+    staleAuthorityPolicy: normalizeGenericStaleAuthorityPolicy(input.staleAuthorityPolicy),
     noGoLedgerRef: readOptionalString(input, 'noGoLedgerRef'),
     noGoConditions: normalizeGenericNoGoConditions(input.noGoConditions),
     noGoNaturalLanguageBypassAttempted: readOptionalBoolean(
@@ -1841,6 +1899,27 @@ function toolResultGuardReviewReasonCodes(
   return Object.freeze([...decision.reasonCodes]);
 }
 
+function genericAdmissionStaleAuthorityPolicyGuardDecisionFor(
+  input: CreateGenericAdmissionInput,
+): ConsequenceStaleAuthorityPolicyDecision | null {
+  if (input.staleAuthorityPolicy === null || input.staleAuthorityPolicy === undefined) {
+    return null;
+  }
+  return evaluateConsequenceStaleAuthorityPolicy({
+    ...input.staleAuthorityPolicy,
+    generatedAt: input.decidedAt ?? input.requestedAt ?? null,
+    actionSurface: input.domain,
+    action: input.action,
+  });
+}
+
+function staleAuthorityPolicyReviewReasonCodes(
+  decision: ConsequenceStaleAuthorityPolicyDecision | null,
+): readonly string[] {
+  if (decision === null || decision.outcome === 'pass') return Object.freeze([]);
+  return Object.freeze([...decision.reasonCodes]);
+}
+
 function genericAdmissionHasNoGoConditionInput(
   input: CreateGenericAdmissionInput,
 ): boolean {
@@ -1880,6 +1959,7 @@ function genericAdmissionReviewReasons(
   approvalGuardDecision: ConsequenceApprovalProvenanceDecision | null,
   scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null,
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
+  staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
   noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null,
 ): readonly string[] {
   const reasons: string[] = [];
@@ -1907,6 +1987,7 @@ function genericAdmissionReviewReasons(
   reasons.push(...approvalGuardReviewReasonCodes(approvalGuardDecision));
   reasons.push(...scopeExplosionReviewReasonCodes(scopeExplosionGuardDecision));
   reasons.push(...toolResultGuardReviewReasonCodes(toolResultGuardDecision));
+  reasons.push(...staleAuthorityPolicyReviewReasonCodes(staleAuthorityPolicyGuardDecision));
   reasons.push(...noGoConditionLedgerReviewReasonCodes(noGoConditionLedgerDecision));
 
   if (profile.requiredChecks.includes('adapter-readiness')) {
@@ -1931,12 +2012,14 @@ function genericAdmissionShadowDecisionFor(
   approvalGuardDecision: ConsequenceApprovalProvenanceDecision | null,
   scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null,
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
+  staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
   noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null,
 ): GenericAdmissionShadowDecision {
   if (authorityGuardDecision?.outcome === 'block') return 'would_block';
   if (approvalGuardDecision?.outcome === 'block') return 'would_block';
   if (scopeExplosionGuardDecision?.outcome === 'block') return 'would_block';
   if (toolResultGuardDecision?.outcome === 'block') return 'would_block';
+  if (staleAuthorityPolicyGuardDecision?.outcome === 'block') return 'would_block';
   if (noGoConditionLedgerDecision?.outcome === 'block') return 'would_block';
   if (
     observedFeatureTrue(input, 'policyBlocked') ||
@@ -1981,6 +2064,7 @@ function genericReasonCodes(
   reviewReasons: readonly string[],
   scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null,
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
+  staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
 ): readonly string[] {
   const reasons = [
     `mode-${input.mode}`,
@@ -1988,6 +2072,7 @@ function genericReasonCodes(
     ...reviewReasons,
     ...(scopeExplosionGuardDecision?.reasonCodes ?? []),
     ...(toolResultGuardDecision?.reasonCodes ?? []),
+    ...(staleAuthorityPolicyGuardDecision?.reasonCodes ?? []),
   ];
   if (input.mode === 'observe' || input.mode === 'warn') {
     reasons.push('non-enforcing-mode');
@@ -2009,6 +2094,8 @@ function createGenericAdmissionEvaluation(
   const approvalGuardDecision = genericAdmissionApprovalGuardDecisionFor(input);
   const scopeExplosionGuardDecision = genericAdmissionScopeExplosionGuardDecisionFor(input);
   const toolResultGuardDecision = genericAdmissionToolResultGuardDecisionFor(input);
+  const staleAuthorityPolicyGuardDecision =
+    genericAdmissionStaleAuthorityPolicyGuardDecisionFor(input);
   const noGoConditionLedgerDecision = genericAdmissionNoGoConditionLedgerDecisionFor(input);
   const reviewReasons = genericAdmissionReviewReasons(
     input,
@@ -2016,6 +2103,7 @@ function createGenericAdmissionEvaluation(
     approvalGuardDecision,
     scopeExplosionGuardDecision,
     toolResultGuardDecision,
+    staleAuthorityPolicyGuardDecision,
     noGoConditionLedgerDecision,
   );
   const shadowDecision = genericAdmissionShadowDecisionFor(
@@ -2025,6 +2113,7 @@ function createGenericAdmissionEvaluation(
     approvalGuardDecision,
     scopeExplosionGuardDecision,
     toolResultGuardDecision,
+    staleAuthorityPolicyGuardDecision,
     noGoConditionLedgerDecision,
   );
   const effectiveDecision = effectiveDecisionForGenericMode(input.mode, shadowDecision);
@@ -2042,11 +2131,13 @@ function createGenericAdmissionEvaluation(
       reviewReasons,
       scopeExplosionGuardDecision,
       toolResultGuardDecision,
+      staleAuthorityPolicyGuardDecision,
     ),
     authorityGuardDecision,
     approvalGuardDecision,
     scopeExplosionGuardDecision,
     toolResultGuardDecision,
+    staleAuthorityPolicyGuardDecision,
     noGoConditionLedgerDecision,
   });
 }
@@ -2058,10 +2149,16 @@ function reasonCodesForCheck(
   const matches = reasonCodes.filter((reason) => {
     if (kind === 'policy') {
       return reason.startsWith('policy-') ||
+        reason.startsWith('current-policy-') ||
+        reason === 'stale-policy-review' ||
+        reason === 'stale-policy-block' ||
+        reason.startsWith('drift-state-') ||
+        reason === 'no-go-reason-present' ||
         GENERIC_ADMISSION_NO_GO_REASON_CODES.has(reason);
     }
     if (kind === 'authority') {
       return reason.startsWith('authority-') ||
+        reason.startsWith('approval-') ||
         GENERIC_ADMISSION_AUTHORITY_GUARD_REASON_CODES.has(reason) ||
         GENERIC_ADMISSION_APPROVAL_GUARD_REASON_CODES.has(reason);
     }
@@ -2071,7 +2168,15 @@ function reasonCodesForCheck(
     }
     if (kind === 'enforcement') return reason === 'non-enforcing-mode';
     if (kind === 'adapter-readiness') return reason.startsWith('adapter-');
-    if (kind === 'freshness') return reason.startsWith('freshness-');
+    if (kind === 'freshness') {
+      return reason.startsWith('freshness-') ||
+        reason.includes('freshness') ||
+        reason === 'approval-validity-window-missing' ||
+        reason === 'approval-not-yet-valid' ||
+        reason === 'approval-expired' ||
+        reason === 'authority-expired' ||
+        reason === 'authority-expires-at-invalid';
+    }
     return false;
   });
   return Object.freeze(matches);
@@ -2269,6 +2374,18 @@ function genericAdmissionDimensions(
       evaluation.toolResultGuardDecision?.counts.missingTimestampCount ?? 0,
     toolResultEvidenceClassMismatchCount:
       evaluation.toolResultGuardDecision?.counts.evidenceClassMismatchCount ?? 0,
+    staleAuthorityPolicyGuardOutcome:
+      evaluation.staleAuthorityPolicyGuardDecision?.outcome ?? null,
+    staleAuthorityPolicyGuardDigest:
+      evaluation.staleAuthorityPolicyGuardDecision?.digest ?? null,
+    staleAuthorityPolicyNoGoReasonCount:
+      evaluation.staleAuthorityPolicyGuardDecision?.counts.noGoReasonCount ?? 0,
+    staleAuthorityPolicyBlockReasonCount:
+      evaluation.staleAuthorityPolicyGuardDecision?.counts.blockReasonCount ?? 0,
+    staleAuthorityPolicyReviewReasonCount:
+      evaluation.staleAuthorityPolicyGuardDecision?.counts.reviewReasonCount ?? 0,
+    staleAuthorityPolicyDriftState:
+      evaluation.staleAuthorityPolicyGuardDecision?.observed.driftState ?? null,
   });
 }
 
