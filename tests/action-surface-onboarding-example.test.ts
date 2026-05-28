@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { renderActionSurfaceOnboardingPacket } from '../scripts/render-action-surface-onboarding-packet.ts';
+import { renderActionSurfaceOnboardingPacket } from '../scripts/render/render-action-surface-onboarding-packet.ts';
 
 let passed = 0;
 
@@ -111,7 +111,7 @@ function testDocsExposeTheExampleWithoutOverclaiming(): void {
 
   equal(
     pkg.scripts['example:action-surface-onboarding'],
-    'tsx scripts/render-action-surface-onboarding-packet.ts --openapi=examples/action-surface-onboarding/refund.openapi.json --default-domain=money-movement --downstream-system=refund-service --credential-posture=agent-held-static-secret',
+    'tsx scripts/render/render-action-surface-onboarding-packet.ts --openapi=examples/action-surface-onboarding/refund.openapi.json --default-domain=money-movement --downstream-system=refund-service --credential-posture=agent-held-static-secret',
     'Action surface example: package script is stable',
   );
   equal(

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { inferObservabilityRemoteSecretProvider, remoteSecretKey } from './remote-secret-keys.ts';
+import { inferObservabilityRemoteSecretProvider, remoteSecretKey } from '../remote-secret-keys.ts';
 
 type Provider = 'generic' | 'grafana-cloud' | 'grafana-alloy';
 type SecretMode = 'secret' | 'external-secret';
@@ -124,16 +124,16 @@ function main(): void {
 
   try {
     runTsx(
-      'scripts/render-observability-profile.ts',
+      'scripts/render/render-observability-profile.ts',
       [`--input=${benchmarkPath}`, `--profile=${profilePath}`, `--output-dir=${profileOut}`],
       process.env,
     );
     runTsx(
-      'scripts/render-observability-credentials.ts',
+      'scripts/render/render-observability-credentials.ts',
       [`--output-dir=${credentialsOut}`],
       process.env,
     );
-    runNode('scripts/render-alertmanager-config.mjs', [alertmanagerOut], process.env);
+    runNode('scripts/render/render-alertmanager-config.mjs', [alertmanagerOut], process.env);
 
     const profileSummary = JSON.parse(read(resolve(profileOut, 'summary.json'))) as {
       profile: { name: string };

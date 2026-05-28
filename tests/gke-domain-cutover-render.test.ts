@@ -24,7 +24,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-gke-domain-cutover.ts',
+        'scripts/render/render-gke-domain-cutover.ts',
         '--hostname=attestor.example.invalid',
         '--static-address-name=attestor-prod-ip',
         '--dns-target-ip=203.0.113.10',
@@ -62,7 +62,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-gke-domain-cutover.ts',
+        'scripts/render/render-gke-domain-cutover.ts',
         '--hostname=attestor.example.invalid:443',
         `--output-dir=${resolve(tempDir, 'invalid-bundle')}`,
       ],

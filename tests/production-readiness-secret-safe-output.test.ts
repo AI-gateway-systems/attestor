@@ -249,9 +249,9 @@ function testCriticalOpsScriptsUseSecretSafeOutput(): void {
     'scripts/probe/probe-ha-release-inputs.ts',
     'scripts/probe/probe-observability-release-inputs.ts',
     'scripts/probe/probe-policy-foundry-production-smoke.ts',
-    'scripts/render-ha-promotion-packet.ts',
-    'scripts/render-observability-promotion-packet.ts',
-    'scripts/render-production-readiness-packet.ts',
+    'scripts/render/render-ha-promotion-packet.ts',
+    'scripts/render/render-observability-promotion-packet.ts',
+    'scripts/render/render-production-readiness-packet.ts',
   ]) {
     const source = readProjectFile(...script.split('/'));
     ok(

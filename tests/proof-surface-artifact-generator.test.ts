@@ -153,7 +153,7 @@ function testRenderCommandWritesArtifacts(): void {
     process.execPath,
     [
       tsxCli,
-      'scripts/render-proof-surface.ts',
+      'scripts/render/render-proof-surface.ts',
       '--out',
       outDir,
       '--generated-at',

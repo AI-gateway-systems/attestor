@@ -272,8 +272,8 @@ export const HOSTED_RELEASE_PROVENANCE_SLSA_GUARDS: readonly HostedReleaseProven
       'src/consequence-admission/tamper-evident-history.ts',
       'src/consequence-admission/audit-evidence-export.ts',
       'src/consequence-admission/external-review-packet.ts',
-      'scripts/render-proof-surface.ts',
-      'scripts/render-proof-showcase.ts',
+      'scripts/render/render-proof-surface.ts',
+      'scripts/render/render-proof-showcase.ts',
     ],
     validation: [
       'tests/release-kernel-release-canonicalization.test.ts',

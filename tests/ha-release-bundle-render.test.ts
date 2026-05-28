@@ -47,7 +47,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-ha-release-bundle.ts',
+        'scripts/render/render-ha-release-bundle.ts',
         '--provider=aws',
         `--benchmark=${benchmarkPath}`,
         `--output-dir=${awsOut}`,
@@ -96,7 +96,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-ha-release-bundle.ts',
+        'scripts/render/render-ha-release-bundle.ts',
         '--provider=gke',
         `--benchmark=${benchmarkPath}`,
         `--output-dir=${gkeOut}`,
@@ -152,7 +152,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-ha-release-bundle.ts',
+        'scripts/render/render-ha-release-bundle.ts',
         '--provider=gke',
         `--benchmark=${benchmarkPath}`,
         `--output-dir=${tagOnlyImageOut}`,
@@ -191,7 +191,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-ha-release-bundle.ts',
+        'scripts/render/render-ha-release-bundle.ts',
         '--provider=gke',
         `--benchmark=${benchmarkPath}`,
         `--output-dir=${missingStorageClassOut}`,
@@ -229,7 +229,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-ha-release-bundle.ts',
+        'scripts/render/render-ha-release-bundle.ts',
         '--provider=gke',
         `--benchmark=${benchmarkPath}`,
         `--output-dir=${invalidHostnameOut}`,

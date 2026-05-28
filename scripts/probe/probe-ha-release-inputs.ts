@@ -248,7 +248,7 @@ export async function probeHaReleaseInputs(options?: {
     try {
       const run = spawnSync(
         process.execPath,
-        [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render-ha-release-bundle.ts', `--provider=${provider}`, `--benchmark=${resolve(benchmarkPath)}`, `--output-dir=${outDir}`],
+        [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render/render-ha-release-bundle.ts', `--provider=${provider}`, `--benchmark=${resolve(benchmarkPath)}`, `--output-dir=${outDir}`],
         { cwd: resolve('.'), encoding: 'utf8', env: process.env },
       );
       bundleRenderSucceeded = run.status === 0;

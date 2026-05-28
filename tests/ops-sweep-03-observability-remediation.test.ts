@@ -23,7 +23,7 @@ function main(): void {
   const grafanaCloudCollector = read('ops/kubernetes/observability/providers/grafana-cloud/patch-configmap.yaml');
   const grafanaAlloyCollector = read('ops/kubernetes/observability/providers/grafana-alloy/patch-configmap.yaml');
   const compose = read('docker-compose.observability.yml');
-  const credentialsRenderer = read('scripts/render-observability-credentials.ts');
+  const credentialsRenderer = read('scripts/render/render-observability-credentials.ts');
   const readme = read('ops/observability/README.md');
 
   ok(

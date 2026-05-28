@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { renderProductionGoNoGoPacket } from '../scripts/render-production-go-no-go-packet.ts';
+import { renderProductionGoNoGoPacket } from '../scripts/render/render-production-go-no-go-packet.ts';
 
 let passed = 0;
 
@@ -313,7 +313,7 @@ function testDocsAndScriptsExposeStep12(): void {
 
   equal(
     packageJson.scripts['render:production-go-no-go-packet'],
-    'tsx scripts/render-production-go-no-go-packet.ts',
+    'tsx scripts/render/render-production-go-no-go-packet.ts',
     'Production go/no-go packet: render script is exposed',
   );
   equal(

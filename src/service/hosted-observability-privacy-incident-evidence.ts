@@ -188,8 +188,8 @@ readonly HostedObservabilityPrivacyIncidentGuard[] = [
     implementationEvidence: [
       'scripts/probe/probe-observability-receivers.ts',
       'scripts/probe/probe-observability-release-inputs.ts',
-      'scripts/render-observability-promotion-packet.ts',
-      'scripts/render-observability-credentials.ts',
+      'scripts/render/render-observability-promotion-packet.ts',
+      'scripts/render/render-observability-credentials.ts',
     ],
     validation: [
       'tests/observability-receiver-probe.test.ts',
@@ -226,7 +226,7 @@ readonly HostedObservabilityPrivacyIncidentGuard[] = [
       'Alert routing evidence does not replace real receiver delivery verification in the target environment.',
     implementationEvidence: [
       'ops/observability/prometheus/alerts.yml',
-      'scripts/render-alertmanager-config.mjs',
+      'scripts/render/render-alertmanager-config.mjs',
       'scripts/probe/probe-alert-routing.ts',
       'docs/08-deployment/production-rehearsal-manifest.example.json',
     ],

@@ -19,18 +19,22 @@ Research anchors:
 
 ## Current Shape
 
-Root script files: 49.
+Root script files: 32.
 
 Check script files under `scripts/check/`: 8.
 
 Probe script files under `scripts/probe/`: 19.
 
-The scripts are mostly still flat today. The carved-out families are
-`scripts/check/`, which holds CI and local evidence guards, and
-`scripts/probe/`, which holds opt-in package-surface, live, provider, Stripe,
-HA, observability, and hosted-flow probes. The remaining root-level script
-families should move only through small path-migration PRs that update package
-scripts, workflows, tests, and docs together.
+Render script files under `scripts/render/`: 17.
+
+The scripts are less flat now, but still intentionally move one family at a
+time. The carved-out families are `scripts/check/`, which holds CI and local
+evidence guards, `scripts/probe/`, which holds opt-in package-surface, live,
+provider, Stripe, HA, observability, and hosted-flow probes, and
+`scripts/render/`, which holds local packet, profile, proof, and deployment
+bundle renderers. The remaining root-level script families should move only
+through small path-migration PRs that update package scripts, workflows, tests,
+and docs together.
 
 ## Pick One Script Family
 
@@ -38,7 +42,7 @@ scripts, workflows, tests, and docs together.
 |---|---:|---|---|
 | `scripts/check/check-*` | 8 | You need a local or CI guard over evidence, redaction, findings, baseline alignment, branches, or supply-chain posture. | `check-baseline-alignment.mjs`, `check-supply-chain-baseline.mjs`, `check-public-artifacts-redaction.mjs` |
 | `scripts/probe/probe-*` | 19 | You need an opt-in package-surface, live, provider, Stripe, HA, observability, or hosted-flow probe. | `probe-consequence-admission-package-surface.mjs`, `probe-stripe-live-readiness.ts`, `probe-production-hosted-flow.ts` |
-| `render-*` | 17 | You need to render local packets, profiles, credentials templates, proof surfaces, or deployment bundles. | `render-proof-surface.ts`, `render-production-readiness-packet.ts`, `render-ha-profile.ts` |
+| `scripts/render/render-*` | 17 | You need to render local packets, profiles, credentials templates, proof surfaces, or deployment bundles. | `render-proof-surface.ts`, `render-production-readiness-packet.ts`, `render-ha-profile.ts` |
 | `demo-*` | 8 | You need a runnable local golden path or path-boundary demo. | `demo-golden-refund.ts`, `demo-golden-paths.ts`, `demo-path-boundary.ts` |
 | `rehearse-*` | 4 | You need a production rehearsal script that simulates an operational path. | `rehearse-production-consequence-behavior.ts`, `rehearse-production-backup-restore-dr.ts` |
 | `run-*` | 3 | You need a suite runner or live/ops gate runner. | `run-suite.mjs`, `run-live-ops-gate.mjs` |
@@ -105,7 +109,7 @@ demo script is not hosted enforcement
 
 1. Need CI or PR discipline? Start with `scripts/check/check-*`, `validate-*`, and
    `run-suite.mjs`.
-2. Need proof or deployment material? Start with `render-*`.
+2. Need proof or deployment material? Start with `scripts/render/render-*`.
 3. Need live or package-surface evidence? Start with `scripts/probe/probe-*`.
 4. Need an operator rehearsal? Start with `rehearse-*`.
 5. Need to show the product locally? Start with `demo-*`.

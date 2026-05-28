@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { renderActionSurfaceOnboardingPacket } from '../scripts/render-action-surface-onboarding-packet.ts';
+import { renderActionSurfaceOnboardingPacket } from '../scripts/render/render-action-surface-onboarding-packet.ts';
 
 let passed = 0;
 
@@ -95,7 +95,7 @@ function testRendererDocsAndScripts(): void {
 
   equal(
     pkg.scripts['render:action-surface-onboarding-packet'],
-    'tsx scripts/render-action-surface-onboarding-packet.ts',
+    'tsx scripts/render/render-action-surface-onboarding-packet.ts',
     'Onboarding render: package script is exposed',
   );
   equal(

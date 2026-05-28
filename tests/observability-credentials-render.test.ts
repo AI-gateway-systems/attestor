@@ -19,7 +19,7 @@ function main(): void {
 
   const run = spawnSync(
     process.execPath,
-    [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render-observability-credentials.ts', `--output-dir=${outputDir}`],
+    [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render/render-observability-credentials.ts', `--output-dir=${outputDir}`],
     {
       cwd: resolve('.'),
       encoding: 'utf8',

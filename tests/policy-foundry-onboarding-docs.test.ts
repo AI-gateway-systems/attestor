@@ -189,7 +189,7 @@ function testPolicyFoundryArchitectureIsGrounded(): void {
   );
   includes(
     doc,
-    'scripts/render-policy-foundry-self-onboarding.ts',
+    'scripts/render/render-policy-foundry-self-onboarding.ts',
     'Policy Foundry docs: self-onboarding renderer evidence is named',
   );
   includes(
@@ -469,7 +469,7 @@ function testPackageScriptIsExposed(): void {
   );
   includes(
     pkg.scripts['policy-foundry:self-onboard'] ?? '',
-    'tsx scripts/render-policy-foundry-self-onboarding.ts',
+    'tsx scripts/render/render-policy-foundry-self-onboarding.ts',
     'Package: Policy Foundry self-onboarding renderer command is stable',
   );
   includes(

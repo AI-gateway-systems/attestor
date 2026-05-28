@@ -64,7 +64,7 @@ function arg(name: string, fallback?: string): string | undefined {
 function renderConfig(outputPath: string): void {
   const render = spawnSync(
     process.execPath,
-    ['scripts/render-alertmanager-config.mjs', outputPath],
+    ['scripts/render/render-alertmanager-config.mjs', outputPath],
     {
       cwd: resolve('.'),
       encoding: 'utf8',

@@ -295,7 +295,7 @@ function testLedgerIndexesAuditRemediationClosure(): void {
   );
   includes(
     content,
-    'scripts/render-production-go-no-go-packet.ts',
+    'scripts/render/render-production-go-no-go-packet.ts',
     'Research provenance ledger: production go/no-go packet code evidence is indexed',
   );
   includes(

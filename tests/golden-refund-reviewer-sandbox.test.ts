@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -188,7 +188,7 @@ function testDemoCliPathBoundary(): void {
     'npx',
     [
       'tsx',
-      'scripts/render-proof-showcase.ts',
+      'scripts/render/render-proof-showcase.ts',
       '--skip-run',
       '--from',
       'package.json',

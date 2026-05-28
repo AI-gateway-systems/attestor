@@ -27,7 +27,7 @@ function main(): void {
   try {
     const inline = spawnSync(
       process.execPath,
-      [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render-ha-credentials.ts', `--output-dir=${inlineOutputDir}`],
+      [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render/render-ha-credentials.ts', `--output-dir=${inlineOutputDir}`],
       {
         cwd: resolve('.'),
         encoding: 'utf8',
@@ -70,7 +70,7 @@ function main(): void {
 
     const aws = spawnSync(
       process.execPath,
-      [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render-ha-credentials.ts', `--output-dir=${awsOutputDir}`],
+      [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render/render-ha-credentials.ts', `--output-dir=${awsOutputDir}`],
       {
         cwd: resolve('.'),
         encoding: 'utf8',
@@ -101,7 +101,7 @@ function main(): void {
 
     const externalSecret = spawnSync(
       process.execPath,
-      [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render-ha-credentials.ts', `--output-dir=${secretOutputDir}`],
+      [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/render/render-ha-credentials.ts', `--output-dir=${secretOutputDir}`],
       {
         cwd: resolve('.'),
         encoding: 'utf8',
