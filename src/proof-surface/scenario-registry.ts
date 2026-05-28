@@ -297,6 +297,7 @@ export const PROOF_SCENARIO_REGISTRY = Object.freeze([
         packageSubpath: cryptoAdmissionSurface.subpath,
         sourceFiles: Object.freeze([
           'src/crypto-execution-admission/index.ts',
+          'src/crypto-execution-admission/planner.ts',
           'src/crypto-execution-admission/x402-resource-server.ts',
         ]),
         exportedSymbols: Object.freeze([
@@ -322,7 +323,7 @@ export const PROOF_SCENARIO_REGISTRY = Object.freeze([
       Object.freeze({
         kind: 'crypto-admission-plan',
         label: 'x402 execution-admission plan',
-        source: 'src/crypto-execution-admission/index.ts',
+        source: 'src/crypto-execution-admission/planner.ts',
         verifyHint: 'createCryptoExecutionAdmissionPlan returns an agent-payment-http admit handoff.',
       }),
       Object.freeze({
@@ -373,6 +374,7 @@ export const PROOF_SCENARIO_REGISTRY = Object.freeze([
         packageSubpath: cryptoAdmissionSurface.subpath,
         sourceFiles: Object.freeze([
           'src/crypto-execution-admission/index.ts',
+          'src/crypto-execution-admission/planner.ts',
           'src/crypto-execution-admission/delegated-eoa.ts',
         ]),
         exportedSymbols: Object.freeze([
@@ -398,7 +400,7 @@ export const PROOF_SCENARIO_REGISTRY = Object.freeze([
       Object.freeze({
         kind: 'crypto-admission-plan',
         label: 'Delegated EOA blocked admission plan',
-        source: 'src/crypto-execution-admission/index.ts',
+        source: 'src/crypto-execution-admission/planner.ts',
         verifyHint: 'createCryptoExecutionAdmissionPlan maps denied EIP-7702 simulation to outcome deny.',
       }),
       Object.freeze({

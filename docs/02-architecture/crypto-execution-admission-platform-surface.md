@@ -37,6 +37,8 @@ The package surface exposes one public subpath and one curated namespace object:
 
 This follows the same package-boundary model as the release layer, policy control plane, enforcement plane, and crypto authorization core: consumers import one stable subpath while internal file layout stays private behind `package.json` `exports`.
 
+The package source keeps `index.ts` as a thin public barrel and keeps planner implementation in `planner.ts`. That is an internal maintainability split only; the public import path remains `attestor/crypto-execution-admission`, and deep module paths remain outside the public package surface.
+
 The public compatibility promise is:
 
 - the subpath name is stable

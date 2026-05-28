@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   CRYPTO_EXECUTION_ADMISSION_EXTRACTION_CRITERIA,
   CRYPTO_EXECUTION_ADMISSION_INTEGRATION_NAMESPACES,
@@ -20,6 +22,18 @@ function ok(condition: unknown, message: string): void {
 function equal<T>(actual: T, expected: T, message: string): void {
   assert.equal(actual, expected, message);
   passed += 1;
+}
+
+function includes(content: string, expected: string, message: string): void {
+  assert.ok(
+    content.includes(expected),
+    `${message}\nExpected to find: ${expected}`,
+  );
+  passed += 1;
+}
+
+function readProjectFile(...segments: string[]): string {
+  return readFileSync(join(process.cwd(), ...segments), 'utf8');
 }
 
 function deepEqual<T>(actual: T, expected: T, message: string): void {
@@ -225,9 +239,32 @@ function testCryptoExecutionAdmissionDescriptorFunctions(): void {
   );
 }
 
+function testCryptoExecutionAdmissionIndexIsThinPublicBarrel(): void {
+  const indexSource = readProjectFile('src', 'crypto-execution-admission', 'index.ts').trim();
+  const plannerSource = readProjectFile('src', 'crypto-execution-admission', 'planner.ts');
+  const docs = readProjectFile('docs', '02-architecture', 'crypto-execution-admission-platform-surface.md');
+
+  equal(
+    indexSource,
+    "export * from './planner.js';",
+    'crypto execution admission platform surface: index stays a thin public barrel',
+  );
+  includes(
+    plannerSource,
+    'export function createCryptoExecutionAdmissionPlan',
+    'crypto execution admission platform surface: planner owns plan creation',
+  );
+  includes(
+    docs,
+    'The package source keeps `index.ts` as a thin public barrel and keeps planner implementation in `planner.ts`.',
+    'crypto execution admission platform surface: docs disclose the internal split',
+  );
+}
+
 testCryptoExecutionAdmissionPublicSurfaceDescriptor();
 testCryptoExecutionAdmissionNamespaceBindings();
 testCryptoExecutionAdmissionProofNamespaces();
 testCryptoExecutionAdmissionDescriptorFunctions();
+testCryptoExecutionAdmissionIndexIsThinPublicBarrel();
 
 console.log(`Crypto execution admission platform surface tests: ${passed} passed, 0 failed`);
