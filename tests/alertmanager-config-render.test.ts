@@ -18,7 +18,7 @@ function main(): void {
   writeFileSync(pdKeyPath, 'pagerduty-key-file\n', 'utf8');
   const run = spawnSync(
     process.execPath,
-    ['scripts/render-alertmanager-config.mjs', outputPath],
+    ['scripts/render/render-alertmanager-config.mjs', outputPath],
     {
       cwd: resolve('.'),
       encoding: 'utf8',
@@ -46,7 +46,7 @@ function main(): void {
 
   const invalidRun = spawnSync(
     process.execPath,
-    ['scripts/render-alertmanager-config.mjs', resolve(tempDir, 'invalid.yml')],
+    ['scripts/render/render-alertmanager-config.mjs', resolve(tempDir, 'invalid.yml')],
     {
       cwd: resolve('.'),
       encoding: 'utf8',
@@ -60,7 +60,7 @@ function main(): void {
 
   const missingWarningRun = spawnSync(
     process.execPath,
-    ['scripts/render-alertmanager-config.mjs', resolve(tempDir, 'missing-warning.yml')],
+    ['scripts/render/render-alertmanager-config.mjs', resolve(tempDir, 'missing-warning.yml')],
     {
       cwd: resolve('.'),
       encoding: 'utf8',

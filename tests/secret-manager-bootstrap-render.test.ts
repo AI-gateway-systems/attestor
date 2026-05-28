@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { renderSecretManagerBootstrap } from '../scripts/render-secret-manager-bootstrap.ts';
+import { renderSecretManagerBootstrap } from '../scripts/render/render-secret-manager-bootstrap.ts';
 
 let passed = 0;
 

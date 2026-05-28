@@ -14,7 +14,7 @@ claim live-shadow readiness, production readiness, or enterprise readiness.
 - `ops/kubernetes/ha/providers/external-secrets/README.md`
 - `scripts/check/check-ops-live-shadow-readiness.mjs`
 - `scripts/probe/probe-ha-release-inputs.ts`
-- `scripts/render-ha-release-bundle.ts`
+- `scripts/render/render-ha-release-bundle.ts`
 - HA Kubernetes, release-bundle, release-probe, and ops live-shadow tests
 
 ## External Anchors

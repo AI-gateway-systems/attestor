@@ -57,7 +57,7 @@ function main(): void {
       process.execPath,
       [
         'node_modules/tsx/dist/cli.mjs',
-        'scripts/render-observability-profile.ts',
+        'scripts/render/render-observability-profile.ts',
         `--input=${benchmarkPath}`,
         '--profile=ops/observability/profiles/regulated-production.json',
         `--output-dir=${outputDir}`,
@@ -87,7 +87,7 @@ function main(): void {
       process.execPath,
       [
         'node_modules/tsx/dist/cli.mjs',
-        'scripts/render-observability-profile.ts',
+        'scripts/render/render-observability-profile.ts',
         `--input=${benchmarkPath}`,
         `--profile=${invalidProfilePath}`,
         `--output-dir=${resolve(tempDir, 'invalid-rendered')}`,

@@ -33,7 +33,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-observability-release-bundle.ts',
+        'scripts/render/render-observability-release-bundle.ts',
         '--provider=grafana-cloud',
         `--benchmark=${benchmarkPath}`,
         '--profile=ops/observability/profiles/regulated-production.json',
@@ -77,7 +77,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-observability-release-bundle.ts',
+        'scripts/render/render-observability-release-bundle.ts',
         '--provider=grafana-cloud',
         `--benchmark=${benchmarkPath}`,
         '--profile=ops/observability/profiles/regulated-production.json',
@@ -125,7 +125,7 @@ function main(): void {
       process.execPath,
       [
         resolve('node_modules/tsx/dist/cli.mjs'),
-        'scripts/render-observability-release-bundle.ts',
+        'scripts/render/render-observability-release-bundle.ts',
         '--provider=grafana-alloy',
         `--benchmark=${benchmarkPath}`,
         '--profile=ops/observability/profiles/regulated-production.json',

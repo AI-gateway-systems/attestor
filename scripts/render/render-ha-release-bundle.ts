@@ -194,8 +194,8 @@ function main(): void {
   const credentialsOut = resolve(tempRoot, 'credentials');
 
   try {
-    runTsx('scripts/render-ha-profile.ts', [`--input=${benchmarkPath}`, `--profile=${profilePath}`, `--output-dir=${profileOut}`], process.env);
-    runTsx('scripts/render-ha-credentials.ts', [`--provider=${provider}`, `--output-dir=${credentialsOut}`], process.env);
+    runTsx('scripts/render/render-ha-profile.ts', [`--input=${benchmarkPath}`, `--profile=${profilePath}`, `--output-dir=${profileOut}`], process.env);
+    runTsx('scripts/render/render-ha-credentials.ts', [`--provider=${provider}`, `--output-dir=${credentialsOut}`], process.env);
 
     mkdirSync(outputDir, { recursive: true });
 

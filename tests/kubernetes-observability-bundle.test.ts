@@ -50,7 +50,7 @@ function main(): void {
   const externalSecretsKustomization = read('ops/kubernetes/observability/providers/external-secrets/kustomization.yaml');
   const externalGrafanaSecret = read('ops/kubernetes/observability/providers/external-secrets/grafana-cloud-external-secret.yaml');
   const externalAlertSecret = read('ops/kubernetes/observability/providers/external-secrets/alertmanager-routing-external-secret.yaml');
-  const releaseBundleScript = read('scripts/render-observability-release-bundle.ts');
+  const releaseBundleScript = read('scripts/render/render-observability-release-bundle.ts');
   const releaseInputProbeScript = read('scripts/probe/probe-observability-release-inputs.ts');
 
   ok(kustomization.includes('configmap.yaml') && kustomization.includes('deployment.yaml') && kustomization.includes('networkpolicy.yaml'), 'Kubernetes observability bundle: kustomization includes core resources and NetworkPolicy');

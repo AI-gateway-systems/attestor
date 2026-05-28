@@ -263,6 +263,7 @@ Policy Foundry evaluator notes:
 - It can attach live downstream replay evidence when configured, but that remains live evidence, not a repo-side production claim.
 - The hosted onboarding workflow packages the hosted review surface, wizard state, entitlement context, and storage-readiness checks.
 - Local browser QA uses `preview:policy-foundry-hosted-ui` with safe fixtures only.
+- Local self-onboarding uses `npm run policy-foundry:self-onboard` and renders session, coverage, blockers, gate plan, handoff, red-team fixtures.
 - For an already deployed hosted runtime, the opt-in Policy Foundry production smoke probe checks the route contract without proving production readiness.
 - Safety boundary: hosted onboarding returns review material only.
 - [Policy Foundry onboarding](docs/02-architecture/policy-foundry-onboarding.md)
@@ -297,6 +298,9 @@ The machine-readable role contract is exported from `attestor/consequence-admiss
 - [Hosted customer journey](docs/01-overview/hosted-customer-journey.md)
 - [Hosted account visibility](docs/01-overview/hosted-account-visibility.md)
 - [Attestor internal machine map](docs/02-architecture/attestor-internal-machine-map.md)
+- Render an action-surface onboarding packet with `npm run render:action-surface-onboarding-packet`.
+- Run the checked example with `npm run example:action-surface-onboarding`.
+- Run the refund reviewer sandbox with `npm run demo:golden-refund -- --scenario fixtures/golden-refund-reviewer-sandbox.example.json`.
 - [Action-surface onboarding red-team fixture bundle](docs/02-architecture/action-surface-onboarding-packet.md)
 
 </details>

@@ -14,11 +14,11 @@ import {
   type ProductionStorageMode,
   type ProductionStoragePathComponentId,
   type ProductionStoragePathEvaluation,
-} from '../src/service/bootstrap/production-storage-path.ts';
+} from '../../src/service/bootstrap/production-storage-path.ts';
 import {
   safeErrorMessage,
   stringifySecretSafe,
-} from './secret-safe-output.ts';
+} from '../secret-safe-output.ts';
 
 type ObservabilityProvider = 'generic' | 'grafana-cloud' | 'grafana-alloy';
 type HaProvider = 'generic' | 'aws' | 'gke';

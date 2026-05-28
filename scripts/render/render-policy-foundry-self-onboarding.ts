@@ -10,11 +10,11 @@ import {
   type ActionSurfaceOnboardingReadinessOverride,
   type PolicyFoundrySelfOnboardingCliPacket,
   type ShadowAdmissionEvent,
-} from '../src/consequence-admission/index.js';
+} from '../../src/consequence-admission/index.js';
 import {
   safeErrorMessage,
   stringifySecretSafe,
-} from './secret-safe-output.ts';
+} from '../secret-safe-output.ts';
 
 type ManifestInputSpec = {
   readonly path: string;

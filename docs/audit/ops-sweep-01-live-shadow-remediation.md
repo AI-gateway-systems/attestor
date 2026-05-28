@@ -13,7 +13,7 @@ readiness.
 - `ops/kubernetes/ha/worker-serviceaccount.yaml`
 - `ops/kubernetes/ha/kustomization.yaml`
 - `scripts/probe/probe-ha-release-inputs.ts`
-- `scripts/render-ha-release-bundle.ts`
+- `scripts/render/render-ha-release-bundle.ts`
 - HA Kubernetes and release-bundle tests
 - `ops/kubernetes/ha/networkpolicy.yaml`
 - `ops/kubernetes/ha/providers/gke/gcpbackendpolicy.yaml`

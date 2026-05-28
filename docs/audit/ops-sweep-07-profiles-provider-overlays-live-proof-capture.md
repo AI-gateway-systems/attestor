@@ -58,8 +58,8 @@ claims.
 
 | Path | Depth | Why |
 |---|---|---|
-| `scripts/render-ha-profile.ts` | full | HA profile output behavior and SLO summary |
-| `scripts/render-observability-profile.ts` | full | SLO burn-rate rule generation and zero-budget divisor risk |
+| `scripts/render/render-ha-profile.ts` | full | HA profile output behavior and SLO summary |
+| `scripts/render/render-observability-profile.ts` | full | SLO burn-rate rule generation and zero-budget divisor risk |
 | `scripts/check/check-ops-live-shadow-readiness.mjs` | full | live proof env gate vs register alignment |
 | `ops/kubernetes/ha/providers/aws/**` | full | AWS ALB HTTPS/WAF parity |
 | `ops/kubernetes/ha/providers/gke/**` | targeted | GKE parity reference |

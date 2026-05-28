@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { renderObservabilityPromotionPacket } from '../scripts/render-observability-promotion-packet.ts';
+import { renderObservabilityPromotionPacket } from '../scripts/render/render-observability-promotion-packet.ts';
 
 let passed = 0;
 

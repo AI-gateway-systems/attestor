@@ -39,7 +39,7 @@ Sweep 15 OPS-121 and OPS-122 remain open on `origin/master`.
 | Protected principles | data minimization and redaction; demo safety; no overclaim; auditability |
 | Audit driver | `current-posture-baseline.md` Phase 3 preparation + `finding-index.md` B-025/B-028 + control-map `Public demo safety` next action |
 | External anchors | NIST SP 800-122 for PII confidentiality; GDPR Article 5 data minimisation; OWASP LLM02 sensitive information disclosure; OWASP LLM07 system prompt leakage; CWE-200 / CWE-22 / CWE-532 / CWE-209 vocabulary |
-| Scope | `scripts/secret-safe-output.ts`, `scripts/demo-golden-refund.ts`, `scripts/render-proof-{surface,showcase}.ts`, `examples/*demo.ts`, `src/consequence-admission/{data-minimization-redaction-policy,golden-refund-demo}.ts`, `fixtures/golden-refund-reviewer-sandbox.example.json`, redaction/demo tests, and committed public evidence inventory |
+| Scope | `scripts/secret-safe-output.ts`, `scripts/demo-golden-refund.ts`, `scripts/render/render-proof-{surface,showcase}.ts`, `examples/*demo.ts`, `src/consequence-admission/{data-minimization-redaction-policy,golden-refund-demo}.ts`, `fixtures/golden-refund-reviewer-sandbox.example.json`, redaction/demo tests, and committed public evidence inventory |
 
 ## 2. Inspected Files
 
@@ -48,7 +48,7 @@ Sweep 15 OPS-121 and OPS-122 remain open on `origin/master`.
 | `scripts/secret-safe-output.ts` | full | Runtime redaction primitive |
 | `src/consequence-admission/data-minimization-redaction-policy.ts` | targeted | Architectural redaction policy and marker vocabulary |
 | `scripts/demo-golden-refund.ts` | targeted | Demo CLI `--scenario` path entry |
-| `scripts/render-proof-showcase.ts` | targeted | Public artifact renderer `--from` path entry |
+| `scripts/render/render-proof-showcase.ts` | targeted | Public artifact renderer `--from` path entry |
 | `examples/first-useful-admission-demo.ts` | targeted | Pure-code demo pattern check |
 | `fixtures/golden-refund-reviewer-sandbox.example.json` | targeted | Shipped demo fixture shape |
 | `tests/production-readiness-secret-safe-output.test.ts` | targeted | Runtime redaction regression coverage |
@@ -103,8 +103,8 @@ No critical Sweep 16 file was skipped.
 | 2 | `examples/first-useful-admission-demo.ts` | pure demo | stdout | no | n/a | none |
 | 3 | `examples/agent-retry-wrapper-demo.ts` | pure demo | stdout | no | n/a | none |
 | 4 | `examples/non-bypassable-gateway-demo.ts` | pure demo | stdout | no | n/a | none |
-| 5 | `scripts/render-proof-surface.ts` | renderer | file | `--out` write path | indirect | none |
-| 6 | `scripts/render-proof-showcase.ts` | renderer | file | yes, `--from` | indirect | OPS-133 |
+| 5 | `scripts/render/render-proof-surface.ts` | renderer | file | `--out` write path | indirect | none |
+| 6 | `scripts/render/render-proof-showcase.ts` | renderer | file | yes, `--from` | indirect | OPS-133 |
 | 7 | `scripts/secret-safe-output.ts` | runtime redactor | library | n/a | n/a | OPS-129, OPS-130, OPS-131, OPS-134 |
 | 8 | `src/consequence-admission/data-minimization-redaction-policy.ts` | policy | library | n/a | n/a | OPS-130, OPS-135 |
 | 9 | `docs/evidence/financial-reporting-acceptance-live-hybrid/**` | committed evidence | static public artifact | n/a | n/a | OPS-132 |

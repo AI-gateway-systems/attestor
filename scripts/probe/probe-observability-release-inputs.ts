@@ -125,7 +125,7 @@ export async function probeObservabilityReleaseInputs(options?: {
         process.execPath,
         [
           resolve('node_modules/tsx/dist/cli.mjs'),
-          'scripts/render-observability-release-bundle.ts',
+          'scripts/render/render-observability-release-bundle.ts',
           `--provider=${provider}`,
           `--secret-mode=${secretMode}`,
           `--benchmark=${resolve(benchmarkPath)}`,

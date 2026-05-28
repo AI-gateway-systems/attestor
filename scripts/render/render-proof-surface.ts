@@ -1,7 +1,7 @@
 import {
   DEFAULT_PROOF_SURFACE_ARTIFACT_DIR,
   writeProofSurfaceArtifactBundle,
-} from '../src/proof-surface/index.js';
+} from '../../src/proof-surface/index.js';
 
 interface ScriptArgs {
   readonly outDir: string | null;

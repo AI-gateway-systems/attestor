@@ -6,7 +6,7 @@ import { createServer as createTcpServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import EmbeddedPostgres from 'embedded-postgres';
 import { RedisMemoryServer } from 'redis-memory-server';
-import { renderProductionReadinessPacket } from '../scripts/render-production-readiness-packet.ts';
+import { renderProductionReadinessPacket } from '../scripts/render/render-production-readiness-packet.ts';
 import type {
   ProductionStorageMode,
   ProductionStoragePathComponentId,

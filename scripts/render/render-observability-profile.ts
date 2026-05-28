@@ -59,7 +59,7 @@ function main(): void {
   const inputPath = arg('input');
   const profilePath = arg('profile');
   if (!inputPath || !profilePath) {
-    throw new Error('Usage: tsx scripts/render-observability-profile.ts --input=<benchmark.json> --profile=<profile.json> [--output-dir=<dir>]');
+    throw new Error('Usage: tsx scripts/render/render-observability-profile.ts --input=<benchmark.json> --profile=<profile.json> [--output-dir=<dir>]');
   }
 
   const benchmark = readJson<BenchmarkSummary>(inputPath);

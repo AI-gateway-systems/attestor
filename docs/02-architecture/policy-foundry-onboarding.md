@@ -476,7 +476,7 @@ enforcement, or prove non-bypassability.
 The One-Command Self-Onboarding CLI is the first end-to-end local renderer for
 this path. Its contract lives in
 `src/consequence-admission/policy-foundry-self-onboarding-cli.ts`, the renderer
-lives in `scripts/render-policy-foundry-self-onboarding.ts`, is covered by
+lives in `scripts/render/render-policy-foundry-self-onboarding.ts`, is covered by
 `tests/policy-foundry-self-onboarding-cli.test.ts`, and is exposed through
 `npm run policy-foundry:self-onboard` plus
 `test:policy-foundry-self-onboarding-cli`. It turns customer-owned manifests,

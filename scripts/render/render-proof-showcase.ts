@@ -1,14 +1,14 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import type { VerificationKit } from '../src/signing/bundle.js';
+import type { VerificationKit } from '../../src/signing/bundle.js';
 import {
   buildProofShowcasePacket,
   renderProofShowcaseHtml,
   renderProofShowcaseMarkdown,
   type SchemaAttestationLike,
-} from '../src/showcase/proof-showcase.js';
-import { resolveExistingPathInsideAllowedRoots } from './demo-path-boundary.ts';
+} from '../../src/showcase/proof-showcase.js';
+import { resolveExistingPathInsideAllowedRoots } from '../demo-path-boundary.ts';
 
 interface ScriptArgs {
   fromDir: string | null;

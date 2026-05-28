@@ -9,7 +9,7 @@ import {
 } from '../src/consequence-admission/index.js';
 import {
   renderPolicyFoundrySelfOnboarding,
-} from '../scripts/render-policy-foundry-self-onboarding.ts';
+} from '../scripts/render/render-policy-foundry-self-onboarding.ts';
 
 let passed = 0;
 
@@ -198,7 +198,7 @@ function testDescriptorDocsAndPackageSurfaceStayAligned(): void {
   equal(descriptor.appliesPatches, false, 'Self-onboarding descriptor: applies patches is false');
   equal(descriptor.reviewMaterialOnly, true, 'Self-onboarding descriptor: review material only is true');
   includes(doc, 'src/consequence-admission/policy-foundry-self-onboarding-cli.ts', 'Policy Foundry docs: self-onboarding contract is named');
-  includes(doc, 'scripts/render-policy-foundry-self-onboarding.ts', 'Policy Foundry docs: self-onboarding renderer is named');
+  includes(doc, 'scripts/render/render-policy-foundry-self-onboarding.ts', 'Policy Foundry docs: self-onboarding renderer is named');
   includes(doc, 'test:policy-foundry-self-onboarding-cli', 'Policy Foundry docs: self-onboarding test command is named');
   includes(readme, 'npm run policy-foundry:self-onboard', 'README: self-onboarding command is named');
   includes(readme, 'session, coverage, blockers, gate plan, handoff, red-team fixtures', 'README: self-onboarding output is described');
@@ -206,7 +206,7 @@ function testDescriptorDocsAndPackageSurfaceStayAligned(): void {
   includes(tracker, 'Step 01 through Step 12 are complete', 'Deepening tracker: self-onboarding list is complete');
   equal(
     pkg.scripts['policy-foundry:self-onboard'],
-    'tsx scripts/render-policy-foundry-self-onboarding.ts',
+    'tsx scripts/render/render-policy-foundry-self-onboarding.ts',
     'Package: self-onboarding command is exposed',
   );
   equal(

@@ -2,12 +2,12 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { probeObservabilityReleaseInputs } from './probe/probe-observability-release-inputs.ts';
-import { resolveRepoPipelineReadiness } from './repo-pipeline-readiness.ts';
+import { probeObservabilityReleaseInputs } from '../probe/probe-observability-release-inputs.ts';
+import { resolveRepoPipelineReadiness } from '../repo-pipeline-readiness.ts';
 import {
   safeErrorMessage,
   stringifySecretSafe,
-} from './secret-safe-output.ts';
+} from '../secret-safe-output.ts';
 
 type Provider = 'generic' | 'grafana-cloud' | 'grafana-alloy';
 type SecretMode = 'secret' | 'external-secret';
@@ -168,7 +168,7 @@ export async function renderObservabilityPromotionPacket(options?: {
 
   if (environmentInputsComplete) {
     runTsx(
-      'scripts/render-observability-release-bundle.ts',
+      'scripts/render/render-observability-release-bundle.ts',
       [`--provider=${provider}`, `--secret-mode=${secretMode}`, `--benchmark=${benchmarkPath}`, `--output-dir=${releaseBundleDir}`],
       process.env,
     );

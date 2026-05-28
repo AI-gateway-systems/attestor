@@ -41,7 +41,7 @@ function main(): void {
   try {
     const aws = spawnSync(
       process.execPath,
-      ['node_modules/tsx/dist/cli.mjs', 'scripts/render-ha-profile.ts', `--input=${benchmarkPath}`, '--profile=ops/kubernetes/ha/profiles/aws-production.json', `--output-dir=${awsOutputDir}`],
+      ['node_modules/tsx/dist/cli.mjs', 'scripts/render/render-ha-profile.ts', `--input=${benchmarkPath}`, '--profile=ops/kubernetes/ha/profiles/aws-production.json', `--output-dir=${awsOutputDir}`],
       { cwd: resolve('.'), encoding: 'utf8' },
     );
     ok(aws.status === 0, 'HA profile render: AWS render exits successfully');
@@ -59,7 +59,7 @@ function main(): void {
 
     const gke = spawnSync(
       process.execPath,
-      ['node_modules/tsx/dist/cli.mjs', 'scripts/render-ha-profile.ts', `--input=${benchmarkPath}`, '--profile=ops/kubernetes/ha/profiles/gke-production.json', `--output-dir=${gkeOutputDir}`],
+      ['node_modules/tsx/dist/cli.mjs', 'scripts/render/render-ha-profile.ts', `--input=${benchmarkPath}`, '--profile=ops/kubernetes/ha/profiles/gke-production.json', `--output-dir=${gkeOutputDir}`],
       { cwd: resolve('.'), encoding: 'utf8' },
     );
     ok(gke.status === 0, 'HA profile render: GKE render exits successfully');

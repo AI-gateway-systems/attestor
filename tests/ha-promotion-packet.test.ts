@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import EmbeddedPostgres from 'embedded-postgres';
 import { RedisMemoryServer } from 'redis-memory-server';
-import { renderHaPromotionPacket } from '../scripts/render-ha-promotion-packet.ts';
+import { renderHaPromotionPacket } from '../scripts/render/render-ha-promotion-packet.ts';
 
 let passed = 0;
 
