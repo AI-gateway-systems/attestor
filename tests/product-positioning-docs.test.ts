@@ -86,6 +86,7 @@ function testReadmeLinksTheRightDeeperDocsWithoutBecomingALinkWall(): void {
   const readme = readProjectFile('README.md');
 
   includes(readme, '## Start Here', 'Product docs: README exposes a short first-visitor link surface');
+  includes(readme, '[Repository navigator](docs/01-overview/repository-navigator.md)', 'Product docs: README links the repository navigator');
   includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'Product docs: README links the first-run guide');
   includes(readme, '[Golden Path: Refund](docs/02-architecture/golden-refund-shadow-pilot.md)', 'Product docs: README links the first concrete workflow');
   includes(readme, '[First hosted API call](docs/01-overview/hosted-first-api-call.md)', 'Product docs: README links the hosted first call');

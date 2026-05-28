@@ -227,6 +227,7 @@ Attestor targets the action boundary those conversations keep circling around.
 
 ## Start Here
 
+- [Repository navigator](docs/01-overview/repository-navigator.md)
 - [Try Attestor first](docs/01-overview/try-attestor-first.md)
 - [Golden Path: Refund](docs/02-architecture/golden-refund-shadow-pilot.md)
 - [First hosted API call](docs/01-overview/hosted-first-api-call.md)
