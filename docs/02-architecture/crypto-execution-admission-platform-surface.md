@@ -6,7 +6,7 @@ Attestor now exposes the first crypto execution admission layer through:
 
 This is the stable packaged surface after `attestor/crypto-authorization-core`. It is complete for the current execution-admission buildout track and remains inside the Attestor modular monolith rather than becoming a separate deployable service.
 
-## Package Boundary, Not A Hosted Crypto Runtime
+## Package Boundary, Not Hosted Crypto Runtime
 
 This package is a customer-side integration surface. It is not a public hosted
 `/api/v1/crypto/*` route, not a separate crypto runtime, and not a wallet,
