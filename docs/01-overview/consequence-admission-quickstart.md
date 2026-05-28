@@ -188,6 +188,31 @@ it must not return raw component refs, package names, permissions, source URLs,
 generated code, or provider bodies. This does not prove third-party code
 behavior, customer runtime execution, or production supply-chain provenance.
 
+Generic admissions can also run the human-review fatigue guard when the
+request supplies structured `humanReviewFatigue` metadata. This metadata binds
+the proposed action to digest-first review packet state: review surface kind,
+opaque review packet reference, counts, timings, boolean posture, and optional
+thresholds. Missing no-go summaries, missing evidence summaries, missing focus
+areas, missing next safe step, excessive review load, unprioritized blockers,
+raw payload storage, or auto-enforce requests can hold or block before
+downstream execution. The admission response carries only outcome, reason
+codes, counts, booleans, and a digest; it must not return raw review packets,
+reviewer notes, customer payloads, or private case text. This does not prove
+live reviewer staffing, reviewer behavior, or customer review workflow
+operation.
+
+Generic admissions can also run the multi-agent delegation guard when the
+request supplies structured `multiAgentDelegation` metadata. This metadata
+binds the proposed action to a digest-first chain of agent, service-account,
+workflow, tool, human, and approver principals. Missing agent identity,
+missing authority, missing scope, unapproved delegated scope, delegation
+cycles, self-approval, cross-tenant unscoped delegation, or over-depth chains
+can hold or block before downstream execution. The admission response carries
+only outcome, reason codes, counts, and a digest; it must not return raw
+principal refs, raw delegation traces, private tenant identifiers, customer
+prompts, or tool payloads. This does not prove live IAM, customer agent
+runtime binding, transport authentication, or customer PEP no-bypass.
+
 Generic admissions can also run the stale authority/policy guard when the
 request supplies structured `staleAuthorityPolicy` metadata. This metadata
 binds the proposed action to a policy version, the current policy version,

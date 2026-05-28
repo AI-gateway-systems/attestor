@@ -123,6 +123,15 @@ import {
   type ConsequenceFailureModeGuardCoverageMatrix,
 } from './failure-mode-guard-coverage.js';
 import {
+  CONSEQUENCE_HUMAN_REVIEW_FATIGUE_OUTCOMES,
+  CONSEQUENCE_HUMAN_REVIEW_FATIGUE_REASON_CODES,
+  CONSEQUENCE_HUMAN_REVIEW_FATIGUE_GUARD_VERSION,
+  CONSEQUENCE_HUMAN_REVIEW_SURFACE_KINDS,
+  evaluateConsequenceHumanReviewFatigue,
+  type ConsequenceHumanReviewFatigueDecision,
+  type EvaluateConsequenceHumanReviewFatigueInput,
+} from './human-review-fatigue-guard.js';
+import {
   CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_COMPONENT_KINDS,
   CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_CRITICALITY,
   CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_OUTCOMES,
@@ -134,9 +143,15 @@ import {
   type ConsequenceAgenticSupplyChainDecision,
 } from './agentic-supply-chain-guard.js';
 import {
+  CONSEQUENCE_MULTI_AGENT_DELEGATION_PRINCIPAL_KINDS,
   CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_OUTCOMES,
   CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_VERSION,
   CONSEQUENCE_MULTI_AGENT_DELEGATION_REASON_CODES,
+  CONSEQUENCE_MULTI_AGENT_DELEGATION_ROLES,
+  evaluateConsequenceMultiAgentDelegation,
+  type ConsequenceMultiAgentDelegationDecision,
+  type ConsequenceMultiAgentDelegationPrincipal,
+  type EvaluateConsequenceMultiAgentDelegationInput,
 } from './multi-agent-delegation-guard.js';
 import {
   CONSEQUENCE_FAILURE_MODE_RUNTIME_EXTENSION_OUTCOMES,
@@ -289,6 +304,12 @@ ReadonlySet<string> = new Set(CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_REASON_CODES);
 
 const GENERIC_ADMISSION_DECISION_CONTEXT_DRIFT_REASON_CODES:
 ReadonlySet<string> = new Set(CONSEQUENCE_DECISION_CONTEXT_DRIFT_REASON_CODES);
+
+const GENERIC_ADMISSION_HUMAN_REVIEW_FATIGUE_REASON_CODES:
+ReadonlySet<string> = new Set(CONSEQUENCE_HUMAN_REVIEW_FATIGUE_REASON_CODES);
+
+const GENERIC_ADMISSION_MULTI_AGENT_DELEGATION_REASON_CODES:
+ReadonlySet<string> = new Set(CONSEQUENCE_MULTI_AGENT_DELEGATION_REASON_CODES);
 
 export const GENERIC_ADMISSION_SHADOW_DECISIONS = [
   'would_admit',
@@ -644,6 +665,8 @@ export interface ConsequenceAdmissionDescriptor {
   readonly protectedAdmissionE2eProofPlanVersion:
     typeof PROTECTED_ADMISSION_E2E_PROOF_PLAN_VERSION;
   readonly agenticSupplyChainGuardVersion: typeof CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_VERSION;
+  readonly humanReviewFatigueGuardVersion:
+    typeof CONSEQUENCE_HUMAN_REVIEW_FATIGUE_GUARD_VERSION;
   readonly decisionContextDriftBindingVersion:
     typeof CONSEQUENCE_DECISION_CONTEXT_DRIFT_BINDING_VERSION;
   readonly multiAgentDelegationGuardVersion: typeof CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_VERSION;
@@ -690,6 +713,8 @@ export interface ConsequenceAdmissionDescriptor {
   readonly adapterOutcomes: typeof CONSEQUENCE_ADMISSION_ADAPTER_OUTCOMES;
   readonly agenticSupplyChainGuardOutcomes: typeof CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_OUTCOMES;
   readonly agenticSupplyChainGuardReasonCodes: typeof CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_REASON_CODES;
+  readonly humanReviewFatigueGuardOutcomes: typeof CONSEQUENCE_HUMAN_REVIEW_FATIGUE_OUTCOMES;
+  readonly humanReviewFatigueGuardReasonCodes: typeof CONSEQUENCE_HUMAN_REVIEW_FATIGUE_REASON_CODES;
   readonly decisionContextDriftOutcomes: typeof CONSEQUENCE_DECISION_CONTEXT_DRIFT_OUTCOMES;
   readonly decisionContextDriftReasonCodes:
     typeof CONSEQUENCE_DECISION_CONTEXT_DRIFT_REASON_CODES;
@@ -819,6 +844,15 @@ export interface GenericAdmissionAgenticSupplyChain {
   readonly components: readonly GenericAdmissionAgenticSupplyChainComponent[];
 }
 
+export type GenericAdmissionHumanReviewFatigue =
+  Omit<EvaluateConsequenceHumanReviewFatigueInput, 'generatedAt' | 'actionSurface' | 'action'>;
+
+export type GenericAdmissionMultiAgentDelegationPrincipal =
+  ConsequenceMultiAgentDelegationPrincipal;
+
+export type GenericAdmissionMultiAgentDelegation =
+  Omit<EvaluateConsequenceMultiAgentDelegationInput, 'generatedAt' | 'actionSurface' | 'action'>;
+
 export interface CreateGenericAdmissionInput {
   readonly mode: GenericAdmissionMode;
   readonly actor: string;
@@ -849,6 +883,8 @@ export interface CreateGenericAdmissionInput {
     readonly ConsequenceToolResultEvidenceClass[] | null;
   readonly toolResults?: readonly GenericAdmissionToolResult[] | null;
   readonly agenticSupplyChain?: GenericAdmissionAgenticSupplyChain | null;
+  readonly humanReviewFatigue?: GenericAdmissionHumanReviewFatigue | null;
+  readonly multiAgentDelegation?: GenericAdmissionMultiAgentDelegation | null;
   readonly staleAuthorityPolicy?: GenericAdmissionStaleAuthorityPolicy | null;
   readonly decisionContextDrift?: GenericAdmissionDecisionContextDrift | null;
   readonly noGoLedgerRef?: string | null;
@@ -876,6 +912,8 @@ export interface GenericAdmissionModeEvaluation {
   readonly scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null;
   readonly toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null;
   readonly agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null;
+  readonly humanReviewFatigueGuardDecision: ConsequenceHumanReviewFatigueDecision | null;
+  readonly multiAgentDelegationGuardDecision: ConsequenceMultiAgentDelegationDecision | null;
   readonly staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null;
   readonly decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null;
   readonly noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null;
@@ -1510,6 +1548,228 @@ function normalizeGenericAgenticSupplyChain(
   });
 }
 
+function normalizeGenericHumanReviewFatigueMetrics(
+  value: unknown,
+): GenericAdmissionHumanReviewFatigue['metrics'] {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error(
+      'Consequence admission humanReviewFatigue.metrics must be an object when provided.',
+    );
+  }
+  return Object.freeze({
+    totalReviewItems: normalizeOptionalNonNegativeFiniteNumber(
+      value.totalReviewItems,
+      'humanReviewFatigue.metrics.totalReviewItems',
+    ),
+    lowPriorityItems: normalizeOptionalNonNegativeFiniteNumber(
+      value.lowPriorityItems,
+      'humanReviewFatigue.metrics.lowPriorityItems',
+    ),
+    blockerItems: normalizeOptionalNonNegativeFiniteNumber(
+      value.blockerItems,
+      'humanReviewFatigue.metrics.blockerItems',
+    ),
+    noGoItems: normalizeOptionalNonNegativeFiniteNumber(
+      value.noGoItems,
+      'humanReviewFatigue.metrics.noGoItems',
+    ),
+    missingEvidenceItems: normalizeOptionalNonNegativeFiniteNumber(
+      value.missingEvidenceItems,
+      'humanReviewFatigue.metrics.missingEvidenceItems',
+    ),
+    focusAreaCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.focusAreaCount,
+      'humanReviewFatigue.metrics.focusAreaCount',
+    ),
+    evidenceDigestCardCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.evidenceDigestCardCount,
+      'humanReviewFatigue.metrics.evidenceDigestCardCount',
+    ),
+    taskCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.taskCount,
+      'humanReviewFatigue.metrics.taskCount',
+    ),
+    findingCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.findingCount,
+      'humanReviewFatigue.metrics.findingCount',
+    ),
+    reviewerInstructionCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.reviewerInstructionCount,
+      'humanReviewFatigue.metrics.reviewerInstructionCount',
+    ),
+    estimatedReviewMinutes: normalizeOptionalNonNegativeFiniteNumber(
+      value.estimatedReviewMinutes,
+      'humanReviewFatigue.metrics.estimatedReviewMinutes',
+    ),
+    blockersFirst: readOptionalBoolean(value, 'blockersFirst'),
+    hasNoGoSummary: readOptionalBoolean(value, 'hasNoGoSummary'),
+    hasMissingEvidenceSummary: readOptionalBoolean(value, 'hasMissingEvidenceSummary'),
+    hasReviewerFocusAreas: readOptionalBoolean(value, 'hasReviewerFocusAreas'),
+    hasNextSafeStep: readOptionalBoolean(value, 'hasNextSafeStep'),
+    approvalRequired: readOptionalBoolean(value, 'approvalRequired'),
+    rawPayloadStored: readOptionalBoolean(value, 'rawPayloadStored'),
+    autoEnforceRequested: readOptionalBoolean(value, 'autoEnforceRequested'),
+    reviewDecisionCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.reviewDecisionCount,
+      'humanReviewFatigue.metrics.reviewDecisionCount',
+    ),
+    approvedDecisionCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.approvedDecisionCount,
+      'humanReviewFatigue.metrics.approvedDecisionCount',
+    ),
+    distinctReviewerCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.distinctReviewerCount,
+      'humanReviewFatigue.metrics.distinctReviewerCount',
+    ),
+    medianDecisionSeconds: normalizeOptionalNonNegativeFiniteNumber(
+      value.medianDecisionSeconds,
+      'humanReviewFatigue.metrics.medianDecisionSeconds',
+    ),
+    minimumDecisionSeconds: normalizeOptionalNonNegativeFiniteNumber(
+      value.minimumDecisionSeconds,
+      'humanReviewFatigue.metrics.minimumDecisionSeconds',
+    ),
+    consecutiveApprovalCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.consecutiveApprovalCount,
+      'humanReviewFatigue.metrics.consecutiveApprovalCount',
+    ),
+    reviewerBehaviorTelemetryPresent:
+      readOptionalBoolean(value, 'reviewerBehaviorTelemetryPresent'),
+  });
+}
+
+function normalizeGenericHumanReviewFatigueThresholds(
+  value: unknown,
+): GenericAdmissionHumanReviewFatigue['thresholds'] {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error(
+      'Consequence admission humanReviewFatigue.thresholds must be an object when provided.',
+    );
+  }
+  return Object.freeze({
+    maxReviewItems: normalizeOptionalNonNegativeFiniteNumber(
+      value.maxReviewItems,
+      'humanReviewFatigue.thresholds.maxReviewItems',
+    ),
+    maxLowPriorityRatio: normalizeOptionalNonNegativeFiniteNumber(
+      value.maxLowPriorityRatio,
+      'humanReviewFatigue.thresholds.maxLowPriorityRatio',
+    ),
+    maxReviewerInstructionCount: normalizeOptionalNonNegativeFiniteNumber(
+      value.maxReviewerInstructionCount,
+      'humanReviewFatigue.thresholds.maxReviewerInstructionCount',
+    ),
+    maxEstimatedReviewMinutes: normalizeOptionalNonNegativeFiniteNumber(
+      value.maxEstimatedReviewMinutes,
+      'humanReviewFatigue.thresholds.maxEstimatedReviewMinutes',
+    ),
+    minReviewDecisionCountForBehaviorSignals: normalizeOptionalNonNegativeFiniteNumber(
+      value.minReviewDecisionCountForBehaviorSignals,
+      'humanReviewFatigue.thresholds.minReviewDecisionCountForBehaviorSignals',
+    ),
+    maxApprovalRatio: normalizeOptionalNonNegativeFiniteNumber(
+      value.maxApprovalRatio,
+      'humanReviewFatigue.thresholds.maxApprovalRatio',
+    ),
+    minMedianDecisionSeconds: normalizeOptionalNonNegativeFiniteNumber(
+      value.minMedianDecisionSeconds,
+      'humanReviewFatigue.thresholds.minMedianDecisionSeconds',
+    ),
+    minDistinctReviewers: normalizeOptionalNonNegativeFiniteNumber(
+      value.minDistinctReviewers,
+      'humanReviewFatigue.thresholds.minDistinctReviewers',
+    ),
+    maxConsecutiveApprovals: normalizeOptionalNonNegativeFiniteNumber(
+      value.maxConsecutiveApprovals,
+      'humanReviewFatigue.thresholds.maxConsecutiveApprovals',
+    ),
+  });
+}
+
+function normalizeGenericHumanReviewFatigue(
+  value: unknown,
+): GenericAdmissionHumanReviewFatigue | null {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error(
+      'Consequence admission humanReviewFatigue must be an object when provided.',
+    );
+  }
+  const reviewSurfaceKind = readOptionalString(value, 'reviewSurfaceKind');
+  return Object.freeze({
+    reviewSurfaceKind: reviewSurfaceKind === null
+      ? null
+      : normalizeEnumValue(
+          reviewSurfaceKind,
+          CONSEQUENCE_HUMAN_REVIEW_SURFACE_KINDS,
+          'humanReviewFatigue.reviewSurfaceKind',
+        ),
+    reviewPacketRef: readOptionalString(value, 'reviewPacketRef'),
+    metrics: normalizeGenericHumanReviewFatigueMetrics(value.metrics),
+    thresholds: normalizeGenericHumanReviewFatigueThresholds(value.thresholds),
+  });
+}
+
+function normalizeGenericMultiAgentDelegationPrincipals(
+  value: unknown,
+): readonly GenericAdmissionMultiAgentDelegationPrincipal[] | null {
+  if (value === undefined || value === null) return null;
+  if (!Array.isArray(value)) {
+    throw new Error(
+      'Consequence admission multiAgentDelegation.principalChain must be an array when provided.',
+    );
+  }
+  return Object.freeze(
+    value.map((entry, index) => {
+      const field = `multiAgentDelegation.principalChain[${index}]`;
+      if (!isRecord(entry)) {
+        throw new Error(`Consequence admission ${field} must be an object.`);
+      }
+      return Object.freeze({
+        principalRef: readRequiredString(entry, 'principalRef'),
+        principalKind: normalizeEnumValue(
+          readRequiredString(entry, 'principalKind'),
+          CONSEQUENCE_MULTI_AGENT_DELEGATION_PRINCIPAL_KINDS,
+          `${field}.principalKind`,
+        ),
+        role: normalizeEnumValue(
+          readRequiredString(entry, 'role'),
+          CONSEQUENCE_MULTI_AGENT_DELEGATION_ROLES,
+          `${field}.role`,
+        ),
+        tenantId: readOptionalString(entry, 'tenantId'),
+        identityDigest: readOptionalString(entry, 'identityDigest'),
+        authorityDigest: readOptionalString(entry, 'authorityDigest'),
+        scopeDigest: readOptionalString(entry, 'scopeDigest'),
+        transportBindingDigest: readOptionalString(entry, 'transportBindingDigest'),
+      });
+    }),
+  );
+}
+
+function normalizeGenericMultiAgentDelegation(
+  value: unknown,
+): GenericAdmissionMultiAgentDelegation | null {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error(
+      'Consequence admission multiAgentDelegation must be an object when provided.',
+    );
+  }
+  return Object.freeze({
+    principalChain: normalizeGenericMultiAgentDelegationPrincipals(value.principalChain),
+    maxDelegationDepth: normalizeOptionalPositiveInteger(
+      value.maxDelegationDepth,
+      'multiAgentDelegation.maxDelegationDepth',
+    ),
+    requestedDelegatedScopeDigest: readOptionalString(value, 'requestedDelegatedScopeDigest'),
+    approvedDelegatedScopeDigest: readOptionalString(value, 'approvedDelegatedScopeDigest'),
+    delegatingAuthorityDigest: readOptionalString(value, 'delegatingAuthorityDigest'),
+  });
+}
+
 function normalizeGenericStaleAuthorityPolicy(
   value: unknown,
 ): GenericAdmissionStaleAuthorityPolicy | null {
@@ -1953,6 +2213,8 @@ function normalizeCreateGenericAdmissionInput(input: unknown): CreateGenericAdmi
     ),
     toolResults: normalizeGenericToolResults(input.toolResults),
     agenticSupplyChain: normalizeGenericAgenticSupplyChain(input.agenticSupplyChain),
+    humanReviewFatigue: normalizeGenericHumanReviewFatigue(input.humanReviewFatigue),
+    multiAgentDelegation: normalizeGenericMultiAgentDelegation(input.multiAgentDelegation),
     staleAuthorityPolicy: normalizeGenericStaleAuthorityPolicy(input.staleAuthorityPolicy),
     decisionContextDrift: normalizeGenericDecisionContextDrift(input.decisionContextDrift),
     noGoLedgerRef: readOptionalString(input, 'noGoLedgerRef'),
@@ -2132,6 +2394,48 @@ function agenticSupplyChainReviewReasonCodes(
   return Object.freeze([...decision.reasonCodes]);
 }
 
+function genericAdmissionHumanReviewFatigueGuardDecisionFor(
+  input: CreateGenericAdmissionInput,
+): ConsequenceHumanReviewFatigueDecision | null {
+  if (input.humanReviewFatigue === null || input.humanReviewFatigue === undefined) {
+    return null;
+  }
+  return evaluateConsequenceHumanReviewFatigue({
+    ...input.humanReviewFatigue,
+    generatedAt: input.decidedAt ?? input.requestedAt ?? null,
+    actionSurface: input.domain,
+    action: input.action,
+  });
+}
+
+function humanReviewFatigueReviewReasonCodes(
+  decision: ConsequenceHumanReviewFatigueDecision | null,
+): readonly string[] {
+  if (decision === null || decision.outcome === 'pass') return Object.freeze([]);
+  return Object.freeze([...decision.reasonCodes]);
+}
+
+function genericAdmissionMultiAgentDelegationGuardDecisionFor(
+  input: CreateGenericAdmissionInput,
+): ConsequenceMultiAgentDelegationDecision | null {
+  if (input.multiAgentDelegation === null || input.multiAgentDelegation === undefined) {
+    return null;
+  }
+  return evaluateConsequenceMultiAgentDelegation({
+    ...input.multiAgentDelegation,
+    generatedAt: input.decidedAt ?? input.requestedAt ?? null,
+    actionSurface: input.domain,
+    action: input.action,
+  });
+}
+
+function multiAgentDelegationReviewReasonCodes(
+  decision: ConsequenceMultiAgentDelegationDecision | null,
+): readonly string[] {
+  if (decision === null || decision.outcome === 'pass') return Object.freeze([]);
+  return Object.freeze([...decision.reasonCodes]);
+}
+
 function genericAdmissionStaleAuthorityPolicyGuardDecisionFor(
   input: CreateGenericAdmissionInput,
 ): ConsequenceStaleAuthorityPolicyDecision | null {
@@ -2214,6 +2518,8 @@ function genericAdmissionReviewReasons(
   scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null,
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
   agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null,
+  humanReviewFatigueGuardDecision: ConsequenceHumanReviewFatigueDecision | null,
+  multiAgentDelegationGuardDecision: ConsequenceMultiAgentDelegationDecision | null,
   staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
   decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null,
   noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null,
@@ -2244,6 +2550,8 @@ function genericAdmissionReviewReasons(
   reasons.push(...scopeExplosionReviewReasonCodes(scopeExplosionGuardDecision));
   reasons.push(...toolResultGuardReviewReasonCodes(toolResultGuardDecision));
   reasons.push(...agenticSupplyChainReviewReasonCodes(agenticSupplyChainGuardDecision));
+  reasons.push(...humanReviewFatigueReviewReasonCodes(humanReviewFatigueGuardDecision));
+  reasons.push(...multiAgentDelegationReviewReasonCodes(multiAgentDelegationGuardDecision));
   reasons.push(...staleAuthorityPolicyReviewReasonCodes(staleAuthorityPolicyGuardDecision));
   reasons.push(...decisionContextDriftReviewReasonCodes(decisionContextDriftDecision));
   reasons.push(...noGoConditionLedgerReviewReasonCodes(noGoConditionLedgerDecision));
@@ -2271,6 +2579,8 @@ function genericAdmissionShadowDecisionFor(
   scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null,
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
   agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null,
+  humanReviewFatigueGuardDecision: ConsequenceHumanReviewFatigueDecision | null,
+  multiAgentDelegationGuardDecision: ConsequenceMultiAgentDelegationDecision | null,
   staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
   decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null,
   noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null,
@@ -2280,6 +2590,8 @@ function genericAdmissionShadowDecisionFor(
   if (scopeExplosionGuardDecision?.outcome === 'block') return 'would_block';
   if (toolResultGuardDecision?.outcome === 'block') return 'would_block';
   if (agenticSupplyChainGuardDecision?.outcome === 'block') return 'would_block';
+  if (humanReviewFatigueGuardDecision?.outcome === 'block') return 'would_block';
+  if (multiAgentDelegationGuardDecision?.outcome === 'block') return 'would_block';
   if (staleAuthorityPolicyGuardDecision?.outcome === 'block') return 'would_block';
   if (decisionContextDriftDecision?.outcome === 'block') return 'would_block';
   if (noGoConditionLedgerDecision?.outcome === 'block') return 'would_block';
@@ -2327,6 +2639,8 @@ function genericReasonCodes(
   scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null,
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
   agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null,
+  humanReviewFatigueGuardDecision: ConsequenceHumanReviewFatigueDecision | null,
+  multiAgentDelegationGuardDecision: ConsequenceMultiAgentDelegationDecision | null,
   staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
   decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null,
 ): readonly string[] {
@@ -2337,6 +2651,8 @@ function genericReasonCodes(
     ...(scopeExplosionGuardDecision?.reasonCodes ?? []),
     ...(toolResultGuardDecision?.reasonCodes ?? []),
     ...(agenticSupplyChainGuardDecision?.reasonCodes ?? []),
+    ...(humanReviewFatigueGuardDecision?.reasonCodes ?? []),
+    ...(multiAgentDelegationGuardDecision?.reasonCodes ?? []),
     ...(staleAuthorityPolicyGuardDecision?.reasonCodes ?? []),
     ...(decisionContextDriftDecision?.reasonCodes ?? []),
   ];
@@ -2362,6 +2678,10 @@ function createGenericAdmissionEvaluation(
   const toolResultGuardDecision = genericAdmissionToolResultGuardDecisionFor(input);
   const agenticSupplyChainGuardDecision =
     genericAdmissionAgenticSupplyChainGuardDecisionFor(input);
+  const humanReviewFatigueGuardDecision =
+    genericAdmissionHumanReviewFatigueGuardDecisionFor(input);
+  const multiAgentDelegationGuardDecision =
+    genericAdmissionMultiAgentDelegationGuardDecisionFor(input);
   const staleAuthorityPolicyGuardDecision =
     genericAdmissionStaleAuthorityPolicyGuardDecisionFor(input);
   const decisionContextDriftDecision =
@@ -2374,6 +2694,8 @@ function createGenericAdmissionEvaluation(
     scopeExplosionGuardDecision,
     toolResultGuardDecision,
     agenticSupplyChainGuardDecision,
+    humanReviewFatigueGuardDecision,
+    multiAgentDelegationGuardDecision,
     staleAuthorityPolicyGuardDecision,
     decisionContextDriftDecision,
     noGoConditionLedgerDecision,
@@ -2386,6 +2708,8 @@ function createGenericAdmissionEvaluation(
     scopeExplosionGuardDecision,
     toolResultGuardDecision,
     agenticSupplyChainGuardDecision,
+    humanReviewFatigueGuardDecision,
+    multiAgentDelegationGuardDecision,
     staleAuthorityPolicyGuardDecision,
     decisionContextDriftDecision,
     noGoConditionLedgerDecision,
@@ -2406,6 +2730,8 @@ function createGenericAdmissionEvaluation(
       scopeExplosionGuardDecision,
       toolResultGuardDecision,
       agenticSupplyChainGuardDecision,
+      humanReviewFatigueGuardDecision,
+      multiAgentDelegationGuardDecision,
       staleAuthorityPolicyGuardDecision,
       decisionContextDriftDecision,
     ),
@@ -2414,6 +2740,8 @@ function createGenericAdmissionEvaluation(
     scopeExplosionGuardDecision,
     toolResultGuardDecision,
     agenticSupplyChainGuardDecision,
+    humanReviewFatigueGuardDecision,
+    multiAgentDelegationGuardDecision,
     staleAuthorityPolicyGuardDecision,
     decisionContextDriftDecision,
     noGoConditionLedgerDecision,
@@ -2425,6 +2753,7 @@ function reasonCodesForCheck(
   reasonCodes: readonly string[],
 ): readonly string[] {
   const matches = reasonCodes.filter((reason) => {
+    if (reason.endsWith('-pass')) return false;
     if (kind === 'policy') {
       return reason.startsWith('policy-') ||
         reason.startsWith('current-policy-') ||
@@ -2442,6 +2771,7 @@ function reasonCodesForCheck(
         reason.startsWith('approval-') ||
         reason === 'supply-chain-owner-authority-missing' ||
         reason === 'supply-chain-review-missing' ||
+        GENERIC_ADMISSION_MULTI_AGENT_DELEGATION_REASON_CODES.has(reason) ||
         GENERIC_ADMISSION_AUTHORITY_GUARD_REASON_CODES.has(reason) ||
         GENERIC_ADMISSION_APPROVAL_GUARD_REASON_CODES.has(reason);
     }
@@ -2449,6 +2779,7 @@ function reasonCodesForCheck(
       return reason.startsWith('evidence-') ||
         GENERIC_ADMISSION_TOOL_RESULT_REASON_CODES.has(reason) ||
         GENERIC_ADMISSION_AGENTIC_SUPPLY_CHAIN_REASON_CODES.has(reason) ||
+        GENERIC_ADMISSION_HUMAN_REVIEW_FATIGUE_REASON_CODES.has(reason) ||
         GENERIC_ADMISSION_DECISION_CONTEXT_DRIFT_REASON_CODES.has(reason);
     }
     if (kind === 'enforcement') {
@@ -2508,6 +2839,9 @@ function createGenericAdmissionChecks(
               ...(evaluation.approvalGuardDecision !== null
                 ? [evaluation.approvalGuardDecision.digest]
                 : []),
+              ...(evaluation.multiAgentDelegationGuardDecision !== null
+                ? [evaluation.multiAgentDelegationGuardDecision.digest]
+                : []),
             ]
           : kind === 'policy'
             ? [
@@ -2524,6 +2858,9 @@ function createGenericAdmissionChecks(
               ...(evaluation.decisionContextDriftDecision !== null &&
               (kind === 'evidence' || kind === 'freshness')
                 ? [evaluation.decisionContextDriftDecision.digest]
+                : []),
+              ...(evaluation.humanReviewFatigueGuardDecision !== null && kind === 'evidence'
+                ? [evaluation.humanReviewFatigueGuardDecision.digest]
                 : []),
             ];
       return createConsequenceAdmissionCheck({
@@ -2702,6 +3039,40 @@ function genericAdmissionDimensions(
       evaluation.agenticSupplyChainGuardDecision?.counts.overbroadPermissionCount ?? 0,
     agenticSupplyChainUnreviewedGeneratedArtifactCount:
       evaluation.agenticSupplyChainGuardDecision?.counts.unreviewedGeneratedArtifactCount ?? 0,
+    humanReviewFatigueGuardOutcome:
+      evaluation.humanReviewFatigueGuardDecision?.outcome ?? null,
+    humanReviewFatigueGuardDigest:
+      evaluation.humanReviewFatigueGuardDecision?.digest ?? null,
+    humanReviewTotalReviewItems:
+      evaluation.humanReviewFatigueGuardDecision?.observed.totalReviewItems ?? 0,
+    humanReviewLowPriorityRatio:
+      evaluation.humanReviewFatigueGuardDecision?.observed.lowPriorityRatio ?? 0,
+    humanReviewNoGoItems:
+      evaluation.humanReviewFatigueGuardDecision?.observed.noGoItems ?? 0,
+    humanReviewMissingEvidenceItems:
+      evaluation.humanReviewFatigueGuardDecision?.observed.missingEvidenceItems ?? 0,
+    humanReviewApprovalRatio:
+      evaluation.humanReviewFatigueGuardDecision?.observed.approvalRatio ?? 0,
+    humanReviewRawPayloadStored:
+      evaluation.humanReviewFatigueGuardDecision?.observed.rawPayloadStored ?? false,
+    humanReviewAutoEnforceRequested:
+      evaluation.humanReviewFatigueGuardDecision?.observed.autoEnforceRequested ?? false,
+    multiAgentDelegationGuardOutcome:
+      evaluation.multiAgentDelegationGuardDecision?.outcome ?? null,
+    multiAgentDelegationGuardDigest:
+      evaluation.multiAgentDelegationGuardDecision?.digest ?? null,
+    multiAgentDelegationPrincipalCount:
+      evaluation.multiAgentDelegationGuardDecision?.counts.principalCount ?? 0,
+    multiAgentDelegationAgentPrincipalCount:
+      evaluation.multiAgentDelegationGuardDecision?.counts.agentPrincipalCount ?? 0,
+    multiAgentDelegationMissingIdentityCount:
+      evaluation.multiAgentDelegationGuardDecision?.counts.missingIdentityCount ?? 0,
+    multiAgentDelegationMissingAuthorityCount:
+      evaluation.multiAgentDelegationGuardDecision?.counts.missingAuthorityCount ?? 0,
+    multiAgentDelegationMissingScopeCount:
+      evaluation.multiAgentDelegationGuardDecision?.counts.missingScopeCount ?? 0,
+    multiAgentDelegationDistinctTenantCount:
+      evaluation.multiAgentDelegationGuardDecision?.counts.distinctTenantCount ?? 0,
     staleAuthorityPolicyGuardOutcome:
       evaluation.staleAuthorityPolicyGuardDecision?.outcome ?? null,
     staleAuthorityPolicyGuardDigest:
@@ -3962,6 +4333,7 @@ ConsequenceAdmissionDescriptor {
     customerPepAdoptionPackageVersion: CUSTOMER_PEP_ADOPTION_PACKAGE_VERSION,
     protectedAdmissionE2eProofPlanVersion: PROTECTED_ADMISSION_E2E_PROOF_PLAN_VERSION,
     agenticSupplyChainGuardVersion: CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_VERSION,
+    humanReviewFatigueGuardVersion: CONSEQUENCE_HUMAN_REVIEW_FATIGUE_GUARD_VERSION,
     decisionContextDriftBindingVersion:
       CONSEQUENCE_DECISION_CONTEXT_DRIFT_BINDING_VERSION,
     multiAgentDelegationGuardVersion: CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_VERSION,
@@ -4007,6 +4379,8 @@ ConsequenceAdmissionDescriptor {
     adapterOutcomes: CONSEQUENCE_ADMISSION_ADAPTER_OUTCOMES,
     agenticSupplyChainGuardOutcomes: CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_OUTCOMES,
     agenticSupplyChainGuardReasonCodes: CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_REASON_CODES,
+    humanReviewFatigueGuardOutcomes: CONSEQUENCE_HUMAN_REVIEW_FATIGUE_OUTCOMES,
+    humanReviewFatigueGuardReasonCodes: CONSEQUENCE_HUMAN_REVIEW_FATIGUE_REASON_CODES,
     decisionContextDriftOutcomes: CONSEQUENCE_DECISION_CONTEXT_DRIFT_OUTCOMES,
     decisionContextDriftReasonCodes: CONSEQUENCE_DECISION_CONTEXT_DRIFT_REASON_CODES,
     multiAgentDelegationGuardOutcomes: CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_OUTCOMES,

@@ -957,6 +957,179 @@
               }
             }
           },
+          "humanReviewFatigue": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Digest-first human-review packet metadata for the human-review fatigue guard. Raw review packets, reviewer notes, customer payloads, and private case text must not be included.",
+            "additionalProperties": false,
+            "properties": {
+              "reviewSurfaceKind": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "policy-foundry-hosted-review-surface",
+                  "external-review-packet",
+                  "release-reviewer-queue",
+                  "audit-evidence-export",
+                  "custom-review-packet",
+                  null
+                ]
+              },
+              "reviewPacketRef": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Opaque review packet reference only."
+              },
+              "metrics": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": false,
+                "description": "Structured review packet and reviewer-behavior measurements. These are counts, booleans, and timings only.",
+                "properties": {
+                  "totalReviewItems": { "type": [ "number", "null" ], "minimum": 0 },
+                  "lowPriorityItems": { "type": [ "number", "null" ], "minimum": 0 },
+                  "blockerItems": { "type": [ "number", "null" ], "minimum": 0 },
+                  "noGoItems": { "type": [ "number", "null" ], "minimum": 0 },
+                  "missingEvidenceItems": { "type": [ "number", "null" ], "minimum": 0 },
+                  "focusAreaCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "evidenceDigestCardCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "taskCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "findingCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "reviewerInstructionCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "estimatedReviewMinutes": { "type": [ "number", "null" ], "minimum": 0 },
+                  "blockersFirst": { "type": [ "boolean", "null" ] },
+                  "hasNoGoSummary": { "type": [ "boolean", "null" ] },
+                  "hasMissingEvidenceSummary": { "type": [ "boolean", "null" ] },
+                  "hasReviewerFocusAreas": { "type": [ "boolean", "null" ] },
+                  "hasNextSafeStep": { "type": [ "boolean", "null" ] },
+                  "approvalRequired": { "type": [ "boolean", "null" ] },
+                  "rawPayloadStored": { "type": [ "boolean", "null" ] },
+                  "autoEnforceRequested": { "type": [ "boolean", "null" ] },
+                  "reviewDecisionCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "approvedDecisionCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "distinctReviewerCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "medianDecisionSeconds": { "type": [ "number", "null" ], "minimum": 0 },
+                  "minimumDecisionSeconds": { "type": [ "number", "null" ], "minimum": 0 },
+                  "consecutiveApprovalCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "reviewerBehaviorTelemetryPresent": { "type": [ "boolean", "null" ] }
+                }
+              },
+              "thresholds": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": false,
+                "description": "Optional customer/operator thresholds for the review-fatigue guard.",
+                "properties": {
+                  "maxReviewItems": { "type": [ "number", "null" ], "minimum": 0 },
+                  "maxLowPriorityRatio": { "type": [ "number", "null" ], "minimum": 0 },
+                  "maxReviewerInstructionCount": { "type": [ "number", "null" ], "minimum": 0 },
+                  "maxEstimatedReviewMinutes": { "type": [ "number", "null" ], "minimum": 0 },
+                  "minReviewDecisionCountForBehaviorSignals": { "type": [ "number", "null" ], "minimum": 0 },
+                  "maxApprovalRatio": { "type": [ "number", "null" ], "minimum": 0 },
+                  "minMedianDecisionSeconds": { "type": [ "number", "null" ], "minimum": 0 },
+                  "minDistinctReviewers": { "type": [ "number", "null" ], "minimum": 0 },
+                  "maxConsecutiveApprovals": { "type": [ "number", "null" ], "minimum": 0 }
+                }
+              }
+            }
+          },
+          "multiAgentDelegation": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Digest-first multi-agent delegation metadata for agent chains, service accounts, workflows, tools, and approvers. Raw delegation traces, customer prompts, and private tenant identifiers must not be returned.",
+            "additionalProperties": false,
+            "properties": {
+              "principalChain": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "principalRef",
+                    "principalKind",
+                    "role"
+                  ],
+                  "properties": {
+                    "principalRef": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Opaque principal reference only."
+                    },
+                    "principalKind": {
+                      "type": "string",
+                      "enum": [
+                        "human-user",
+                        "ai-agent",
+                        "service-account",
+                        "workflow",
+                        "tool",
+                        "unknown"
+                      ]
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "originator",
+                        "delegator",
+                        "delegate",
+                        "executor",
+                        "approver",
+                        "auditor"
+                      ]
+                    },
+                    "tenantId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Opaque tenant label from the trusted integration; responses expose only digest/count evidence."
+                    },
+                    "identityDigest": { "type": [ "string", "null" ] },
+                    "authorityDigest": { "type": [ "string", "null" ] },
+                    "scopeDigest": { "type": [ "string", "null" ] },
+                    "transportBindingDigest": { "type": [ "string", "null" ] }
+                  }
+                }
+              },
+              "maxDelegationDepth": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "requestedDelegatedScopeDigest": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "approvedDelegatedScopeDigest": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "delegatingAuthorityDigest": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
           "noGoLedgerRef": {
             "type": [
               "string",
