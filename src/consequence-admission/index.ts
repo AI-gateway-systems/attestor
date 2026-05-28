@@ -207,6 +207,15 @@ import {
   type EvaluateConsequenceStaleAuthorityPolicyInput,
 } from './stale-authority-policy-guard.js';
 import {
+  CONSEQUENCE_DECISION_CONTEXT_DRIFT_BINDING_VERSION,
+  CONSEQUENCE_DECISION_CONTEXT_DRIFT_OUTCOMES,
+  CONSEQUENCE_DECISION_CONTEXT_DRIFT_REASON_CODES,
+  evaluateConsequenceDecisionContextDrift,
+  type ConsequenceDecisionContextBindingContext,
+  type ConsequenceDecisionContextDriftDecision,
+  type EvaluateConsequenceDecisionContextDriftInput,
+} from './decision-context-drift-binding.js';
+import {
   PROTECTED_ADMISSION_E2E_PROOF_PLAN_VERSION,
   protectedAdmissionE2eProofPlanDescriptor,
   type ProtectedAdmissionE2eProofPlanDescriptor,
@@ -277,6 +286,9 @@ ReadonlySet<string> = new Set(CONSEQUENCE_TOOL_RESULT_GUARD_REASON_CODES);
 
 const GENERIC_ADMISSION_AGENTIC_SUPPLY_CHAIN_REASON_CODES:
 ReadonlySet<string> = new Set(CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_REASON_CODES);
+
+const GENERIC_ADMISSION_DECISION_CONTEXT_DRIFT_REASON_CODES:
+ReadonlySet<string> = new Set(CONSEQUENCE_DECISION_CONTEXT_DRIFT_REASON_CODES);
 
 export const GENERIC_ADMISSION_SHADOW_DECISIONS = [
   'would_admit',
@@ -632,6 +644,8 @@ export interface ConsequenceAdmissionDescriptor {
   readonly protectedAdmissionE2eProofPlanVersion:
     typeof PROTECTED_ADMISSION_E2E_PROOF_PLAN_VERSION;
   readonly agenticSupplyChainGuardVersion: typeof CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_VERSION;
+  readonly decisionContextDriftBindingVersion:
+    typeof CONSEQUENCE_DECISION_CONTEXT_DRIFT_BINDING_VERSION;
   readonly multiAgentDelegationGuardVersion: typeof CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_VERSION;
   readonly retryDefaultMaxAttempts: typeof CONSEQUENCE_ADMISSION_RETRY_DEFAULT_MAX_ATTEMPTS;
   readonly retryDefaultWindowSeconds: typeof CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS;
@@ -676,6 +690,9 @@ export interface ConsequenceAdmissionDescriptor {
   readonly adapterOutcomes: typeof CONSEQUENCE_ADMISSION_ADAPTER_OUTCOMES;
   readonly agenticSupplyChainGuardOutcomes: typeof CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_OUTCOMES;
   readonly agenticSupplyChainGuardReasonCodes: typeof CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_REASON_CODES;
+  readonly decisionContextDriftOutcomes: typeof CONSEQUENCE_DECISION_CONTEXT_DRIFT_OUTCOMES;
+  readonly decisionContextDriftReasonCodes:
+    typeof CONSEQUENCE_DECISION_CONTEXT_DRIFT_REASON_CODES;
   readonly multiAgentDelegationGuardOutcomes: typeof CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_OUTCOMES;
   readonly multiAgentDelegationGuardReasonCodes: typeof CONSEQUENCE_MULTI_AGENT_DELEGATION_REASON_CODES;
   readonly failureModeRuntimeExtensionOutcomes: typeof CONSEQUENCE_FAILURE_MODE_RUNTIME_EXTENSION_OUTCOMES;
@@ -789,6 +806,12 @@ export type GenericAdmissionToolResult =
 export type GenericAdmissionStaleAuthorityPolicy =
   Omit<EvaluateConsequenceStaleAuthorityPolicyInput, 'generatedAt' | 'actionSurface' | 'action'>;
 
+export type GenericAdmissionDecisionContextBindingContext =
+  ConsequenceDecisionContextBindingContext;
+
+export type GenericAdmissionDecisionContextDrift =
+  Omit<EvaluateConsequenceDecisionContextDriftInput, 'generatedAt' | 'actionSurface' | 'action'>;
+
 export type GenericAdmissionAgenticSupplyChainComponent =
   ConsequenceAgenticSupplyChainComponent;
 
@@ -827,6 +850,7 @@ export interface CreateGenericAdmissionInput {
   readonly toolResults?: readonly GenericAdmissionToolResult[] | null;
   readonly agenticSupplyChain?: GenericAdmissionAgenticSupplyChain | null;
   readonly staleAuthorityPolicy?: GenericAdmissionStaleAuthorityPolicy | null;
+  readonly decisionContextDrift?: GenericAdmissionDecisionContextDrift | null;
   readonly noGoLedgerRef?: string | null;
   readonly noGoConditions?: readonly GenericAdmissionNoGoCondition[] | null;
   readonly noGoNaturalLanguageBypassAttempted?: boolean | null;
@@ -853,6 +877,7 @@ export interface GenericAdmissionModeEvaluation {
   readonly toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null;
   readonly agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null;
   readonly staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null;
+  readonly decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null;
   readonly noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null;
 }
 
@@ -1197,6 +1222,19 @@ function normalizeOptionalPositiveInteger(
   return normalizePositiveInteger(value, fieldName);
 }
 
+function normalizeOptionalPositiveFiniteNumber(
+  value: unknown,
+  fieldName: string,
+): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    throw new Error(
+      `Consequence admission ${fieldName} must be a positive finite number when provided.`,
+    );
+  }
+  return value;
+}
+
 function normalizeOptionalEnumArray<T extends string>(
   value: unknown,
   allowed: readonly T[],
@@ -1507,6 +1545,55 @@ function normalizeGenericStaleAuthorityPolicy(
         'staleAuthorityPolicy.driftState',
       ),
     noGoReasons: normalizeStringArray(value.noGoReasons, 'staleAuthorityPolicy.noGoReasons'),
+  });
+}
+
+function normalizeGenericDecisionContextBindingContext(
+  value: unknown,
+  fieldName: string,
+): GenericAdmissionDecisionContextBindingContext | null {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error(`Consequence admission ${fieldName} must be an object when provided.`);
+  }
+  return Object.freeze({
+    modelVersion: readOptionalString(value, 'modelVersion'),
+    toolSchemaDigest: readOptionalString(value, 'toolSchemaDigest'),
+    toolManifestDigest: readOptionalString(value, 'toolManifestDigest'),
+    policyVersion: readOptionalString(value, 'policyVersion'),
+    policyDigest: readOptionalString(value, 'policyDigest'),
+    configDigest: readOptionalString(value, 'configDigest'),
+    promptDigest: readOptionalString(value, 'promptDigest'),
+    verifierDigest: readOptionalString(value, 'verifierDigest'),
+    simulationDigest: readOptionalString(value, 'simulationDigest'),
+    evaluatedAt: readOptionalTimestamp(value, 'evaluatedAt'),
+    expiresAt: readOptionalTimestamp(value, 'expiresAt'),
+  });
+}
+
+function normalizeGenericDecisionContextDrift(
+  value: unknown,
+): GenericAdmissionDecisionContextDrift | null {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error(
+      'Consequence admission decisionContextDrift must be an object when provided.',
+    );
+  }
+  return Object.freeze({
+    boundContext: normalizeGenericDecisionContextBindingContext(
+      value.boundContext,
+      'decisionContextDrift.boundContext',
+    ),
+    currentContext: normalizeGenericDecisionContextBindingContext(
+      value.currentContext,
+      'decisionContextDrift.currentContext',
+    ),
+    requireSimulationRefresh: readOptionalBoolean(value, 'requireSimulationRefresh'),
+    maxContextAgeHours: normalizeOptionalPositiveFiniteNumber(
+      value.maxContextAgeHours,
+      'decisionContextDrift.maxContextAgeHours',
+    ),
   });
 }
 
@@ -1867,6 +1954,7 @@ function normalizeCreateGenericAdmissionInput(input: unknown): CreateGenericAdmi
     toolResults: normalizeGenericToolResults(input.toolResults),
     agenticSupplyChain: normalizeGenericAgenticSupplyChain(input.agenticSupplyChain),
     staleAuthorityPolicy: normalizeGenericStaleAuthorityPolicy(input.staleAuthorityPolicy),
+    decisionContextDrift: normalizeGenericDecisionContextDrift(input.decisionContextDrift),
     noGoLedgerRef: readOptionalString(input, 'noGoLedgerRef'),
     noGoConditions: normalizeGenericNoGoConditions(input.noGoConditions),
     noGoNaturalLanguageBypassAttempted: readOptionalBoolean(
@@ -2065,6 +2153,27 @@ function staleAuthorityPolicyReviewReasonCodes(
   return Object.freeze([...decision.reasonCodes]);
 }
 
+function genericAdmissionDecisionContextDriftDecisionFor(
+  input: CreateGenericAdmissionInput,
+): ConsequenceDecisionContextDriftDecision | null {
+  if (input.decisionContextDrift === null || input.decisionContextDrift === undefined) {
+    return null;
+  }
+  return evaluateConsequenceDecisionContextDrift({
+    ...input.decisionContextDrift,
+    generatedAt: input.decidedAt ?? input.requestedAt ?? null,
+    actionSurface: input.domain,
+    action: input.action,
+  });
+}
+
+function decisionContextDriftReviewReasonCodes(
+  decision: ConsequenceDecisionContextDriftDecision | null,
+): readonly string[] {
+  if (decision === null || decision.outcome === 'pass') return Object.freeze([]);
+  return Object.freeze([...decision.reasonCodes]);
+}
+
 function genericAdmissionHasNoGoConditionInput(
   input: CreateGenericAdmissionInput,
 ): boolean {
@@ -2106,6 +2215,7 @@ function genericAdmissionReviewReasons(
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
   agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null,
   staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
+  decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null,
   noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null,
 ): readonly string[] {
   const reasons: string[] = [];
@@ -2135,6 +2245,7 @@ function genericAdmissionReviewReasons(
   reasons.push(...toolResultGuardReviewReasonCodes(toolResultGuardDecision));
   reasons.push(...agenticSupplyChainReviewReasonCodes(agenticSupplyChainGuardDecision));
   reasons.push(...staleAuthorityPolicyReviewReasonCodes(staleAuthorityPolicyGuardDecision));
+  reasons.push(...decisionContextDriftReviewReasonCodes(decisionContextDriftDecision));
   reasons.push(...noGoConditionLedgerReviewReasonCodes(noGoConditionLedgerDecision));
 
   if (profile.requiredChecks.includes('adapter-readiness')) {
@@ -2161,6 +2272,7 @@ function genericAdmissionShadowDecisionFor(
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
   agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null,
   staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
+  decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null,
   noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null,
 ): GenericAdmissionShadowDecision {
   if (authorityGuardDecision?.outcome === 'block') return 'would_block';
@@ -2169,6 +2281,7 @@ function genericAdmissionShadowDecisionFor(
   if (toolResultGuardDecision?.outcome === 'block') return 'would_block';
   if (agenticSupplyChainGuardDecision?.outcome === 'block') return 'would_block';
   if (staleAuthorityPolicyGuardDecision?.outcome === 'block') return 'would_block';
+  if (decisionContextDriftDecision?.outcome === 'block') return 'would_block';
   if (noGoConditionLedgerDecision?.outcome === 'block') return 'would_block';
   if (
     observedFeatureTrue(input, 'policyBlocked') ||
@@ -2215,6 +2328,7 @@ function genericReasonCodes(
   toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null,
   agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null,
   staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null,
+  decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null,
 ): readonly string[] {
   const reasons = [
     `mode-${input.mode}`,
@@ -2224,6 +2338,7 @@ function genericReasonCodes(
     ...(toolResultGuardDecision?.reasonCodes ?? []),
     ...(agenticSupplyChainGuardDecision?.reasonCodes ?? []),
     ...(staleAuthorityPolicyGuardDecision?.reasonCodes ?? []),
+    ...(decisionContextDriftDecision?.reasonCodes ?? []),
   ];
   if (input.mode === 'observe' || input.mode === 'warn') {
     reasons.push('non-enforcing-mode');
@@ -2249,6 +2364,8 @@ function createGenericAdmissionEvaluation(
     genericAdmissionAgenticSupplyChainGuardDecisionFor(input);
   const staleAuthorityPolicyGuardDecision =
     genericAdmissionStaleAuthorityPolicyGuardDecisionFor(input);
+  const decisionContextDriftDecision =
+    genericAdmissionDecisionContextDriftDecisionFor(input);
   const noGoConditionLedgerDecision = genericAdmissionNoGoConditionLedgerDecisionFor(input);
   const reviewReasons = genericAdmissionReviewReasons(
     input,
@@ -2258,6 +2375,7 @@ function createGenericAdmissionEvaluation(
     toolResultGuardDecision,
     agenticSupplyChainGuardDecision,
     staleAuthorityPolicyGuardDecision,
+    decisionContextDriftDecision,
     noGoConditionLedgerDecision,
   );
   const shadowDecision = genericAdmissionShadowDecisionFor(
@@ -2269,6 +2387,7 @@ function createGenericAdmissionEvaluation(
     toolResultGuardDecision,
     agenticSupplyChainGuardDecision,
     staleAuthorityPolicyGuardDecision,
+    decisionContextDriftDecision,
     noGoConditionLedgerDecision,
   );
   const effectiveDecision = effectiveDecisionForGenericMode(input.mode, shadowDecision);
@@ -2288,6 +2407,7 @@ function createGenericAdmissionEvaluation(
       toolResultGuardDecision,
       agenticSupplyChainGuardDecision,
       staleAuthorityPolicyGuardDecision,
+      decisionContextDriftDecision,
     ),
     authorityGuardDecision,
     approvalGuardDecision,
@@ -2295,6 +2415,7 @@ function createGenericAdmissionEvaluation(
     toolResultGuardDecision,
     agenticSupplyChainGuardDecision,
     staleAuthorityPolicyGuardDecision,
+    decisionContextDriftDecision,
     noGoConditionLedgerDecision,
   });
 }
@@ -2312,6 +2433,8 @@ function reasonCodesForCheck(
         reason.startsWith('drift-state-') ||
         reason === 'no-go-reason-present' ||
         reason === 'supply-chain-domain-pack-boundary-unverified' ||
+        reason === 'policy-version-drift' ||
+        reason === 'policy-digest-drift' ||
         GENERIC_ADMISSION_NO_GO_REASON_CODES.has(reason);
     }
     if (kind === 'authority') {
@@ -2325,7 +2448,8 @@ function reasonCodesForCheck(
     if (kind === 'evidence') {
       return reason.startsWith('evidence-') ||
         GENERIC_ADMISSION_TOOL_RESULT_REASON_CODES.has(reason) ||
-        GENERIC_ADMISSION_AGENTIC_SUPPLY_CHAIN_REASON_CODES.has(reason);
+        GENERIC_ADMISSION_AGENTIC_SUPPLY_CHAIN_REASON_CODES.has(reason) ||
+        GENERIC_ADMISSION_DECISION_CONTEXT_DRIFT_REASON_CODES.has(reason);
     }
     if (kind === 'enforcement') {
       return reason === 'non-enforcing-mode' ||
@@ -2346,7 +2470,11 @@ function reasonCodesForCheck(
         reason === 'approval-not-yet-valid' ||
         reason === 'approval-expired' ||
         reason === 'authority-expired' ||
-        reason === 'authority-expires-at-invalid';
+        reason === 'authority-expires-at-invalid' ||
+        reason === 'decision-context-expired' ||
+        reason === 'decision-context-age-exceeded' ||
+        reason === 'simulation-refresh-required' ||
+        reason === 'simulation-digest-missing';
     }
     return false;
   });
@@ -2387,8 +2515,17 @@ function createGenericAdmissionChecks(
                 ...(evaluation.noGoConditionLedgerDecision !== null
                   ? [evaluation.noGoConditionLedgerDecision.digest]
                   : []),
+                ...(evaluation.decisionContextDriftDecision !== null
+                  ? [evaluation.decisionContextDriftDecision.digest]
+                  : []),
               ]
-          : [...(input.evidenceRefs ?? [])];
+          : [
+              ...(input.evidenceRefs ?? []),
+              ...(evaluation.decisionContextDriftDecision !== null &&
+              (kind === 'evidence' || kind === 'freshness')
+                ? [evaluation.decisionContextDriftDecision.digest]
+                : []),
+            ];
       return createConsequenceAdmissionCheck({
         kind,
         label: `${kind} check`,
@@ -2577,6 +2714,20 @@ function genericAdmissionDimensions(
       evaluation.staleAuthorityPolicyGuardDecision?.counts.reviewReasonCount ?? 0,
     staleAuthorityPolicyDriftState:
       evaluation.staleAuthorityPolicyGuardDecision?.observed.driftState ?? null,
+    decisionContextDriftOutcome:
+      evaluation.decisionContextDriftDecision?.outcome ?? null,
+    decisionContextDriftDigest:
+      evaluation.decisionContextDriftDecision?.digest ?? null,
+    decisionContextDriftDimensionCount:
+      evaluation.decisionContextDriftDecision?.counts.driftDimensionCount ?? 0,
+    decisionContextMissingDimensionCount:
+      evaluation.decisionContextDriftDecision?.counts.missingDimensionCount ?? 0,
+    decisionContextBlockReasonCount:
+      evaluation.decisionContextDriftDecision?.counts.blockReasonCount ?? 0,
+    decisionContextReviewReasonCount:
+      evaluation.decisionContextDriftDecision?.counts.reviewReasonCount ?? 0,
+    decisionContextAgeHours:
+      evaluation.decisionContextDriftDecision?.observed.contextAgeHours ?? null,
   });
 }
 
@@ -3811,6 +3962,8 @@ ConsequenceAdmissionDescriptor {
     customerPepAdoptionPackageVersion: CUSTOMER_PEP_ADOPTION_PACKAGE_VERSION,
     protectedAdmissionE2eProofPlanVersion: PROTECTED_ADMISSION_E2E_PROOF_PLAN_VERSION,
     agenticSupplyChainGuardVersion: CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_VERSION,
+    decisionContextDriftBindingVersion:
+      CONSEQUENCE_DECISION_CONTEXT_DRIFT_BINDING_VERSION,
     multiAgentDelegationGuardVersion: CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_VERSION,
     retryDefaultMaxAttempts: CONSEQUENCE_ADMISSION_RETRY_DEFAULT_MAX_ATTEMPTS,
     retryDefaultWindowSeconds: CONSEQUENCE_ADMISSION_RETRY_DEFAULT_WINDOW_SECONDS,
@@ -3854,6 +4007,8 @@ ConsequenceAdmissionDescriptor {
     adapterOutcomes: CONSEQUENCE_ADMISSION_ADAPTER_OUTCOMES,
     agenticSupplyChainGuardOutcomes: CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_GUARD_OUTCOMES,
     agenticSupplyChainGuardReasonCodes: CONSEQUENCE_AGENTIC_SUPPLY_CHAIN_REASON_CODES,
+    decisionContextDriftOutcomes: CONSEQUENCE_DECISION_CONTEXT_DRIFT_OUTCOMES,
+    decisionContextDriftReasonCodes: CONSEQUENCE_DECISION_CONTEXT_DRIFT_REASON_CODES,
     multiAgentDelegationGuardOutcomes: CONSEQUENCE_MULTI_AGENT_DELEGATION_GUARD_OUTCOMES,
     multiAgentDelegationGuardReasonCodes: CONSEQUENCE_MULTI_AGENT_DELEGATION_REASON_CODES,
     failureModeRuntimeExtensionOutcomes: CONSEQUENCE_FAILURE_MODE_RUNTIME_EXTENSION_OUTCOMES,

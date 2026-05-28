@@ -65,6 +65,11 @@ function testObservedFeaturesStayEvidenceOnly(): void {
   );
   includes(
     source,
+    'decisionContextDrift: normalizeGenericDecisionContextDrift(input.decisionContextDrift)',
+    'Consequence admission proof discipline: generic decision-context drift metadata is normalized from caller input',
+  );
+  includes(
+    source,
     'evaluateConsequenceUntrustedContentAuthority({',
     'Consequence admission proof discipline: untrusted-content authority guard is runtime-wired for generic admissions',
   );
@@ -82,6 +87,11 @@ function testObservedFeaturesStayEvidenceOnly(): void {
     source,
     'evaluateConsequenceAgenticSupplyChain({',
     'Consequence admission proof discipline: agentic supply-chain guard is runtime-wired for generic admissions',
+  );
+  includes(
+    source,
+    'evaluateConsequenceDecisionContextDrift({',
+    'Consequence admission proof discipline: decision-context drift binding is runtime-wired for generic admissions',
   );
   includes(
     source,
@@ -195,6 +205,16 @@ function testObservedFeaturesStayEvidenceOnly(): void {
     'raw component refs, package names, permissions, source URLs',
     'Consequence admission proof discipline: quickstart documents supply-chain raw-data boundary',
   );
+  includes(
+    quickstart,
+    'structured `decisionContextDrift` metadata',
+    'Consequence admission proof discipline: quickstart documents decision-context metadata',
+  );
+  includes(
+    quickstart,
+    'raw model versions, policy versions, prompt text, config values',
+    'Consequence admission proof discipline: quickstart documents decision-context raw-data boundary',
+  );
 
   const hostedApi = readProjectFile('docs', '01-overview', 'hosted-action-authorization-api.md');
   includes(
@@ -226,6 +246,11 @@ function testObservedFeaturesStayEvidenceOnly(): void {
     hostedApi,
     'agentic tool, connector, plugin, workflow, generated adapter, domain-pack, and provider-SDK supply-chain state must arrive as structured `agenticSupplyChain` metadata',
     'Consequence admission proof discipline: hosted API boundary documents agentic supply-chain metadata',
+  );
+  includes(
+    hostedApi,
+    'model, tool-schema, policy, config, prompt, verifier, and simulation context must arrive as structured `decisionContextDrift` metadata',
+    'Consequence admission proof discipline: hosted API boundary documents decision-context metadata',
   );
   includes(
     hostedApi,

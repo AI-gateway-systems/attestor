@@ -201,6 +201,19 @@ approval records, private IdP records, or raw no-go case text. This does not
 prove the customer policy store, IdP, approval workflow, or downstream verifier
 is live-wired to the latest source-of-truth state.
 
+Generic admissions can also run the decision-context drift binding when the
+request supplies structured `decisionContextDrift` metadata. This metadata
+binds the evaluated context to the current model version, tool schema digest,
+policy version, config digest, optional prompt/verifier/simulation digests,
+and freshness window. Missing bound or current context blocks; model,
+tool-schema, policy, config, prompt, verifier, or simulation drift holds for
+review; expired or over-age context holds for review. The admission response
+carries only outcome, reason codes, counts, age, and digest evidence; it must
+not return raw model versions, policy versions, prompt text, config values,
+tool definitions, verifier identifiers, or simulation bodies. This does not
+prove the customer runtime inventory, change-management source, or live
+simulation runner.
+
 Generic admissions can also run the no-go condition ledger guard when the
 request supplies `noGoLedgerRef`, `noGoConditions`, or no-go bypass signals.
 No-go records must be structured hold metadata such as fraud, legal,

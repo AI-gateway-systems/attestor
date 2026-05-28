@@ -811,6 +811,37 @@
               }
             }
           },
+          "decisionContextDrift": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Digest-first model, tool-schema, policy, config, prompt, verifier, and simulation context binding metadata for the decision-context drift guard. Raw model versions, policy versions, prompt text, config values, tool definitions, verifier identifiers, and simulation bodies must not be included.",
+            "additionalProperties": false,
+            "properties": {
+              "boundContext": {
+                "$ref": "#/components/schemas/DecisionContextBindingContext"
+              },
+              "currentContext": {
+                "$ref": "#/components/schemas/DecisionContextBindingContext"
+              },
+              "requireSimulationRefresh": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "When true, any simulation digest drift or missing simulation digest holds for review."
+              },
+              "maxContextAgeHours": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "exclusiveMinimum": 0,
+                "description": "Maximum accepted age, in hours, for the evaluated decision context."
+              }
+            }
+          },
           "staleAuthorityPolicy": {
             "type": [
               "object",
@@ -1081,6 +1112,88 @@
               "null"
             ],
             "description": "Accepted as input, but raw recipient values must not be returned by shadow read routes."
+          }
+        }
+      },
+      "DecisionContextBindingContext": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": false,
+        "description": "Digest-first decision context. Raw model versions, policy versions, prompt text, config values, tool definitions, verifier identifiers, and simulation bodies must not be returned.",
+        "properties": {
+          "modelVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque model version reference observed by the trusted integration."
+          },
+          "toolSchemaDigest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Digest binding the tool schema evaluated for this action."
+          },
+          "toolManifestDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "policyVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque policy version reference evaluated for this action."
+          },
+          "policyDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "configDigest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Digest binding the runtime/config context evaluated for this action."
+          },
+          "promptDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verifierDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "simulationDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evaluatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           }
         }
       },
