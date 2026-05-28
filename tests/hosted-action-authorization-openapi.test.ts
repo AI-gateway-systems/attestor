@@ -163,6 +163,15 @@ function testOpenApiContractPreservesShadowBoundaries(): void {
   includes(text, '"provenanceVerified"', 'Hosted OpenAPI: supply-chain provenance verification is documented');
   includes(text, '"permissionScopeDigest"', 'Hosted OpenAPI: supply-chain permission-scope digest is documented');
   includes(text, '"runtimeReplayTestDigest"', 'Hosted OpenAPI: supply-chain runtime replay evidence is documented');
+  includes(text, '"humanReviewFatigue"', 'Hosted OpenAPI: human-review fatigue contract is documented');
+  includes(text, '"reviewSurfaceKind"', 'Hosted OpenAPI: human-review surface kind is documented');
+  includes(text, '"reviewPacketRef"', 'Hosted OpenAPI: human-review packet ref is documented as opaque');
+  includes(text, '"rawPayloadStored"', 'Hosted OpenAPI: human-review raw-payload flag is documented');
+  includes(text, '"autoEnforceRequested"', 'Hosted OpenAPI: human-review auto-enforce boundary is documented');
+  includes(text, '"multiAgentDelegation"', 'Hosted OpenAPI: multi-agent delegation contract is documented');
+  includes(text, '"principalChain"', 'Hosted OpenAPI: delegation principal chain is documented');
+  includes(text, '"service-account"', 'Hosted OpenAPI: delegation service-account principal is documented');
+  includes(text, '"approvedDelegatedScopeDigest"', 'Hosted OpenAPI: delegated scope digest binding is documented');
   includes(text, '"decisionContextDrift"', 'Hosted OpenAPI: decision-context drift contract is documented');
   includes(text, '"boundContext"', 'Hosted OpenAPI: bound decision context is documented');
   includes(text, '"currentContext"', 'Hosted OpenAPI: current decision context is documented');
@@ -205,6 +214,8 @@ function testDocsPointToTheOpenApiTruthSource(): void {
   includes(doc, 'RFC 9457-style problem details', 'Hosted OpenAPI docs: guide names problem details boundary');
   includes(doc, 'tool results that support evidence, policy, authority, instruction, context, or review summaries must arrive as structured `toolResults` metadata', 'Hosted OpenAPI docs: guide documents tool-result metadata');
   includes(doc, 'agentic tool, connector, plugin, workflow, generated adapter, domain-pack, and provider-SDK supply-chain state must arrive as structured `agenticSupplyChain` metadata', 'Hosted OpenAPI docs: guide documents agentic supply-chain metadata');
+  includes(doc, 'human review packet state must arrive as structured `humanReviewFatigue` metadata', 'Hosted OpenAPI docs: guide documents human-review metadata');
+  includes(doc, 'multi-agent delegation state must arrive as structured `multiAgentDelegation` metadata', 'Hosted OpenAPI docs: guide documents delegation metadata');
   includes(doc, 'model, tool-schema, policy, config, prompt, verifier, and simulation context must arrive as structured `decisionContextDrift` metadata', 'Hosted OpenAPI docs: guide documents decision-context metadata');
   includes(doc, 'policy version, approval window, authority freshness, drift, and no-go state must arrive as structured `staleAuthorityPolicy` metadata', 'Hosted OpenAPI docs: guide documents stale authority-policy metadata');
   includes(doc, 'no-go condition state must arrive as structured `noGoConditions` metadata', 'Hosted OpenAPI docs: guide documents no-go metadata');
