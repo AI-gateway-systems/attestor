@@ -207,7 +207,7 @@ function testPublicDocsKeepOneProductAndAvoidOverclaims(): void {
   ok(tracker.includes('Keep Attestor as one product with one platform core and modular packs.'), 'Proof surface readiness: tracker keeps one-product guardrail');
   ok(readme.includes('It is a local static proof surface. It does not start a hosted console or claim a public hosted crypto route.'), 'Proof surface readiness: README blocks hosted proof-surface overclaim');
   ok(readme.includes('Read proof material as typed evidence, not a universal cryptographic guarantee.'), 'Proof surface readiness: README narrows proof vocabulary');
-  ok(readme.includes('This does not automatically prove external facts, third-party immutability, production signing authority, or live customer deployment.'), 'Proof surface readiness: README blocks signature production-boundary overclaim');
+  ok(readme.includes('It does not automatically prove external facts, third-party immutability, production signing authority, or live customer deployment.'), 'Proof surface readiness: README blocks signature production-boundary overclaim');
   ok(tracker.includes('Do not describe crypto as generally available through a public hosted HTTP route'), 'Proof surface readiness: tracker blocks hosted crypto route overclaim');
   assert.doesNotMatch(readme, /\b\d+\s*\/\s*\d+\b/u, 'Proof surface readiness: README does not expose frozen step fractions');
   passed += 1;
