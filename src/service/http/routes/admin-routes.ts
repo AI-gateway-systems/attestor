@@ -1,7 +1,7 @@
 import type { Context, Hono } from 'hono';
 import type { AdminAuditRecord } from '../../admin-audit-log.js';
-import type { AsyncDeadLetterRecord } from '../../async-dead-letter-store.js';
-import type * as AsyncPipeline from '../../async-pipeline.js';
+import type { AsyncDeadLetterRecord } from '../../async/async-dead-letter-store.js';
+import type * as AsyncPipeline from '../../async/async-pipeline.js';
 import type {
   AdminControlService,
 } from '../../application/admin-control-service.js';
@@ -16,7 +16,7 @@ import type { HostedBillingEntitlementRecord } from '../../billing/billing-entit
 import type * as BillingExport from '../../billing/billing-export.js';
 import type * as BillingFeatureService from '../../billing/billing-feature-service.js';
 import type * as BillingReconciliation from '../../billing/billing-reconciliation.js';
-import type * as EmailDelivery from '../../email-delivery.js';
+import type * as EmailDelivery from '../../async/email-delivery.js';
 import type * as Observability from '../../observability.js';
 import type * as PlanCatalog from '../../plan-catalog.js';
 import type { TenantKeyRecord } from '../../tenant-key-store.js';

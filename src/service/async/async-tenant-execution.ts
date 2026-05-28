@@ -1,5 +1,5 @@
 import IORedis from 'ioredis';
-import { resolvePlanAsyncExecution } from './plan-catalog.js';
+import { resolvePlanAsyncExecution } from '../plan-catalog.js';
 
 export interface TenantAsyncExecutionState {
   tenantId: string;

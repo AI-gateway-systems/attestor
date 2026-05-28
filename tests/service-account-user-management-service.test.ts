@@ -8,7 +8,7 @@ import {
 } from '../src/service/application/account-user-management-service.js';
 import type { AccountUserRecord, AccountUserRole } from '../src/service/account/account-user-store.js';
 import type { AccountUserActionTokenRecord } from '../src/service/account/account-user-token-store.js';
-import { HostedEmailDeliveryError, type HostedEmailDeliverySummary } from '../src/service/email-delivery.js';
+import { HostedEmailDeliveryError, type HostedEmailDeliverySummary } from '../src/service/async/email-delivery.js';
 
 const now = '2026-04-21T10:00:00.000Z';
 

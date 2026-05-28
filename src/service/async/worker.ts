@@ -13,7 +13,7 @@
  *
  * DEPLOYMENT:
  * - Container: docker run attestor node dist/service/worker.js
- * - Local:     npm run worker (or npx tsx src/service/worker.ts)
+ * - Local:     npm run worker (or npx tsx src/service/async/worker.ts)
  * - Compose:   worker service in docker-compose.yml
  *
  * BOUNDARY:
@@ -31,7 +31,7 @@
 
 import { createServer, type Server } from 'node:http';
 import type { Worker } from 'bullmq';
-import { resolveRedis } from './redis-auto.js';
+import { resolveRedis } from '../redis-auto.js';
 import {
   configureTenantAsyncExecutionCoordinator,
   shutdownTenantAsyncExecutionCoordinator,
@@ -43,7 +43,7 @@ import {
 import {
   evaluateWorkerHighAvailabilityState,
   resolveServiceInstanceId,
-} from './high-availability.js';
+} from '../high-availability.js';
 import { checkRedisHealth, createPipelineWorker } from './async-pipeline.js';
 
 function workerHealthPort(): number {

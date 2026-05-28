@@ -26,7 +26,7 @@ import {
 import {
   resetAsyncDeadLetterStoreForTests,
   upsertAsyncDeadLetterRecord,
-} from '../src/service/async-dead-letter-store.js';
+} from '../src/service/async/async-dead-letter-store.js';
 import {
   resetHostedBillingEntitlementStoreForTests,
   upsertHostedBillingEntitlement,
@@ -34,7 +34,7 @@ import {
 import {
   recordHostedEmailDispatchEvent,
   resetHostedEmailDeliveryEventStoreForTests,
-} from '../src/service/email-delivery-event-store.js';
+} from '../src/service/async/email-delivery-event-store.js';
 import {
   consumePipelineRun,
   resetUsageMeter,

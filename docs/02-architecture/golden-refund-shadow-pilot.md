@@ -57,7 +57,7 @@ surface; it does not get independent authority.
 | Shadow replay | `src/consequence-admission/shadow-runtime-fixture-replay-smoke.ts` replays synthetic fixtures through the R02-R07 shadow runtime activation chain without target-system calls. | repo-proven |
 | Foundry summary | `src/consequence-admission/policy-foundry-policy-twin-summary.ts` summarizes candidate, evidence, replay, and review material without activating policy. | repo-proven |
 | Pilot packet | `src/consequence-admission/pilot-readiness-packet.ts` emits pilot readiness verdicts, including `ready-for-shadow-pilot`, `ready-for-scoped-pilot`, and `not-ready`. | repo-proven |
-| Worker | `src/service/worker.ts` exists, but it is not a shadow runtime activation worker for this path. | partial-repo |
+| Worker | `src/service/async/worker.ts` exists, but it is not a shadow runtime activation worker for this path. | partial-repo |
 | Shared outbox | `src/service/consequence-shared-history-outbox-store.ts` exists for future shared runtime delivery, but G01 does not require it. | partial-repo |
 
 ## Research Anchors

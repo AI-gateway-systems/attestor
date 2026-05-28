@@ -7,13 +7,13 @@ import {
   getTenantAsyncQueueSnapshot,
   submitPipelineJob,
   type PipelineJobResult,
-} from '../src/service/async-pipeline.js';
+} from '../src/service/async/async-pipeline.js';
 import {
   configureTenantAsyncExecutionCoordinator,
   getTenantAsyncExecutionCoordinatorStatus,
   resetTenantAsyncExecutionCoordinatorForTests,
   shutdownTenantAsyncExecutionCoordinator,
-} from '../src/service/async-tenant-execution.js';
+} from '../src/service/async/async-tenant-execution.js';
 
 let passed = 0;
 

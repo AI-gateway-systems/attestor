@@ -2,7 +2,7 @@ import type {
   HostedEmailDeliveryEventRecord,
   HostedEmailDeliverySummaryRecord,
   RecordHostedEmailProviderEventInput,
-} from '../email-delivery-event-store.js';
+} from '../async/email-delivery-event-store.js';
 import type {
   MailgunWebhookEventRecord,
   MailgunWebhookSignatureRecord,

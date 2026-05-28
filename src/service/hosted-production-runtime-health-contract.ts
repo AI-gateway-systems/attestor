@@ -200,8 +200,8 @@ export const HOSTED_PRODUCTION_RUNTIME_HEALTH_GUARDS: readonly HostedProductionR
     privacyBoundary:
       'Worker probes expose instance id, queue backend, Redis availability, and HA posture without Redis URLs, credentials, job payloads, customer data, or raw queue bodies.',
     implementationEvidence: [
-      'src/service/worker.ts',
-      'src/service/async-pipeline.ts#checkRedisHealth',
+      'src/service/async/worker.ts',
+      'src/service/async/async-pipeline.ts#checkRedisHealth',
       'src/service/high-availability.ts#evaluateWorkerHighAvailabilityState',
     ],
     validation: [
@@ -249,8 +249,8 @@ export const HOSTED_PRODUCTION_RUNTIME_HEALTH_GUARDS: readonly HostedProductionR
     privacyBoundary:
       'Queue and dead-letter views expose job ids, tenant refs, status, counts, attempts, and reason summaries without raw job payloads or provider bodies.',
     implementationEvidence: [
-      'src/service/async-pipeline.ts',
-      'src/service/async-dead-letter-store.ts',
+      'src/service/async/async-pipeline.ts',
+      'src/service/async/async-dead-letter-store.ts',
       'src/service/application/pipeline-dead-letter-service.ts',
       'src/service/http/routes/pipeline-async-routes.ts',
       'src/service/application/pipeline-usage-service.ts',

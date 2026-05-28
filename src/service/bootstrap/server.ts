@@ -6,7 +6,7 @@ import {
   initializeTelemetry,
   shutdownTelemetry,
 } from '../observability.js';
-import { shutdownHostedEmailDelivery } from '../email-delivery.js';
+import { shutdownHostedEmailDelivery } from '../async/email-delivery.js';
 import { isSharedControlPlaneConfigured } from '../control-plane-store.js';
 import {
   asyncBackendMode,

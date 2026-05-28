@@ -26,7 +26,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { DelayedError, Job, Queue, UnrecoverableError, Worker } from 'bullmq';
-import type { FinancialPipelineInput } from '../financial/pipeline.js';
+import type { FinancialPipelineInput } from '../../financial/pipeline.js';
 import type { AsyncDeadLetterRecord } from './async-dead-letter-store.js';
 import {
   acquireTenantAsyncExecutionLease,
@@ -39,12 +39,12 @@ import {
   acquireTenantAsyncWeightedDispatchPermit,
   getTenantAsyncWeightedDispatchState,
 } from './async-weighted-dispatch.js';
-import { removeAsyncDeadLetterRecordState, upsertAsyncDeadLetterRecordState } from './control-plane-store.js';
-import { resolvePlanAsyncDispatch, resolvePlanAsyncQueue } from './plan-catalog.js';
+import { removeAsyncDeadLetterRecordState, upsertAsyncDeadLetterRecordState } from '../control-plane-store.js';
+import { resolvePlanAsyncDispatch, resolvePlanAsyncQueue } from '../plan-catalog.js';
 import {
   ANONYMOUS_TENANT_ID,
   LEGACY_ANONYMOUS_TENANT_ID,
-} from './tenant-isolation.js';
+} from '../tenant-isolation.js';
 
 export interface PipelineJobTenantContext {
   tenantId: string;
@@ -718,8 +718,8 @@ export function createPipelineWorker(config?: AsyncPipelineConfig): Worker<Pipel
           return await config.processJob(job);
         }
 
-        const { runFinancialPipeline } = await import('../financial/pipeline.js');
-        const { generateKeyPair } = await import('../signing/keys.js');
+        const { runFinancialPipeline } = await import('../../financial/pipeline.js');
+        const { generateKeyPair } = await import('../../signing/keys.js');
         const input = job.data.input;
         if (job.data.sign && !input.signingKeyPair) {
           input.signingKeyPair = generateKeyPair();

@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -68,7 +68,7 @@ function testRepositoryEvidenceAndResearchAnchors(): void {
     'src/consequence-admission/shadow-runtime-fixture-replay-smoke.ts',
     'src/consequence-admission/policy-foundry-policy-twin-summary.ts',
     'src/consequence-admission/pilot-readiness-packet.ts',
-    'src/service/worker.ts',
+    'src/service/async/worker.ts',
     'not a shadow runtime activation worker',
     'src/service/consequence-shared-history-outbox-store.ts',
     'Stripe Refunds API',

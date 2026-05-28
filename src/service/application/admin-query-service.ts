@@ -1,9 +1,9 @@
 import type { AdminAuditRecord } from '../admin-audit-log.js';
-import type { AsyncDeadLetterRecord } from '../async-dead-letter-store.js';
+import type { AsyncDeadLetterRecord } from '../async/async-dead-letter-store.js';
 import type { HostedAccountRecord } from '../account/account-store.js';
 import type { HostedBillingEntitlementRecord } from '../billing/billing-entitlement-store.js';
 import type * as ControlPlaneStore from '../control-plane-store.js';
-import type { HostedEmailDeliverySummaryRecord } from '../email-delivery-event-store.js';
+import type { HostedEmailDeliverySummaryRecord } from '../async/email-delivery-event-store.js';
 import { resolvePlanQuotaPolicy } from '../plan-catalog.js';
 import type { TenantKeyRecord } from '../tenant-key-store.js';
 

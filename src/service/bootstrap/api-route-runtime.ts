@@ -67,9 +67,9 @@ import {
   listFailedPipelineJobs,
   retryFailedPipelineJob,
   submitPipelineJob,
-} from '../async-pipeline.js';
-import { getTenantAsyncExecutionCoordinatorStatus } from '../async-tenant-execution.js';
-import { getTenantAsyncWeightedDispatchCoordinatorStatus } from '../async-weighted-dispatch.js';
+} from '../async/async-pipeline.js';
+import { getTenantAsyncExecutionCoordinatorStatus } from '../async/async-tenant-execution.js';
+import { getTenantAsyncWeightedDispatchCoordinatorStatus } from '../async/async-weighted-dispatch.js';
 import {
   claimStripeBillingEvent,
   finalizeStripeBillingEvent,
@@ -160,7 +160,7 @@ import {
   deliverHostedInviteEmail,
   deliverHostedPasswordResetEmail,
   getHostedEmailDeliveryStatus,
-} from '../email-delivery.js';
+} from '../async/email-delivery.js';
 import {
   buildFinanceActionReleaseMaterial,
   buildFinanceActionReleaseObservation,
@@ -222,7 +222,7 @@ import {
   applyRateLimitHeaders,
   schemaAttestationSummaryFromConnector,
   schemaAttestationSummaryFromFull,
-} from '../pipeline-route-support.js';
+} from '../pipeline/pipeline-route-support.js';
 import {
   getTenantPipelineRateLimit,
   reserveTenantPipelineRequest,

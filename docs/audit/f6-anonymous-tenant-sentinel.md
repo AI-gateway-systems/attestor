@@ -31,7 +31,7 @@ when the tenant source is `anonymous`. A real authenticated tenant whose id is
   tenant id as anonymous unless the context is actually anonymous.
 - `src/service/request-observability-middleware.ts` avoids hosted-account
   lookup for anonymous context through the shared helper, not a string match.
-- `src/service/async-pipeline.ts` normalizes anonymous job metadata to the
+- `src/service/async/async-pipeline.ts` normalizes anonymous job metadata to the
   reserved sentinel.
 
 ## Tests

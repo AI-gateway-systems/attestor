@@ -1,4 +1,4 @@
-import type { AsyncDeadLetterRecord } from '../async-dead-letter-store.js';
+import type { AsyncDeadLetterRecord } from '../async/async-dead-letter-store.js';
 
 export interface PipelineDeadLetterService {
   record(input: AsyncDeadLetterRecord): Promise<{

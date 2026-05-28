@@ -1,5 +1,5 @@
 import IORedis from 'ioredis';
-import { resolvePlanAsyncDispatch } from './plan-catalog.js';
+import { resolvePlanAsyncDispatch } from '../plan-catalog.js';
 
 export interface TenantAsyncWeightedDispatchState {
   tenantId: string;
