@@ -42,6 +42,7 @@ do the next action there, and come back only if you still need more context.
 | Understand one-engine domain packs | [Domain pack boundary](../02-architecture/domain-pack-boundary.md) | [Finance and crypto first integrations](finance-and-crypto-first-integrations.md) |
 | Review audit state | [Audit evidence system](../audit/README.md) | [Finding index](../audit/finding-index.md) |
 | Review public package boundaries | [Consequence admission public surface](../02-architecture/consequence-admission-public-surface.md) | [Release layer platform surface](../02-architecture/release-layer-platform-surface.md) |
+| Find the right maintainer script | [Scripts inventory](../02-architecture/scripts-inventory.md) | `npm run test:package-script-runner` |
 
 ## Start By Role
 
@@ -72,6 +73,7 @@ do the next action there, and come back only if you still need more context.
 | `examples/customer-middleware/` | Express, FastAPI, Next.js, and LangChain integration examples. | You want to see where a customer would insert Attestor. |
 | `docs/audit/` | Current posture, finding state, control map, and live proof register. | You need to know whether a claim is repo-proven, live-proof-only, or not proven. |
 | `docs/research/` | Source-backed research notes and provenance ledger. | You need the external source trail behind a design direction. |
+| `scripts/` | Local, CI, probe, render, demo, rehearsal, validation, and operator helper scripts. | You need to run or change a package script without breaking PR or CI gates. |
 | `tests/` | Regression, contract, docs, route, package-surface, and proof discipline tests. | You need to lock behavior or prove a public claim did not drift. |
 
 ## Package Surface Map
