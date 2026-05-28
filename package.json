@@ -99,6 +99,7 @@
     "test:pr-body-validation": "tsx tests/pr-body-validation.test.ts",
     "test:baseline-alignment-contract": "tsx tests/baseline-alignment-contract.test.ts",
     "test:security-evidence-system": "tsx tests/security-evidence-system.test.ts",
+    "test:audit-evidence-navigator": "tsx tests/audit-evidence-navigator.test.ts",
     "test:ops-live-shadow-readiness": "tsx tests/ops-live-shadow-readiness.test.ts",
     "test:branch-governance-policy": "tsx tests/branch-governance-policy.test.ts",
     "test:ops-sweep-03-observability-remediation": "tsx tests/ops-sweep-03-observability-remediation.test.ts",
