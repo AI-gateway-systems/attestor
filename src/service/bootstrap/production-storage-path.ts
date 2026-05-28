@@ -1,6 +1,6 @@
 import { controlPlaneStoreMode } from '../control-plane-store.js';
 import { agentLoopAbuseGuardStorageMode } from '../agent-loop-abuse-guard.js';
-import { releaseAuthorityStoreMode } from '../release-authority-store.js';
+import { releaseAuthorityStoreMode } from '../release/release-authority-store.js';
 import type { AttestorRuntimeProfileId } from './runtime-profile.js';
 
 export const PRODUCTION_STORAGE_PATH_SPEC_VERSION =

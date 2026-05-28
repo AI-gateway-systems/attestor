@@ -18,7 +18,7 @@ import {
   resetReleaseAuthorityStoreForTests,
   type ReleaseAuthorityPgClient,
   withReleaseAuthorityTransaction,
-} from './release-authority-store.js';
+} from './release/release-authority-store.js';
 
 export const CONSEQUENCE_SHARED_ATOMIC_STORES_VERSION =
   'attestor.consequence-shared-atomic-stores.v1';

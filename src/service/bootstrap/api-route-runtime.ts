@@ -177,7 +177,7 @@ import {
   ReleaseVerificationError,
   resolveReleaseTokenFromRequest,
   verifyReleaseAuthorization,
-} from '../finance-release-route-support.js';
+} from '../release/finance-release-route-support.js';
 import {
   evaluateApiHighAvailabilityState,
 } from '../high-availability.js';
@@ -242,7 +242,7 @@ import {
 import {
   renderReleaseReviewerQueueDetailPage,
   renderReleaseReviewerQueueInboxPage,
-} from '../release-review-site.js';
+} from '../release/release-review-site.js';
 import {
   asyncBackendMode,
   bullmqQueue,

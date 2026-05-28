@@ -22,10 +22,10 @@ import {
   closeReleaseAuthorityStorePoolForTests,
   listReleaseAuthorityComponents,
   resetReleaseAuthorityStoreForTests,
-} from '../src/service/release-authority-store.js';
-import { createSharedPolicyControlPlaneStore } from '../src/service/release-policy-authority-store.js';
-import { createSharedReleaseReviewerQueueStore } from '../src/service/release-reviewer-queue-store.js';
-import { createSharedReleaseTokenIntrospectionStore } from '../src/service/release-token-introspection-store.js';
+} from '../src/service/release/release-authority-store.js';
+import { createSharedPolicyControlPlaneStore } from '../src/service/release/release-policy-authority-store.js';
+import { createSharedReleaseReviewerQueueStore } from '../src/service/release/release-reviewer-queue-store.js';
+import { createSharedReleaseTokenIntrospectionStore } from '../src/service/release/release-token-introspection-store.js';
 import { createApiHttpRouteRuntime } from '../src/service/bootstrap/api-route-runtime.js';
 import { createRegistries } from '../src/service/bootstrap/registries.js';
 import { registerAllRoutes } from '../src/service/bootstrap/routes.js';

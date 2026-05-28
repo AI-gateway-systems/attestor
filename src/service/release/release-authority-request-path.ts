@@ -12,7 +12,7 @@ import type {
   ReleaseReviewerQueueRecord,
   ReleaseTokenIntrospectionStore,
   IssuedReleaseEvidencePack,
-} from '../release-layer/index.js';
+} from '../../release-layer/index.js';
 import type {
   PolicyActivationApprovalRequest,
   PolicyActivationApprovalState,
@@ -26,14 +26,14 @@ import type {
   PolicyMutationAuditVerificationResult,
   StoredPolicyBundleRecord,
   UpsertStoredPolicyBundleInput,
-} from '../release-policy-control-plane/index.js';
+} from '../../release-policy-control-plane/index.js';
 import type {
   ConsumeDegradedModeGrantInput,
   DegradedModeAuditRecord,
   DegradedModeGrant,
   ListDegradedModeGrantOptions,
   RevokeDegradedModeGrantInput,
-} from '../release-enforcement-plane/degraded-mode.js';
+} from '../../release-enforcement-plane/degraded-mode.js';
 
 export type Awaitable<T> = T | Promise<T>;
 

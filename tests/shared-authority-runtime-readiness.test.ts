@@ -6,7 +6,7 @@ import EmbeddedPostgres from 'embedded-postgres';
 import {
   ATTESTOR_RELEASE_AUTHORITY_PG_URL_ENV,
   resetReleaseAuthorityStoreForTests,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 import {
   evaluateSharedAuthorityRuntimeReadiness,
 } from '../src/service/bootstrap/shared-authority-readiness.js';

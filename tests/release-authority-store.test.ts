@@ -14,7 +14,7 @@ import {
   resetReleaseAuthorityStoreForTests,
   withReleaseAuthorityAdvisoryLock,
   withReleaseAuthorityTransaction,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 
 let passed = 0;
 

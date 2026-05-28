@@ -4,7 +4,7 @@ import { review } from '../src/release-layer/index.js';
 import {
   renderReleaseReviewerQueueDetailPage,
   renderReleaseReviewerQueueInboxPage,
-} from '../src/service/release-review-site.js';
+} from '../src/service/release/release-review-site.js';
 
 let passed = 0;
 

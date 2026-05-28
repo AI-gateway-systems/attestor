@@ -6,7 +6,7 @@ import {
   type RecordReleaseTokenUseInput,
   type ReleaseTokenInactiveReason,
   type RevokeReleaseTokenInput,
-} from '../release-layer/index.js';
+} from '../../release-layer/index.js';
 import {
   RELEASE_AUTHORITY_SCHEMA,
   ensureReleaseAuthorityStore,

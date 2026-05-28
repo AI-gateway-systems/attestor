@@ -54,7 +54,7 @@ import type {
   RequestPathReleaseReviewerQueueStore,
   RequestPathReleaseShadowEvaluator,
   RequestPathReleaseTokenIntrospectionStore,
-} from '../../release-authority-request-path.js';
+} from '../../release/release-authority-request-path.js';
 
 type ConnectorSchemaAttestation = NonNullable<ConnectorExecutionResult['schemaAttestation']>;
 

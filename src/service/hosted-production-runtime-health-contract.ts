@@ -302,7 +302,7 @@ export const HOSTED_PRODUCTION_RUNTIME_HEALTH_GUARDS: readonly HostedProductionR
       'src/service/bootstrap/release-runtime.ts',
       'src/service/bootstrap/shared-authority-readiness.ts',
       'src/service/bootstrap/production-storage-path.ts',
-      'src/service/release-degraded-mode-grant-store.ts',
+      'src/service/release/release-degraded-mode-grant-store.ts',
     ],
     validation: [
       'tests/production-runtime-profile.test.ts',

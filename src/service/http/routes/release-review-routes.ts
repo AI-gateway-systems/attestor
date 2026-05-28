@@ -21,7 +21,7 @@ import type {
   RequestPathReleaseEvidencePackStore,
   RequestPathReleaseReviewerQueueStore,
   RequestPathReleaseTokenIntrospectionStore,
-} from '../../release-authority-request-path.js';
+} from '../../release/release-authority-request-path.js';
 import {
   RELEASE_ADMIN_BREAK_GLASS_ROLES,
   RELEASE_ADMIN_MUTATION_ROLES,

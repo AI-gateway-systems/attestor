@@ -11,13 +11,13 @@ import {
   ATTESTOR_RELEASE_AUTHORITY_PG_URL_ENV,
   getReleaseAuthorityComponent,
   withReleaseAuthorityTransaction,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 import {
   SharedReleaseTokenIntrospectionStoreError,
   createSharedReleaseTokenIntrospectionStore,
   ensureSharedReleaseTokenIntrospectionStore,
   resetSharedReleaseTokenIntrospectionStoreForTests,
-} from '../src/service/release-token-introspection-store.js';
+} from '../src/service/release/release-token-introspection-store.js';
 
 let passed = 0;
 

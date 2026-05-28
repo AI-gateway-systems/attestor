@@ -24,13 +24,13 @@ import {
   ATTESTOR_RELEASE_AUTHORITY_PG_URL_ENV,
   getReleaseAuthorityComponent,
   withReleaseAuthorityTransaction,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 import {
   SharedReleaseEvidencePackStoreError,
   createSharedReleaseEvidencePackStore,
   ensureSharedReleaseEvidencePackStore,
   resetSharedReleaseEvidencePackStoreForTests,
-} from '../src/service/release-evidence-pack-store.js';
+} from '../src/service/release/release-evidence-pack-store.js';
 
 let passed = 0;
 

@@ -26,7 +26,7 @@ import type * as TenantRuntime from '../../runtime/tenant-runtime.js';
 import type {
   RequestPathDegradedModeGrantStore,
   RequestPathReleaseTokenIntrospectionStore,
-} from '../../release-authority-request-path.js';
+} from '../../release/release-authority-request-path.js';
 import type {
   EnforcementBreakGlassReason,
   EnforcementFailureReason,

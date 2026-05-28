@@ -16,7 +16,7 @@ import type {
   ReleaseTokenVerificationKey,
 } from '../../../release-layer/index.js';
 import { logger } from '../../../utils/logger.js';
-import type { RequestPathReleaseTokenIntrospectionStore } from '../../release-authority-request-path.js';
+import type { RequestPathReleaseTokenIntrospectionStore } from '../../release/release-authority-request-path.js';
 import {
   clientSafeInternalError,
   clientSafeProblemDetail,

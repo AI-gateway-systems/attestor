@@ -25,12 +25,12 @@ import {
 import {
   ATTESTOR_RELEASE_AUTHORITY_PG_URL_ENV,
   getReleaseAuthorityComponent,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 import {
   createSharedReleaseReviewerQueueStore,
   ensureSharedReleaseReviewerQueueStore,
   resetSharedReleaseReviewerQueueStoreForTests,
-} from '../src/service/release-reviewer-queue-store.js';
+} from '../src/service/release/release-reviewer-queue-store.js';
 
 let passed = 0;
 

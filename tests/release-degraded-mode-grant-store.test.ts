@@ -10,13 +10,13 @@ import {
   RELEASE_AUTHORITY_SCHEMA,
   getReleaseAuthorityComponent,
   withReleaseAuthorityTransaction,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 import {
   SharedReleaseDegradedModeGrantStoreError,
   createSharedReleaseDegradedModeGrantStore,
   ensureSharedReleaseDegradedModeGrantStore,
   resetSharedReleaseDegradedModeGrantStoreForTests,
-} from '../src/service/release-degraded-mode-grant-store.js';
+} from '../src/service/release/release-degraded-mode-grant-store.js';
 
 let passed = 0;
 

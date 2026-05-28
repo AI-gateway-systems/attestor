@@ -5,7 +5,7 @@ import {
   type ReleaseReviewerQueueListOptions,
   type ReleaseReviewerQueueListResult,
   type ReleaseReviewerQueueRecord,
-} from '../release-layer/index.js';
+} from '../../release-layer/index.js';
 import {
   RELEASE_AUTHORITY_SCHEMA,
   ensureReleaseAuthorityStore,
