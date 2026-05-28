@@ -1,0 +1,104 @@
+# Scripts Inventory
+
+This is the maintainer map for `scripts/`.
+
+It is a reference document, not a path migration plan. It describes how the
+current root-level scripts are grouped, which local gates to run before a PR,
+and what each script family is allowed to prove.
+
+Research anchors:
+
+- npm runs package scripts from the package root, so script paths can rely on
+  package-root-relative paths:
+  https://docs.npmjs.com/cli/v11/using-npm/scripts/#working-directory-for-scripts
+- GitHub recommends README navigation that tells readers what the project does,
+  why it is useful, how to get started, and where to get help:
+  https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
+- Diataxis treats reference docs as concise maps of machinery:
+  https://diataxis.fr/reference/
+
+## Current Shape
+
+Root script files: 76.
+
+The scripts are intentionally still flat today. The repository has many
+package scripts, tests, docs, and workflows that reference `scripts/...`
+directly. Moving files before a dedicated path-migration PR would create churn
+without changing behavior.
+
+## Pick One Script Family
+
+| Family | Count | Use it when | Examples |
+|---|---:|---|---|
+| `check-*` | 8 | You need a local or CI guard over evidence, redaction, findings, baseline alignment, branches, or supply-chain posture. | `check-baseline-alignment.mjs`, `check-supply-chain-baseline.mjs`, `check-public-artifacts-redaction.mjs` |
+| `probe-*` | 19 | You need an opt-in package-surface, live, provider, Stripe, HA, observability, or hosted-flow probe. | `probe-consequence-admission-package-surface.mjs`, `probe-stripe-live-readiness.ts`, `probe-production-hosted-flow.ts` |
+| `render-*` | 17 | You need to render local packets, profiles, credentials templates, proof surfaces, or deployment bundles. | `render-proof-surface.ts`, `render-production-readiness-packet.ts`, `render-ha-profile.ts` |
+| `demo-*` | 8 | You need a runnable local golden path or path-boundary demo. | `demo-golden-refund.ts`, `demo-golden-paths.ts`, `demo-path-boundary.ts` |
+| `rehearse-*` | 4 | You need a production rehearsal script that simulates an operational path. | `rehearse-production-consequence-behavior.ts`, `rehearse-production-backup-restore-dr.ts` |
+| `run-*` | 3 | You need a suite runner or live/ops gate runner. | `run-suite.mjs`, `run-live-ops-gate.mjs` |
+| `validate-*` and `verify-*` | 4 | You need PR-body, PR-contract, or MQ-kit validation. | `validate-pr-body.mjs`, `validate-pr-contract.mjs`, `verify-mq-cert.ts` |
+| `benchmark-*` | 2 | You need local performance or observability benchmark evidence. | `benchmark-observability.ts`, `benchmark-crypto-intelligence-performance.ts` |
+| named ops helpers | 11 | You need a named operator helper that does not fit a prefix family. | `control-plane-backup.ts`, `repo-pipeline-readiness.ts`, `bootstrap-stripe-commercial.ts` |
+
+## PR Preflight
+
+Before opening or updating a PR, run the smallest local gate that matches the
+change. For docs, navigator, and public-contract changes, the minimum shape is:
+
+```bash
+npm run check:pr-body -- <path-to-pr-body.md>
+npm run test:package-script-runner
+git diff --check
+```
+
+Add the targeted doc or contract test for the file you changed. Add
+`npm run typecheck` and `npm run typecheck:hygiene` when TypeScript source,
+package scripts, or package-surface behavior changes.
+
+The `check:pr-body` gate exists because GitHub PR contract checks include both
+the PR contract and the baseline-alignment checkbox rules. If a PR body is not
+checked locally, the same mistake can pass local tests and fail in GitHub.
+
+## Move Rule
+
+Do not move scripts just to make the directory look cleaner.
+
+A script move requires a dedicated path-migration PR that updates all of:
+
+- `package.json` scripts
+- GitHub workflows
+- tests that import or execute the script path
+- docs that mention the path
+- package-surface probes and suite runners
+
+That PR must run `npm run test:package-script-runner` and the closest targeted
+tests for every moved family.
+
+Until then, prefer navigation over churn.
+
+## Authority Boundary
+
+Scripts are local, CI, or opt-in operator helpers.
+
+They can prove repository contracts, render local packets, run demos, or check
+configured live probes. They do not prove production readiness by name alone.
+Production claims still require live proof register evidence, deployment or
+operator proof, and current runtime probes.
+
+Keep these distinctions clean:
+
+```text
+check script is not production proof
+probe script is not customer PEP no-bypass proof
+rendered packet is not live deployment evidence
+demo script is not hosted enforcement
+```
+
+## If You Are Lost
+
+1. Need CI or PR discipline? Start with `check-*`, `validate-*`, and
+   `run-suite.mjs`.
+2. Need proof or deployment material? Start with `render-*`.
+3. Need live or package-surface evidence? Start with `probe-*`.
+4. Need an operator rehearsal? Start with `rehearse-*`.
+5. Need to show the product locally? Start with `demo-*`.
