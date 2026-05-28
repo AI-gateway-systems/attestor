@@ -39,7 +39,7 @@ function testReadmeStartsWithAConcreteWorkflow(): void {
   includes(readme, '[EU AI Act](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)', 'Product docs: README keeps the EU AI Act as a bounded context anchor');
   includes(readme, '[NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)', 'Product docs: README keeps NIST AI RMF as a bounded context anchor');
   includes(readme, '[DORA](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32022R2554)', 'Product docs: README keeps DORA as a bounded context anchor');
-  includes(readme, 'Those are context anchors, not Attestor compliance claims.', 'Product docs: README explicitly avoids compliance overclaim');
+  includes(readme, 'These links are context anchors, not compliance claims.', 'Product docs: README explicitly avoids compliance overclaim');
   includes(readme, 'the refund path is synthetic and shadow-only', 'Product docs: README keeps the refund demo no-claim visible');
   includes(readme, 'npm run demo:golden-refund', 'Product docs: README keeps the first runnable path visible');
 }

@@ -222,7 +222,7 @@ Teams need to know who asked for the action, what evidence supported it, whether
 
 This is the same general direction visible in serious external anchors: the [EU AI Act](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai), the [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework), and [DORA](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32022R2554).
 
-Those are context anchors, not Attestor compliance claims.
+These links are context anchors, not compliance claims.
 Attestor targets the action boundary those conversations keep circling around.
 
 ## Start Here
