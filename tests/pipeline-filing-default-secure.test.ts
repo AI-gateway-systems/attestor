@@ -15,7 +15,7 @@ import type {
   ReleaseVerificationInput,
 } from '../src/release-layer/index.js';
 import { ReleaseVerificationError } from '../src/release-kernel/release-verification.js';
-import type { RequestPathReleaseTokenIntrospectionStore } from '../src/service/release-authority-request-path.js';
+import type { RequestPathReleaseTokenIntrospectionStore } from '../src/service/release/release-authority-request-path.js';
 
 let passed = 0;
 

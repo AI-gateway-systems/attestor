@@ -30,7 +30,7 @@ import type {
   RequestPathPolicyActivationApprovalStore,
   RequestPathPolicyControlPlaneStore,
   RequestPathPolicyMutationAuditLogWriter,
-} from '../../release-authority-request-path.js';
+} from '../../release/release-authority-request-path.js';
 import type {
   ReleaseActorReference,
   ReleasePolicyRolloutMode,

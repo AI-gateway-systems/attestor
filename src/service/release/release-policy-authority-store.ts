@@ -3,7 +3,7 @@ import {
   auditLog,
   objectModel,
   store as policyStore,
-} from '../release-policy-control-plane/index.js';
+} from '../../release-policy-control-plane/index.js';
 import {
   RELEASE_AUTHORITY_SCHEMA,
   ensureReleaseAuthorityStore,

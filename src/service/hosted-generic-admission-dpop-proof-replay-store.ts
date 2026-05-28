@@ -10,7 +10,7 @@ import {
   ensureReleaseAuthorityStore,
   resetReleaseAuthorityStoreForTests,
   withReleaseAuthorityTransaction,
-} from './release-authority-store.js';
+} from './release/release-authority-store.js';
 import type { AttestorRuntimeProfileId } from './bootstrap/runtime-profile.js';
 
 export const HOSTED_GENERIC_ADMISSION_DPOP_PROOF_REPLAY_COMPONENT =

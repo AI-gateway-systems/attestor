@@ -6,27 +6,27 @@ import {
   releaseAuthorityStoreMode,
   type ReleaseAuthorityComponentRecord,
   type ReleaseAuthorityStoreSummary,
-} from '../release-authority-store.js';
+} from '../release/release-authority-store.js';
 import {
   createSharedReleaseDecisionLogStore,
   type SharedReleaseDecisionLogStoreSummary,
-} from '../release-decision-log-store.js';
+} from '../release/release-decision-log-store.js';
 import {
   createSharedReleaseReviewerQueueStore,
   type SharedReleaseReviewerQueueStoreSummary,
-} from '../release-reviewer-queue-store.js';
+} from '../release/release-reviewer-queue-store.js';
 import {
   createSharedReleaseTokenIntrospectionStore,
   type SharedReleaseTokenIntrospectionStoreSummary,
-} from '../release-token-introspection-store.js';
+} from '../release/release-token-introspection-store.js';
 import {
   createSharedReleaseEvidencePackStore,
   type SharedReleaseEvidencePackStoreSummary,
-} from '../release-evidence-pack-store.js';
+} from '../release/release-evidence-pack-store.js';
 import {
   createSharedReleaseDegradedModeGrantStore,
   type SharedReleaseDegradedModeGrantStoreSummary,
-} from '../release-degraded-mode-grant-store.js';
+} from '../release/release-degraded-mode-grant-store.js';
 import {
   createSharedPolicyActivationApprovalStore,
   createSharedPolicyControlPlaneStore,
@@ -34,7 +34,7 @@ import {
   type SharedPolicyActivationApprovalStoreSummary,
   type SharedPolicyControlPlaneStoreSummary,
   type SharedPolicyMutationAuditLogSummary,
-} from '../release-policy-authority-store.js';
+} from '../release/release-policy-authority-store.js';
 import type {
   AttestorRuntimeProfileId,
   ReleaseRuntimeStoreComponent,

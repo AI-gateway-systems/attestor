@@ -3,7 +3,7 @@ import {
   type ReleaseDecisionLogAppendInput,
   type ReleaseDecisionLogEntry,
   type ReleaseDecisionLogVerificationResult,
-} from '../release-layer/index.js';
+} from '../../release-layer/index.js';
 import {
   RELEASE_AUTHORITY_SCHEMA,
   ensureReleaseAuthorityStore,

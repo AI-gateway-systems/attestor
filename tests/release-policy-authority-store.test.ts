@@ -19,7 +19,7 @@ import {
   RELEASE_AUTHORITY_SCHEMA,
   getReleaseAuthorityComponent,
   withReleaseAuthorityTransaction,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 import {
   SharedPolicyAuthorityStoreError,
   createSharedPolicyActivationApprovalStore,
@@ -29,7 +29,7 @@ import {
   ensureSharedPolicyControlPlaneStore,
   ensureSharedPolicyMutationAuditLog,
   resetSharedPolicyAuthorityStoresForTests,
-} from '../src/service/release-policy-authority-store.js';
+} from '../src/service/release/release-policy-authority-store.js';
 
 let passed = 0;
 

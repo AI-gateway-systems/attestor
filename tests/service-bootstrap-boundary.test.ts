@@ -273,7 +273,7 @@ function testApiServerUsesExtractedRouteSupport(): void {
     'utf8',
   );
   const financeReleaseRouteSupport = readFileSync(
-    join(SERVICE_ROOT, 'finance-release-route-support.ts'),
+    join(SERVICE_ROOT, 'release', 'finance-release-route-support.ts'),
     'utf8',
   );
   const pipelineRouteSupport = readFileSync(
@@ -294,7 +294,7 @@ function testApiServerUsesExtractedRouteSupport(): void {
   assert.match(apiRouteRuntime, /from '\.\.\/account\/account-route-support\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/hosted-surface-support\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/account\/hosted-account-support\.js'/u);
-  assert.match(apiRouteRuntime, /from '\.\.\/finance-release-route-support\.js'/u);
+  assert.match(apiRouteRuntime, /from '\.\.\/release\/finance-release-route-support\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/pipeline-route-support\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/request-context\.js'/u);
   assert.match(apiServer, /from '\.\/request-observability-middleware\.js'/u);

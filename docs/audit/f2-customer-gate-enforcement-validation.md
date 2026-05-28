@@ -14,7 +14,7 @@ Files inspected:
 - `src/consequence-admission/generic-protected-release-token.ts`
 - `src/consequence-admission/customer-pep-runtime-adoption.ts`
 - `src/service/generic-admission-protected-route.ts`
-- `src/service/release-token-introspection-store.ts`
+- `src/service/release/release-token-introspection-store.ts`
 - `src/consequence-admission/downstream-enforcement-contract.ts`
 - `src/consequence-admission/verifier-helper.ts`
 - `src/release-kernel/release-token.ts`

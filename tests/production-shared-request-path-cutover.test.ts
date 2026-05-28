@@ -8,8 +8,8 @@ import {
   ATTESTOR_RELEASE_AUTHORITY_PG_URL_ENV,
   listReleaseAuthorityComponents,
   resetReleaseAuthorityStoreForTests,
-} from '../src/service/release-authority-store.js';
-import { createSharedPolicyControlPlaneStore } from '../src/service/release-policy-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
+import { createSharedPolicyControlPlaneStore } from '../src/service/release/release-policy-authority-store.js';
 import {
   ATTESTOR_RUNTIME_PROFILE_ENV,
   type ReleaseRuntimeStoreModes,

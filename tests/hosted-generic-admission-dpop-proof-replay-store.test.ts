@@ -7,7 +7,7 @@ import EmbeddedPostgres from 'embedded-postgres';
 import {
   ATTESTOR_RELEASE_AUTHORITY_PG_URL_ENV,
   withReleaseAuthorityTransaction,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 import {
   HOSTED_GENERIC_ADMISSION_DPOP_PROOF_REPLAY_TABLE,
   createRuntimeHostedGenericAdmissionDpopProofReplayStore,

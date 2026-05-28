@@ -53,27 +53,27 @@ import {
   listReleaseAuthorityComponents,
   recordReleaseAuthorityComponentState,
   releaseAuthorityStoreMode,
-} from '../release-authority-store.js';
+} from '../release/release-authority-store.js';
 import {
   createSharedReleaseDecisionLogStore,
-} from '../release-decision-log-store.js';
+} from '../release/release-decision-log-store.js';
 import {
   createSharedReleaseReviewerQueueStore,
-} from '../release-reviewer-queue-store.js';
+} from '../release/release-reviewer-queue-store.js';
 import {
   createSharedReleaseTokenIntrospectionStore,
-} from '../release-token-introspection-store.js';
+} from '../release/release-token-introspection-store.js';
 import {
   createSharedReleaseEvidencePackStore,
-} from '../release-evidence-pack-store.js';
+} from '../release/release-evidence-pack-store.js';
 import {
   createSharedReleaseDegradedModeGrantStore,
-} from '../release-degraded-mode-grant-store.js';
+} from '../release/release-degraded-mode-grant-store.js';
 import {
   createSharedPolicyActivationApprovalStore,
   createSharedPolicyControlPlaneStore,
   createSharedPolicyMutationAuditLogWriter,
-} from '../release-policy-authority-store.js';
+} from '../release/release-policy-authority-store.js';
 import type {
   Awaitable,
   RequestPathDegradedModeGrantStore,
@@ -86,7 +86,7 @@ import type {
   RequestPathReleaseReviewerQueueStore,
   RequestPathReleaseShadowEvaluator,
   RequestPathReleaseTokenIntrospectionStore,
-} from '../release-authority-request-path.js';
+} from '../release/release-authority-request-path.js';
 import { withFileLock, writeTextFileAtomic } from '../file-store.js';
 import { envTruthy } from '../deployment-safety.js';
 

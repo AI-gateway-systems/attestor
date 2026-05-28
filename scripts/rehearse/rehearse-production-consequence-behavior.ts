@@ -37,13 +37,13 @@ import {
   type ReleaseReviewerQueueRecord,
 } from '../../src/release-kernel/reviewer-queue.js';
 import { generateKeyPair } from '../../src/signing/keys.js';
-import { createSharedReleaseTokenIntrospectionStore } from '../../src/service/release-token-introspection-store.js';
-import { createSharedReleaseEvidencePackStore } from '../../src/service/release-evidence-pack-store.js';
+import { createSharedReleaseTokenIntrospectionStore } from '../../src/service/release/release-token-introspection-store.js';
+import { createSharedReleaseEvidencePackStore } from '../../src/service/release/release-evidence-pack-store.js';
 import {
   createSharedReleaseReviewerQueueStore,
   type SharedReleaseReviewerQueueClaim,
   type SharedReleaseReviewerQueueClaimInput,
-} from '../../src/service/release-reviewer-queue-store.js';
+} from '../../src/service/release/release-reviewer-queue-store.js';
 
 type CheckStatus = 'pass' | 'fail' | 'skip';
 type Environment = Readonly<Record<string, string | undefined>>;

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { degradedMode } from '../release-enforcement-plane/index.js';
-import type { ReleaseActorReference } from '../release-layer/index.js';
+import { degradedMode } from '../../release-enforcement-plane/index.js';
+import type { ReleaseActorReference } from '../../release-layer/index.js';
 import {
   RELEASE_AUTHORITY_SCHEMA,
   ensureReleaseAuthorityStore,

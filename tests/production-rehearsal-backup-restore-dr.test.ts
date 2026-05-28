@@ -43,7 +43,7 @@ import {
   recordReleaseAuthorityComponentState,
   RELEASE_AUTHORITY_COMPONENTS,
   resetReleaseAuthorityStoreForTests,
-} from '../src/service/release-authority-store.js';
+} from '../src/service/release/release-authority-store.js';
 
 let passed = 0;
 

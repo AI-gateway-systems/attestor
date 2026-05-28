@@ -1,9 +1,9 @@
-import { review, verification } from '../release-layer/index.js';
+import { review, verification } from '../../release-layer/index.js';
 import {
   action as financeActionRelease,
   communication as financeCommunicationRelease,
   record as financeRecordRelease,
-} from '../release-layer/finance.js';
+} from '../../release-layer/finance.js';
 
 export const {
   buildFinanceCommunicationReleaseMaterial,

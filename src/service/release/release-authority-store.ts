@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { ReleaseRuntimeStoreComponent } from './bootstrap/runtime-profile.js';
+import type { ReleaseRuntimeStoreComponent } from '../bootstrap/runtime-profile.js';
 
 type PgQueryResultRow = Record<string, unknown>;
 export type ReleaseAuthorityPgClient = {
