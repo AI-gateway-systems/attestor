@@ -50,6 +50,23 @@ function trustedApprovals(): readonly Record<string, string | boolean>[] {
   }];
 }
 
+function cleanDecisionContext(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    modelVersion: 'model:route-private-refund-agent:2026-05-01',
+    toolSchemaDigest: digest('1'),
+    toolManifestDigest: digest('2'),
+    policyVersion: 'policy:route-refunds:v4-private',
+    policyDigest: digest('3'),
+    configDigest: digest('4'),
+    promptDigest: digest('5'),
+    verifierDigest: digest('6'),
+    simulationDigest: digest('7'),
+    evaluatedAt: '2026-05-01T17:00:00.000Z',
+    expiresAt: '2026-05-02T17:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function equal<T>(actual: T, expected: T, message: string): void {
   assert.equal(actual, expected, message);
   passed += 1;
@@ -417,6 +434,57 @@ async function testPostAdmissionRouteBlocksStaleAuthorityPolicy(): Promise<void>
     serialized,
     /policy\.refunds\.v2-private|policy\.refunds\.v3-private|private-fraud-hold-ticket-456/u,
     'Generic admission route: response does not leak raw stale policy/no-go text',
+  );
+  passed += 1;
+}
+
+async function testPostAdmissionRouteBlocksMissingDecisionContext(): Promise<void> {
+  const app = createApp();
+  const response = await app.request('/api/v1/admissions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(validAdmissionPayload({
+      decisionContextDrift: {
+        boundContext: cleanDecisionContext({
+          modelVersion: null,
+          toolSchemaDigest: null,
+          policyVersion: null,
+          configDigest: null,
+        }),
+        currentContext: null,
+      },
+    })),
+  });
+  const body = await response.json() as GenericAdmissionEnvelope;
+  const serialized = JSON.stringify(body);
+
+  equal(response.status, 200, 'Generic admission route: decision-context guard request returns an envelope');
+  equal(body.shadowDecision, 'would_block', 'Generic admission route: missing decision context shadows block');
+  equal(body.admission.decision, 'block', 'Generic admission route: missing decision context blocks enforce mode');
+  ok(
+    body.admission.reasonCodes.includes('current-context-missing'),
+    'Generic admission route: missing current context reason is explicit',
+  );
+  ok(
+    body.admission.reasonCodes.includes('decision-context-block'),
+    'Generic admission route: decision-context block reason is explicit',
+  );
+  equal(
+    body.admission.request.policyScope.dimensions.decisionContextDriftOutcome,
+    'block',
+    'Generic admission route: decision-context outcome is dimensioned',
+  );
+  equal(
+    body.admission.request.policyScope.dimensions.decisionContextMissingDimensionCount,
+    4,
+    'Generic admission route: missing decision-context dimensions are counted',
+  );
+  assert.doesNotMatch(
+    serialized,
+    /route-private-refund-agent|policy:route-refunds:v4-private/u,
+    'Generic admission route: response does not leak raw decision-context values',
   );
   passed += 1;
 }
@@ -1070,6 +1138,7 @@ await testPostAdmissionRouteReturnsEnvelope();
 await testPostAdmissionRouteBlocksUntrustedToolResultAuthority();
 await testPostAdmissionRouteBlocksUnsafeAgenticSupplyChain();
 await testPostAdmissionRouteBlocksStaleAuthorityPolicy();
+await testPostAdmissionRouteBlocksMissingDecisionContext();
 await testTenantMismatchFailsClosedBeforeShadowRecording();
 await testLoopGuardUnavailableFailsClosedBeforeShadowRecording();
 await testNonJsonMediaTypeReturnsFailClosedProblem();

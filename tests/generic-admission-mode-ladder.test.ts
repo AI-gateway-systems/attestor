@@ -950,6 +950,33 @@ function currentStaleAuthorityPolicy() {
   };
 }
 
+function cleanDecisionContext(overrides: Record<string, unknown> = {}) {
+  return {
+    modelVersion: 'model:private-refund-agent:2026-05-01',
+    toolSchemaDigest: digest('1'),
+    toolManifestDigest: digest('2'),
+    policyVersion: 'policy:refunds:v4-private',
+    policyDigest: digest('3'),
+    configDigest: digest('4'),
+    promptDigest: digest('5'),
+    verifierDigest: digest('6'),
+    simulationDigest: digest('7'),
+    evaluatedAt: '2026-05-01T16:00:00.000Z',
+    expiresAt: '2026-05-02T16:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function cleanDecisionContextDrift(overrides: Record<string, unknown> = {}) {
+  return {
+    boundContext: cleanDecisionContext(),
+    currentContext: cleanDecisionContext(),
+    requireSimulationRefresh: true,
+    maxContextAgeHours: 24,
+    ...overrides,
+  };
+}
+
 function testCurrentStaleAuthorityPolicyCanAdmitCompleteRequest(): void {
   const envelope = createGenericAdmissionEnvelope({
     ...baseMoneyAdmission('enforce'),
@@ -963,6 +990,119 @@ function testCurrentStaleAuthorityPolicyCanAdmitCompleteRequest(): void {
     envelope.admission.request.policyScope.dimensions.staleAuthorityPolicyGuardOutcome,
     'pass',
     'Generic admission: stale guard pass outcome is carried',
+  );
+}
+
+function testMatchingDecisionContextCanAdmitCompleteRequest(): void {
+  const envelope = createGenericAdmissionEnvelope({
+    ...baseMoneyAdmission('enforce'),
+    decisionContextDrift: cleanDecisionContextDrift(),
+  });
+  const serialized = JSON.stringify(envelope);
+
+  equal(envelope.shadowDecision, 'would_admit', 'Generic admission: matching decision context still admits');
+  equal(envelope.admission.decision, 'admit', 'Generic admission: decision context pass does not hold complete request');
+  equal(
+    envelope.admission.request.policyScope.dimensions.decisionContextDriftOutcome,
+    'pass',
+    'Generic admission: decision context pass outcome is carried',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.decisionContextDriftDimensionCount,
+    0,
+    'Generic admission: decision context pass carries zero drift dimensions',
+  );
+  assert.doesNotMatch(
+    serialized,
+    /private-refund-agent|policy:refunds:v4-private/u,
+    'Generic admission: serialized envelope does not leak raw decision context values',
+  );
+  passed += 1;
+}
+
+function testMissingDecisionContextBlocksEnforceMode(): void {
+  const envelope = createGenericAdmissionEnvelope({
+    ...baseMoneyAdmission('enforce'),
+    decisionContextDrift: {
+      boundContext: cleanDecisionContext({
+        modelVersion: null,
+        toolSchemaDigest: null,
+        policyVersion: null,
+        configDigest: null,
+      }),
+      currentContext: null,
+    },
+  });
+  const evidenceCheck = envelope.admission.checks.find((check) => check.kind === 'evidence');
+
+  equal(envelope.shadowDecision, 'would_block', 'Generic admission: missing decision context shadows block');
+  equal(envelope.admission.decision, 'block', 'Generic admission: missing decision context blocks enforce mode');
+  ok(
+    envelope.admission.reasonCodes.includes('current-context-missing'),
+    'Generic admission: missing current context reason is explicit',
+  );
+  ok(
+    envelope.admission.reasonCodes.includes('decision-context-block'),
+    'Generic admission: decision-context block reason is explicit',
+  );
+  ok(
+    evidenceCheck?.reasonCodes.includes('current-context-missing'),
+    'Generic admission: decision-context guard attaches missing context to evidence check',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.decisionContextDriftOutcome,
+    'block',
+    'Generic admission: decision context block outcome is carried',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.decisionContextMissingDimensionCount,
+    4,
+    'Generic admission: missing decision context dimension count is carried',
+  );
+}
+
+function testDecisionContextDriftRequiresReview(): void {
+  const envelope = createGenericAdmissionEnvelope({
+    ...baseMoneyAdmission('enforce'),
+    decisionContextDrift: cleanDecisionContextDrift({
+      currentContext: cleanDecisionContext({
+        modelVersion: 'model:private-refund-agent:2026-05-02',
+        toolSchemaDigest: digest('8'),
+        policyVersion: 'policy:refunds:v5-private',
+        simulationDigest: digest('9'),
+      }),
+    }),
+  });
+  const freshnessCheck = envelope.admission.checks.find((check) => check.kind === 'freshness');
+  const policyCheck = envelope.admission.checks.find((check) => check.kind === 'policy');
+
+  equal(envelope.shadowDecision, 'would_review', 'Generic admission: decision context drift shadows review');
+  equal(envelope.admission.decision, 'review', 'Generic admission: decision context drift holds enforce mode');
+  ok(
+    envelope.admission.reasonCodes.includes('model-version-drift'),
+    'Generic admission: model version drift is explicit',
+  );
+  ok(
+    envelope.admission.reasonCodes.includes('simulation-refresh-required'),
+    'Generic admission: simulation refresh reason is explicit',
+  );
+  ok(
+    freshnessCheck?.reasonCodes.includes('simulation-refresh-required'),
+    'Generic admission: simulation refresh attaches to freshness check',
+  );
+  ok(
+    policyCheck?.reasonCodes.includes('policy-version-drift'),
+    'Generic admission: policy version drift attaches to policy check',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.decisionContextDriftOutcome,
+    'review',
+    'Generic admission: decision context review outcome is carried',
+  );
+  equal(
+    envelope.admission.request.policyScope.dimensions.decisionContextDriftDimensionCount,
+    4,
+    'Generic admission: decision context drift dimension count is carried',
   );
 }
 
@@ -1206,6 +1346,9 @@ testCleanAgenticSupplyChainCanAdmitCompleteRequest();
 testUnsafeAgenticSupplyChainBlocksEnforceMode();
 testIncompleteAgenticSupplyChainRequiresReview();
 testCurrentStaleAuthorityPolicyCanAdmitCompleteRequest();
+testMatchingDecisionContextCanAdmitCompleteRequest();
+testMissingDecisionContextBlocksEnforceMode();
+testDecisionContextDriftRequiresReview();
 testStalePolicyMismatchBlocksEnforceMode();
 testMissingAuthorityFreshnessRequiresReview();
 testScopeExpansionNarrowsEnforceMode();

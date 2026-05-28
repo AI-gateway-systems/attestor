@@ -2,6 +2,9 @@
 
 Status: repository-side `partial`.
 
+Generic admission route status: `runtime-wired` when the customer/operator
+supplies structured `decisionContextDrift` metadata.
+
 Source report:
 
 - F2-AG-10: `model-tool-config-drift` was registered, but the report could not
@@ -27,11 +30,17 @@ What the current control does:
 - Returns `review` when model, tool schema, tool manifest, policy, config,
   prompt, verifier, simulation, expiry, or age drift is detected.
 - Stores only context digests, dimensions, counts, and reason codes.
+- Runs inside `POST /api/v1/admissions` when `decisionContextDrift` metadata is
+  present. The route exposes only outcome, counts, age, reason codes, and
+  digests.
 
 Why the status is not `fixed`:
 
 - Attestor does not independently discover every customer runtime, scan every
   active tool schema, or evaluate model quality.
+- The generic route depends on customer/operator integrations to supply the
+  bound/current context evidence; it does not grant authority from raw model,
+  prompt, tool, or policy text.
 - Production use still needs runtime inventory, CI/CD change hooks, trace/eval
   execution, and customer-owned policy for when drift triggers review, new
   simulation, or block.
@@ -48,6 +57,8 @@ Research basis:
 Validation:
 
 - `npm run test:decision-context-drift-binding`
+- `npm run test:generic-admission-mode-ladder`
+- `npm run test:generic-admission-routes`
 - `npm run test:policy-foundry-drift-policy-debt-detector`
 - `npm run test:f2-model-tool-config-drift-validation`
 

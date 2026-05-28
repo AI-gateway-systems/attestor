@@ -23,7 +23,19 @@ Code:
 Tests:
 
 - `tests/decision-context-drift-binding.test.ts`
+- `tests/generic-admission-mode-ladder.test.ts`
+- `tests/generic-admission-routes.test.ts`
 - `npm run test:decision-context-drift-binding`
+
+Runtime path:
+
+- `POST /api/v1/admissions` can run this binding when the request supplies
+  structured `decisionContextDrift` metadata.
+- The route blocks missing required bound/current context, holds drift,
+  expiry, stale age, or required simulation refresh for review, and exposes
+  only outcome, reason-code, count, age, and digest evidence.
+- The route does not expose raw model versions, policy versions, prompt text,
+  config values, tool definitions, verifier identifiers, or simulation bodies.
 
 Failure mode binding:
 
