@@ -130,8 +130,8 @@ function testImplementationEvidenceMatchesSource(): void {
   const controlPlaneStore = readProjectFile('src', 'service', 'control-plane-store.ts');
   const emailService = readProjectFile('src', 'service', 'application', 'email-webhook-service.ts');
   const pipelineAsyncRoutes = readProjectFile('src', 'service', 'http', 'routes', 'pipeline-async-routes.ts');
-  const asyncPipeline = readProjectFile('src', 'service', 'async-pipeline.ts');
-  const deadLetterStore = readProjectFile('src', 'service', 'async-dead-letter-store.ts');
+  const asyncPipeline = readProjectFile('src', 'service', 'async', 'async-pipeline.ts');
+  const deadLetterStore = readProjectFile('src', 'service', 'async', 'async-dead-letter-store.ts');
 
   includes(stripeRoutes, 'const rawPayload = await c.req.text()', 'Hosted webhook/async evidence: Stripe route preserves raw payload');
   includes(stripeRoutes, "c.req.header('stripe-signature')", 'Hosted webhook/async evidence: Stripe route reads signature');

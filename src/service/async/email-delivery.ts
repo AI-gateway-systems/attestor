@@ -10,7 +10,7 @@
  */
 
 import nodemailer, { type TransportOptions, type Transporter } from 'nodemailer';
-import type { AccountUserRole } from './account/account-user-store.js';
+import type { AccountUserRole } from '../account/account-user-store.js';
 import type { HostedEmailDeliveryProvider } from './email-delivery-event-store.js';
 import {
   buildHostedEmailDeliveryId,
@@ -18,15 +18,15 @@ import {
 import {
   buildMailgunVariablesHeader,
   getMailgunWebhookStatus,
-} from './mailgun-email-webhook.js';
+} from '../mailgun-email-webhook.js';
 import {
   buildSendGridSmtpApiHeader,
   getSendGridWebhookStatus,
-} from './sendgrid-email-webhook.js';
+} from '../sendgrid-email-webhook.js';
 import {
   controlPlaneStoreMode,
   recordHostedEmailDispatchEventState,
-} from './control-plane-store.js';
+} from '../control-plane-store.js';
 
 export type HostedEmailDeliveryMode = 'manual' | 'smtp';
 export type HostedEmailDeliveryPurpose = 'invite' | 'password_reset';

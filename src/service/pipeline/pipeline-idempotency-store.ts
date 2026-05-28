@@ -11,10 +11,10 @@
 import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { isProductionLikeRuntimeEnv } from './deployment-safety.js';
-import { withFileLock, writeTextFileAtomic } from './file-store.js';
-import { hashJsonValue, stableJsonStringify } from './json-stable.js';
-import { deriveServiceKey } from './secret-derivation.js';
+import { isProductionLikeRuntimeEnv } from '../deployment-safety.js';
+import { withFileLock, writeTextFileAtomic } from '../file-store.js';
+import { hashJsonValue, stableJsonStringify } from '../json-stable.js';
+import { deriveServiceKey } from '../secret-derivation.js';
 
 export interface PipelineIdempotencyRecord {
   id: string;

@@ -9,7 +9,7 @@
 
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { withFileLock, writeTextFileAtomic } from './file-store.js';
+import { withFileLock, writeTextFileAtomic } from '../file-store.js';
 
 export type AsyncDeadLetterBackendMode = 'bullmq' | 'in_process';
 

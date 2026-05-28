@@ -3,7 +3,7 @@ import {
   createPipelineDeadLetterService,
   type PipelineDeadLetterServiceDeps,
 } from '../src/service/application/pipeline-dead-letter-service.js';
-import type { AsyncDeadLetterRecord } from '../src/service/async-dead-letter-store.js';
+import type { AsyncDeadLetterRecord } from '../src/service/async/async-dead-letter-store.js';
 
 const record: AsyncDeadLetterRecord = {
   jobId: 'job_123',

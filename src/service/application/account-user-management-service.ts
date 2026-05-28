@@ -10,7 +10,7 @@ import type * as ControlPlaneStore from '../control-plane-store.js';
 import {
   HostedEmailDeliveryError,
   type HostedEmailDeliverySummary,
-} from '../email-delivery.js';
+} from '../async/email-delivery.js';
 import { validateAccountPassword } from '../account/account-password-policy.js';
 
 export interface AccountUserCreateInput {
@@ -103,8 +103,8 @@ export interface AccountUserManagementServiceDeps {
   issuePasswordResetTokenState: typeof ControlPlaneStore.issuePasswordResetTokenState;
   setAccountUserPasswordState: typeof ControlPlaneStore.setAccountUserPasswordState;
   saveAccountUserActionTokenRecordState: typeof ControlPlaneStore.saveAccountUserActionTokenRecordState;
-  deliverHostedInviteEmail: typeof import('../email-delivery.js').deliverHostedInviteEmail;
-  deliverHostedPasswordResetEmail: typeof import('../email-delivery.js').deliverHostedPasswordResetEmail;
+  deliverHostedInviteEmail: typeof import('../async/email-delivery.js').deliverHostedInviteEmail;
+  deliverHostedPasswordResetEmail: typeof import('../async/email-delivery.js').deliverHostedPasswordResetEmail;
 }
 
 export class AccountUserManagementServiceError extends Error {

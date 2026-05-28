@@ -7,7 +7,7 @@ import type {
   HostedEmailDeliveryEventRecord,
   HostedEmailDeliverySummaryRecord,
   RecordHostedEmailProviderEventInput,
-} from '../src/service/email-delivery-event-store.js';
+} from '../src/service/async/email-delivery-event-store.js';
 import type { MailgunWebhookEventRecord } from '../src/service/mailgun-email-webhook.js';
 import type { SendGridWebhookEventRecord } from '../src/service/sendgrid-email-webhook.js';
 

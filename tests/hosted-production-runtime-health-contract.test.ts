@@ -147,8 +147,8 @@ function testControlContractsForCriticalBoundaries(): void {
 
 function testImplementationEvidenceMatchesSource(): void {
   const coreRoutes = readProjectFile('src', 'service', 'http', 'routes', 'core-routes.ts');
-  const worker = readProjectFile('src', 'service', 'worker.ts');
-  const asyncPipeline = readProjectFile('src', 'service', 'async-pipeline.ts');
+  const worker = readProjectFile('src', 'service', 'async', 'worker.ts');
+  const asyncPipeline = readProjectFile('src', 'service', 'async', 'async-pipeline.ts');
   const runtimeProfile = readProjectFile('src', 'service', 'bootstrap', 'runtime-profile.ts');
   const sharedAuthority = readProjectFile('src', 'service', 'bootstrap', 'shared-authority-readiness.ts');
   const storagePath = readProjectFile('src', 'service', 'bootstrap', 'production-storage-path.ts');

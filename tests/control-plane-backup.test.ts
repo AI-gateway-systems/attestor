@@ -63,7 +63,7 @@ import {
   listAsyncDeadLetterRecords,
   resetAsyncDeadLetterStoreForTests,
   upsertAsyncDeadLetterRecord,
-} from '../src/service/async-dead-letter-store.js';
+} from '../src/service/async/async-dead-letter-store.js';
 
 let passed = 0;
 

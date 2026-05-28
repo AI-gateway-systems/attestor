@@ -6,7 +6,7 @@ import {
   listHostedEmailDeliveryEvents,
   recordHostedEmailDispatchEvent,
   recordHostedEmailProviderEvent,
-} from '../src/service/email-delivery-event-store.js';
+} from '../src/service/async/email-delivery-event-store.js';
 
 let passed = 0;
 function ok(condition: unknown, message: string): void {

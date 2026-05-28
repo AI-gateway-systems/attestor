@@ -1,15 +1,15 @@
 import {
   createPipelineQueue,
   createPipelineWorker,
-} from '../async-pipeline.js';
+} from '../async/async-pipeline.js';
 import {
   configureTenantAsyncExecutionCoordinator,
   shutdownTenantAsyncExecutionCoordinator,
-} from '../async-tenant-execution.js';
+} from '../async/async-tenant-execution.js';
 import {
   configureTenantAsyncWeightedDispatchCoordinator,
   shutdownTenantAsyncWeightedDispatchCoordinator,
-} from '../async-weighted-dispatch.js';
+} from '../async/async-weighted-dispatch.js';
 import {
   configureTenantRateLimiter,
   shutdownTenantRateLimiter,

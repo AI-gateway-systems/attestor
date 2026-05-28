@@ -18,7 +18,7 @@ import {
   recordPipelineIdempotencyState,
 } from '../src/service/control-plane-store.js';
 import { hashJsonValue } from '../src/service/json-stable.js';
-import { resetPipelineIdempotencyStoreForTests } from '../src/service/pipeline-idempotency-store.js';
+import { resetPipelineIdempotencyStoreForTests } from '../src/service/pipeline/pipeline-idempotency-store.js';
 import type { AccountAccessContext } from '../src/service/tenant-isolation.js';
 
 const accountAccess: AccountAccessContext = {

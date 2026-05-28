@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { createHash } from 'node:crypto';
 import type { AccountUserRole } from '../../account/account-user-store.js';
-import type { HostedEmailDeliveryProvider, HostedEmailDeliveryStatus } from '../../email-delivery-event-store.js';
+import type { HostedEmailDeliveryProvider, HostedEmailDeliveryStatus } from '../../async/email-delivery-event-store.js';
 import type { AccountAccessContext } from '../../tenant-isolation.js';
 import {
   AccountApiKeyServiceError,

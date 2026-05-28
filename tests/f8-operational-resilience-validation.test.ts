@@ -306,7 +306,7 @@ function testReportClaimsThatAreAlreadyClosed(): void {
     'F8-R4: degraded-mode grants already enforce the max TTL ceiling',
   );
 
-  const worker = readProjectFile('src', 'service', 'worker.ts');
+  const worker = readProjectFile('src', 'service', 'async', 'worker.ts');
   ok(
     worker.includes('shuttingDown') && worker.includes("server.listen(options.port, '0.0.0.0'"),
     'F8-R6: worker exposes readiness and gates it while shutting down',

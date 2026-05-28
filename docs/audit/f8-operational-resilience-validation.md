@@ -29,9 +29,9 @@ Primary repository evidence:
 - `src/service/bootstrap/server.ts`
 - `src/service/bootstrap/production-storage-path.ts`
 - `src/service/hosted-production-runtime-health-contract.ts`
-- `src/service/worker.ts`
+- `src/service/async/worker.ts`
 - `src/service/control-plane-store.ts`
-- `src/service/async-dead-letter-store.ts`
+- `src/service/async/async-dead-letter-store.ts`
 - `src/release-enforcement-plane/degraded-mode.ts`
 - `src/service/application/stripe-webhook-service.ts`
 - `src/service/application/email-webhook-service.ts`

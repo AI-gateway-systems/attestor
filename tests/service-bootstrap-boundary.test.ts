@@ -277,7 +277,7 @@ function testApiServerUsesExtractedRouteSupport(): void {
     'utf8',
   );
   const pipelineRouteSupport = readFileSync(
-    join(SERVICE_ROOT, 'pipeline-route-support.ts'),
+    join(SERVICE_ROOT, 'pipeline', 'pipeline-route-support.ts'),
     'utf8',
   );
   const requestContext = readFileSync(join(SERVICE_ROOT, 'request-context.ts'), 'utf8');
@@ -295,7 +295,7 @@ function testApiServerUsesExtractedRouteSupport(): void {
   assert.match(apiRouteRuntime, /from '\.\.\/hosted-surface-support\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/account\/hosted-account-support\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/release\/finance-release-route-support\.js'/u);
-  assert.match(apiRouteRuntime, /from '\.\.\/pipeline-route-support\.js'/u);
+  assert.match(apiRouteRuntime, /from '\.\.\/pipeline\/pipeline-route-support\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/request-context\.js'/u);
   assert.match(apiServer, /from '\.\/request-observability-middleware\.js'/u);
   assert.match(apiRouteRuntime, /from '\.\.\/site-support\.js'/u);
@@ -457,7 +457,7 @@ function testApiServerUsesExtractedRouteSupport(): void {
     assert.equal(
       pipelineRouteSupport.includes(pipelineHelper),
       true,
-      `pipeline-route-support.ts should own ${pipelineHelper}`,
+      `pipeline/pipeline-route-support.ts should own ${pipelineHelper}`,
     );
   }
 

@@ -33,7 +33,7 @@ const tsxCli = join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
 function spawnWorker(instanceId: string, healthPort: number, haMode = ''): ChildProcessWithoutNullStreams {
   return spawn(
     process.execPath,
-    [tsxCli, 'src/service/worker.ts'],
+    [tsxCli, 'src/service/async/worker.ts'],
     {
       cwd: process.cwd(),
       env: {

@@ -11,7 +11,7 @@ import { resetAccountUserStoreForTests } from '../src/service/account/account-us
 import { resetAccountUserActionTokenStoreForTests } from '../src/service/account/account-user-token-store.js';
 import { resetAdminAuditLogForTests } from '../src/service/admin-audit-log.js';
 import { resetAdminIdempotencyStoreForTests } from '../src/service/admin-idempotency-store.js';
-import { resetAsyncDeadLetterStoreForTests } from '../src/service/async-dead-letter-store.js';
+import { resetAsyncDeadLetterStoreForTests } from '../src/service/async/async-dead-letter-store.js';
 import { resetAuthAbuseGuardForTests } from '../src/service/account/auth-abuse-guard.js';
 import { resetBillingEventLedgerForTests } from '../src/service/billing/billing-event-ledger.js';
 import { resetHostedBillingEntitlementStoreForTests } from '../src/service/billing/billing-entitlement-store.js';

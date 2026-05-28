@@ -7,18 +7,18 @@ import {
   getTenantAsyncQueueSnapshot,
   submitPipelineJob,
   type PipelineJobResult,
-} from '../src/service/async-pipeline.js';
+} from '../src/service/async/async-pipeline.js';
 import {
   configureTenantAsyncExecutionCoordinator,
   resetTenantAsyncExecutionCoordinatorForTests,
   shutdownTenantAsyncExecutionCoordinator,
-} from '../src/service/async-tenant-execution.js';
+} from '../src/service/async/async-tenant-execution.js';
 import {
   configureTenantAsyncWeightedDispatchCoordinator,
   getTenantAsyncWeightedDispatchCoordinatorStatus,
   resetTenantAsyncWeightedDispatchCoordinatorForTests,
   shutdownTenantAsyncWeightedDispatchCoordinator,
-} from '../src/service/async-weighted-dispatch.js';
+} from '../src/service/async/async-weighted-dispatch.js';
 
 let passed = 0;
 

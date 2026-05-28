@@ -26,11 +26,11 @@ import { resetAccountUserActionTokenStoreForTests } from '../src/service/account
 import { resetAccountSessionStoreForTests } from '../src/service/account/account-session-store.js';
 import { resetAdminAuditLogForTests } from '../src/service/admin-audit-log.js';
 import { resetAdminIdempotencyStoreForTests } from '../src/service/admin-idempotency-store.js';
-import { readAsyncDeadLetterStoreSnapshot, resetAsyncDeadLetterStoreForTests } from '../src/service/async-dead-letter-store.js';
+import { readAsyncDeadLetterStoreSnapshot, resetAsyncDeadLetterStoreForTests } from '../src/service/async/async-dead-letter-store.js';
 import { resetStripeWebhookStoreForTests } from '../src/service/billing/stripe/stripe-webhook-store.js';
 import { resetBillingEventLedgerForTests } from '../src/service/billing/billing-event-ledger.js';
 import { resetHostedBillingEntitlementStoreForTests } from '../src/service/billing/billing-entitlement-store.js';
-import { resetHostedEmailDeliveryEventStoreForTests } from '../src/service/email-delivery-event-store.js';
+import { resetHostedEmailDeliveryEventStoreForTests } from '../src/service/async/email-delivery-event-store.js';
 import { resetObservabilityForTests } from '../src/service/observability.js';
 import { ATTESTOR_SERVICE_VERSION } from '../src/service/version.js';
 import { generateCurrentTotpCode } from '../src/service/account/account-mfa.js';

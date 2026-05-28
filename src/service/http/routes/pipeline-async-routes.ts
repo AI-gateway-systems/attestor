@@ -12,7 +12,7 @@ import type {
   PipelineJobResult,
   PipelineJobTenantContext,
   TenantAsyncQueueSnapshot,
-} from '../../async-pipeline.js';
+} from '../../async/async-pipeline.js';
 import type { TenantRateLimitContext, TenantRateLimitDecision } from '../../rate-limit.js';
 import type { TenantContext } from '../../tenant-isolation.js';
 import type { InProcessAsyncJob, TenantAsyncBackendMode } from '../../runtime/tenant-runtime.js';

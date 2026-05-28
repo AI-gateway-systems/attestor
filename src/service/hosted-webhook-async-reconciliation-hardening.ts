@@ -214,7 +214,7 @@ export const HOSTED_WEBHOOK_ASYNC_RECONCILIATION_GUARDS: readonly HostedWebhookA
       'src/service/sendgrid-email-webhook.ts',
       'src/service/mailgun-email-webhook.ts',
       'src/service/webhook-rate-limit.ts',
-      'src/service/email-delivery-event-store.ts',
+      'src/service/async/email-delivery-event-store.ts',
       'src/service/control-plane-store.ts',
     ],
     validation: [
@@ -269,8 +269,8 @@ export const HOSTED_WEBHOOK_ASYNC_RECONCILIATION_GUARDS: readonly HostedWebhookA
       'Queue, worker, and status evidence uses tenant ids, job ids, status, attempts, and error class without raw prompts or private payload bodies.',
     implementationEvidence: [
       'src/service/http/routes/pipeline-async-routes.ts',
-      'src/service/async-pipeline.ts',
-      'src/service/worker.ts',
+      'src/service/async/async-pipeline.ts',
+      'src/service/async/worker.ts',
       'src/service/application/pipeline-usage-service.ts',
       'src/service/rate-limit.ts',
     ],
@@ -320,11 +320,11 @@ export const HOSTED_WEBHOOK_ASYNC_RECONCILIATION_GUARDS: readonly HostedWebhookA
     privacyBoundary:
       'Dead-letter records keep operational failure context and avoid storing raw customer prompts, provider payloads, credentials, or private thresholds.',
     implementationEvidence: [
-      'src/service/async-dead-letter-store.ts',
+      'src/service/async/async-dead-letter-store.ts',
       'src/service/application/pipeline-dead-letter-service.ts',
       'src/service/http/routes/pipeline-async-routes.ts',
       'src/service/http/routes/admin-routes.ts',
-      'src/service/async-pipeline.ts',
+      'src/service/async/async-pipeline.ts',
       'src/service/control-plane-store.ts',
     ],
     validation: [

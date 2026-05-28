@@ -3,8 +3,8 @@
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { HostedEmailDeliveryPurpose } from './email-delivery.js';
-import type { HostedEmailDeliveryStatus } from './email-delivery-event-store.js';
+import type { HostedEmailDeliveryPurpose } from './async/email-delivery.js';
+import type { HostedEmailDeliveryStatus } from './async/email-delivery-event-store.js';
 
 export interface MailgunWebhookStatus {
   configured: boolean;

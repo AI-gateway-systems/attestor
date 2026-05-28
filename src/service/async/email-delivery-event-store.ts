@@ -10,9 +10,9 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { hashJsonValue } from './json-stable.js';
+import { hashJsonValue } from '../json-stable.js';
 import type { HostedEmailDeliveryPurpose } from './email-delivery.js';
-import { withFileLock, writeTextFileAtomic } from './file-store.js';
+import { withFileLock, writeTextFileAtomic } from '../file-store.js';
 
 export type HostedEmailDeliveryProvider = 'manual' | 'smtp' | 'sendgrid_smtp' | 'mailgun_smtp';
 export type HostedEmailDeliveryChannel = 'api_response' | 'smtp';

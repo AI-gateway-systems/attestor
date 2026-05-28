@@ -61,9 +61,9 @@ Source-backed research notes:
 | `src/service/http/routes/pipeline-async-routes.ts` | full | async submit + status routes, idempotency, tenant binding |
 | `src/service/tenant-isolation.ts` | targeted | clear-then-set tenant context and production anonymous fail-closed |
 | `src/service/application/pipeline-usage-service.ts` | full | quota consume and overage metering boundary |
-| `src/service/async-pipeline.ts` | targeted | BullMQ job ID and retry context |
+| `src/service/async/async-pipeline.ts` | targeted | BullMQ job ID and retry context |
 | `src/service/control-plane-store.ts` | targeted | shared PostgreSQL backing for idempotency |
-| `src/service/pipeline-idempotency-store.ts` | full | new encrypted file-backed pipeline replay store |
+| `src/service/pipeline/pipeline-idempotency-store.ts` | full | new encrypted file-backed pipeline replay store |
 | `src/service/application/pipeline-idempotency-service.ts` | full | new conflict/replay/finalize service |
 | `tests/service-pipeline-routes-idempotency.test.ts` | full | regression tests for OPS-86 |
 | `docs/audit/{finding-index,report-index,live-proof-register,control-map,current-posture-baseline}.md` | targeted | index and no-overclaim alignment |

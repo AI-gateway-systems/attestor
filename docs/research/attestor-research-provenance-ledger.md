@@ -161,7 +161,7 @@ This index records research and buildout sources found in the repository. A sour
 - Protected principle: runtime readiness; no overclaim; operational boundedness; data minimization and redaction.
 - Research anchor / source used, if recorded: `docs/02-architecture/hosted-production-trust-hardening.md` records Kubernetes readiness/liveness/startup probes, Google SRE monitoring guidance, OpenTelemetry service attributes, OpenTelemetry semantic conventions, and NIST SSDF as engineering anchors.
 - Repository evidence:
-  - Code evidence: `src/service/hosted-production-runtime-health-contract.ts`, `src/service/http/routes/core-routes.ts`, `src/service/worker.ts`.
+  - Code evidence: `src/service/hosted-production-runtime-health-contract.ts`, `src/service/http/routes/core-routes.ts`, `src/service/async/worker.ts`.
   - Test evidence: `tests/hosted-production-runtime-health-contract.test.ts`, `tests/service-core-routes.test.ts`, `tests/live-worker-health.test.ts`, `tests/package-script-runner.test.ts`.
   - Contract/documentation evidence: `docs/01-overview/hosted-journey-contract.md`, `docs/08-deployment/production-readiness.md`, `docs/02-architecture/hosted-production-trust-hardening.md`.
   - PR evidence: PR #214 title `[codex] Add production runtime health contract`.

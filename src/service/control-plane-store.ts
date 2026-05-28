@@ -163,7 +163,7 @@ import {
   recordPipelineIdempotency as recordPipelineIdempotencyFile,
   type PipelineIdempotencyLookup,
   type PipelineIdempotencyRecord,
-} from './pipeline-idempotency-store.js';
+} from './pipeline/pipeline-idempotency-store.js';
 import {
   lookupProcessedStripeWebhook as lookupProcessedStripeWebhookFile,
   recordProcessedStripeWebhook as recordProcessedStripeWebhookFile,
@@ -190,7 +190,7 @@ import {
   type ListHostedEmailDeliveryFilters,
   type RecordHostedEmailDispatchEventInput,
   type RecordHostedEmailProviderEventInput,
-} from './email-delivery-event-store.js';
+} from './async/email-delivery-event-store.js';
 import {
   assertTenantKeyRecoveryEnabled,
   normalizeSecretEnvelopeRecord,
@@ -205,7 +205,7 @@ import {
   upsertAsyncDeadLetterRecord as upsertAsyncDeadLetterRecordFile,
   type AsyncDeadLetterBackendMode,
   type AsyncDeadLetterRecord,
-} from './async-dead-letter-store.js';
+} from './async/async-dead-letter-store.js';
 import { hashJsonValue } from './json-stable.js';
 import { DEFAULT_HOSTED_PLAN_ID, resolvePlanQuotaPolicy, resolvePlanSpec } from './plan-catalog.js';
 import { hashSecretForLookup } from './secret-derivation.js';
