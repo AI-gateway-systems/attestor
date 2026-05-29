@@ -27,6 +27,7 @@ function readProjectFile(...segments: string[]): string {
 const descriptor = usageMeterStorageDescriptor();
 const usageMeter = readProjectFile('src', 'service', 'usage-meter.ts');
 const controlPlaneStore = readProjectFile('src', 'service', 'control-plane-store.ts');
+const usageState = readProjectFile('src', 'service', 'control-plane-store', 'usage-state.ts');
 const deployment = readProjectFile('docs', '08-deployment', 'deployment.md');
 const validation = readProjectFile('docs', 'audit', 'f6-tenant-blast-radius-validation.md');
 const tracker = readProjectFile('docs', 'audit', 'attestor-audit-remediation-tracker.md');
@@ -45,8 +46,8 @@ includes(usageMeter, 'no shared multi-node billing datastore', 'Usage meter sour
 
 includes(controlPlaneStore, 'consumePipelineRunState', 'Control-plane store: API-facing usage consume state exists');
 includes(controlPlaneStore, 'isSharedControlPlaneConfigured', 'Control-plane store: shared mode switch exists');
-includes(controlPlaneStore, 'attestor_control_plane.usage_ledger', 'Control-plane store: shared PostgreSQL usage ledger exists');
-includes(controlPlaneStore, 'ON CONFLICT (tenant_id, period) DO UPDATE SET', 'Control-plane store: shared usage increment is atomic at row level');
+includes(usageState, 'attestor_control_plane.usage_ledger', 'Control-plane usage state: shared PostgreSQL usage ledger exists');
+includes(usageState, 'ON CONFLICT (tenant_id, period) DO UPDATE SET', 'Control-plane usage state: shared usage increment is atomic at row level');
 
 includes(deployment, 'File-backed single-node usage ledger for hosted quota enforcement when `ATTESTOR_CONTROL_PLANE_PG_URL` is not configured', 'Deployment docs: file ledger is scoped to no shared control-plane PG');
 includes(validation, 'F6-T4 | Usage-meter quota enforcement is single-node/per-pod. | `partial`', 'F6 validation: T4 remains partial');
