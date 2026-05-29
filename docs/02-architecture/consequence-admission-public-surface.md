@@ -26,13 +26,33 @@ Current source state:
 
 ```text
 src/consequence-admission/index.ts
-  index export lines: 15
-  index direct export declarations: 11
+  index export lines: 6
+  index direct export declarations: 1
   trailing delegation: export * from './public-surface.js'
 
 src/consequence-admission/contracts.ts
   contract module non-empty lines: 831
   role: constants, literal vocabularies, request/response types, generic admission envelope types
+
+src/consequence-admission/engine.ts
+  engine facade non-empty lines: 16
+  role: internal compatibility re-export hub for the split admission engine modules
+
+src/consequence-admission/normalization.ts
+  normalization module non-empty lines: 273
+  role: shared canonicalization, digest, enum, request-id, proof/evidence, and primitive normalization helpers
+
+src/consequence-admission/generic-input-normalization.ts
+  generic input normalization module non-empty lines: 1150
+  role: generic admission request, guard-input, observed-feature, retry-attempt, and no-go input normalization
+
+src/consequence-admission/builders.ts
+  builders module non-empty lines: 307
+  role: admission decision mapping plus request, response, check, problem, and retry binding builders
+
+src/consequence-admission/generic-engine.ts
+  generic engine module non-empty lines: 1082
+  role: generic admission guard orchestration, mode evaluation, check construction, dimensions, and envelope creation
 
 src/consequence-admission/correction-catalog.ts
   correction catalog module non-empty lines: 887
@@ -115,11 +135,17 @@ Current `index.ts` ownership:
 
 | Ownership area | Current role | Planned split round |
 |---|---|---|
-| Normalization helpers | Identifier, enum, timestamp, amount/data-scope, guard-input, retry-attempt, and generic-admission input normalization. | V2-12 engine helpers split |
-| Generic guard orchestration | Authority, approval, scope, tool-result, supply-chain, fatigue, delegation, stale-policy, drift, authority-creep, and no-go decisions. | V2-12 engine helpers split |
-| Decision and mapping helpers | `isConsequenceAdmissionDecision`, `consequenceAdmissionAllowsConsequence`, finance/crypto mapping, and check creation. | V2-11 descriptor/catalog split or V2-12 closeout |
-| Builders | Request/response/problem/envelope builders. | V2-12 engine helpers split and closeout |
-| Compatibility delegation | Selective public re-exports from `contracts.ts` plus trailing `export * from './public-surface.js'`. | Must remain until a compatibility-preserving subpath plan replaces it |
+| Compatibility delegation | Selective public re-exports from `contracts.ts`, `correction-catalog.ts`, `engine.ts`, `descriptor.ts`, plus trailing `export * from './public-surface.js'`. | Must remain until a compatibility-preserving subpath plan replaces it |
+
+Current engine-helper ownership:
+
+| Ownership area | Current role | Planned split round |
+|---|---|---|
+| Engine facade | `engine.ts` re-exports the public engine functions from the split internal modules. | V2-12 complete |
+| Normalization helpers | `normalization.ts` owns identifier, enum, timestamp, digest, request-id, proof/evidence, and primitive normalization helpers. | V2-12 complete |
+| Generic input normalization | `generic-input-normalization.ts` owns amount/data-scope, guard input, no-go, observed feature, retry-attempt, and generic admission input normalization. | V2-12 complete |
+| Decision and mapping helpers / Builders | `builders.ts` owns `isConsequenceAdmissionDecision`, `consequenceAdmissionAllowsConsequence`, finance/crypto mapping, and check/request/response/problem builders. | V2-12 complete |
+| Generic guard orchestration | `generic-engine.ts` owns authority, approval, scope, tool-result, supply-chain, fatigue, delegation, stale-policy, drift, authority-creep, no-go decisions, dimensions, and envelope creation. | V2-12 complete |
 
 Current `public-surface.ts` ownership:
 
@@ -137,6 +163,9 @@ V2-10, V2-11, and V2-12 must preserve these contracts:
   package `exports` change exposes it explicitly;
 - `correction-catalog.ts` and `descriptor.ts` remain internal to the package
   source tree unless a future package `exports` change exposes them explicitly;
+- `engine.ts`, `normalization.ts`, `generic-input-normalization.ts`,
+  `builders.ts`, and `generic-engine.ts` remain internal to the package source
+  tree unless a future package `exports` change exposes them explicitly;
 - `public-surface.ts` remains a pure sibling re-export catalogue;
 - public import paths keep working through compatibility re-exports;
 - any new source module introduced by the split is internal unless the package

@@ -21,7 +21,6 @@ const CODE_EXTENSIONS = Object.freeze([
 ]);
 
 const HARD_LIMIT_REGISTRY = Object.freeze([
-  { path: 'src/consequence-admission/index.ts', maxLines: 4609, reason: 'P3 public-surface split planned; compatibility barrel must stay stable while implementation moves out.' },
   { path: 'src/service/control-plane-store.ts', maxLines: 3415, reason: 'P2 store-family split in progress; schema, PG helpers, mapper helpers, pipeline idempotency, and admin state extracted; compatibility facade must keep shrinking.' },
   { path: 'tests/live-api.test.ts', maxLines: 3408, reason: 'P2 live API test matrix; split by live surface after route/runtime priorities are stable.' },
   { path: 'src/service/http/routes/shadow-routes.ts', maxLines: 3181, reason: 'P2 route-family split planned; route ordering and shadow audit behavior require dedicated coverage.' },

@@ -1,6 +1,6 @@
 # Large File Refactor V2 Plan
 
-Status: planned. This document is the execution contract for the next
+Status: in progress. This document is the execution contract for the current
 large-file reduction wave after the first `control-plane-store.ts` splits.
 
 This is a repository maintainability plan only. It does not change runtime
@@ -34,7 +34,7 @@ References:
 | File | Current lines | Target after V2 | Refactor type |
 |---|---:|---:|---|
 | `src/service/control-plane-store.ts` | 3415 | 700-1000 | store-family extraction behind compatibility facade |
-| `src/consequence-admission/index.ts` | 4609 | 900-1300 | public-surface and engine-helper split |
+| `src/consequence-admission/index.ts` | 108 after V2-12 | achieved | compatibility facade over split public-surface and engine-helper modules |
 | `src/service/http/routes/shadow-routes.ts` | 3181 | 900-1300 | route-family extraction behind `registerShadowRoutes` |
 
 Estimated moved code: 6500-7500 lines into smaller responsibility-named modules.
@@ -54,7 +54,7 @@ Estimated moved code: 6500-7500 lines into smaller responsibility-named modules.
 | 9 | `consequence-admission/index.ts`: public-surface inventory lock | 0 | public-surface docs/tests, package-surface probe, large-file budget |
 | 10 | `consequence-admission/index.ts`: constants/types/contracts split | 900-1200 | consequence admission contract/surface tests, typecheck, hygiene |
 | 11 | `consequence-admission/index.ts`: descriptor/catalog split | 700-1000 | package-surface probe, public-surface contract, typecheck, hygiene |
-| 12 | `consequence-admission/index.ts`: engine helpers split and closeout | 600-900 | admission mode ladder, generic routes, package-surface probe, typecheck, hygiene |
+| 12 | `consequence-admission/index.ts`: engine helpers split and closeout | complete; facade now 108 lines | admission mode ladder, generic routes, package-surface probe, typecheck, hygiene |
 | 13 | `shadow-routes.ts`: summary/dashboard/audit routes | 500-700 | shadow summary/dashboard route tests, typecheck, hygiene |
 | 14 | `shadow-routes.ts`: simulation/history routes | 400-600 | shadow simulation/history tests, tenant boundary, typecheck, hygiene |
 | 15 | `shadow-routes.ts`: policy-foundry/promotion routes | 800-1100 | policy-foundry, promotion, bundle publication tests, typecheck, hygiene |

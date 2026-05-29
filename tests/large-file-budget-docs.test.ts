@@ -40,7 +40,7 @@ function testLargeFileRefactorV2PlanLocksScopeAndNoClaims(): void {
   includes(plan, '# Large File Refactor V2 Plan', 'V2 plan: title is present');
   includes(plan, 'This is a repository maintainability plan only.', 'V2 plan: maintainability-only boundary is explicit');
   includes(plan, '`src/service/control-plane-store.ts` | 3415 | 700-1000', 'V2 plan: control-plane-store target is locked');
-  includes(plan, '`src/consequence-admission/index.ts` | 4609 | 900-1300', 'V2 plan: consequence-admission target is locked');
+  includes(plan, '`src/consequence-admission/index.ts` | 108 after V2-12 | achieved', 'V2 plan: consequence-admission target is locked');
   includes(plan, '`src/service/http/routes/shadow-routes.ts` | 3181 | 900-1300', 'V2 plan: shadow-routes target is locked');
   includes(plan, '## Planned Rounds', 'V2 plan: planned rounds section is present');
   includes(plan, '| 16 | `shadow-routes.ts`: activation/receipt routes plus closeout', 'V2 plan: round 16 closeout is present');
