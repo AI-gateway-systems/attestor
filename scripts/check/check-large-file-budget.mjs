@@ -38,7 +38,6 @@ const HARD_LIMIT_REGISTRY = Object.freeze([
   { path: 'src/service/http/routes/admin-routes.ts', maxLines: 1579, reason: 'P2 route-family split planned after route split pattern is proven; admin auth remains high authority.' },
   { path: 'src/crypto-execution-admission/delegated-eoa.ts', maxLines: 1445, reason: 'P4 crypto execution adapter exception; delegated EOA semantics are trust-sensitive.' },
   { path: 'src/crypto-execution-admission/adapter-readiness-manifest.ts', maxLines: 1375, reason: 'P4 crypto execution manifest exception; split only with platform-surface tests.' },
-  { path: 'src/financial/types.ts', maxLines: 1372, reason: 'P1/P2 type split candidate; financial type groups should split when finance pipeline work resumes.' },
   { path: 'src/crypto-execution-admission/conformance-fixtures.ts', maxLines: 1336, reason: 'P4 conformance fixture registry exception; split only if fixture families move with tests.' },
   { path: 'src/release-kernel/release-evidence-pack.ts', maxLines: 1322, reason: 'P4 release evidence pack exception; proof material split needs canonicalization and DSSE tests.' },
   { path: 'src/release-enforcement-plane/async-envelope.ts', maxLines: 1305, reason: 'P4 enforcement-envelope exception; split only with async envelope verifier coverage.' },
