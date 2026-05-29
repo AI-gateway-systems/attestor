@@ -90,6 +90,7 @@ export const HOSTED_SENSITIVE_BUSINESS_FLOW_ABUSE_GUARDS = [
       'src/service/account/auth-abuse-guard.ts',
       'src/service/http/routes/account-federated-auth-routes.ts#maybeRateLimitAuthAttempt',
       'src/service/http/routes/account-federated-auth-routes.ts#recordHostedSamlReplay',
+      'src/service/http/routes/account-mfa-passkey-routes.ts#maybeRateLimitAuthAttempt',
       'src/service/account/account-oidc.ts',
       'src/service/account/account-saml.ts',
     ],

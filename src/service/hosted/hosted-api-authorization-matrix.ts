@@ -138,6 +138,7 @@ export const HOSTED_API_AUTHORIZATION_RULES = [
       'src/service/http/routes/account-routes.ts',
       'src/service/http/routes/account-public-auth-routes.ts',
       'src/service/http/routes/account-federated-auth-routes.ts',
+      'src/service/http/routes/account-mfa-passkey-routes.ts',
       'src/service/account/auth-abuse-guard.ts',
       'src/service/application/account-auth-service.ts',
       'tests/service-account-routes-authorization.test.ts#federated-callback-rate-limit',
@@ -158,6 +159,7 @@ export const HOSTED_API_AUTHORIZATION_RULES = [
     privacyBoundary: 'account identity settings stay scoped to the authenticated account session',
     evidence: [
       'src/service/http/routes/account-routes.ts#requireAccountSession',
+      'src/service/http/routes/account-mfa-passkey-routes.ts#requireAccountSession',
       'src/service/tenant-isolation.ts#resolveAccountSessionContext',
       'src/service/bootstrap/http-route-builders.ts#recordAccountMutationAudit',
     ],
