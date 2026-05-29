@@ -229,12 +229,18 @@ Completed:
   types from
   `src/service/bootstrap/release-tenant-signer-boundary-contracts.ts`, keeping
   the behavior entrypoint stable while isolating the contract surface.
+- `src/financial/types.ts` is now a small compatibility facade over
+  responsibility-named financial type modules:
+  `src/financial/types/base.ts`, `src/financial/types/review-audit.ts`,
+  `src/financial/types/live-proof.ts`,
+  `src/financial/types/output-dossier.ts`, and
+  `src/financial/types/semantic.ts`.
 
 Next:
 
 1. Continue the final wave from
    [Final Large File Refactor Plan](final-large-file-refactor-plan.md), starting
-   with `F-13` financial type-family extraction.
+   with `F-14` live API and generic admission test-family extraction.
 2. Touch crypto/protocol adapters only where module-specific risk warrants it.
 
 ## No-Claims
