@@ -63,6 +63,7 @@ const routeFiles = [
   ['src', 'service', 'http', 'routes', 'release-review-routes.ts'],
   ['src', 'service', 'http', 'routes', 'release-policy-control-routes.ts'],
   ['src', 'service', 'http', 'routes', 'release-policy-control-route-context.ts'],
+  ['src', 'service', 'http', 'routes', 'release-policy-control-read-routes.ts'],
   ['src', 'service', 'http', 'routes', 'generic-admission-routes.ts'],
   ['src', 'service', 'http', 'routes', 'shadow-routes.ts'],
   ['src', 'service', 'http', 'routes', 'pipeline-execution-routes.ts'],
