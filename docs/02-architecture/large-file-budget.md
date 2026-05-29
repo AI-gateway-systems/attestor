@@ -95,17 +95,19 @@ Completed:
   responsibility-named `src/service/api-types/*` modules.
 - `src/financial/cli.ts` is now a small operator entrypoint over
   responsibility-named `src/financial/cli/*` command modules.
+- `scripts/probe/probe-consequence-admission-package-surface.mjs` is now a
+  small package-surface probe entrypoint over
+  `scripts/probe/consequence-admission-package-surface/*` assertion modules.
 
 Next:
 
-1. `scripts/probe/probe-consequence-admission-package-surface.mjs`
-2. `src/service/control-plane-store.ts` inventory
-3. `src/service/control-plane-store.ts` store-family split
-4. `src/consequence-admission/index.ts` public surface split
-5. `src/service/http/routes/shadow-routes.ts`
-6. `src/service/http/routes/account-routes.ts`
-7. Remaining route-store hotspots
-8. Crypto/protocol adapters only where module-specific risk warrants it
+1. `src/service/control-plane-store.ts` inventory
+2. `src/service/control-plane-store.ts` store-family split
+3. `src/consequence-admission/index.ts` public surface split
+4. `src/service/http/routes/shadow-routes.ts`
+5. `src/service/http/routes/account-routes.ts`
+6. Remaining route-store hotspots
+7. Crypto/protocol adapters only where module-specific risk warrants it
 
 ## No-Claims
 
