@@ -452,10 +452,10 @@ function testAccountRouteUsesStateServicePort(): void {
   const accountStateService = readProjectFile('src', 'service', 'application', 'account-state-service.ts');
 
   assert.match(accountRoute, /stateService: AccountStateService/u);
-  assert.match(accountRoute, /stateService\.findAccountUserByEmail/u);
-  assert.match(accountRoute, /stateService\.issueAccountSession/u);
-  assert.match(accountRoute, /stateService\.findHostedAccountById/u);
-  assert.match(accountRoute, /stateService\.saveAccountUserRecord/u);
+  assert.match(accountRoutes, /stateService\.findAccountUserByEmail/u);
+  assert.match(accountRoutes, /stateService\.issueAccountSession/u);
+  assert.match(accountRoutes, /stateService\.findHostedAccountById/u);
+  assert.match(accountRoutes, /stateService\.saveAccountUserRecord/u);
   assert.match(accountRoutes, /stateService\.recordHostedSamlReplay/u);
   assert.match(accountRoute, /stateService\.listHostedEmailDeliveries/u);
   assert.doesNotMatch(accountRoute, /control-plane-store/u);
