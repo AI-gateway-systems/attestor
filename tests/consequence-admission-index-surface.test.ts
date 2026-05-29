@@ -18,6 +18,11 @@ function readProjectFile(path: string): string {
 }
 
 const indexSource = readProjectFile('src/consequence-admission/index.ts');
+const engineSource = readProjectFile('src/consequence-admission/engine.ts');
+const buildersSource = readProjectFile('src/consequence-admission/builders.ts');
+const genericEngineSource = readProjectFile('src/consequence-admission/generic-engine.ts');
+const genericInputNormalizationSource =
+  readProjectFile('src/consequence-admission/generic-input-normalization.ts');
 const correctionCatalogSource = readProjectFile('src/consequence-admission/correction-catalog.ts');
 const publicSurfaceSource = readProjectFile('src/consequence-admission/public-surface.ts');
 const contractTest = readProjectFile('tests/consequence-admission-contract.test.ts');
@@ -66,17 +71,27 @@ ok(
   'OPS-170: public-surface remains a pure re-export catalogue with no implementation logic',
 );
 ok(
-  /export function createConsequenceAdmissionResponse\s*\(/.test(indexSource),
-  'OPS-170: response builder export is present',
+  indexSource.includes('createConsequenceAdmissionResponse,') &&
+    engineSource.includes('createConsequenceAdmissionResponse,') &&
+    /export function createConsequenceAdmissionResponse\s*\(/.test(buildersSource),
+  'OPS-170: response builder export is present through the facade',
 );
 ok(
-  /export function createGenericAdmissionEnvelope\s*\(/.test(indexSource),
-  'OPS-170: generic admission envelope export is present',
+  indexSource.includes('createGenericAdmissionEnvelope,') &&
+    engineSource.includes('createGenericAdmissionEnvelope,') &&
+    /export function createGenericAdmissionEnvelope\s*\(/.test(genericEngineSource),
+  'OPS-170: generic admission envelope export is present through the facade',
 );
 ok(
   /evaluateConsequenceAdmissionRetryBudget,/.test(indexSource) &&
     /export function evaluateConsequenceAdmissionRetryBudget\s*\(/.test(correctionCatalogSource),
   'OPS-170: retry-budget evaluator export is present',
+);
+ok(
+  /export function createConsequenceAdmissionRetryAttemptBinding\s*\(/.test(
+    genericInputNormalizationSource,
+  ),
+  'OPS-170: retry-attempt binding builder remains exported through engine facade',
 );
 ok(
   /function retryBudgetInstruction\s*\(/.test(correctionCatalogSource),

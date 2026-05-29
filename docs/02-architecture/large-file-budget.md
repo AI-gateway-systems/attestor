@@ -164,15 +164,17 @@ Completed:
   catalogue, safe-feedback, retry-guidance, and retry-budget behavior from
   `src/consequence-admission/correction-catalog.ts`, and imports/re-exports
   `consequenceAdmissionDescriptor()` from `src/consequence-admission/descriptor.ts`.
+- `src/consequence-admission/index.ts` is now a small compatibility facade over
+  `src/consequence-admission/engine.ts`, with normalization helpers, generic
+  input normalization, request/response builders, and generic guard
+  orchestration split into responsibility-named internal modules.
 
 Next:
 
-1. Split `src/consequence-admission/index.ts` by engine helpers and close out
-   the compatibility facade budget.
-2. Split `src/service/http/routes/shadow-routes.ts` by route family.
-3. Leave `src/service/http/routes/account-routes.ts` for a separate route-matrix
+1. Split `src/service/http/routes/shadow-routes.ts` by route family.
+2. Leave `src/service/http/routes/account-routes.ts` for a separate route-matrix
    wave after V2.
-4. Touch crypto/protocol adapters only where module-specific risk warrants it.
+3. Touch crypto/protocol adapters only where module-specific risk warrants it.
 
 ## No-Claims
 

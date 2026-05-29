@@ -24,7 +24,13 @@ function equal<T>(actual: T, expected: T, message: string): void {
 function testDocMirrorsCurrentSurfaceCounts(): void {
   const doc = readProjectFile('docs', '02-architecture', 'consequence-admission-public-surface.md');
   const indexSource = readProjectFile('src', 'consequence-admission', 'index.ts');
+  const engineSource = readProjectFile('src', 'consequence-admission', 'engine.ts');
   const contractsSource = readProjectFile('src', 'consequence-admission', 'contracts.ts');
+  const normalizationSource = readProjectFile('src', 'consequence-admission', 'normalization.ts');
+  const genericInputNormalizationSource =
+    readProjectFile('src', 'consequence-admission', 'generic-input-normalization.ts');
+  const buildersSource = readProjectFile('src', 'consequence-admission', 'builders.ts');
+  const genericEngineSource = readProjectFile('src', 'consequence-admission', 'generic-engine.ts');
   const correctionCatalogSource = readProjectFile('src', 'consequence-admission', 'correction-catalog.ts');
   const descriptorSource = readProjectFile('src', 'consequence-admission', 'descriptor.ts');
   const publicSurfaceSource = readProjectFile('src', 'consequence-admission', 'public-surface.ts');
@@ -33,7 +39,16 @@ function testDocMirrorsCurrentSurfaceCounts(): void {
   const indexDirectExportDeclarations = [
     ...indexSource.matchAll(/^export\s+(?:type|interface|class|const|function|enum)\s/gm),
   ].length;
+  const engineModuleLines = engineSource.split(/\r?\n/u).filter((line) => line.length > 0).length;
   const contractModuleLines = contractsSource.split(/\r?\n/u).filter((line) => line.length > 0).length;
+  const normalizationModuleLines =
+    normalizationSource.split(/\r?\n/u).filter((line) => line.length > 0).length;
+  const genericInputNormalizationModuleLines =
+    genericInputNormalizationSource.split(/\r?\n/u).filter((line) => line.length > 0).length;
+  const buildersModuleLines =
+    buildersSource.split(/\r?\n/u).filter((line) => line.length > 0).length;
+  const genericEngineModuleLines =
+    genericEngineSource.split(/\r?\n/u).filter((line) => line.length > 0).length;
   const correctionCatalogModuleLines =
     correctionCatalogSource.split(/\r?\n/u).filter((line) => line.length > 0).length;
   const descriptorModuleLines =
@@ -53,6 +68,31 @@ function testDocMirrorsCurrentSurfaceCounts(): void {
     doc,
     `contract module non-empty lines: ${contractModuleLines}`,
     'Public surface docs: contract module line count matches source',
+  );
+  includes(
+    doc,
+    `engine facade non-empty lines: ${engineModuleLines}`,
+    'Public surface docs: engine facade line count matches source',
+  );
+  includes(
+    doc,
+    `normalization module non-empty lines: ${normalizationModuleLines}`,
+    'Public surface docs: normalization module line count matches source',
+  );
+  includes(
+    doc,
+    `generic input normalization module non-empty lines: ${genericInputNormalizationModuleLines}`,
+    'Public surface docs: generic input normalization module line count matches source',
+  );
+  includes(
+    doc,
+    `builders module non-empty lines: ${buildersModuleLines}`,
+    'Public surface docs: builders module line count matches source',
+  );
+  includes(
+    doc,
+    `generic engine module non-empty lines: ${genericEngineModuleLines}`,
+    'Public surface docs: generic engine module line count matches source',
   );
   includes(
     doc,
@@ -116,10 +156,11 @@ function testDocLocksV2SplitInventory(): void {
   for (const expected of [
     'V2-10 complete',
     'V2-11 complete',
-    'V2-12 engine helpers split',
+    'V2-12 complete',
     "plus trailing `export * from './public-surface.js'`",
     '`contracts.ts` remains internal to the package source tree',
     '`correction-catalog.ts` and `descriptor.ts` remain internal to the package',
+    '`engine.ts`, `normalization.ts`, `generic-input-normalization.ts`',
     '`public-surface.ts` remains a pure sibling re-export catalogue',
     'no split PR may change `admit`, `narrow`, `review`, or `block` semantics',
   ]) {
