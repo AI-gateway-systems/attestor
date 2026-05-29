@@ -70,6 +70,37 @@ function testDocKeepsBoundaryLabelsAndNoClaims(): void {
   }
 }
 
+function testDocLocksV2SplitInventory(): void {
+  const doc = readProjectFile('docs', '02-architecture', 'consequence-admission-public-surface.md');
+
+  includes(doc, '## V2-09 Inventory Lock', 'Public surface docs: V2-09 inventory lock is present');
+
+  for (const expected of [
+    'Contract constants and literal vocabularies',
+    'Core admission request/response types',
+    'Generic admission request/envelope types',
+    'Normalization helpers',
+    'Generic guard orchestration',
+    'Decision and mapping helpers',
+    'Correction catalogue and retry budget',
+    'Builders and descriptor',
+    'Compatibility delegation',
+  ]) {
+    includes(doc, expected, `Public surface docs: V2-09 locks ${expected}`);
+  }
+
+  for (const expected of [
+    'V2-10 constants/types/contracts split',
+    'V2-11 descriptor/catalog split',
+    'V2-12 engine helpers split',
+    "Trailing `export * from './public-surface.js'`",
+    '`public-surface.ts` remains a pure sibling re-export catalogue',
+    'no split PR may change `admit`, `narrow`, `review`, or `block` semantics',
+  ]) {
+    includes(doc, expected, `Public surface docs: V2-09 keeps split rule ${expected}`);
+  }
+}
+
 function testDocLinksAndNavigationSurfaces(): void {
   const docPath = join(process.cwd(), 'docs', '02-architecture', 'consequence-admission-public-surface.md');
   const doc = readFileSync(docPath, 'utf8');
@@ -132,6 +163,7 @@ function testPackageExportsStillMatchDocumentedImportPaths(): void {
 
 testDocMirrorsCurrentSurfaceCounts();
 testDocKeepsBoundaryLabelsAndNoClaims();
+testDocLocksV2SplitInventory();
 testDocLinksAndNavigationSurfaces();
 testPackageExportsStillMatchDocumentedImportPaths();
 
