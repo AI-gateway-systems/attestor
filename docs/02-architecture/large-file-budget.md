@@ -55,6 +55,8 @@ them. The first job is to stop growth. Later phases shrink the existing list.
   because they are easier to review, merge, test, and roll back.
 - TypeScript module resolution means file moves must preserve runtime import
   resolution, not merely pass a text search.
+- Hono route grouping supports registering route families from smaller route
+  modules while keeping the main app's route contract stable.
 
 References:
 
@@ -62,6 +64,7 @@ References:
 - <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/getting-started/helping-others-review-your-changes>
 - <https://google.github.io/eng-practices/review/developer/small-cls.html>
 - <https://www.typescriptlang.org/docs/handbook/modules/theory.html>
+- <https://hono.dev/api/routing>
 
 ## Split Policy
 
@@ -168,10 +171,16 @@ Completed:
   `src/consequence-admission/engine.ts`, with normalization helpers, generic
   input normalization, request/response builders, and generic guard
   orchestration split into responsibility-named internal modules.
+- `src/service/http/routes/shadow-routes.ts` now delegates the shadow
+  summary, recommendations, action-risk inventory, audit-evidence,
+  business-risk dashboard, and dashboard-summary read routes to
+  `src/service/http/routes/shadow-summary-dashboard-routes.ts`, preserving
+  `registerShadowRoutes` as the public route registration facade.
 
 Next:
 
-1. Split `src/service/http/routes/shadow-routes.ts` by route family.
+1. Split `src/service/http/routes/shadow-routes.ts` simulation and history
+   routes by route family.
 2. Leave `src/service/http/routes/account-routes.ts` for a separate route-matrix
    wave after V2.
 3. Touch crypto/protocol adapters only where module-specific risk warrants it.

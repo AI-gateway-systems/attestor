@@ -166,11 +166,19 @@ function testExistingDescriptorsExposeTheBoundary(): void {
 }
 
 function testImplementationEvidenceMatchesSource(): void {
-  const admission = readProjectFile('src', 'consequence-admission', 'index.ts');
+  const admission = [
+    readProjectFile('src', 'consequence-admission', 'index.ts'),
+    readProjectFile('src', 'consequence-admission', 'contracts.ts'),
+    readProjectFile('src', 'consequence-admission', 'correction-catalog.ts'),
+    readProjectFile('src', 'consequence-admission', 'builders.ts'),
+  ].join('\n');
   const dataMinimization = readProjectFile('src', 'consequence-admission', 'data-minimization-redaction-policy.ts');
   const agentLoop = readProjectFile('src', 'consequence-admission', 'agent-loop-abuse-guard.ts');
   const genericRoutes = readProjectFile('src', 'service', 'http', 'routes', 'generic-admission-routes.ts');
-  const shadowRoutes = readProjectFile('src', 'service', 'http', 'routes', 'shadow-routes.ts');
+  const shadowRoutes = [
+    readProjectFile('src', 'service', 'http', 'routes', 'shadow-routes.ts'),
+    readProjectFile('src', 'service', 'http', 'routes', 'shadow-summary-dashboard-routes.ts'),
+  ].join('\n');
   const shadowEvents = readProjectFile('src', 'consequence-admission', 'shadow-events.ts');
   const shadowSimulation = readProjectFile('src', 'consequence-admission', 'shadow-simulation.ts');
   const adapter = readProjectFile('src', 'consequence-admission', 'adapter-framework.ts');
