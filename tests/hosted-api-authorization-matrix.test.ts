@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Hono } from 'hono';
 import {
@@ -43,9 +43,10 @@ function readAccountRouteSources(): string {
 }
 
 function readReleasePolicyControlRouteSources(): string {
-  return routeFiles
-    .filter((file) => file[file.length - 1].startsWith('release-policy-control'))
-    .map((file) => readProjectFile(...file))
+  const routeDir = join(process.cwd(), 'src', 'service', 'http', 'routes');
+  return readdirSync(routeDir)
+    .filter((file) => /^release-policy-control.*\.ts$/u.test(file))
+    .map((file) => readFileSync(join(routeDir, file), 'utf8'))
     .join('\n');
 }
 
@@ -64,6 +65,10 @@ const routeFiles = [
   ['src', 'service', 'http', 'routes', 'release-policy-control-routes.ts'],
   ['src', 'service', 'http', 'routes', 'release-policy-control-route-context.ts'],
   ['src', 'service', 'http', 'routes', 'release-policy-control-read-routes.ts'],
+  ['src', 'service', 'http', 'routes', 'release-policy-control-pack-routes.ts'],
+  ['src', 'service', 'http', 'routes', 'release-policy-control-activation-routes.ts'],
+  ['src', 'service', 'http', 'routes', 'release-policy-control-emergency-routes.ts'],
+  ['src', 'service', 'http', 'routes', 'release-policy-control-simulation-routes.ts'],
   ['src', 'service', 'http', 'routes', 'generic-admission-routes.ts'],
   ['src', 'service', 'http', 'routes', 'shadow-routes.ts'],
   ['src', 'service', 'http', 'routes', 'pipeline-execution-routes.ts'],
