@@ -154,7 +154,7 @@ export const HOSTED_SENSITIVE_BUSINESS_FLOW_ABUSE_GUARDS = [
     privacyBoundary:
       'Plaintext tenant API keys are returned only on issue or rotate responses; historical reads use redacted key views.',
     implementationEvidence: [
-      'src/service/http/routes/account-routes.ts#apiKeyService',
+      'src/service/http/routes/account-admin-user-routes.ts#apiKeyService',
       'src/service/application/account-api-key-service.ts#tenantKeyStorePolicy',
       'src/service/tenant-key-store.ts',
     ],

@@ -358,10 +358,10 @@ function testAccountRouteDelegatesAuthUseCases(): void {
   assert.match(accountRoutes, /authService\.bootstrapFirstUser/u);
   assert.match(accountRoutes, /authService\.signup/u);
   assert.match(accountRoutes, /authService\.login/u);
-  assert.match(accountRoute, /from '..\/..\/account\/auth-abuse-guard\.js'/u);
+  assert.match(accountRoutes, /from '..\/..\/account\/auth-abuse-guard\.js'/u);
   assert.match(accountRouteHelpers, /checkAuthAttemptAllowed/u);
-  assert.match(accountRoute, /recordAuthAttemptFailure/u);
-  assert.match(accountRoute, /recordAuthAttemptSuccess/u);
+  assert.match(accountRoutes, /recordAuthAttemptFailure/u);
+  assert.match(accountRoutes, /recordAuthAttemptSuccess/u);
   assert.match(accountRouteHelpers, /resolveAuthAttemptSource/u);
   assert.doesNotMatch(accountRoute, /countAccountUsersForAccountState/u);
   assert.doesNotMatch(accountRoute, /provisionHostedAccountState/u);
@@ -375,14 +375,15 @@ function testAccountRouteDelegatesAuthUseCases(): void {
 
 function testAccountRouteDelegatesApiKeyUseCases(): void {
   const accountRoute = readFileSync(join(ROUTE_ROOT, 'account-routes.ts'), 'utf8');
+  const accountRoutes = readAccountRouteSources();
   const accountApiKeyService = readProjectFile('src', 'service', 'application', 'account-api-key-service.ts');
 
   assert.match(accountRoute, /apiKeyService: AccountApiKeyService/u);
-  assert.match(accountRoute, /apiKeyService\.list/u);
-  assert.match(accountRoute, /apiKeyService\.issue/u);
-  assert.match(accountRoute, /apiKeyService\.rotate/u);
-  assert.match(accountRoute, /apiKeyService\.setStatus/u);
-  assert.match(accountRoute, /apiKeyService\.revoke/u);
+  assert.match(accountRoutes, /apiKeyService\.list/u);
+  assert.match(accountRoutes, /apiKeyService\.issue/u);
+  assert.match(accountRoutes, /apiKeyService\.rotate/u);
+  assert.match(accountRoutes, /apiKeyService\.setStatus/u);
+  assert.match(accountRoutes, /apiKeyService\.revoke/u);
   assert.doesNotMatch(accountRoute, /findTenantRecordByTenantIdState/u);
   assert.doesNotMatch(accountRoute, /listTenantKeyRecordsState/u);
   assert.doesNotMatch(accountRoute, /issueTenantApiKeyState/u);
