@@ -73,6 +73,44 @@ are navigation labels, not SemVer subpath promises.
 | Assurance and invariant work | `evaluation-public` | `invariant-*`, `assurance-*`, `promotion-gate-runner`, `decision-lineage-graph`, `runtime-monitor-skeleton` | Review pressure and research/evaluation evidence unless separately wired into a hard floor. |
 | Historical compatibility | `compatibility-public` | `attestor/consequence-admission` package subpath | Keep working; do not widen it into deep source imports. |
 
+## V2-09 Inventory Lock
+
+This section is the split-before-moving lock for the Large File Refactor V2
+consequence-admission rounds. It records what `index.ts` currently owns so the
+next PRs can move code without drifting the public contract.
+
+Current `index.ts` ownership:
+
+| Ownership area | Current role | Planned split round |
+|---|---|---|
+| Contract constants and literal vocabularies | Contract versions, decisions, generic modes, retry defaults, entry-point/check/proof vocabularies. | V2-10 constants/types/contracts split |
+| Core admission request/response types | `ConsequenceAdmissionRequest`, `ConsequenceAdmissionResponse`, checks, constraints, feedback, proof refs, retry binding input/output. | V2-10 constants/types/contracts split |
+| Generic admission request/envelope types | `CreateGenericAdmissionInput`, guard-specific input aliases, `GenericAdmissionModeEvaluation`, `GenericAdmissionEnvelope`. | V2-10 constants/types/contracts split |
+| Normalization helpers | Identifier, enum, timestamp, amount/data-scope, guard-input, retry-attempt, and generic-admission input normalization. | V2-12 engine helpers split |
+| Generic guard orchestration | Authority, approval, scope, tool-result, supply-chain, fatigue, delegation, stale-policy, drift, authority-creep, and no-go decisions. | V2-12 engine helpers split |
+| Decision and mapping helpers | `isConsequenceAdmissionDecision`, `consequenceAdmissionAllowsConsequence`, finance/crypto mapping, and check creation. | V2-11 descriptor/catalog split or V2-12 closeout |
+| Correction catalogue and retry budget | Correction entries, safe feedback, retry guidance, retry-window evaluation. | V2-11 descriptor/catalog split |
+| Builders and descriptor | Request/response/problem/envelope builders and `consequenceAdmissionDescriptor()`. | V2-12 engine helpers split and closeout |
+| Compatibility delegation | Trailing `export * from './public-surface.js'`. | Must remain until a compatibility-preserving subpath plan replaces it |
+
+Current `public-surface.ts` ownership:
+
+| Ownership area | Current role | Split rule |
+|---|---|---|
+| Pure module catalogue | 186 sibling `export * from './*.js'` lines, no implementation logic. | Keep pure; do not add imports, helpers, conditionals, or deep source paths. |
+| Broad compatibility surface | Keeps established package-boundary imports visible through `attestor` and `attestor/consequence-admission`. | Do not remove exports in a refactor PR without an explicit deprecation/compatibility plan. |
+| Navigation grouping | The categories above explain the current catalogue shape for maintainers. | Category labels are not new public subpaths. |
+
+V2-10, V2-11, and V2-12 must preserve these contracts:
+
+- the package `exports` map keeps `attestor` and `attestor/consequence-admission`
+  pointing at `dist/consequence-admission/index.js`;
+- `public-surface.ts` remains a pure sibling re-export catalogue;
+- public import paths keep working through compatibility re-exports;
+- any new source module introduced by the split is internal unless the package
+  `exports` map explicitly exposes it in a separate PR;
+- no split PR may change `admit`, `narrow`, `review`, or `block` semantics.
+
 ## What This Does Not Prove
 
 - It does not prove production readiness.

@@ -150,15 +150,22 @@ Completed:
   restore, and shared-store test reset behavior from
   `src/service/control-plane-store/snapshots.ts`, closing the control-plane
   store split with the facade reduced to behavior-free exports.
+- `src/consequence-admission/index.ts` now has a V2-09 public-surface inventory
+  lock in `docs/02-architecture/consequence-admission-public-surface.md`,
+  covering the current index-owned contract/constants/types, generic admission
+  normalization/orchestration, correction/retry catalogue, descriptor builders,
+  and compatibility delegation before code movement begins.
 
 Next:
 
-1. Split `src/consequence-admission/index.ts` by public-surface contracts,
-   descriptors, and engine helpers.
-2. Split `src/service/http/routes/shadow-routes.ts` by route family.
-3. Leave `src/service/http/routes/account-routes.ts` for a separate route-matrix
+1. Split `src/consequence-admission/index.ts` by constants/types/contracts.
+2. Split `src/consequence-admission/index.ts` by descriptor/catalog ownership.
+3. Split `src/consequence-admission/index.ts` by engine helpers and close out
+   the compatibility facade budget.
+4. Split `src/service/http/routes/shadow-routes.ts` by route family.
+5. Leave `src/service/http/routes/account-routes.ts` for a separate route-matrix
    wave after V2.
-4. Touch crypto/protocol adapters only where module-specific risk warrants it.
+6. Touch crypto/protocol adapters only where module-specific risk warrants it.
 
 ## No-Claims
 
