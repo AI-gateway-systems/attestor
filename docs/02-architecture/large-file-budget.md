@@ -101,10 +101,13 @@ Completed:
 - `src/service/control-plane-store.ts` inventory is now documented in
   `docs/02-architecture/control-plane-store-inventory.md`; the next PR may
   split store families behind the existing compatibility facade.
+- `src/service/control-plane-store.ts` now imports the PostgreSQL schema SQL
+  from `src/service/control-plane-store/schema.ts`, keeping the existing facade
+  path while removing the inline schema block.
 
 Next:
 
-1. `src/service/control-plane-store.ts` store-family split
+1. `src/service/control-plane-store.ts` PG helper and store-family split
 2. `src/consequence-admission/index.ts` public surface split
 3. `src/service/http/routes/shadow-routes.ts`
 4. `src/service/http/routes/account-routes.ts`
