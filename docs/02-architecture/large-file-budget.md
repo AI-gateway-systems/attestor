@@ -130,6 +130,13 @@ Completed:
   `src/service/control-plane-store/stripe-webhook-state.ts`, keeping the
   existing facade while isolating webhook dedupe, claim/finalize/release, claim
   lease cleanup, and snapshot behavior.
+- `src/service/control-plane-store.ts` now re-exports tenant key state from
+  `src/service/control-plane-store/tenant-key-state.ts`, keeping the existing
+  facade while isolating API-key issuance, rotation, recovery, tenant plan sync,
+  and snapshot behavior.
+- `src/service/control-plane-store.ts` now re-exports usage ledger state from
+  `src/service/control-plane-store/usage-state.ts`, keeping the existing facade
+  while isolating quota read/consume/query and snapshot behavior.
 
 Next:
 
