@@ -26,7 +26,6 @@ const HARD_LIMIT_REGISTRY = Object.freeze([
   { path: 'tests/live-api.test.ts', maxLines: 3408, reason: 'P2 live API test matrix; split by live surface after route/runtime priorities are stable.' },
   { path: 'src/service/http/routes/shadow-routes.ts', maxLines: 3181, reason: 'P2 route-family split planned; route ordering and shadow audit behavior require dedicated coverage.' },
   { path: 'src/service/http/routes/account-routes.ts', maxLines: 2588, reason: 'P2 route-family split planned; account auth/session/MFA/user flows require route-matrix coverage.' },
-  { path: 'scripts/probe/probe-consequence-admission-package-surface.mjs', maxLines: 2358, reason: 'P1 script helper split planned; package-surface probe output must stay stable.' },
   { path: 'tests/generic-admission-mode-ladder.test.ts', maxLines: 1861, reason: 'P2 admission-mode matrix; split only after guard route matrix stays stable.' },
   { path: 'src/crypto-authorization-core/modular-account-adapters.ts', maxLines: 1836, reason: 'P4 protocol adapter exception; split only by coherent adapter helper boundaries.' },
   { path: 'src/crypto-authorization-core/x402-agentic-payment-adapter.ts', maxLines: 1796, reason: 'P4 protocol adapter exception; x402 behavior is trust-sensitive and should split only with focused tests.' },

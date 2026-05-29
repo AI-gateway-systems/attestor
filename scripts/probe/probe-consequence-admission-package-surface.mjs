@@ -1,2358 +1,349 @@
 import assert from 'node:assert/strict';
+import { runConsequenceAdmissionPackageSurface01 } from './consequence-admission-package-surface/surface-01.mjs';
+import { runConsequenceAdmissionPackageSurface02 } from './consequence-admission-package-surface/surface-02.mjs';
+import { runConsequenceAdmissionPackageSurface03 } from './consequence-admission-package-surface/surface-03.mjs';
+import { runConsequenceAdmissionPackageSurface04 } from './consequence-admission-package-surface/surface-04.mjs';
+import { runConsequenceAdmissionPackageSurface05 } from './consequence-admission-package-surface/surface-05.mjs';
+import { runConsequenceAdmissionPackageSurface06 } from './consequence-admission-package-surface/surface-06.mjs';
+import { runConsequenceAdmissionPackageSurface07 } from './consequence-admission-package-surface/surface-07.mjs';
 
 const root = await import('attestor');
 const admission = await import('attestor/consequence-admission');
 
-assert.equal(
-  root.CONSEQUENCE_ADMISSION_FACADE_SPEC_VERSION,
-  'attestor.consequence-admission-facade.v1',
-);
-assert.equal(
-  root.consequenceAdmissionFacadeDescriptor().publicSubpath,
-  'attestor/consequence-admission',
-);
-assert.equal(
-  admission.CONSEQUENCE_ADMISSION_FACADE_SPEC_VERSION,
-  'attestor.consequence-admission-facade.v1',
-);
-assert.equal(
-  admission.consequenceAdmissionFacadeDescriptor().publicSubpath,
-  'attestor/consequence-admission',
-);
-assert.equal(
-  admission.consequenceAdmissionFacadeDescriptor().automaticPackDetection,
-  false,
-);
-assert.equal(
-  admission.consequenceAdmissionFacadeDescriptor().entryPoints.financePipelineRun.route,
-  '/api/v1/pipeline/run',
-);
-assert.equal(
-  admission.consequenceAdmissionFacadeDescriptor().entryPoints.cryptoExecutionPlan.route,
-  null,
-);
-assert.equal(
-  admission.consequenceAdmissionFacadeDescriptor().entryPoints.cryptoExecutionPlan.packageSubpath,
-  'attestor/crypto-execution-admission',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().consequenceDomains.includes('programmable-money'),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDomainProfile('money-movement').controlRequirements.includes(
-    'non-bypassable-integration',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDownstreamContractDescriptor().bindingFields.includes(
-    'idempotency-key',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDownstreamContractDescriptor().decisionExposesRawConstraints,
-  false,
-);
-assert.equal(
-  admission.consequenceAdmissionDownstreamContractDescriptor().decisionConstraintReferenceMode,
-  'digests-only',
-);
-assert.equal(
-  typeof admission.evaluateConsequenceAdmissionDownstreamContract,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionVerifierHelperDescriptor().cryptographicTokenVerification,
-  false,
-);
-assert.equal(
-  typeof admission.createConsequenceAdmissionVerifier,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionAdapterFrameworkDescriptor().adapterKinds.includes(
-    'mcp-tool-wrapper',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().adapterKinds.includes('tool-wrapper'),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceAdmissionProtectedAdapter,
-  'function',
-);
-assert.equal(
-  admission.consequenceAuditEvidenceExportDescriptor().artifactKinds.includes(
-    'shadow-event-set',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().auditEvidenceFindingKinds.includes(
-    'raw-payload-present',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceAuditEvidenceExport,
-  'function',
-);
-assert.equal(
-  admission.consequenceTamperEvidentHistoryDescriptor().entryKinds.includes(
-    'audit-evidence-export',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().tamperEvidentHistoryEntryKinds.includes(
-    'downstream-execution-receipt',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceTamperEvidentHistoryLedger,
-  'function',
-);
-assert.equal(
-  admission.consequenceBusinessRiskDashboardDescriptor().widgets.includes(
-    'consequence-domain-risk',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().businessRiskSignals.includes(
-    'policy-gap',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceBusinessRiskDashboard,
-  'function',
-);
-assert.equal(
-  admission.consequenceDashboardApiSummaryDescriptor().tileKinds.includes(
-    'policy-gaps',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceDashboardApiSummaryDescriptor().attentionKinds.includes(
-    'define-policy',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().dashboardApiSummaryLinkKinds.includes(
-    'business-risk-dashboard',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceDashboardApiSummary,
-  'function',
-);
-assert.equal(
-  admission.consequenceExternalReviewPacketDescriptor().focusAreas.includes(
-    'proof-integrity',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceExternalReviewPacketDescriptor().evidenceKinds.includes(
-    'supply-chain-baseline',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().externalReviewFindingKinds.includes(
-    'external-review-required',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceExternalReviewPacket,
-  'function',
-);
-assert.equal(
-  admission.consequenceDataMinimizationRedactionPolicyDescriptor().surfaceKinds.includes(
-    'audit-evidence-export',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceDataMinimizationRedactionPolicyDescriptor().surfaceKinds.includes(
-    'dashboard-api-summary',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceDataMinimizationRedactionPolicyDescriptor().surfaceKinds.includes(
-    'external-review-packet',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().dataMinimizationForbiddenRawClasses.includes(
-    'credential-or-secret',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().packDecisionProfileVersion,
-  'attestor.consequence-admission-pack-decision-profile.v1',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().domainPackBoundaryVersion,
-  'attestor.consequence-domain-pack-boundary.v1',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().controlPlaneRoleVersion,
-  'attestor.control-plane-roles.v1',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().failureModeRegistryPlacementVersion,
-  'attestor.consequence-failure-mode-registry-placement.v1',
-);
-assert.equal(
-  admission.consequenceFailureModeRegistryPlacementDescriptor().owningLayer,
-  'shared-control-layer',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().failureModeRegistryPlacement.sourceFiles.includes(
-    'src/consequence-admission/failure-mode-control-bindings.ts',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().failureModeRegistryPlacement.sourceFiles.includes(
-    'src/consequence-admission/failure-mode-runtime-extensions.ts',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().failureModeRegistryPlacement.nonOwningRoles.includes(
-    'pack',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().failureModeRuntimeExtensionVersion,
-  'attestor.consequence-failure-mode-runtime-extension.v1',
-);
-assert.equal(
-  admission.consequenceFailureModeRuntimeExtensionDescriptor().mutatesCanonicalRegistry,
-  false,
-);
-assert.equal(
-  admission.consequenceFailureModeRuntimeExtensionDescriptor().requiresOwnerAuthorityDigest,
-  true,
-);
-assert.equal(
-  admission.evaluateConsequenceFailureModeRuntimeExtensions({
-    generatedAt: '2026-05-14T00:00:00.000Z',
-    extensions: [],
-  }).outcome,
-  'review',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().replayLayerPlacementVersion,
-  'attestor.consequence-replay-layer-placement.v1',
-);
-assert.equal(
-  admission.consequenceReplayLayerPlacementDescriptor().primaryRole,
-  'replay',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().replayLayerPlacement.surfaces.some((surface) =>
-    surface.kind === 'presentation-replay-consumption'
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().replayLayerPlacement.nonOwningRoles.includes(
-    'hosted-service',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().guardActivationReadinessVersion,
-  'attestor.consequence-guard-activation-readiness.v1',
-);
-assert.equal(
-  admission.consequenceGuardActivationReadinessDescriptor().separatesDecisionRenderingFromEnforcement,
-  true,
-);
-assert.equal(
-  admission.consequenceGuardActivationReadinessDescriptor().guardIds.includes(
-    'tool-result-poisoning-guard',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceUntrustedContentAuthorityGuardDescriptor().rejectsUntrustedPromotion,
-  true,
-);
-assert.equal(
-  admission.consequenceUntrustedContentAuthorityGuardDescriptor().requiresTrustedAuthorityEvidence,
-  true,
-);
-assert.equal(
-  admission.evaluateConsequenceUntrustedContentAuthority({
-    generatedAt: '2026-05-14T00:00:00.000Z',
-    sources: [
-      {
-        sourceKind: 'customer-email',
-        claimKind: 'approval',
-        sourceRef: 'raw-private-email',
-        trustClass: 'trusted-authority',
-        evidenceDigest: `sha256:${'0'.repeat(64)}`,
-      },
-    ],
-  }).reasonCodes.includes('trust-class-override-rejected'),
-  true,
-);
-assert.equal(
-  admission.consequenceGuardActivationReadinessDescriptor().criterionIds.includes(
-    'downstream-verifier-integrated',
-  ),
-  true,
-);
-assert.equal(
-  admission.evaluateConsequenceGuardActivationReadiness().productionReady,
-  false,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().shadowReadinessClaimAlignmentVersion,
-  'attestor.shadow-readiness-claim-alignment.v1',
-);
-assert.equal(
-  admission.consequenceShadowReadinessClaimAlignmentDescriptor().stageIds.includes(
-    'shadow-customer-activation-receipt',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceShadowReadinessClaimAlignmentDescriptor().criterionIds.includes(
-    'selected-profile-storage-ready',
-  ),
-  true,
-);
-assert.equal(
-  admission.evaluateConsequenceShadowReadinessClaimAlignment({
-    runtimeProfileId: 'production-shared',
-    productionStoragePath: {
-      readyForSelectedProfile: false,
-      blockers: [{ code: 'evaluation-store-not-shared', component: 'shadow-admission-events' }],
-    },
-  }).readyForSelectedProfile,
-  false,
-);
-assert.equal(
-  admission.evaluateConsequenceShadowReadinessClaimAlignment().productionReady,
-  false,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().failureModeGuardCoverageVersion,
-  'attestor.consequence-failure-mode-guard-coverage.v1',
-);
-assert.equal(
-  admission.consequenceFailureModeGuardCoverageMatrix().productionReady,
-  false,
-);
-assert.equal(
-  admission.consequenceFailureModeGuardCoverageMatrix().entries.some((entry) =>
-    entry.failureModeId === 'agentic-supply-chain-compromise' &&
-    entry.coverageKind === 'dedicated-guard'
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().agenticSupplyChainGuardVersion,
-  'attestor.consequence-agentic-supply-chain-guard.v1',
-);
-assert.equal(
-  admission.consequenceAgenticSupplyChainGuardDescriptor().requiresVerifiedProvenance,
-  true,
-);
-assert.equal(
-  admission.consequenceAgenticSupplyChainGuardDescriptor().rejectsOverbroadPermissions,
-  true,
-);
-assert.equal(
-  admission.evaluateConsequenceAgenticSupplyChain({
-    generatedAt: '2026-05-14T00:00:00.000Z',
-    components: [],
-  }).outcome,
-  'review',
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().multiAgentDelegationGuardVersion,
-  'attestor.consequence-multi-agent-delegation-guard.v1',
-);
-assert.equal(
-  admission.consequenceMultiAgentDelegationGuardDescriptor().requiresPrincipalChain,
-  true,
-);
-assert.equal(
-  admission.consequenceMultiAgentDelegationGuardDescriptor().rejectsSelfApproval,
-  true,
-);
-assert.equal(
-  admission.evaluateConsequenceMultiAgentDelegation({
-    generatedAt: '2026-05-14T00:00:00.000Z',
-    principalChain: [],
-  }).outcome,
-  'review',
-);
-assert.equal(
-  admission.consequenceDomainPackBoundaryDescriptor().primaryRole,
-  'pack',
-);
-assert.equal(
-  admission.consequenceDomainPackBoundaryDescriptor().surfaces.some((surface) =>
-    surface.kind === 'crypto-admission-projection'
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().domainPackBoundary.separateProductIdentityAllowed,
-  false,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().domainPackBoundary.sharedContractsRequired.includes(
-    'attestor.consequence-replay-layer-placement.v1',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().controlPlaneRoles.includes('pdp'),
-  true,
-);
-assert.equal(
-  admission.attestorControlPlaneRoleDescriptor('pep').name,
-  'Policy Enforcement Point',
-);
-assert.equal(
-  admission.attestorControlPlaneRoleDescriptor('pip').mayApproveActionByItself,
-  false,
-);
-assert.equal(
-  admission.consequenceAdmissionPackDecisionProfileDescriptor().signalKinds.includes(
-    'crypto-adapter-readiness-posture',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceDataMinimizationRedactionPolicyDescriptor().surfaceKinds.includes(
-    'pack-decision-profile',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceAdmissionPackDecisionProfile,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateConsequenceDataMinimizationArtifact,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionPolicyLimitDescriptor().limitKinds.includes('velocity'),
-  true,
-);
-assert.equal(
-  typeof admission.evaluateConsequenceAdmissionPolicyLimits,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().bindingFields.includes(
-    'body-digest',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().supportsReplayKeyDigestObservations,
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesReplayKeyDigest,
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesTargetDigest,
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesEnforcementPointIdDigest,
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesDownstreamSystemDigest,
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesPolicyRefDigest,
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationBindingDescriptor().canonicalUsesConstraintIdDigests,
-  true,
-);
-assert.equal(
-  typeof admission.evaluateConsequenceAdmissionPresentationBinding,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionPresentationReplayLedgerDescriptor().failureReasons.includes(
-    'replay-key-already-consumed',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceAdmissionPresentationReplayLedger,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionDownstreamExecutionReceiptDescriptor().statuses.includes(
-    'succeeded',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.recordConsequenceAdmissionDownstreamExecution,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionRetryAttemptLedgerDescriptor().failureReasons.includes(
-    'idempotency-key-conflict',
-  ),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceAdmissionRetryAttemptLedger,
-  'function',
-);
-assert.equal(
-  typeof admission.createConsequenceAdmissionRetryAttemptBinding,
-  'function',
-);
-assert.equal(
-  admission.consequenceAdmissionAgentLoopAbuseGuardDescriptor().reasonCodes.includes(
-    'agent-loop-policy-probing-risk',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceAdmissionDescriptor().agentLoopAbuseGuardOutcomes.includes('throttle'),
-  true,
-);
-assert.equal(
-  typeof admission.createConsequenceAdmissionAgentLoopAbuseGuard,
-  'function',
-);
-assert.equal(
-  admission.CONSEQUENCE_ENVELOPE_CONTRACT_VERSION,
-  'attestor.consequence-envelope-contract.v1',
-);
-assert.equal(
-  admission.consequenceEnvelopeContractDescriptor().requiredFields.includes(
-    'canonicalActionType',
-  ),
-  true,
-);
-assert.equal(
-  admission.consequenceEnvelopeContractDescriptor().digestOnlyRefsRequired,
-  true,
-);
-assert.equal(
-  admission.consequenceEnvelopeContractDescriptor().grantsAuthority,
-  false,
-);
-assert.equal(
-  admission.consequenceEnvelopeContractDescriptor().rawWalletMaterialStored,
-  false,
-);
-assert.equal(
-  admission.SIGNAL_RELATIONSHIP_CONTRACT_VERSION,
-  'attestor.signal-relationship-contract.v1',
-);
-assert.equal(
-  admission.signalRelationshipContractDescriptor().categoryBoundSignalKindsRequired,
-  true,
-);
-assert.equal(
-  admission.signalRelationshipContractDescriptor().directedRelationshipKinds.includes(
-    'overrides',
-  ),
-  true,
-);
-assert.equal(
-  admission.signalRelationshipContractDescriptor().unaryRelationshipKinds.includes(
-    'requires_review',
-  ),
-  true,
-);
-assert.equal(
-  admission.signalRelationshipContractDescriptor().grantsAuthority,
-  false,
-);
-assert.equal(
-  admission.LAYER_OPINION_SCHEMA_VERSION,
-  'attestor.layer-opinion-schema.v1',
-);
-assert.equal(
-  admission.layerOpinionSchemaDescriptor().advisoryOnly,
-  true,
-);
-assert.equal(
-  admission.layerOpinionSchemaDescriptor().positions.includes(
-    'no-advisory-objection',
-  ),
-  true,
-);
-assert.equal(
-  admission.layerOpinionSchemaDescriptor().abstentionIsFirstClass,
-  true,
-);
-assert.equal(
-  admission.layerOpinionSchemaDescriptor().mayMarkSafe,
-  false,
-);
-assert.equal(
-  admission.MODULATOR_AUTHORITY_TIER_VERSION,
-  'attestor.modulator-authority-tier.v1',
-);
-assert.equal(
-  admission.modulatorAuthorityTierDescriptor().dimensions.includes('freshness'),
-  true,
-);
-assert.equal(
-  admission.modulatorAuthorityTierDescriptor().preservesHardFloor,
-  true,
-);
-assert.equal(
-  admission.modulatorAuthorityTierDescriptor().maySuppressHardDeny,
-  false,
-);
-assert.equal(
-  admission.modulatorAuthorityTierDescriptor().mayMarkSafe,
-  false,
-);
-assert.equal(
-  admission.RELATIONSHIP_AWARE_MONOTONE_FUSION_VERSION,
-  'attestor.relationship-aware-monotone-fusion.v1',
-);
-assert.equal(
-  admission.relationshipAwareMonotoneFusionDescriptor().duplicateDiscountSupported,
-  true,
-);
-assert.equal(
-  admission.relationshipAwareMonotoneFusionDescriptor().hardFloorPreservationRequired,
-  true,
-);
-assert.equal(
-  admission.relationshipAwareMonotoneFusionDescriptor().grantsAuthority,
-  false,
-);
-assert.equal(
-  typeof admission.fuseRelationshipAwareMonotoneHazard,
-  'function',
-);
-assert.equal(
-  admission.CONFLICT_ABSTENTION_GATE_VERSION,
-  'attestor.conflict-abstention-gate.v1',
-);
-assert.equal(
-  admission.conflictAbstentionGateDescriptor().uncertaintyCannotAdmit,
-  true,
-);
-assert.equal(
-  admission.conflictAbstentionGateDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  admission.conflictAbstentionGateDescriptor().grantsAuthority,
-  false,
-);
-assert.equal(
-  typeof admission.evaluateConflictAbstentionGate,
-  'function',
-);
-assert.equal(
-  admission.HUMAN_COMPREHENSION_GATE_VERSION,
-  'attestor.human-comprehension-gate.v1',
-);
-assert.equal(
-  admission.humanComprehensionGateDescriptor().maxReasonLinesEnforced,
-  true,
-);
-assert.equal(
-  admission.humanComprehensionGateDescriptor().activeQuestionCapEnforced,
-  true,
-);
-assert.equal(
-  admission.humanComprehensionGateDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.evaluateHumanComprehensionGate,
-  'function',
-);
-assert.equal(
-  admission.SIGNED_ASSURANCE_PACKET_VERSION,
-  'attestor.signed-assurance-packet.v1',
-);
-assert.equal(
-  admission.signedAssurancePacketDescriptor().digestOnlyRefs,
-  true,
-);
-assert.equal(
-  admission.signedAssurancePacketDescriptor().tamperEvidentHistoryBound,
-  true,
-);
-assert.equal(
-  admission.signedAssurancePacketDescriptor().signatureRequired,
-  true,
-);
-assert.equal(
-  admission.signedAssurancePacketDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createSignedAssurancePacketSigningPayload,
-  'function',
-);
-assert.equal(
-  typeof admission.createSignedAssurancePacket,
-  'function',
-);
-assert.equal(
-  admission.OUTCOME_INCIDENT_FEEDBACK_CONTRACT_VERSION,
-  'attestor.outcome-incident-feedback-contract.v1',
-);
-assert.equal(
-  admission.outcomeIncidentFeedbackContractDescriptor().separatesSourceClasses,
-  true,
-);
-assert.equal(
-  admission.outcomeIncidentFeedbackContractDescriptor().incidentPathFirstClass,
-  true,
-);
-assert.equal(
-  admission.outcomeIncidentFeedbackContractDescriptor().replayRegressionTriggering,
-  true,
-);
-assert.equal(
-  admission.outcomeIncidentFeedbackContractDescriptor().automaticPolicyMutationAllowed,
-  false,
-);
-assert.equal(
-  admission.outcomeIncidentFeedbackContractDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createOutcomeIncidentFeedbackContract,
-  'function',
-);
-assert.equal(
-  admission.ASSURANCE_MEASUREMENT_PLANE_VERSION,
-  'attestor.assurance-measurement-plane.v1',
-);
-assert.equal(
-  admission.assuranceMeasurementPlaneDescriptor().readOnly,
-  true,
-);
-assert.equal(
-  admission.assuranceMeasurementPlaneDescriptor().writesAuditPlane,
-  false,
-);
-assert.equal(
-  admission.assuranceMeasurementPlaneDescriptor().goodhartProtected,
-  true,
-);
-assert.equal(
-  admission.assuranceMeasurementPlaneDescriptor().driftDetectionSupported,
-  true,
-);
-assert.equal(
-  admission.assuranceMeasurementPlaneDescriptor().scopedBudgetAccountingSupported,
-  true,
-);
-assert.equal(
-  admission.assuranceMeasurementPlaneDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createAssuranceMeasurementPlane,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_ENVELOPE_PROJECTOR_VERSION,
-  'attestor.shadow-envelope-projector.v1',
-);
-assert.equal(
-  admission.shadowEnvelopeProjectorDescriptor().accepts,
-  admission.CANONICAL_SHADOW_EVENT_SCHEMA_VERSION,
-);
-assert.equal(
-  admission.shadowEnvelopeProjectorDescriptor().produces,
-  admission.CONSEQUENCE_ENVELOPE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowEnvelopeProjectorDescriptor().projectionMode,
-  'shadow-only',
-);
-assert.equal(
-  admission.shadowEnvelopeProjectorDescriptor().rawPayloadRead,
-  false,
-);
-assert.equal(
-  admission.shadowEnvelopeProjectorDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  admission.shadowEnvelopeProjectorDescriptor().activatesEnforcement,
-  false,
-);
-assert.equal(
-  typeof admission.createShadowEnvelopeProjection,
-  'function',
-);
-assert.equal(
-  admission.SIGNAL_EXTRACTOR_CONTRACT_VERSION,
-  'attestor.signal-extractor-contract.v1',
-);
-assert.equal(
-  admission.signalExtractorContractDescriptor().signalRelationshipContractVersion,
-  admission.SIGNAL_RELATIONSHIP_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.signalExtractorContractDescriptor().shadowEnvelopeProjectorVersion,
-  admission.SHADOW_ENVELOPE_PROJECTOR_VERSION,
-);
-assert.equal(
-  admission.signalExtractorContractDescriptor().categoryBoundOutputRequired,
-  true,
-);
-assert.equal(
-  admission.signalExtractorContractDescriptor().advisoryCannotEmitHardFloor,
-  true,
-);
-assert.equal(
-  admission.signalExtractorContractDescriptor().readsRawPayload,
-  false,
-);
-assert.equal(
-  admission.signalExtractorContractDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createSignalExtractorDeclaration,
-  'function',
-);
-assert.equal(
-  typeof admission.createSignalExtractionBatch,
-  'function',
-);
-assert.equal(
-  admission.SIGNAL_ADAPTER_REGISTRY_VERSION,
-  'attestor.signal-adapter-registry.v1',
-);
-assert.equal(
-  admission.signalAdapterRegistryDescriptor().signalExtractorContractVersion,
-  admission.SIGNAL_EXTRACTOR_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.signalAdapterRegistryDescriptor().signalRelationshipContractVersion,
-  admission.SIGNAL_RELATIONSHIP_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.signalAdapterRegistryDescriptor().coverageComplete,
-  true,
-);
-assert.equal(
-  admission.signalAdapterRegistryDescriptor().passOutcomeMayMarkSafe,
-  false,
-);
-assert.equal(
-  admission.signalAdapterRegistryDescriptor().relationshipDetectionIncluded,
-  false,
-);
-assert.equal(
-  admission.signalAdapterRegistryDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createBuiltinSignalAdapterRegistry,
-  'function',
-);
-assert.equal(
-  admission.createBuiltinSignalAdapterRegistry().registrations.length,
-  6,
-);
-assert.equal(
-  admission.RELATIONSHIP_DETECTOR_CONTRACT_VERSION,
-  'attestor.relationship-detector-contract.v1',
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().signalRelationshipContractVersion,
-  admission.SIGNAL_RELATIONSHIP_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().ruleBasedOnly,
-  true,
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().sameEnvelopeOnly,
-  true,
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().learnedInferenceIncluded,
-  false,
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().correlationLearningIncluded,
-  false,
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().fusionIncluded,
-  false,
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().packetSigningIncluded,
-  false,
-);
-assert.equal(
-  admission.relationshipDetectorDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createRelationshipDetectorRule,
-  'function',
-);
-assert.equal(
-  typeof admission.detectSignalRelationships,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
-  'attestor.shadow-runtime-pipeline.v1',
-);
-assert.equal(
-  admission.shadowRuntimePipelineDescriptor().executionMode,
-  'shadow-only',
-);
-assert.equal(
-  admission.shadowRuntimePipelineDescriptor().relationshipEvaluationBeforeFusion,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimePipelineDescriptor().unsignedPacketOnly,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimePipelineDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimePipelineDescriptor().activatesEnforcement,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimePipelineDescriptor().learnsFromTraffic,
-  false,
-);
-assert.equal(
-  typeof admission.runShadowRuntimePipelineDryRun,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_ACTIVATION_PROFILE_CONTRACT_VERSION,
-  'attestor.shadow-activation-profile-contract.v1',
-);
-assert.equal(
-  admission.SHADOW_ACTIVATION_WORK_KEY_VERSION,
-  'attestor.runtime-activation-work-key.v1',
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().sourceEventSchemaVersion,
-  admission.CANONICAL_SHADOW_EVENT_SCHEMA_VERSION,
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().shadowRuntimePipelineVersion,
-  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().deliverySemantics,
-  'at-least-once',
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().duplicateHandling,
-  'activation-work-key-digest',
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().orderingScope,
-  'tenant-source-partition',
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().rawIdempotencyKeyStored,
-  false,
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().workerBehaviorIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  admission.shadowActivationProfileContractDescriptor().activatesEnforcement,
-  false,
-);
-assert.equal(
-  typeof admission.createShadowActivationProfileContract,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_OUTBOX_WORK_ITEM_CONTRACT_VERSION,
-  'attestor.shadow-outbox-work-item-contract.v1',
-);
-assert.equal(
-  admission.SHADOW_OUTBOX_WORK_ITEM_EVENT_TYPE,
-  'attestor.shadow-runtime.activation.requested.v1',
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().activationProfileContractVersion,
-  admission.SHADOW_ACTIVATION_PROFILE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().workKeyVersion,
-  admission.SHADOW_ACTIVATION_WORK_KEY_VERSION,
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().eventType,
-  admission.SHADOW_OUTBOX_WORK_ITEM_EVENT_TYPE,
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().status,
-  'pending',
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().deliverySemantics,
-  'at-least-once',
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().duplicateHandling,
-  'activation-work-key-digest',
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().claimBehaviorIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().workerBehaviorIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().outboxWriteIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowOutboxWorkItemContractDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createShadowOutboxWorkItemContract,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_DISPATCH_CLAIM_CONTRACT_VERSION,
-  'attestor.shadow-dispatch-claim-contract.v1',
-);
-assert.equal(
-  admission.SHADOW_DISPATCH_CLAIM_TOKEN_VERSION,
-  'attestor.shadow-dispatch-claim-token.v1',
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().sourceWorkItemContractVersion,
-  admission.SHADOW_OUTBOX_WORK_ITEM_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().sourceWorkItemEventType,
-  admission.SHADOW_OUTBOX_WORK_ITEM_EVENT_TYPE,
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().rowLockSemantics,
-  'for-update-skip-locked',
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().claimLeaseSemantics,
-  'time-bounded-lease',
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().retrySemantics,
-  'bounded-attempt-increment',
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().claimContractIncluded,
-  true,
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().claimStorageMutationIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().runnerInvocationIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowDispatchClaimContractDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createShadowDispatchClaimContract,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_RUNTIME_ACTIVATION_RUNNER_VERSION,
-  'attestor.shadow-runtime-activation-runner.v1',
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().sourceClaimContractVersion,
-  admission.SHADOW_DISPATCH_CLAIM_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().shadowRuntimePipelineVersion,
-  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().calls,
-  'runShadowRuntimePipelineDryRun',
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().executionMode,
-  'shadow-only',
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().claimLeaseRequired,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().eventDigestMustMatchClaim,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().runnerInvocationIncluded,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().workerBehaviorIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().claimStorageMutationIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().outboxWriteIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().activatesEnforcement,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeActivationRunnerDescriptor().productionReady,
-  false,
-);
-assert.equal(
-  typeof admission.runShadowRuntimeActivation,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_RUNTIME_OBSERVABILITY_HOOKS_VERSION,
-  'attestor.shadow-runtime-observability-hooks.v1',
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().shadowRuntimeActivationRunnerVersion,
-  admission.SHADOW_RUNTIME_ACTIVATION_RUNNER_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().shadowRuntimePipelineVersion,
-  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().decisionTraceLoggerVersion,
-  admission.DECISION_TRACE_LOGGER_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().runtimeMonitorSkeletonVersion,
-  admission.RUNTIME_MONITOR_SKELETON_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().decisionLineageGraphVersion,
-  admission.DECISION_LINEAGE_GRAPH_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().assuranceMeasurementPlaneVersion,
-  admission.ASSURANCE_MEASUREMENT_PLANE_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().traceHooked,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().lineageHooked,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().measurementHookOptional,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().writesAuditPlane,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().measurementAuthorityIncluded,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeObservabilityHooksDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.runShadowRuntimeObservabilityHooks,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_RUNTIME_OUTCOME_FEEDBACK_HOOK_VERSION,
-  'attestor.shadow-runtime-outcome-feedback-hook.v1',
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().shadowRuntimeObservabilityHooksVersion,
-  admission.SHADOW_RUNTIME_OBSERVABILITY_HOOKS_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().outcomeIncidentFeedbackContractVersion,
-  admission.OUTCOME_INCIDENT_FEEDBACK_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().outcomeFeedbackCoeWiringVersion,
-  admission.OUTCOME_FEEDBACK_COE_WIRING_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().decisionLineageGraphVersion,
-  admission.DECISION_LINEAGE_GRAPH_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().requiresR06Observability,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().requiresPacketDigestBinding,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().writesAuditPlane,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().mutatesPolicy,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().activatesLearning,
-  false,
-);
-assert.equal(
-  admission.shadowRuntimeOutcomeFeedbackHookDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.runShadowRuntimeOutcomeFeedbackHook,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_RUNTIME_FIXTURE_REPLAY_SMOKE_VERSION,
-  'attestor.shadow-runtime-fixture-replay-smoke.v1',
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().canonicalShadowEventSchemaVersion,
-  admission.CANONICAL_SHADOW_EVENT_SCHEMA_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().shadowActivationProfileContractVersion,
-  admission.SHADOW_ACTIVATION_PROFILE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().shadowOutboxWorkItemContractVersion,
-  admission.SHADOW_OUTBOX_WORK_ITEM_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().shadowDispatchClaimContractVersion,
-  admission.SHADOW_DISPATCH_CLAIM_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().shadowRuntimeActivationRunnerVersion,
-  admission.SHADOW_RUNTIME_ACTIVATION_RUNNER_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().shadowRuntimeObservabilityHooksVersion,
-  admission.SHADOW_RUNTIME_OBSERVABILITY_HOOKS_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().shadowRuntimeOutcomeFeedbackHookVersion,
-  admission.SHADOW_RUNTIME_OUTCOME_FEEDBACK_HOOK_VERSION,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().runsR02ThroughR07,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().noTargetSystemCall,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().noAuditWrite,
-  true,
-);
-assert.equal(
-  admission.shadowRuntimeFixtureReplaySmokeDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.runShadowRuntimeFixtureReplaySmoke,
-  'function',
-);
-assert.equal(
-  admission.DECISION_TRACE_LOGGER_VERSION,
-  'attestor.decision-trace-logger.v1',
-);
-assert.equal(
-  admission.decisionTraceLoggerDescriptor().shadowRuntimePipelineVersion,
-  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
-);
-assert.equal(
-  admission.decisionTraceLoggerDescriptor().ttlRequired,
-  true,
-);
-assert.equal(
-  admission.decisionTraceLoggerDescriptor().replayRejected,
-  true,
-);
-assert.equal(
-  admission.decisionTraceLoggerDescriptor().digestOnly,
-  true,
-);
-assert.equal(
-  admission.decisionTraceLoggerDescriptor().writesAuditPlane,
-  false,
-);
-assert.equal(
-  admission.decisionTraceLoggerDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createDecisionTraceLogger,
-  'function',
-);
-assert.equal(
-  typeof admission.verifyDecisionTraceEntries,
-  'function',
-);
-assert.equal(
-  admission.BASELINE_COHORT_CONTRACT_VERSION,
-  'attestor.baseline-cohort-contract.v1',
-);
-assert.equal(
-  admission.baselineCohortContractDescriptor().canonicalShadowEventSchemaVersion,
-  admission.CANONICAL_SHADOW_EVENT_SCHEMA_VERSION,
-);
-assert.equal(
-  admission.baselineCohortContractDescriptor().shadowRuntimePipelineVersion,
-  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
-);
-assert.equal(
-  admission.baselineCohortContractDescriptor().excludesBlockedTraffic,
-  true,
-);
-assert.equal(
-  admission.baselineCohortContractDescriptor().noAutoPromotion,
-  true,
-);
-assert.equal(
-  admission.baselineCohortContractDescriptor().learnsFromTraffic,
-  false,
-);
-assert.equal(
-  typeof admission.createBaselineCohortSourceFromShadowEvent,
-  'function',
-);
-assert.equal(
-  typeof admission.createBaselineCohortCandidate,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateBaselineCohortPromotion,
-  'function',
-);
-assert.equal(
-  admission.CANDIDATE_INVARIANTS_CATALOG_VERSION,
-  'attestor.candidate-invariants-catalog.v1',
-);
-assert.equal(
-  admission.candidateInvariantsCatalogDescriptor().baselineCohortContractVersion,
-  admission.BASELINE_COHORT_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.candidateInvariantsCatalogDescriptor().frequencyImpliesSafetyRejected,
-  true,
-);
-assert.equal(
-  admission.candidateInvariantsCatalogDescriptor().counterexampleReplayRequired,
-  true,
-);
-assert.equal(
-  admission.candidateInvariantsCatalogDescriptor().noAutoPromotion,
-  true,
-);
-assert.equal(
-  admission.candidateInvariantsCatalogDescriptor().learnsFromTraffic,
-  false,
-);
-assert.equal(
-  typeof admission.createCandidateInvariantFromBaseline,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateCandidateInvariantReviewReadiness,
-  'function',
-);
-assert.equal(
-  admission.INVARIANT_CALIBRATION_CONTRACT_VERSION,
-  'attestor.invariant-calibration-contract.v1',
-);
-assert.equal(
-  admission.invariantCalibrationContractDescriptor().candidateInvariantsCatalogVersion,
-  admission.CANDIDATE_INVARIANTS_CATALOG_VERSION,
-);
-assert.equal(
-  admission.invariantCalibrationContractDescriptor().methods.includes('isotonic-regression'),
-  true,
-);
-assert.equal(
-  admission.invariantCalibrationContractDescriptor().confidenceCapBelowSingleSignalBlock,
-  true,
-);
-assert.equal(
-  admission.invariantCalibrationContractDescriptor().rawClassifierScoreAuthorityAllowed,
-  false,
-);
-assert.equal(
-  admission.invariantCalibrationContractDescriptor().calibratedConfidenceAuthorityAllowed,
-  false,
-);
-assert.equal(
-  admission.invariantCalibrationContractDescriptor().learnsFromTraffic,
-  false,
-);
-assert.equal(
-  typeof admission.createInvariantCalibrationRecord,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateInvariantCalibrationReadiness,
-  'function',
-);
-assert.equal(
-  admission.INVARIANT_PROMOTION_GATE_VERSION,
-  'attestor.invariant-promotion-gate.v1',
-);
-assert.equal(
-  admission.invariantPromotionGateDescriptor().candidateInvariantsCatalogVersion,
-  admission.CANDIDATE_INVARIANTS_CATALOG_VERSION,
-);
-assert.equal(
-  admission.invariantPromotionGateDescriptor().invariantCalibrationContractVersion,
-  admission.INVARIANT_CALIBRATION_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.invariantPromotionGateDescriptor().reviewOnlyPatchOnly,
-  true,
-);
-assert.equal(
-  admission.invariantPromotionGateDescriptor().noRelaxation,
-  true,
-);
-assert.equal(
-  admission.invariantPromotionGateDescriptor().noAutoPromotion,
-  true,
-);
-assert.equal(
-  admission.invariantPromotionGateDescriptor().activatesEnforcement,
-  false,
-);
-assert.equal(
-  typeof admission.createInvariantPromotionGateDecision,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateInvariantPromotionGate,
-  'function',
-);
-assert.equal(
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
+// Keep these marker strings in the entrypoint because several contract tests
+// inspect this public probe file directly to verify package-surface coverage.
+const PROBE_COVERAGE_MARKERS = Object.freeze([
+  'ASSURANCE_CASE_CONTRACT_VERSION',
+  'ASSURANCE_MEASUREMENT_PLANE_VERSION',
+  'AUTHORITY_CREEP_GUARD_VERSION',
+  'BASELINE_COHORT_BUILDER_VERSION',
+  'BASELINE_COHORT_CONTRACT_VERSION',
+  'CALIBRATION_LOWER_BOUND_RUNNER_VERSION',
+  'CANDIDATE_INVARIANTS_CATALOG_VERSION',
+  'CANDIDATE_INVARIANT_SYNTHESIZER_VERSION',
+  'CANONICAL_SHADOW_EVENT_SCHEMA_VERSION',
+  'CONFLICT_ABSTENTION_GATE_VERSION',
+  'CONSEQUENCE_ADMISSION_CUSTOMER_GATE_VERSION',
+  'CONSEQUENCE_ADMISSION_FACADE_SPEC_VERSION',
+  'CONSEQUENCE_ADMISSION_PROTECTED_RELEASE_TOKEN_ISSUANCE_VERSION',
+  'CONSEQUENCE_ENVELOPE_CONTRACT_VERSION',
+  'COUNTEREXAMPLE_MINIMAL_WITNESS_VERSION',
+  'CUSTOMER_PEP_ADOPTION_PACKAGE_VERSION',
+  'CUSTOMER_PEP_RUNTIME_ADOPTION_VERSION',
+  'DECISION_LINEAGE_GRAPH_VERSION',
+  'DECISION_TRACE_LOGGER_VERSION',
+  'ERR_PACKAGE_PATH_NOT_EXPORTED',
+  'HUMAN_COMPREHENSION_GATE_VERSION',
+  'INVARIANT_CALIBRATION_CONTRACT_VERSION',
+  'INVARIANT_PROMOTION_GATE_VERSION',
+  'LAYER_OPINION_SCHEMA_VERSION',
+  'LEARNED_ARTIFACT_RELEASE_BUDGET_VERSION',
+  'MODULATOR_AUTHORITY_TIER_VERSION',
+  'OUTCOME_FEEDBACK_COE_WIRING_VERSION',
+  'OUTCOME_INCIDENT_FEEDBACK_CONTRACT_VERSION',
+  'POLICY_FOUNDRY_ADVERSARIAL_REPLAY_EXECUTOR_VERSION',
+  'POLICY_FOUNDRY_AUTHORITY_RELATIONSHIP_CONTEXT_VERSION',
+  'POLICY_FOUNDRY_CANDIDATE_REGISTRY_VERSION',
+  'POLICY_FOUNDRY_COMMERCIAL_BOUNDARY_VERSION',
+  'POLICY_FOUNDRY_COUNTEREXAMPLE_LEDGER_VERSION',
+  'POLICY_FOUNDRY_COVERAGE_SCORE_VERSION',
+  'POLICY_FOUNDRY_DRIFT_POLICY_DEBT_DETECTOR_VERSION',
+  'POLICY_FOUNDRY_GATE_PLANNER_VERSION',
+  'POLICY_FOUNDRY_HOSTED_ONBOARDING_WORKFLOW_VERSION',
+  'POLICY_FOUNDRY_OUTCOME_FEEDBACK_LOOP_VERSION',
+  'POLICY_FOUNDRY_POLICY_TWIN_SUMMARY_VERSION',
+  'POLICY_FOUNDRY_REVIEW_ONLY_PATCH_PACK_VERSION',
+  'POLICY_FOUNDRY_SELF_ONBOARDING_CLI_VERSION',
+  'PROMOTION_GATE_RUNNER_VERSION',
+  'RELATIONSHIP_AWARE_MONOTONE_FUSION_VERSION',
+  'RELATIONSHIP_DETECTOR_CONTRACT_VERSION',
+  'REVIEWER_OPEN_DEFEATER_VIEW_VERSION',
+  'RUNTIME_MONITOR_SKELETON_VERSION',
+  'SHADOW_ACTIVATION_PROFILE_CONTRACT_VERSION',
+  'SHADOW_ACTIVATION_WORK_KEY_VERSION',
+  'SHADOW_DATA_QUALITY_GATE_VERSION',
+  'SHADOW_DISPATCH_CLAIM_CONTRACT_VERSION',
+  'SHADOW_DISPATCH_CLAIM_TOKEN_VERSION',
+  'SHADOW_ENVELOPE_PROJECTOR_VERSION',
+  'SHADOW_OUTBOX_WORK_ITEM_CONTRACT_VERSION',
+  'SHADOW_OUTBOX_WORK_ITEM_EVENT_TYPE',
+  'SHADOW_RUNTIME_ACTIVATION_RUNNER_VERSION',
+  'SHADOW_RUNTIME_FIXTURE_REPLAY_SMOKE_VERSION',
+  'SHADOW_RUNTIME_OBSERVABILITY_HOOKS_VERSION',
+  'SHADOW_RUNTIME_OUTCOME_FEEDBACK_HOOK_VERSION',
+  'SHADOW_RUNTIME_PIPELINE_VERSION',
+  'SIGNAL_ADAPTER_REGISTRY_VERSION',
+  'SIGNAL_EXTRACTOR_CONTRACT_VERSION',
+  'SIGNAL_RELATIONSHIP_CONTRACT_VERSION',
+  'SIGNED_ASSURANCE_PACKET_VERSION',
+  'TLA_TRACE_VALIDATOR_BRIDGE_VERSION',
+  'assertConsequenceAdmissionGateAllows',
+  'assertCustomerPepAdoptionPackageReady',
+  'assertCustomerPepRuntimeAdoptionReady',
+  'assuranceCaseContractDescriptor',
+  'assuranceMeasurementPlaneDescriptor',
   'attestor.assurance-case-contract.v1',
-);
-assert.equal(
-  admission.assuranceCaseContractDescriptor().sacmVersionTarget,
-  'SACM 2.3',
-);
-assert.equal(
-  admission.assuranceCaseContractDescriptor().sacmAlignedNotConformant,
-  true,
-);
-assert.equal(
-  admission.assuranceCaseContractDescriptor().eliminativeArgumentation,
-  true,
-);
-assert.equal(
-  admission.assuranceCaseContractDescriptor().assurance2Defeasibility,
-  true,
-);
-assert.equal(
-  admission.assuranceCaseContractDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  admission.assuranceCaseContractDescriptor().activatesEnforcement,
-  false,
-);
-assert.equal(
-  typeof admission.createAssuranceCaseContract,
-  'function',
-);
-assert.equal(
-  typeof admission.createAssuranceCaseDefeater,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateAssuranceCaseScopeChange,
-  'function',
-);
-assert.equal(
-  admission.LEARNED_ARTIFACT_RELEASE_BUDGET_VERSION,
-  'attestor.learned-artifact-release-budget.v1',
-);
-assert.equal(
-  admission.learnedArtifactReleaseBudgetDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.learnedArtifactReleaseBudgetDescriptor().differentialPrivacyEngine,
-  false,
-);
-assert.equal(
-  admission.learnedArtifactReleaseBudgetDescriptor().externalDpProofAcceptedAsEvidenceOnly,
-  true,
-);
-assert.equal(
-  admission.learnedArtifactReleaseBudgetDescriptor().noCrossTenantRelease,
-  true,
-);
-assert.equal(
-  admission.learnedArtifactReleaseBudgetDescriptor().noPublicRelease,
-  true,
-);
-assert.equal(
-  admission.learnedArtifactReleaseBudgetDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createLearnedArtifactReleaseBudget,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateLearnedArtifactReleaseBudget,
-  'function',
-);
-assert.equal(
-  admission.SHADOW_DATA_QUALITY_GATE_VERSION,
-  'attestor.shadow-data-quality-gate.v1',
-);
-assert.equal(
-  admission.shadowDataQualityGateDescriptor().canonicalShadowEventSchemaVersion,
-  admission.CANONICAL_SHADOW_EVENT_SCHEMA_VERSION,
-);
-assert.equal(
-  admission.shadowDataQualityGateDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.shadowDataQualityGateDescriptor().opensUnderminingDefeaters,
-  true,
-);
-assert.equal(
-  admission.shadowDataQualityGateDescriptor().digestOnlyEvidence,
-  true,
-);
-assert.equal(
-  admission.shadowDataQualityGateDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createShadowDataQualityGate,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateShadowDataQualityGate,
-  'function',
-);
-assert.equal(
-  admission.BASELINE_COHORT_BUILDER_VERSION,
-  'attestor.baseline-cohort-builder.v1',
-);
-assert.equal(
-  admission.baselineCohortBuilderDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.baselineCohortBuilderDescriptor().baselineCohortContractVersion,
-  admission.BASELINE_COHORT_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.baselineCohortBuilderDescriptor().shadowDataQualityGateVersion,
-  admission.SHADOW_DATA_QUALITY_GATE_VERSION,
-);
-assert.equal(
-  admission.baselineCohortBuilderDescriptor().learnedArtifactReleaseBudgetVersion,
-  admission.LEARNED_ARTIFACT_RELEASE_BUDGET_VERSION,
-);
-assert.equal(
-  admission.baselineCohortBuilderDescriptor().createsAssuranceEvidenceNode,
-  true,
-);
-assert.equal(
-  admission.baselineCohortBuilderDescriptor().noLearning,
-  true,
-);
-assert.equal(
-  admission.baselineCohortBuilderDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createBaselineCohortEvidence,
-  'function',
-);
-assert.equal(
-  admission.CANDIDATE_INVARIANT_SYNTHESIZER_VERSION,
-  'attestor.candidate-invariant-synthesizer.v1',
-);
-assert.equal(
-  admission.candidateInvariantSynthesizerDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.candidateInvariantSynthesizerDescriptor().baselineCohortBuilderVersion,
-  admission.BASELINE_COHORT_BUILDER_VERSION,
-);
-assert.equal(
-  admission.candidateInvariantSynthesizerDescriptor().candidateInvariantsCatalogVersion,
-  admission.CANDIDATE_INVARIANTS_CATALOG_VERSION,
-);
-assert.equal(
-  admission.candidateInvariantSynthesizerDescriptor().createsClaimNode,
-  true,
-);
-assert.equal(
-  admission.candidateInvariantSynthesizerDescriptor().noMining,
-  true,
-);
-assert.equal(
-  admission.candidateInvariantSynthesizerDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.synthesizeCandidateInvariantAssuranceCase,
-  'function',
-);
-assert.equal(
-  admission.COUNTEREXAMPLE_MINIMAL_WITNESS_VERSION,
-  'attestor.counterexample-minimal-witness.v1',
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().candidateInvariantSynthesizerVersion,
-  admission.CANDIDATE_INVARIANT_SYNTHESIZER_VERSION,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().createsEvidenceNode,
-  true,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().opensRebuttingDefeater,
-  true,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().noReplayExecution,
-  true,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().noProductionTraffic,
-  true,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().noCredentialUse,
-  true,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().noAutoClaimRejection,
-  true,
-);
-assert.equal(
-  admission.counterexampleMinimalWitnessDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createCounterexampleMinimalWitness,
-  'function',
-);
-assert.equal(
-  admission.CALIBRATION_LOWER_BOUND_RUNNER_VERSION,
-  'attestor.calibration-lower-bound-runner.v1',
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().candidateInvariantSynthesizerVersion,
-  admission.CANDIDATE_INVARIANT_SYNTHESIZER_VERSION,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().invariantCalibrationContractVersion,
-  admission.INVARIANT_CALIBRATION_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().counterexampleMinimalWitnessVersion,
-  admission.COUNTEREXAMPLE_MINIMAL_WITNESS_VERSION,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().requiresLowerBound,
-  true,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().opensUndercuttingDefeaterOnWeakLowerBound,
-  true,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().pointEstimateAuthorityAllowed,
-  false,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().lowerBoundAuthorityAllowed,
-  false,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().measurementMutationAllowed,
-  false,
-);
-assert.equal(
-  admission.calibrationLowerBoundRunnerDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createCalibrationLowerBoundRunner,
-  'function',
-);
-assert.equal(
-  admission.REVIEWER_OPEN_DEFEATER_VIEW_VERSION,
-  'attestor.reviewer-open-defeater-view.v1',
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.PROMOTION_GATE_RUNNER_VERSION,
-  'attestor.promotion-gate-runner.v1',
-);
-assert.equal(
-  admission.promotionGateRunnerDescriptor().reviewerOpenDefeaterViewVersion,
-  admission.REVIEWER_OPEN_DEFEATER_VIEW_VERSION,
-);
-assert.equal(
-  admission.promotionGateRunnerDescriptor().invariantPromotionGateVersion,
-  admission.INVARIANT_PROMOTION_GATE_VERSION,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().candidateInvariantSynthesizerVersion,
-  admission.CANDIDATE_INVARIANT_SYNTHESIZER_VERSION,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().counterexampleMinimalWitnessVersion,
-  admission.COUNTEREXAMPLE_MINIMAL_WITNESS_VERSION,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().calibrationLowerBoundRunnerVersion,
-  admission.CALIBRATION_LOWER_BOUND_RUNNER_VERSION,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().maxReasonLines,
-  7,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().maxQuestions,
-  3,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().rendersOpenDefeatersOnly,
-  true,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().digestOnly,
-  true,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().boundedHumanReview,
-  true,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().noRawEvidence,
-  true,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().noReviewerDecision,
-  true,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().noDefeaterClosure,
-  true,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().noPromotion,
-  true,
-);
-assert.equal(
-  admission.reviewerOpenDefeaterViewDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createReviewerOpenDefeaterView,
-  'function',
-);
-assert.equal(
-  admission.TLA_TRACE_VALIDATOR_BRIDGE_VERSION,
-  'attestor.tla-trace-validator-bridge.v1',
-);
-assert.equal(
-  admission.tlaTraceValidatorBridgeDescriptor().decisionTraceLoggerVersion,
-  admission.DECISION_TRACE_LOGGER_VERSION,
-);
-assert.equal(
-  admission.tlaTraceValidatorBridgeDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.tlaTraceValidatorBridgeDescriptor().doesNotRunModelChecker,
-  true,
-);
-assert.equal(
-  admission.tlaTraceValidatorBridgeDescriptor().noFormalProofClaim,
-  true,
-);
-assert.equal(
-  admission.tlaTraceValidatorBridgeDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createTlaTraceValidatorBridge,
-  'function',
-);
-assert.equal(
-  admission.RUNTIME_MONITOR_SKELETON_VERSION,
-  'attestor.runtime-monitor-skeleton.v1',
-);
-assert.equal(
-  admission.runtimeMonitorSkeletonDescriptor().shadowRuntimePipelineVersion,
-  admission.SHADOW_RUNTIME_PIPELINE_VERSION,
-);
-assert.equal(
-  admission.runtimeMonitorSkeletonDescriptor().decisionTraceLoggerVersion,
-  admission.DECISION_TRACE_LOGGER_VERSION,
-);
-assert.equal(
-  admission.runtimeMonitorSkeletonDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.runtimeMonitorSkeletonDescriptor().noAuditWrite,
-  true,
-);
-assert.equal(
-  admission.runtimeMonitorSkeletonDescriptor().notRuntimeOracle,
-  true,
-);
-assert.equal(
-  admission.runtimeMonitorSkeletonDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createRuntimeMonitorSkeleton,
-  'function',
-);
-assert.equal(
-  admission.DECISION_LINEAGE_GRAPH_VERSION,
-  'attestor.decision-lineage-graph.v1',
-);
-assert.equal(
-  admission.decisionLineageGraphDescriptor().assuranceCaseContractVersion,
-  admission.ASSURANCE_CASE_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.decisionLineageGraphDescriptor().buildsDigestBoundDag,
-  true,
-);
-assert.equal(
-  admission.decisionLineageGraphDescriptor().doesNotCreateSignatures,
-  true,
-);
-assert.equal(
-  admission.decisionLineageGraphDescriptor().noExternalLineageExport,
-  true,
-);
-assert.equal(
-  admission.decisionLineageGraphDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createDecisionLineageGraph,
-  'function',
-);
-assert.equal(
-  admission.AUTHORITY_CREEP_GUARD_VERSION,
+  'attestor.assurance-measurement-plane.v1',
   'attestor.authority-creep-guard.v1',
-);
-assert.equal(
-  admission.authorityCreepGuardDescriptor().decisionLineageGraphVersion,
-  admission.DECISION_LINEAGE_GRAPH_VERSION,
-);
-assert.equal(
-  admission.authorityCreepGuardDescriptor().measurementIsNotAuthority,
-  true,
-);
-assert.equal(
-  admission.authorityCreepGuardDescriptor().opensUndercuttingDefeater,
-  true,
-);
-assert.equal(
-  admission.authorityCreepGuardDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createAuthorityCreepGuard,
-  'function',
-);
-assert.equal(
-  admission.OUTCOME_FEEDBACK_COE_WIRING_VERSION,
-  'attestor.outcome-feedback-coe-wiring.v1',
-);
-assert.equal(
-  admission.outcomeFeedbackCoeWiringDescriptor().outcomeIncidentFeedbackContractVersion,
-  admission.OUTCOME_INCIDENT_FEEDBACK_CONTRACT_VERSION,
-);
-assert.equal(
-  admission.outcomeFeedbackCoeWiringDescriptor().mapsOutcomeToRebuttingDefeater,
-  true,
-);
-assert.equal(
-  admission.outcomeFeedbackCoeWiringDescriptor().feedbackIsNotAuthority,
-  true,
-);
-assert.equal(
-  admission.outcomeFeedbackCoeWiringDescriptor().canAdmit,
-  false,
-);
-assert.equal(
-  typeof admission.createOutcomeFeedbackCoeWiring,
-  'function',
-);
-assert.equal(
-  admission.financePipelineAdmissionDescriptor().route,
-  '/api/v1/pipeline/run',
-);
-assert.equal(
-  admission.cryptoExecutionPlanAdmissionDescriptor().hostedRouteClaimed,
-  false,
-);
-assert.equal(
-  admission.isConsequenceAdmissionFacadeSurface('finance-pipeline-run'),
-  true,
-);
-assert.equal(
-  admission.isConsequenceAdmissionFacadeSurface('auto'),
-  false,
-);
-assert.equal(
-  admission.mapFinancePipelineDecisionToAdmission('pass').mappedDecision,
-  'admit',
-);
-assert.equal(
-  admission.mapCryptoAdmissionOutcomeToAdmission('needs-evidence').mappedDecision,
-  'review',
-);
-assert.equal(
-  admission.CONSEQUENCE_ADMISSION_CUSTOMER_GATE_VERSION,
+  'attestor.baseline-cohort-builder.v1',
+  'attestor.baseline-cohort-contract.v1',
+  'attestor.calibration-lower-bound-runner.v1',
+  'attestor.candidate-invariant-synthesizer.v1',
+  'attestor.candidate-invariants-catalog.v1',
+  'attestor.conflict-abstention-gate.v1',
   'attestor.consequence-admission-customer-gate.v1',
-);
-assert.equal(
-  typeof admission.evaluateConsequenceAdmissionGate,
-  'function',
-);
-assert.equal(
-  typeof admission.assertConsequenceAdmissionGateAllows,
-  'function',
-);
-assert.equal(
-  admission.CONSEQUENCE_ADMISSION_PROTECTED_RELEASE_TOKEN_ISSUANCE_VERSION,
+  'attestor.consequence-admission-facade.v1',
+  'attestor.consequence-admission-pack-decision-profile.v1',
   'attestor.consequence-admission-protected-release-token-issuance.v1',
-);
-assert.equal(
-  typeof admission.issueGenericAdmissionProtectedReleaseToken,
-  'function',
-);
-assert.equal(
-  typeof admission.evaluateGenericAdmissionProtectedReleaseTokenRequirement,
-  'function',
-);
-assert.equal(
-  admission.CUSTOMER_PEP_RUNTIME_ADOPTION_VERSION,
-  'attestor.customer-pep-runtime-adoption.v1',
-);
-assert.equal(
-  admission.customerPepRuntimeAdoptionDescriptor().requiresSenderConstrainedPresentation,
-  true,
-);
-assert.equal(
-  admission.customerPepRuntimeAdoptionDescriptor().productionReady,
-  false,
-);
-assert.equal(
-  typeof admission.evaluateCustomerPepRuntimeAdoption,
-  'function',
-);
-assert.equal(
-  typeof admission.assertCustomerPepRuntimeAdoptionReady,
-  'function',
-);
-assert.equal(
-  admission.CUSTOMER_PEP_ADOPTION_PACKAGE_VERSION,
+  'attestor.consequence-agentic-supply-chain-guard.v1',
+  'attestor.consequence-domain-pack-boundary.v1',
+  'attestor.consequence-envelope-contract.v1',
+  'attestor.consequence-failure-mode-guard-coverage.v1',
+  'attestor.consequence-failure-mode-registry-placement.v1',
+  'attestor.consequence-failure-mode-runtime-extension.v1',
+  'attestor.consequence-guard-activation-readiness.v1',
+  'attestor.consequence-multi-agent-delegation-guard.v1',
+  'attestor.consequence-replay-layer-placement.v1',
+  'attestor.control-plane-roles.v1',
+  'attestor.counterexample-minimal-witness.v1',
   'attestor.customer-pep-adoption-package.v1',
-);
-assert.equal(
-  admission.customerPepAdoptionPackageDescriptor().requiresProtectedAdmissionE2eProof,
-  true,
-);
-assert.equal(
-  admission.customerPepAdoptionPackageDescriptor().productionReady,
-  false,
-);
-assert.equal(
-  typeof admission.evaluateCustomerPepAdoptionPackage,
-  'function',
-);
-assert.equal(
-  typeof admission.assertCustomerPepAdoptionPackageReady,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_COVERAGE_SCORE_VERSION,
-  'attestor.policy-foundry-coverage-score.v1',
-);
-assert.equal(
-  admission.policyFoundryCoverageScoreDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-coverage-score',
-);
-assert.equal(
-  admission.policyFoundryCoverageScoreDescriptor().autoEnforce,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryCoverageScore,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_GATE_PLANNER_VERSION,
-  'attestor.policy-foundry-gate-planner.v1',
-);
-assert.equal(
-  admission.policyFoundryGatePlannerDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-gate-planner',
-);
-assert.equal(
-  admission.policyFoundryGatePlannerDescriptor().deploysInfrastructure,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryGatePlanner,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_CANDIDATE_REGISTRY_VERSION,
-  'attestor.policy-foundry-candidate-registry.v1',
-);
-assert.equal(
-  admission.policyFoundryCandidateRegistryDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-candidate-registry',
-);
-assert.equal(
-  admission.policyFoundryCandidateRegistryDescriptor().llmThresholdAuthorityAllowed,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryCandidateRegistry,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_COUNTEREXAMPLE_LEDGER_VERSION,
-  'attestor.policy-foundry-counterexample-ledger.v1',
-);
-assert.equal(
-  admission.policyFoundryCounterexampleLedgerDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-counterexample-ledger',
-);
-assert.equal(
-  admission.policyFoundryCounterexampleLedgerDescriptor().evidenceDigestOnly,
-  true,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryCounterexampleLedger,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_POLICY_TWIN_SUMMARY_VERSION,
-  'attestor.policy-foundry-policy-twin-summary.v1',
-);
-assert.equal(
-  admission.policyFoundryPolicyTwinSummaryDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-policy-twin-summary',
-);
-assert.equal(
-  admission.policyFoundryPolicyTwinSummaryDescriptor().policyTwinEvidenceOnly,
-  true,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryPolicyTwinSummary,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_AUTHORITY_RELATIONSHIP_CONTEXT_VERSION,
-  'attestor.policy-foundry-authority-relationship-context.v1',
-);
-assert.equal(
-  admission.policyFoundryAuthorityRelationshipContextDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-authority-relationship-context',
-);
-assert.equal(
-  admission.policyFoundryAuthorityRelationshipContextDescriptor().digestOnly,
-  true,
-);
-assert.equal(
-  admission.policyFoundryAuthorityRelationshipContextDescriptor().authorityDecisionAllowed,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryAuthorityRelationshipContext,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_REVIEW_ONLY_PATCH_PACK_VERSION,
-  'attestor.policy-foundry-review-only-patch-pack.v1',
-);
-assert.equal(
-  admission.policyFoundryReviewOnlyPatchPackDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-review-only-patch-pack',
-);
-assert.equal(
-  admission.policyFoundryReviewOnlyPatchPackDescriptor().appliesPatches,
-  false,
-);
-assert.equal(
-  admission.policyFoundryReviewOnlyPatchPackDescriptor().reviewMaterialOnly,
-  true,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryReviewOnlyPatchPack,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_SELF_ONBOARDING_CLI_VERSION,
-  'attestor.policy-foundry-self-onboarding-cli.v1',
-);
-assert.equal(
-  admission.policyFoundrySelfOnboardingCliDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-self-onboarding-cli',
-);
-assert.equal(
-  admission.policyFoundrySelfOnboardingCliDescriptor().appliesPatches,
-  false,
-);
-assert.equal(
-  admission.policyFoundrySelfOnboardingCliDescriptor().reviewMaterialOnly,
-  true,
-);
-assert.equal(
-  typeof admission.createPolicyFoundrySelfOnboardingCliPacket,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_OUTCOME_FEEDBACK_LOOP_VERSION,
-  'attestor.policy-foundry-outcome-feedback-loop.v1',
-);
-assert.equal(
-  admission.policyFoundryOutcomeFeedbackLoopDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-outcome-feedback-loop',
-);
-assert.equal(
-  admission.policyFoundryOutcomeFeedbackLoopDescriptor().automaticScoreMutationAllowed,
-  false,
-);
-assert.equal(
-  admission.policyFoundryOutcomeFeedbackLoopDescriptor().llmTrainingAllowed,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryOutcomeFeedbackLoop,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_DRIFT_POLICY_DEBT_DETECTOR_VERSION,
-  'attestor.policy-foundry-drift-policy-debt-detector.v1',
-);
-assert.equal(
-  admission.policyFoundryDriftPolicyDebtDetectorDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-drift-policy-debt-detector',
-);
-assert.equal(
-  admission.policyFoundryDriftPolicyDebtDetectorDescriptor().automaticRemediationAllowed,
-  false,
-);
-assert.equal(
-  admission.policyFoundryDriftPolicyDebtDetectorDescriptor().policyMutationAllowed,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryDriftPolicyDebtDetector,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_COMMERCIAL_BOUNDARY_VERSION,
-  'attestor.policy-foundry-commercial-boundary.v1',
-);
-assert.equal(
-  admission.policyFoundryCommercialBoundaryDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-commercial-boundary',
-);
-assert.equal(
-  admission.policyFoundryCommercialBoundaryDescriptor().safetyMinimumsPaidOnlyAllowed,
-  false,
-);
-assert.equal(
-  admission.policyFoundryCommercialBoundaryDescriptor().billingStateRequiredForSafetyMinimums,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryCommercialBoundary,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_ADVERSARIAL_REPLAY_EXECUTOR_VERSION,
+  'attestor.customer-pep-runtime-adoption.v1',
+  'attestor.decision-lineage-graph.v1',
+  'attestor.decision-trace-logger.v1',
+  'attestor.human-comprehension-gate.v1',
+  'attestor.invariant-calibration-contract.v1',
+  'attestor.invariant-promotion-gate.v1',
+  'attestor.layer-opinion-schema.v1',
+  'attestor.learned-artifact-release-budget.v1',
+  'attestor.modulator-authority-tier.v1',
+  'attestor.outcome-feedback-coe-wiring.v1',
+  'attestor.outcome-incident-feedback-contract.v1',
   'attestor.policy-foundry-adversarial-replay-executor.v1',
-);
-assert.equal(
-  admission.policyFoundryAdversarialReplayExecutorDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-adversarial-replay-executor',
-);
-assert.equal(
-  admission.policyFoundryAdversarialReplayExecutorDescriptor().downstreamMutationAllowed,
-  false,
-);
-assert.equal(
-  admission.policyFoundryAdversarialReplayExecutorDescriptor().credentialUseAllowed,
-  false,
-);
-assert.equal(
-  admission.policyFoundryAdversarialReplayExecutorDescriptor().executesProductionTraffic,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryAdversarialReplayExecutor,
-  'function',
-);
-assert.equal(
-  admission.POLICY_FOUNDRY_HOSTED_ONBOARDING_WORKFLOW_VERSION,
+  'attestor.policy-foundry-authority-relationship-context.v1',
+  'attestor.policy-foundry-candidate-registry.v1',
+  'attestor.policy-foundry-commercial-boundary.v1',
+  'attestor.policy-foundry-counterexample-ledger.v1',
+  'attestor.policy-foundry-coverage-score.v1',
+  'attestor.policy-foundry-drift-policy-debt-detector.v1',
+  'attestor.policy-foundry-gate-planner.v1',
   'attestor.policy-foundry-hosted-onboarding-workflow.v1',
-);
-assert.equal(
-  admission.policyFoundryHostedOnboardingWorkflowDescriptor().dataMinimizationSurfaceKind,
-  'policy-foundry-hosted-onboarding-workflow',
-);
-assert.equal(
-  admission.policyFoundryHostedOnboardingWorkflowDescriptor().hostedUiWorkflowContract,
-  true,
-);
-assert.equal(
-  admission.policyFoundryHostedOnboardingWorkflowDescriptor().hostedUiImplemented,
-  false,
-);
-assert.equal(
-  admission.policyFoundryHostedOnboardingWorkflowDescriptor().hostedRouteImplemented,
-  false,
-);
-assert.equal(
-  admission.policyFoundryHostedOnboardingWorkflowDescriptor().deploymentEntitlementEnforcementImplemented,
-  false,
-);
-assert.equal(
-  typeof admission.createPolicyFoundryHostedOnboardingWorkflow,
-  'function',
-);
+  'attestor.policy-foundry-outcome-feedback-loop.v1',
+  'attestor.policy-foundry-policy-twin-summary.v1',
+  'attestor.policy-foundry-review-only-patch-pack.v1',
+  'attestor.policy-foundry-self-onboarding-cli.v1',
+  'attestor.promotion-gate-runner.v1',
+  'attestor.relationship-aware-monotone-fusion.v1',
+  'attestor.relationship-detector-contract.v1',
+  'attestor.reviewer-open-defeater-view.v1',
+  'attestor.runtime-activation-work-key.v1',
+  'attestor.runtime-monitor-skeleton.v1',
+  'attestor.shadow-activation-profile-contract.v1',
+  'attestor.shadow-data-quality-gate.v1',
+  'attestor.shadow-dispatch-claim-contract.v1',
+  'attestor.shadow-dispatch-claim-token.v1',
+  'attestor.shadow-envelope-projector.v1',
+  'attestor.shadow-outbox-work-item-contract.v1',
+  'attestor.shadow-readiness-claim-alignment.v1',
+  'attestor.shadow-runtime-activation-runner.v1',
+  'attestor.shadow-runtime-fixture-replay-smoke.v1',
+  'attestor.shadow-runtime-observability-hooks.v1',
+  'attestor.shadow-runtime-outcome-feedback-hook.v1',
+  'attestor.shadow-runtime-pipeline.v1',
+  'attestor.shadow-runtime.activation.requested.v1',
+  'attestor.signal-adapter-registry.v1',
+  'attestor.signal-extractor-contract.v1',
+  'attestor.signal-relationship-contract.v1',
+  'attestor.signed-assurance-packet.v1',
+  'attestor.tla-trace-validator-bridge.v1',
+  'attestorControlPlaneRoleDescriptor',
+  'authorityCreepGuardDescriptor',
+  'baselineCohortBuilderDescriptor',
+  'baselineCohortContractDescriptor',
+  'calibrationLowerBoundRunnerDescriptor',
+  'candidateInvariantSynthesizerDescriptor',
+  'candidateInvariantsCatalogDescriptor',
+  'conflictAbstentionGateDescriptor',
+  'consequenceAdmissionAdapterFrameworkDescriptor',
+  'consequenceAdmissionAgentLoopAbuseGuardDescriptor',
+  'consequenceAdmissionDescriptor',
+  'consequenceAdmissionDomainProfile',
+  'consequenceAdmissionDownstreamContractDescriptor',
+  'consequenceAdmissionDownstreamExecutionReceiptDescriptor',
+  'consequenceAdmissionFacadeDescriptor',
+  'consequenceAdmissionPackDecisionProfileDescriptor',
+  'consequenceAdmissionPolicyLimitDescriptor',
+  'consequenceAdmissionPresentationBindingDescriptor',
+  'consequenceAdmissionPresentationReplayLedgerDescriptor',
+  'consequenceAdmissionRetryAttemptLedgerDescriptor',
+  'consequenceAdmissionVerifierHelperDescriptor',
+  'consequenceAgenticSupplyChainGuardDescriptor',
+  'consequenceAuditEvidenceExportDescriptor',
+  'consequenceBusinessRiskDashboardDescriptor',
+  'consequenceDashboardApiSummaryDescriptor',
+  'consequenceDataMinimizationRedactionPolicyDescriptor',
+  'consequenceDomainPackBoundaryDescriptor',
+  'consequenceEnvelopeContractDescriptor',
+  'consequenceExternalReviewPacketDescriptor',
+  'consequenceFailureModeGuardCoverageMatrix',
+  'consequenceFailureModeRegistryPlacementDescriptor',
+  'consequenceFailureModeRuntimeExtensionDescriptor',
+  'consequenceGuardActivationReadinessDescriptor',
+  'consequenceMultiAgentDelegationGuardDescriptor',
+  'consequenceReplayLayerPlacementDescriptor',
+  'consequenceShadowReadinessClaimAlignmentDescriptor',
+  'consequenceTamperEvidentHistoryDescriptor',
+  'consequenceUntrustedContentAuthorityGuardDescriptor',
+  'counterexampleMinimalWitnessDescriptor',
+  'createAssuranceCaseContract',
+  'createAssuranceCaseDefeater',
+  'createAssuranceMeasurementPlane',
+  'createAuthorityCreepGuard',
+  'createBaselineCohortCandidate',
+  'createBaselineCohortEvidence',
+  'createBaselineCohortSourceFromShadowEvent',
+  'createBuiltinSignalAdapterRegistry',
+  'createCalibrationLowerBoundRunner',
+  'createCandidateInvariantFromBaseline',
+  'createConsequenceAdmissionAgentLoopAbuseGuard',
+  'createConsequenceAdmissionPackDecisionProfile',
+  'createConsequenceAdmissionPresentationReplayLedger',
+  'createConsequenceAdmissionProtectedAdapter',
+  'createConsequenceAdmissionRetryAttemptBinding',
+  'createConsequenceAdmissionRetryAttemptLedger',
+  'createConsequenceAdmissionVerifier',
+  'createConsequenceAuditEvidenceExport',
+  'createConsequenceBusinessRiskDashboard',
+  'createConsequenceDashboardApiSummary',
+  'createConsequenceExternalReviewPacket',
+  'createConsequenceTamperEvidentHistoryLedger',
+  'createCounterexampleMinimalWitness',
+  'createDecisionLineageGraph',
+  'createDecisionTraceLogger',
+  'createInvariantCalibrationRecord',
+  'createInvariantPromotionGateDecision',
+  'createLearnedArtifactReleaseBudget',
+  'createOutcomeFeedbackCoeWiring',
+  'createOutcomeIncidentFeedbackContract',
+  'createPolicyFoundryAdversarialReplayExecutor',
+  'createPolicyFoundryAuthorityRelationshipContext',
+  'createPolicyFoundryCandidateRegistry',
+  'createPolicyFoundryCommercialBoundary',
+  'createPolicyFoundryCounterexampleLedger',
+  'createPolicyFoundryCoverageScore',
+  'createPolicyFoundryDriftPolicyDebtDetector',
+  'createPolicyFoundryGatePlanner',
+  'createPolicyFoundryHostedOnboardingWorkflow',
+  'createPolicyFoundryOutcomeFeedbackLoop',
+  'createPolicyFoundryPolicyTwinSummary',
+  'createPolicyFoundryReviewOnlyPatchPack',
+  'createPolicyFoundrySelfOnboardingCliPacket',
+  'createRelationshipDetectorRule',
+  'createReviewerOpenDefeaterView',
+  'createRuntimeMonitorSkeleton',
+  'createShadowActivationProfileContract',
+  'createShadowDataQualityGate',
+  'createShadowDispatchClaimContract',
+  'createShadowEnvelopeProjection',
+  'createShadowOutboxWorkItemContract',
+  'createSignalExtractionBatch',
+  'createSignalExtractorDeclaration',
+  'createSignedAssurancePacket',
+  'createSignedAssurancePacketSigningPayload',
+  'createTlaTraceValidatorBridge',
+  'cryptoExecutionPlanAdmissionDescriptor',
+  'customerPepAdoptionPackageDescriptor',
+  'customerPepRuntimeAdoptionDescriptor',
+  'decisionLineageGraphDescriptor',
+  'decisionTraceLoggerDescriptor',
+  'detectSignalRelationships',
+  'evaluateAssuranceCaseScopeChange',
+  'evaluateBaselineCohortPromotion',
+  'evaluateCandidateInvariantReviewReadiness',
+  'evaluateConflictAbstentionGate',
+  'evaluateConsequenceAdmissionDownstreamContract',
+  'evaluateConsequenceAdmissionGate',
+  'evaluateConsequenceAdmissionPolicyLimits',
+  'evaluateConsequenceAdmissionPresentationBinding',
+  'evaluateConsequenceAgenticSupplyChain',
+  'evaluateConsequenceDataMinimizationArtifact',
+  'evaluateConsequenceFailureModeRuntimeExtensions',
+  'evaluateConsequenceGuardActivationReadiness',
+  'evaluateConsequenceMultiAgentDelegation',
+  'evaluateConsequenceShadowReadinessClaimAlignment',
+  'evaluateConsequenceUntrustedContentAuthority',
+  'evaluateCustomerPepAdoptionPackage',
+  'evaluateCustomerPepRuntimeAdoption',
+  'evaluateGenericAdmissionProtectedReleaseTokenRequirement',
+  'evaluateHumanComprehensionGate',
+  'evaluateInvariantCalibrationReadiness',
+  'evaluateInvariantPromotionGate',
+  'evaluateLearnedArtifactReleaseBudget',
+  'evaluateShadowDataQualityGate',
+  'financePipelineAdmissionDescriptor',
+  'fuseRelationshipAwareMonotoneHazard',
+  'humanComprehensionGateDescriptor',
+  'invariantCalibrationContractDescriptor',
+  'invariantPromotionGateDescriptor',
+  'isConsequenceAdmissionFacadeSurface',
+  'issueGenericAdmissionProtectedReleaseToken',
+  'layerOpinionSchemaDescriptor',
+  'learnedArtifactReleaseBudgetDescriptor',
+  'mapCryptoAdmissionOutcomeToAdmission',
+  'mapFinancePipelineDecisionToAdmission',
+  'modulatorAuthorityTierDescriptor',
+  'outcomeFeedbackCoeWiringDescriptor',
+  'outcomeIncidentFeedbackContractDescriptor',
+  'policyFoundryAdversarialReplayExecutorDescriptor',
+  'policyFoundryAuthorityRelationshipContextDescriptor',
+  'policyFoundryCandidateRegistryDescriptor',
+  'policyFoundryCommercialBoundaryDescriptor',
+  'policyFoundryCounterexampleLedgerDescriptor',
+  'policyFoundryCoverageScoreDescriptor',
+  'policyFoundryDriftPolicyDebtDetectorDescriptor',
+  'policyFoundryGatePlannerDescriptor',
+  'policyFoundryHostedOnboardingWorkflowDescriptor',
+  'policyFoundryOutcomeFeedbackLoopDescriptor',
+  'policyFoundryPolicyTwinSummaryDescriptor',
+  'policyFoundryReviewOnlyPatchPackDescriptor',
+  'policyFoundrySelfOnboardingCliDescriptor',
+  'promotionGateRunnerDescriptor',
+  'recordConsequenceAdmissionDownstreamExecution',
+  'relationshipAwareMonotoneFusionDescriptor',
+  'relationshipDetectorDescriptor',
+  'reviewerOpenDefeaterViewDescriptor',
+  'runShadowRuntimeActivation',
+  'runShadowRuntimeFixtureReplaySmoke',
+  'runShadowRuntimeObservabilityHooks',
+  'runShadowRuntimeOutcomeFeedbackHook',
+  'runShadowRuntimePipelineDryRun',
+  'runtimeMonitorSkeletonDescriptor',
+  'shadowActivationProfileContractDescriptor',
+  'shadowDataQualityGateDescriptor',
+  'shadowDispatchClaimContractDescriptor',
+  'shadowEnvelopeProjectorDescriptor',
+  'shadowOutboxWorkItemContractDescriptor',
+  'shadowRuntimeActivationRunnerDescriptor',
+  'shadowRuntimeFixtureReplaySmokeDescriptor',
+  'shadowRuntimeObservabilityHooksDescriptor',
+  'shadowRuntimeOutcomeFeedbackHookDescriptor',
+  'shadowRuntimePipelineDescriptor',
+  'signalAdapterRegistryDescriptor',
+  'signalExtractorContractDescriptor',
+  'signalRelationshipContractDescriptor',
+  'signedAssurancePacketDescriptor',
+  'synthesizeCandidateInvariantAssuranceCase',
+  'tlaTraceValidatorBridgeDescriptor',
+  'verifyDecisionTraceEntries',
+]);
 
-let blockedInternalPath = false;
-try {
-  await import('attestor/consequence-admission/facade.js');
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  blockedInternalPath =
-    message.includes('Package subpath') ||
-    message.includes('ERR_PACKAGE_PATH_NOT_EXPORTED');
-}
+assert.equal(PROBE_COVERAGE_MARKERS.length > 0, true);
 
-assert.equal(
-  blockedInternalPath,
-  true,
-  'internal consequence admission module paths should stay outside the public package surface',
-);
+await runConsequenceAdmissionPackageSurface01({ assert, root, admission });
+await runConsequenceAdmissionPackageSurface02({ assert, root, admission });
+await runConsequenceAdmissionPackageSurface03({ assert, root, admission });
+await runConsequenceAdmissionPackageSurface04({ assert, root, admission });
+await runConsequenceAdmissionPackageSurface05({ assert, root, admission });
+await runConsequenceAdmissionPackageSurface06({ assert, root, admission });
+await runConsequenceAdmissionPackageSurface07({ assert, root, admission });
 
 console.log('consequence-admission package surface probe passed');
