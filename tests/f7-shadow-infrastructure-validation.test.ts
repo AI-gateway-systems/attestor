@@ -24,7 +24,10 @@ try {
   const packageJson = readProjectFile('package.json');
   const shadowEvents = readProjectFile('src', 'consequence-admission', 'shadow-events.ts');
   const shadowSimulation = readProjectFile('src', 'consequence-admission', 'shadow-simulation.ts');
-  const shadowRoutes = readProjectFile('src', 'service', 'http', 'routes', 'shadow-routes.ts');
+  const shadowRoutes = [
+    readProjectFile('src', 'service', 'http', 'routes', 'shadow-routes.ts'),
+    readProjectFile('src', 'service', 'http', 'routes', 'shadow-summary-dashboard-routes.ts'),
+  ].join('\n');
   const activationHandoff = readProjectFile(
     'src',
     'consequence-admission',
