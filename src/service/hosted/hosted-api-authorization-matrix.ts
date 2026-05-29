@@ -139,6 +139,7 @@ export const HOSTED_API_AUTHORIZATION_RULES = [
       'src/service/http/routes/account-public-auth-routes.ts',
       'src/service/http/routes/account-federated-auth-routes.ts',
       'src/service/http/routes/account-mfa-passkey-routes.ts',
+      'src/service/http/routes/account-admin-user-routes.ts',
       'src/service/account/auth-abuse-guard.ts',
       'src/service/application/account-auth-service.ts',
       'tests/service-account-routes-authorization.test.ts#federated-callback-rate-limit',
@@ -213,6 +214,7 @@ export const HOSTED_API_AUTHORIZATION_RULES = [
     privacyBoundary: 'role-gated account reads avoid historical plaintext secrets',
     evidence: [
       'src/service/http/routes/account-routes.ts#requireAccountSession',
+      'src/service/http/routes/account-admin-user-routes.ts#requireAccountSession',
       'src/service/application/account-api-key-service.ts',
       'src/service/application/account-user-management-service.ts',
     ],
@@ -267,7 +269,7 @@ export const HOSTED_API_AUTHORIZATION_RULES = [
     idempotencyBoundary: 'service_defined',
     privacyBoundary: 'plaintext tenant API keys are returned only on issue or rotate responses',
     evidence: [
-      'src/service/http/routes/account-routes.ts#apiKeyService',
+      'src/service/http/routes/account-admin-user-routes.ts#apiKeyService',
       'src/service/application/account-api-key-service.ts',
       'src/service/bootstrap/http-route-builders.ts#recordAccountMutationAudit',
       'tests/service-account-routes-authorization.test.ts#account-api-key-audit',
@@ -287,7 +289,7 @@ export const HOSTED_API_AUTHORIZATION_RULES = [
     idempotencyBoundary: 'action_token_or_challenge',
     privacyBoundary: 'invite and reset tokens are returned only when delivery policy allows it',
     evidence: [
-      'src/service/http/routes/account-routes.ts#userManagementService',
+      'src/service/http/routes/account-admin-user-routes.ts#userManagementService',
       'src/service/application/account-user-management-service.ts',
       'src/service/bootstrap/http-route-builders.ts#recordAccountMutationAudit',
     ],

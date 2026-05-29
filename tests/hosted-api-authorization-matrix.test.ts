@@ -41,6 +41,7 @@ const routeFiles = [
   ['src', 'service', 'http', 'routes', 'account-public-auth-routes.ts'],
   ['src', 'service', 'http', 'routes', 'account-federated-auth-routes.ts'],
   ['src', 'service', 'http', 'routes', 'account-mfa-passkey-routes.ts'],
+  ['src', 'service', 'http', 'routes', 'account-admin-user-routes.ts'],
   ['src', 'service', 'http', 'routes', 'admin-routes.ts'],
   ['src', 'service', 'http', 'routes', 'action-surface-onboarding-routes.ts'],
   ['src', 'service', 'http', 'routes', 'policy-foundry-hosted-onboarding-routes.ts'],
