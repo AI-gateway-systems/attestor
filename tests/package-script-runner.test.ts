@@ -124,12 +124,12 @@ function testFastSuiteKeepsCriticalCoverage(): void {
     'test:audit-finding-test-coverage',
     'test:shadow-route-helper-split',
     'test:release-policy-control-plane-store-mapper-split',
-    'tsx tests/account-session-cookie-security.test.ts',
-    'tsx tests/release-kernel-release-decision-engine.test.ts',
-    'tsx tests/release-layer-platform-surface.test.ts',
-    'tsx tests/release-policy-control-plane-platform-surface.test.ts',
-    'tsx tests/release-enforcement-plane-middleware.test.ts',
-    'tsx tests/crypto-authorization-core-eip712-envelope.test.ts',
+    'npm exec -- tsx tests/account-session-cookie-security.test.ts',
+    'npm exec -- tsx tests/release-kernel-release-decision-engine.test.ts',
+    'npm exec -- tsx tests/release-layer-platform-surface.test.ts',
+    'npm exec -- tsx tests/release-policy-control-plane-platform-surface.test.ts',
+    'npm exec -- tsx tests/release-enforcement-plane-middleware.test.ts',
+    'npm exec -- tsx tests/crypto-authorization-core-eip712-envelope.test.ts',
   ]) {
     includes(text, expected, `Package runner: fast suite includes ${expected}`);
   }

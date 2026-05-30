@@ -31,7 +31,7 @@ src/consequence-admission/index.ts
   trailing delegation: export * from './public-surface.js'
 
 src/consequence-admission/contracts.ts
-  contract module non-empty lines: 831
+  contract module non-empty lines: 834
   role: constants, literal vocabularies, request/response types, generic admission envelope types
 
 src/consequence-admission/engine.ts
@@ -51,7 +51,7 @@ src/consequence-admission/builders.ts
   role: admission decision mapping plus request, response, check, problem, and retry binding builders
 
 src/consequence-admission/generic-engine.ts
-  generic engine module non-empty lines: 1082
+  generic engine module non-empty lines: 1090
   role: generic admission guard orchestration, mode evaluation, check construction, dimensions, and envelope creation
 
 src/consequence-admission/correction-catalog.ts

@@ -20,13 +20,17 @@ function shellCommand(label, command) {
   return { label, command };
 }
 
+function tsxCommand(relativePath) {
+  return `npm exec -- tsx ${relativePath}`;
+}
+
 function listTestFiles(prefix, root = rootDir) {
   const testDir = join(root, 'tests');
   if (!existsSync(testDir)) return [];
   return readdirSync(testDir)
     .filter((fileName) => fileName.startsWith(prefix) && fileName.endsWith('.test.ts'))
     .sort()
-    .map((fileName) => `tsx ${relative(root, join(testDir, fileName)).replaceAll('\\', '/')}`);
+    .map((fileName) => tsxCommand(relative(root, join(testDir, fileName)).replaceAll('\\', '/')));
 }
 
 function isPackageSurfaceProbe(scriptName) {
@@ -61,9 +65,9 @@ function fastScriptNames(packageJson) {
 
 function directFastTestCommands(root = rootDir) {
   const directCommands = [
-    'tsx tests/account-session-cookie-security.test.ts',
-    'tsx tests/proof-showcase.test.ts',
-    'tsx tests/financial-reporting-acceptance-surface.test.ts',
+    tsxCommand('tests/account-session-cookie-security.test.ts'),
+    tsxCommand('tests/proof-showcase.test.ts'),
+    tsxCommand('tests/financial-reporting-acceptance-surface.test.ts'),
     ...listTestFiles('release-kernel-', root),
     ...listTestFiles('release-layer-', root),
     ...listTestFiles('release-policy-control-plane-', root),
