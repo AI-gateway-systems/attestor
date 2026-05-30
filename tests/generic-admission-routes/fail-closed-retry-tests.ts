@@ -114,6 +114,61 @@ async function testNestedScopeTenantMismatchFailsClosedBeforeShadowRecording(): 
   equal(shadowRecords, 0, 'Generic admission route: nested scope tenant mismatch is not shadow recorded');
 }
 
+async function testApprovedScopeTenantMismatchFailsClosedBeforeShadowRecording(): Promise<void> {
+  const app = new Hono();
+  let shadowRecords = 0;
+  registerGenericAdmissionRoutes(app, {
+    currentTenant: () => ({
+      tenantId: 'tenant_route',
+      tenantName: 'Route Tenant',
+      authenticatedAt: '2026-05-01T18:00:00.000Z',
+      source: 'api_key',
+      planId: 'starter',
+      monthlyRunQuota: 100,
+    }),
+    recordShadowAdmission: () => {
+      shadowRecords += 1;
+    },
+  });
+  const response = await app.request('/api/v1/admissions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(validAdmissionPayload({
+      scopeOwnerPolicyRef: 'policy:tenant-scope',
+      requestedScope: {
+        tenantId: 'tenant_route',
+        operationType: 'refund',
+      },
+      approvedScope: {
+        tenantId: 'tenant_other',
+        operationTypes: ['refund'],
+      },
+    })),
+  });
+  const body = await response.json() as {
+    decision: string;
+    failClosed: boolean;
+    detail: string;
+    reasonCodes: readonly string[];
+  };
+
+  equal(response.status, 403, 'Generic admission route: approved scope tenant mismatch returns 403');
+  equal(body.decision, 'block', 'Generic admission route: approved scope tenant mismatch blocks');
+  equal(body.failClosed, true, 'Generic admission route: approved scope tenant mismatch fails closed');
+  ok(
+    body.reasonCodes.includes('tenant-scope-mismatch'),
+    'Generic admission route: approved scope tenant mismatch reason is explicit',
+  );
+  equal(
+    body.detail,
+    'Admission approvedScope.tenantId must match the authenticated tenant context.',
+    'Generic admission route: approved scope tenant mismatch identifies the scoped field',
+  );
+  equal(shadowRecords, 0, 'Generic admission route: approved scope tenant mismatch is not shadow recorded');
+}
+
 async function testLoopGuardUnavailableFailsClosedBeforeShadowRecording(): Promise<void> {
   const app = new Hono();
   let shadowRecords = 0;
@@ -442,6 +497,7 @@ async function testLoopGuardThrottlesRetryAttemptBeyondBudget(): Promise<void> {
 export async function runFailClosedRetryTests(): Promise<void> {
   await testTenantMismatchFailsClosedBeforeShadowRecording();
   await testNestedScopeTenantMismatchFailsClosedBeforeShadowRecording();
+  await testApprovedScopeTenantMismatchFailsClosedBeforeShadowRecording();
   await testLoopGuardUnavailableFailsClosedBeforeShadowRecording();
   await testMissingShadowRecorderFailsClosed();
   await testNonJsonMediaTypeReturnsFailClosedProblem();

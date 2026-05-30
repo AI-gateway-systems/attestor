@@ -30,7 +30,7 @@ or certify a customer deployment.
 | `fake-approval-laundering` | Chat, email, ticket comment, model summary, or tool output is treated as approval. | Approval provenance guard. | `block` |
 | `stale-authority-or-policy` | Old approval, old policy, stale token, or stale context is reused. | Stale authority/policy guard and decision-context binding. | `block` |
 | `no-go-hold-bypass` | Fraud/legal/compliance/security hold is bypassed with natural language. | No-go condition ledger. | `block` |
-| `scope-explosion` | Request grows from narrow to broad: amount, batch size, recipient, tenant, operation, or data class. | Scope-explosion guard and narrowing constraints. | `narrow` |
+| `scope-explosion` | Request grows from narrow to broad: amount, batch size, recipient, operation, environment, or data class. | Scope-explosion guard and narrowing constraints. | `narrow` |
 | `duplicate-execution-replay` | Same admitted action, token, presentation, refund, payment, or webhook is replayed. | Replay ledger and idempotency boundary. | `block` |
 | `review-required-auto-promote` | Integration treats review/hold as success and proceeds anyway. | Customer gate contract: only `admit` or accepted `narrow` may proceed. | `block` |
 | `human-review-fatigue` | Review packet is too noisy, long, misleading, or poorly prioritized. | Human review fatigue guard. | `review` |
@@ -45,7 +45,7 @@ or certify a customer deployment.
 | Decision | Operator posture | Customer next step |
 |---|---|---|
 | `block` | Stop the action. Do not retry blindly. | Fix the named cause, then create a fresh admission. |
-| `narrow` | Only the returned bounded action can proceed. | Apply the narrowed amount, recipient, record count, operation, data class, tenant, or environment. |
+| `narrow` | Only the returned bounded action can proceed. | Apply the narrowed amount, recipient, record count, operation, data class, or environment. |
 | `review` | A human or operator must decide. | Send reason codes, evidence refs, no-go state, and next safe step to the reviewer. |
 | `admit` | Action may proceed only through the configured customer PEP/gate. | Keep the proof reference and downstream receipt. |
 
@@ -78,7 +78,7 @@ into the plain failure rows above, but the IDs are stable enough to search.
 | `untrusted-content-cannot-authorize-action` | Content can inform review, but it cannot grant authority. |
 | `trusted-evidence-required` | Evidence must identify source, timestamp, integrity, and allowed evidence class. |
 | `verified-approval-provenance-required` | Approval must come from a verified reviewer, workflow, or policy authority. |
-| `scope-cannot-exceed-approved-boundary` | Requested scope cannot exceed approved amount, recipient, tenant, data, operation, or environment. |
+| `scope-cannot-exceed-approved-boundary` | Requested scope cannot exceed approved amount, recipient, data, operation, or environment. |
 | `tenant-and-recipient-boundaries-must-hold` | Tenant and recipient boundaries must be explicit. |
 | `review-or-block-cannot-auto-promote` | Review, hold, or block cannot be treated as success downstream. |
 | `no-go-hold-overrides-natural-language` | Holds override explanations and model rationale. |
@@ -88,6 +88,10 @@ into the plain failure rows above, but the IDs are stable enough to search.
 | `least-privilege-tooling-and-supply-chain-review` | Tools, connectors, generated artifacts, and packs need least-privilege review. |
 | `human-review-packet-must-highlight-risk` | Review packets must surface no-go state, missing evidence, and safe next steps. |
 | `sensitive-data-minimization-required` | Proof, review, dashboard, telemetry, and export surfaces must minimize raw sensitive data. |
+
+Tenant note: route, record, and customer-gate tenant binding are the tenant
+isolation boundary. Scope-guard `tenant-out-of-scope` is only a
+requested-vs-approved scope metadata signal.
 
 ## Support questions
 

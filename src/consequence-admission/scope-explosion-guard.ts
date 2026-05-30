@@ -491,7 +491,7 @@ export function evaluateConsequenceScopeExplosion(
     activatesEnforcement: false,
     digestOnly: true,
     limitation:
-      'This guard compares supplied requested and approved scope metadata. It does not prove every customer policy, downstream verifier, or domain pack enforces the returned constraints.',
+      'This guard compares supplied requested and approved scope metadata. It does not prove tenant isolation by itself; hosted routes bind tenant scope before this guard runs, and package callers must supply trusted policy-scope metadata.',
   } as const;
   const { canonical, digest } = canonicalObject(payload as unknown as CanonicalReleaseJsonValue);
   return Object.freeze({

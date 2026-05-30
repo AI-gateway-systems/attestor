@@ -588,9 +588,9 @@ Object.freeze([
       evidence('code', 'src/consequence-admission/downstream-enforcement-contract.ts', 'accepted constraint acknowledgement'),
       evidence('code', 'src/consequence-admission/scope-explosion-guard.ts', 'requested-vs-approved scope guard'),
       evidence('test', 'tests/downstream-enforcement-contract.test.ts', 'private constraint and downstream hold checks'),
-      evidence('test', 'tests/scope-explosion-guard.test.ts', 'amount, record, recipient, tenant, operation, data class, and reversibility scope checks'),
+      evidence('test', 'tests/scope-explosion-guard.test.ts', 'amount, record, recipient, operation, data class, tenant-scope metadata, and reversibility scope checks'),
     ],
-    limitation: 'A dedicated scope-explosion guard exists; customer policy, downstream verifier, and domain pack integrations still need to enforce returned constraints.',
+    limitation: 'A dedicated scope-explosion guard exists; it compares supplied scope metadata and does not prove tenant isolation by itself. Customer policy, downstream verifier, and domain pack integrations still need to enforce returned constraints.',
   }),
   entry({
     id: 'duplicate-execution-replay',

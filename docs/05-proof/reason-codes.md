@@ -83,7 +83,7 @@ customer enforcement point.
 | `record-count-exceeds-approved-scope` | Requested batch size is too large. | Split or narrow the request. |
 | `operation-out-of-scope` | Requested operation is not approved. | Use an approved operation type. |
 | `data-class-out-of-scope` | Requested data class is not approved. | Narrow the data class or obtain explicit approval. |
-| `tenant-out-of-scope` | Requested tenant does not match the approved tenant boundary. | Stop and investigate tenant context. |
+| `tenant-out-of-scope` | Requested scope tenant differs from the supplied approved-scope tenant. Hosted admission route tenant mismatches use `tenant-scope-mismatch` before this guard runs. | Check the authenticated tenant, policy-source scope metadata, and customer gate binding. |
 | `irreversible-action-not-approved` | The action is too irreversible for the supplied approval. | Add explicit approval or use a reversible path. |
 
 ### Tool and supply-chain evidence

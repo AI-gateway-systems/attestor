@@ -4,7 +4,7 @@
 
 # Attestor
 
-**A gate for high-risk AI actions.**
+**Control infrastructure for high-risk AI-driven operations.**
 
 Attestor sits between what an AI wants to do and the system that would do it.
 
