@@ -1,8 +1,31 @@
 # Contributing
 
-Attestor changes should preserve the project boundary: this repository is an AI
-Action Control Plane and consequence admission layer, not a generic workflow
-orchestration product.
+Attestor changes should make high-risk AI-prepared actions safer before they
+reach a real service.
+
+Good contributions:
+
+- docs and examples that make the first integration clearer
+- tests that lock `admit`, `narrow`, `review`, or `block` behavior
+- reason-code, evidence, redaction, replay, or route-contract fixes
+- narrow refactors that keep runtime behavior unchanged
+
+Out of scope:
+
+- generic chat, agent-runtime, or workflow-orchestration features
+- wallet, custody, payment-processing, or model-provider features
+- production, compliance, or live-enforcement claims without live evidence
+- broad rewrites without a tracker, tests, and reviewable slices
+
+Before opening a PR:
+
+1. Start from current `origin/master`.
+2. Keep the change small enough to review.
+3. State the trust surface and protected principle when behavior, security,
+   provenance, billing, crypto, privacy, or production readiness is touched.
+4. Run the narrowest checks that prove the changed surface.
+5. Keep raw prompts, payloads, secrets, payment details, wallet material,
+   customer identifiers, and private thresholds out of public artifacts.
 
 ## Workflow Permission Discipline
 

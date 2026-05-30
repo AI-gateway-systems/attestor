@@ -52,11 +52,11 @@ function testReadmeHasAPlainFirstThirtySeconds(): void {
     'manager approval is missing',
     'README: gives the concrete stop reason',
   );
-  includes(readme, 'that AI-prepared action can become a real refund call', 'README: shows the without-Attestor failure mode');
+  includes(readme, 'that AI-prepared action can become a real refund call', 'README: shows the without-gate failure mode');
   includes(readme, 'The audit trail remains: proposed action, stop reason, reason codes, evidence references, proof references, and the next safe step.', 'README: shows the trail left by the decision');
   includes(readme, 'This repository demo is synthetic and shadow-only', 'README: keeps local-demo no-claims close to the example');
-  appearsBefore(readme, '## One Concrete Workflow', '## What Attestor Does', 'README: concrete story comes before broad mechanism');
-  appearsBefore(readme, '## Why This Matters Now', '## What Attestor Does', 'README: urgency comes before broad mechanism');
+  appearsBefore(readme, '## One Concrete Workflow', '## What It Does', 'README: concrete story comes before broad mechanism');
+  appearsBefore(readme, '## Why This Matters Now', '## What It Does', 'README: urgency comes before broad mechanism');
   appearsBefore(readme, '## One Concrete Workflow', '## The Same Pattern Across Actions', 'README: concrete story comes before pack taxonomy');
 }
 
@@ -65,9 +65,9 @@ function testReadmeKeepsTheControlBoundaryAndLocalRunPath(): void {
   const demoGuide = readProjectFile('docs', '01-overview', 'demo-guide.md');
 
   includes(readme, 'AI proposes action', 'README: keeps the core flow start');
-  includes(readme, 'Attestor checks the proposed action: policy, approval, evidence, allowed scope, freshness, replay, tenant, token, and proof references', 'README: keeps the check vocabulary');
+  includes(readme, 'It checks the proposed action: policy, approval, evidence, allowed scope, freshness, replay, tenant, token, and proof references', 'README: keeps the check vocabulary');
   includes(readme, 'The real service should run only through the customer-owned gate.', 'README: keeps the customer gate boundary');
-  includes(readme, 'Without an enforced customer-side gate, gateway, verifier, or adapter, Attestor is advisory evidence.', 'README: makes advisory versus control posture explicit');
+  includes(readme, 'Without an enforced customer-side gate, gateway, verifier, or adapter, the decision is advisory evidence.', 'README: makes advisory versus control posture explicit');
   includes(readme, 'Run Attestor in shadow pilot mode - and map what your AI agents are trying to do', 'README: keeps the exact shadow-pilot line');
   includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)', 'README: links the shadow pilot path near the adoption wedge');
   includes(readme, 'map what your AI agents are trying to do in the shadow of your systems', 'README: explains the shadow pilot value plainly');
@@ -86,7 +86,7 @@ function testReadmeKeepsEvaluationTruthBeforeDeepDocs(): void {
   includes(readme, 'Release stage:   evaluation release', 'README: states evaluation-release status plainly');
   includes(readme, 'Release type:    GitHub pre-release / Golden Path evaluation baseline', 'README: states current release type plainly');
   includes(readme, 'The same gate can sit before these action classes:', 'README: keeps cross-action framing concise');
-  includes(readme, 'Attestor is a control point, not a data lake.', 'README: states data posture plainly');
+  includes(readme, 'This is a control point, not a data lake.', 'README: states data posture plainly');
   appearsBefore(readme, '## Current State', '## Data Posture', 'README: current state comes before deeper trust posture');
   excludes(readme, /## Decision Model/u, 'README: should not keep a separate decision-model section');
 }

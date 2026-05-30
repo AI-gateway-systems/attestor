@@ -53,14 +53,15 @@ function testReadmeKeepsSingleEngineAndCustomerBoundary(): void {
   const readme = readProjectFile('README.md');
 
   includes(readme, 'AI agent', 'Product docs: README keeps the actor side of the core flow');
-  includes(readme, 'Attestor checks the proposed action: policy, approval, evidence, allowed scope, freshness, replay, tenant, token, and proof references', 'Product docs: README keeps the core check vocabulary in plain language');
+  includes(readme, 'It checks the proposed action: policy, approval, evidence, allowed scope, freshness, replay, tenant, token, and proof references', 'Product docs: README keeps the core check vocabulary in plain language');
   includes(readme, 'The real service should run only through the customer-owned gate.', 'Product docs: README keeps the customer enforcement boundary');
-  includes(readme, 'Without an enforced customer-side gate, gateway, verifier, or adapter, Attestor is advisory evidence.', 'Product docs: README distinguishes advisory evidence from control point');
+  includes(readme, 'Without an enforced customer-side gate, gateway, verifier, or adapter, the decision is advisory evidence.', 'Product docs: README distinguishes advisory evidence from control point');
   includes(readme, 'Run Attestor in shadow pilot mode - and map what your AI agents are trying to do', 'Product docs: README keeps exact shadow-pilot value line');
   includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)', 'Product docs: README links the shadow pilot guide');
   includes(readme, 'The same gate can sit before these action classes:', 'Product docs: README keeps cross-action framing concise');
-  includes(readme, 'Attestor is a control point, not a data lake.', 'Product docs: README keeps data-posture positioning');
+  includes(readme, 'This is a control point, not a data lake.', 'Product docs: README keeps data-posture positioning');
   includes(readme, 'Customer systems keep the model, agent, workflow, wallet, database, downstream', 'Product docs: README keeps customer ownership boundary');
+  includes(readme, 'Without a customer-owned gate, it is evidence, not enforcement.', 'Product docs: README keeps the customer enforcement no-claim simple');
 }
 
 function testReadmeKeepsDomainPacksAndLocalTruth(): void {
