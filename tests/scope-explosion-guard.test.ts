@@ -76,6 +76,7 @@ function testApprovedScopePasses(): void {
   ok(decision.reasonCodes.includes('scope-pass'), 'Scope guard: pass reason is present');
   ok(decision.requiredControls.includes('requested-vs-approved-scope-diff'), 'Scope guard: binding carries scope diff control');
   ok(decision.digest.startsWith('sha256:'), 'Scope guard: digest is generated');
+  includes(decision.limitation, 'does not prove tenant isolation by itself', 'Scope guard: tenant isolation non-claim is explicit');
   excludes(serialized, /recipient_customer_private|tenant_current_private|refund-service-private|policy:refund-scope-private/iu, 'Scope guard: serialized output excludes raw tenant, recipient, downstream, and policy refs');
 }
 
@@ -192,6 +193,9 @@ function testDescriptorDocsRegistryAndPackageScriptStayAligned(): void {
   includes(doc, 'src/consequence-admission/scope-explosion-guard.ts', 'Scope docs: source file is named');
   includes(doc, 'test:scope-explosion-guard', 'Scope docs: test command is named');
   includes(doc, 'scope-explosion', 'Scope docs: failure mode is named');
+  includes(doc, 'Tenant note: this guard does not prove tenant isolation by itself.', 'Scope docs: tenant boundary note is explicit');
+  includes(doc, 'Package-level callers must provide approved scope', 'Scope docs: package caller responsibility starts with trusted approved scope');
+  includes(doc, 'metadata from a trusted policy source.', 'Scope docs: package caller responsibility names trusted policy metadata');
   includes(registry, 'scope-explosion-guard.ts', 'Failure registry: scope guard source evidence is recorded');
   equal(
     pkg.scripts['test:scope-explosion-guard'],

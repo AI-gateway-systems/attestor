@@ -132,7 +132,7 @@ const INVARIANT_CATALOG: readonly ConsequenceFailureControlInvariant[] = Object.
   },
   {
     id: 'scope-cannot-exceed-approved-boundary',
-    summary: 'Requested scope cannot exceed approved action, amount, record, recipient, tenant, or environment boundaries.',
+    summary: 'Requested scope cannot exceed approved action, amount, record, recipient, data, operation, or environment boundaries.',
     checkKind: 'deterministic',
     violationDefaultDecision: 'narrow',
   },
