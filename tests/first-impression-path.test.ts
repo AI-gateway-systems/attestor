@@ -53,7 +53,7 @@ function testReadmeHasAPlainFirstThirtySeconds(): void {
     'README: gives the concrete stop reason',
   );
   includes(readme, 'the AI-prepared refund can become an executable service call', 'README: shows the without-Attestor failure mode');
-  includes(readme, 'the call does not run, the reason is visible, and the proof trail remains', 'README: shows the with-Attestor result');
+  includes(readme, 'The decision leaves a reviewable trail: proposed action, reason codes, evidence references, and proof references.', 'README: shows the reviewable trail left by the decision');
   includes(readme, 'the refund path is synthetic and shadow-only', 'README: keeps local-demo no-claims close to the example');
   appearsBefore(readme, '## One Concrete Workflow', '## What Attestor Does', 'README: concrete story comes before broad mechanism');
   appearsBefore(readme, '## Why This Matters Now', '## What Attestor Does', 'README: urgency comes before broad mechanism');
@@ -62,15 +62,20 @@ function testReadmeHasAPlainFirstThirtySeconds(): void {
 
 function testReadmeKeepsTheControlBoundaryAndLocalRunPath(): void {
   const readme = readProjectFile('README.md');
+  const demoGuide = readProjectFile('docs', '01-overview', 'demo-guide.md');
 
   includes(readme, 'AI proposes action', 'README: keeps the core flow start');
   includes(readme, 'Attestor checks the proposed action: policy, approval, evidence, allowed scope, freshness, replay, tenant, token, and proof references', 'README: keeps the check vocabulary');
   includes(readme, 'The real service runs only through the customer-owned gate.', 'README: keeps the customer gate boundary');
   includes(readme, 'Without an enforced customer-side gate, gateway, verifier, or adapter, Attestor is advisory evidence.', 'README: makes advisory versus control posture explicit');
   includes(readme, 'Start in shadow mode.', 'README: keeps the adoption wedge simple');
+  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)', 'README: links the shadow pilot path near the adoption wedge');
+  includes(readme, 'map what your AI agents are trying to do in the shadow of your systems', 'README: explains the shadow pilot value plainly');
   includes(readme, 'npm ci', 'README: uses reproducible install for the reviewer path');
   includes(readme, 'npm run demo:golden-refund', 'README: shows the first concrete runnable path');
-  includes(readme, 'npm run demo:golden-paths', 'README: shows the all-pack local evaluator');
+  includes(readme, '[Run the demos in order](docs/01-overview/demo-guide.md)', 'README: points early to the guided demo path');
+  includes(demoGuide, 'npm run demo:golden-paths', 'Demo guide: shows the all-pack local evaluator');
+  excludes(readme, /## Local Demos/u, 'README: moves the long demo table out of the front page');
 }
 
 function testReadmeKeepsEvaluationTruthBeforeDeepDocs(): void {
