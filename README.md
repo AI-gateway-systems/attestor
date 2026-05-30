@@ -267,6 +267,7 @@ Use this after you already know what Attestor does.
 - [Downstream enforcement contract](docs/02-architecture/downstream-enforcement-contract.md)
 - [Audit evidence system](docs/audit/README.md)
 - [Current posture baseline](docs/audit/current-posture-baseline.md)
+- [Audit remediation tracker](docs/audit/attestor-audit-remediation-tracker.md)
 - [Live proof register](docs/audit/live-proof-register.md)
 - [Security Policy](SECURITY.md)
 - [Evaluation Smoke workflow](.github/workflows/evaluation-smoke.yml)
