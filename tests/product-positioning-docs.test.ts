@@ -90,6 +90,7 @@ function testReadmeLinksTheRightDeeperDocsWithoutBecomingALinkWall(): void {
 
   includes(readme, '## Start Here', 'Product docs: README exposes a short first-visitor link surface');
   includes(readme, 'Pick the shortest useful path. Do not read the whole repository first.', 'Product docs: README keeps the first path lightweight');
+  includes(readme, 'Find the right page: [Docs front door](docs/README.md) and [Repository navigator](docs/01-overview/repository-navigator.md)', 'Product docs: README puts docs navigation at the top of the link path');
   includes(readme, 'Run the concrete refund workflow: [Try Attestor first](docs/01-overview/try-attestor-first.md)', 'Product docs: README leads with the first-run guide');
   includes(readme, 'Put Attestor before a real service call: [How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md)', 'Product docs: README links the integration guide');
   includes(readme, 'Copy framework-shaped examples: [Customer middleware examples](examples/customer-middleware/README.md)', 'Product docs: README links middleware examples');
@@ -97,7 +98,6 @@ function testReadmeLinksTheRightDeeperDocsWithoutBecomingALinkWall(): void {
   includes(readme, 'Explain a `review` or `block`: [Reason codes](docs/05-proof/reason-codes.md)', 'Product docs: README links reason-code support');
   includes(readme, 'Make the first hosted request: [First hosted API call](docs/01-overview/hosted-first-api-call.md)', 'Product docs: README links the hosted first call');
   includes(readme, 'Understand what the license allows: [License and use](docs/01-overview/license-and-use.md)', 'Product docs: README links the license-and-use guide');
-  includes(readme, 'Find the rest: [Docs front door](docs/README.md) and [Repository navigator](docs/01-overview/repository-navigator.md)', 'Product docs: README links the docs front door and navigator');
   includes(readme, '## Maintainer Reference', 'Product docs: README keeps deeper maintainer references behind an explicit heading');
   includes(readme, 'Use this after you already know what Attestor does.', 'Product docs: README explains why the maintainer section exists');
   includes(readme, '[Docs front door](docs/README.md)', 'Product docs: README links the docs front door');

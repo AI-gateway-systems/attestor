@@ -240,6 +240,7 @@ It is a local static proof surface. It does not start a hosted console or claim 
 
 Pick the shortest useful path. Do not read the whole repository first.
 
+- Find the right page: [Docs front door](docs/README.md) and [Repository navigator](docs/01-overview/repository-navigator.md)
 - Run the concrete refund workflow: [Try Attestor first](docs/01-overview/try-attestor-first.md)
 - Put Attestor before a real service call: [How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md)
 - Copy framework-shaped examples: [Customer middleware examples](examples/customer-middleware/README.md)
@@ -247,7 +248,6 @@ Pick the shortest useful path. Do not read the whole repository first.
 - Explain a `review` or `block`: [Reason codes](docs/05-proof/reason-codes.md)
 - Make the first hosted request: [First hosted API call](docs/01-overview/hosted-first-api-call.md)
 - Understand what the license allows: [License and use](docs/01-overview/license-and-use.md)
-- Find the rest: [Docs front door](docs/README.md) and [Repository navigator](docs/01-overview/repository-navigator.md)
 
 ## Maintainer Reference
 
@@ -256,8 +256,6 @@ Use this after you already know what Attestor does.
 - [Docs front door](docs/README.md)
 - [Repository navigator](docs/01-overview/repository-navigator.md)
 - [Repository map](docs/01-overview/repository-map.md)
-- [Attestor Evaluation Packet v0.1](docs/00-evaluation/v0.1-evaluation-packet.md)
-- [v0.2.0 evaluation release notes](docs/00-evaluation/v0.2.0-evaluation-release-notes.md)
 - [Test system map](docs/02-architecture/test-system-map.md)
 - [AI Action Control Plane architecture](docs/02-architecture/ai-action-control-plane-architecture.md)
 - [Attestor language contract](docs/02-architecture/attestor-language-contract.md)
@@ -267,10 +265,5 @@ Use this after you already know what Attestor does.
 - [Downstream enforcement contract](docs/02-architecture/downstream-enforcement-contract.md)
 - [Audit evidence system](docs/audit/README.md)
 - [Current posture baseline](docs/audit/current-posture-baseline.md)
-- [Audit remediation tracker](docs/audit/attestor-audit-remediation-tracker.md)
 - [Live proof register](docs/audit/live-proof-register.md)
 - [Security Policy](SECURITY.md)
-- [Evaluation Smoke workflow](.github/workflows/evaluation-smoke.yml)
-- [Artifact attestation plan](docs/08-deployment/artifact-attestation-plan.md)
-
-Action-surface onboarding can generate a local review handoff and red-team fixture bundle. It is review material only; fixtures do not activate enforcement.
