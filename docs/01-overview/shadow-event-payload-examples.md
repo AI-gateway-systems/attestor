@@ -9,6 +9,31 @@ Use this when you want event-shaped data before an SDK or full integration.
 It is the observe-first path: useful for learning what would be held, narrowed,
 or blocked before you enforce anything.
 
+## Minimal First Payload
+
+Start with one proposed consequence in observe mode. Keep raw prompts and
+customer data out of Attestor; send references, digests, and enough structure
+to explain what would have reached the downstream system.
+
+```jsonc
+{
+  "mode": "observe",
+  "actor": "support-ai-agent",
+  "action": "issue_refund",
+  "domain": "money-movement",
+  "downstreamSystem": "refund-service",
+  "policyRef": "policy:refunds:v1",
+  "evidenceRefs": [
+    "evidence:order-owned:sha256:<digest>",
+    "evidence:payment-captured:sha256:<digest>"
+  ],
+  "summary": "Support AI prepared a refund request; the refund service has not run."
+}
+```
+
+Then choose the closest validated example below and add the fields your gate
+actually needs.
+
 ## Start Here
 
 | If you want to see... | Start with | Then read |

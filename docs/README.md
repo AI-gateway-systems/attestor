@@ -24,6 +24,22 @@ understand -> try -> integrate -> explain decisions -> verify claims -> maintain
 | Understand allowed use | [License and use](01-overview/license-and-use.md) |
 | Navigate the repository | [Repository navigator](01-overview/repository-navigator.md) |
 
+## Canonical Docs
+
+When the same idea appears in more than one page, use the owner page below
+instead of restating the whole system. This table is navigation, not a new authority surface.
+
+| Concept | Canonical doc |
+|---|---|
+| AI Action Control Plane | [AI Action Control Plane architecture](02-architecture/ai-action-control-plane-architecture.md) |
+| Customer gate / PEP | [Downstream enforcement contract](02-architecture/downstream-enforcement-contract.md) |
+| First integration | [How to integrate Attestor](01-overview/how-to-integrate-attestor.md) |
+| Observe / shadow pilot | [Run Attestor in shadow pilot mode](01-overview/shadow-event-payload-examples.md) |
+| Admission decisions | [Consequence admission quickstart](01-overview/consequence-admission-quickstart.md) |
+| Reason codes | [Reason codes](05-proof/reason-codes.md) |
+| Policy Foundry | [Policy Foundry onboarding](02-architecture/policy-foundry-onboarding.md) |
+| Current truth / no-claims | [Current state](../README.md#current-state) and [Live proof register](audit/live-proof-register.md) |
+
 ## Integrate
 
 Start with [How to integrate Attestor](01-overview/how-to-integrate-attestor.md).
