@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/attestor-readme-logo.png" alt="Attestor" width="720">
+</p>
+
 # Attestor
 
 **A gate for high-risk AI actions.**

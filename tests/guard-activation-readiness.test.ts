@@ -151,7 +151,8 @@ function testDocsScriptsAndPackageSurfaceAreAligned(): void {
   const doc = readProjectFile('docs', '02-architecture', 'guard-activation-readiness.md');
   includes(doc, 'Guard Activation Readiness', 'Guard activation readiness doc: title exists');
   includes(doc, 'decision rendering is not enforcement activation', 'Guard activation readiness doc: core distinction exists');
-  includes(doc, 'not a\ncount of every generic admission runtime evaluator', 'Guard activation readiness doc: evaluator-count boundary exists');
+  includes(doc, 'guard activation-readiness profile set, not a', 'Guard activation readiness doc: evaluator-count boundary starts');
+  includes(doc, 'count of every generic admission runtime evaluator', 'Guard activation readiness doc: evaluator-count boundary exists');
   includes(doc, '`no-go-condition-ledger`', 'Guard activation readiness doc: no-go ledger boundary exists');
   includes(doc, '`decision-context-drift-binding`', 'Guard activation readiness doc: decision-context boundary exists');
   includes(doc, '`authority-creep-guard`', 'Guard activation readiness doc: authority-creep boundary exists');

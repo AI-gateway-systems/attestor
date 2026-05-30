@@ -160,7 +160,11 @@ function testDocsAndScriptsStayAligned(): void {
     includes(doc, expected, `G08 doc: records ${expected}`);
   }
   includes(ledger, 'G08 engine visibility report', 'G08 ledger: records engine visibility');
-  includes(readme, 'Engine Visibility', 'G08 README: mentions engine visibility');
+  includes(
+    readme,
+    'The output shows what was checked, why the action held or blocked, and which',
+    'G08 README: explains the same visibility value in first-reader language',
+  );
   includes(tryFirst, '--determinism-check', 'G08 try-first doc: shows determinism command');
   equal(
     packageJson.scripts['test:golden-refund-engine-visibility'],
