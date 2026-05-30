@@ -141,11 +141,17 @@ function testDocsFrontDoorPullsReadersToTheNextAction(): void {
   includes(doc, '# Attestor Docs', 'Docs front door: title is present');
   includes(doc, 'understand -> try -> integrate -> explain decisions -> verify claims -> maintain', 'Docs front door: keeps the reader path explicit');
   includes(doc, '## Start Here', 'Docs front door: has a first-reader section');
+  includes(doc, '## Canonical Docs', 'Docs front door: has a canonical-docs section');
+  includes(doc, 'This table is navigation, not a new authority surface.', 'Docs front door: canonical table is not an authority surface');
   includes(doc, '## Integrate', 'Docs front door: has an integration section');
   includes(doc, '## Explain Decisions', 'Docs front door: has a decision-explanation section');
   includes(doc, '## Evaluate Trust', 'Docs front door: has a trust-evaluation section');
   includes(doc, '## Understand The System', 'Docs front door: has a system-understanding section');
   includes(doc, '## Maintain The Repo', 'Docs front door: has a maintainer section');
+  includes(doc, '[AI Action Control Plane architecture](02-architecture/ai-action-control-plane-architecture.md)', 'Docs front door: names AI Action Control Plane owner doc');
+  includes(doc, '[Downstream enforcement contract](02-architecture/downstream-enforcement-contract.md)', 'Docs front door: names customer gate owner doc');
+  includes(doc, '[Policy Foundry onboarding](02-architecture/policy-foundry-onboarding.md)', 'Docs front door: names Policy Foundry owner doc');
+  includes(doc, '[Live proof register](audit/live-proof-register.md)', 'Docs front door: links live proof owner doc');
   includes(doc, '[How to integrate Attestor](01-overview/how-to-integrate-attestor.md)', 'Docs front door: links integration guide');
   includes(doc, '[Run the demos in order](01-overview/demo-guide.md)', 'Docs front door: links guided demo path');
   includes(doc, '[Customer middleware examples](../examples/customer-middleware/README.md)', 'Docs front door: links middleware examples');
