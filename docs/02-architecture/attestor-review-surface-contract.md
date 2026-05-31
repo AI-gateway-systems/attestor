@@ -116,6 +116,7 @@ Core APIs:
 
 - `attestorReviewSurfaceContractDescriptor()`
 - `createAttestorReviewSurface(...)`
+- `createAttestorReviewCaseDetail(...)`
 
 Source:
 
@@ -144,6 +145,26 @@ raw payload storage or auto-enforcement, the aggregator fails closed.
 The output is still review material only. It does not create cases, serve HTTP
 routes, render the hosted UI, export files, activate enforcement, or mutate
 policy.
+
+## Case Detail
+
+`createAttestorReviewCaseDetail(...)` turns one review queue item or case digest
+into the digest-only drill-down shape for the later hosted route and export
+slices.
+
+It can carry:
+
+- admission digests
+- event digests
+- candidate digests
+- evidence digests
+- proof link digests
+- timeline digests
+- correlation digests
+
+The case detail rejects unknown case digests and keeps the same authority
+boundary as the rest of the review surface: it cannot admit, block, enforce, or
+store raw case material.
 
 ## Research Posture
 

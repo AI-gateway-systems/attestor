@@ -220,8 +220,31 @@ export interface ReviewQueueItem extends AttestorReviewSurfaceCommon {
 export interface ReviewCaseDetail extends AttestorReviewSurfaceCommon {
   readonly area: 'cases';
   readonly caseDigest: string;
+  readonly statusLabel: AttestorReviewSurfaceStatusLabel;
+  readonly lifecycleState: AttestorReviewSurfaceLifecycleState;
+  readonly queueItemId: string | null;
+  readonly admissionDigests: readonly string[];
+  readonly eventDigests: readonly string[];
+  readonly candidateDigests: readonly string[];
+  readonly evidenceDigests: readonly string[];
   readonly timelineDigests: readonly string[];
   readonly proofLinkDigests: readonly string[];
+  readonly correlationDigests: readonly string[];
+  readonly rawCaseMaterialStored: false;
+  readonly canAdmit: false;
+  readonly canBlockAction: false;
+}
+
+export interface CreateAttestorReviewCaseDetailInput {
+  readonly reviewSurface: AttestorReviewSurface;
+  readonly caseDigest: string;
+  readonly queueItemId?: string | null;
+  readonly admissionDigests?: readonly string[] | null;
+  readonly eventDigests?: readonly string[] | null;
+  readonly candidateDigests?: readonly string[] | null;
+  readonly evidenceDigests?: readonly string[] | null;
+  readonly proofLinkDigests?: readonly string[] | null;
+  readonly timelineDigests?: readonly string[] | null;
 }
 
 export interface EvidenceArtifactIndex extends AttestorReviewSurfaceCommon {
@@ -832,6 +855,99 @@ export function createAttestorReviewSurface(
     ...payload,
     canonical: canonical.canonical,
     digest: canonical.digest,
+  });
+}
+
+function findCaseQueueItem(input: CreateAttestorReviewCaseDetailInput):
+ReviewQueueItem | null {
+  const byQueueItem = normalizeOptionalIdentifier(input.queueItemId, 'queueItemId');
+  if (byQueueItem) {
+    const item = input.reviewSurface.reviewQueue.find((entry) => entry.queueItemId === byQueueItem);
+    if (!item) {
+      throw new Error('Attestor review surface case detail queueItemId must exist in the review queue.');
+    }
+    if (item.caseDigest !== input.caseDigest) {
+      throw new Error('Attestor review surface case detail queueItemId must match caseDigest.');
+    }
+    return item;
+  }
+  return input.reviewSurface.reviewQueue.find((entry) =>
+    entry.caseDigest === input.caseDigest
+  ) ?? null;
+}
+
+function normalizeDigestRefs(
+  values: readonly string[] | null | undefined,
+  fieldName: string,
+): readonly string[] {
+  return Object.freeze(
+    uniqueSorted(values ?? []).map((value) => normalizeIdentifier(value, fieldName)),
+  );
+}
+
+export function createAttestorReviewCaseDetail(
+  input: CreateAttestorReviewCaseDetailInput,
+): ReviewCaseDetail {
+  const caseDigest = normalizeIdentifier(input.caseDigest, 'caseDigest');
+  if (!input.reviewSurface.caseDigests.includes(caseDigest)) {
+    throw new Error('Attestor review surface case detail caseDigest must exist in reviewSurface.');
+  }
+  const queueItem = findCaseQueueItem(input);
+  const admissionDigests = normalizeDigestRefs(input.admissionDigests, 'admissionDigests');
+  const eventDigests = normalizeDigestRefs(input.eventDigests, 'eventDigests');
+  const candidateDigests = normalizeDigestRefs(
+    input.candidateDigests ?? input.reviewSurface.policy.candidateDigests,
+    'candidateDigests',
+  );
+  const evidenceDigests = normalizeDigestRefs(
+    input.evidenceDigests ?? input.reviewSurface.evidenceLibrary.artifactDigests,
+    'evidenceDigests',
+  );
+  const proofLinkDigests = normalizeDigestRefs(
+    input.proofLinkDigests ?? evidenceDigests,
+    'proofLinkDigests',
+  );
+  const timelineDigests = normalizeDigestRefs(
+    input.timelineDigests ?? [
+      ...admissionDigests,
+      ...eventDigests,
+      ...candidateDigests,
+      ...evidenceDigests,
+      caseDigest,
+    ],
+    'timelineDigests',
+  );
+  const correlationDigests = normalizeDigestRefs([
+    caseDigest,
+    input.reviewSurface.digest,
+    ...(queueItem ? [queueItem.caseDigest, ...queueItem.sourceDigests] : []),
+    ...input.reviewSurface.sourceDigests,
+    ...timelineDigests,
+    ...proofLinkDigests,
+  ], 'correlationDigests');
+
+  return Object.freeze({
+    ...(queueItem ?? input.reviewSurface.overview),
+    area: 'cases',
+    caseDigest,
+    statusLabel: queueItem?.statusLabel ?? 'needs-review',
+    lifecycleState: queueItem?.lifecycleState ?? 'open',
+    queueItemId: queueItem?.queueItemId ?? null,
+    admissionDigests,
+    eventDigests,
+    candidateDigests,
+    evidenceDigests,
+    timelineDigests,
+    proofLinkDigests,
+    correlationDigests,
+    sourceDigests: correlationDigests,
+    rawPayloadStored: false,
+    rawCaseMaterialStored: false,
+    decisionSupportOnly: true,
+    autoEnforce: false,
+    productionReady: false,
+    canAdmit: false,
+    canBlockAction: false,
   });
 }
 
