@@ -164,7 +164,7 @@ function testHtmlPreviewEscapesRenderedFields(): void {
     'Review &lt;script&gt;alert(2)&lt;/script&gt;',
     'Review surface HTML preview: queue text is escaped',
   );
-  excludes(html, /<script>|<img src=x/u, 'Review surface HTML preview: hostile markup is not executable HTML');
+  excludes(html, /<\s*(?:script|img)\b/iu, 'Review surface HTML preview: hostile markup is not executable HTML');
 }
 
 function testHtmlPreviewDescriptorDocsAndScript(): void {
