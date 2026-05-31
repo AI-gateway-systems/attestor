@@ -20,6 +20,7 @@ understand -> try -> integrate -> explain decisions -> verify claims -> maintain
 | See concrete use cases | [What you can do with Attestor](01-overview/what-you-can-do.md) |
 | Run a shadow pilot without an SDK | [Run Attestor in shadow pilot mode](01-overview/shadow-event-payload-examples.md) |
 | Put Attestor in front of a real service call | [How to integrate Attestor](01-overview/how-to-integrate-attestor.md) |
+| Turn existing metadata into reviewable integration files | [Action surface integration kit buildout](02-architecture/action-surface-integration-kit-buildout.md) |
 | Use the shared admission shape | [Consequence admission quickstart](01-overview/consequence-admission-quickstart.md) |
 | Understand allowed use | [License and use](01-overview/license-and-use.md) |
 | Navigate the repository | [Repository navigator](01-overview/repository-navigator.md) |
@@ -95,6 +96,7 @@ reader path.
 - [Policy Foundry onboarding](02-architecture/policy-foundry-onboarding.md)
 - [Action surface auto-context](02-architecture/action-surface-auto-context.md)
 - [Action surface onboarding packet](02-architecture/action-surface-onboarding-packet.md)
+- [Action surface integration kit buildout](02-architecture/action-surface-integration-kit-buildout.md)
 - [Glossary](02-architecture/glossary.md)
 
 ## Maintain The Repo

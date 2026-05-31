@@ -21,6 +21,10 @@ Supporting component pages stay inside this path:
 - [Action Surface Declaration Ingestors](action-surface-declaration-ingestors.md) normalize reviewed metadata.
 - [Action Surface Profiler](action-surface-profiler.md) groups observed and declared surfaces.
 - [Action Surface Integration Artifacts](action-surface-integration-artifacts.md) draft review-only integration material.
+- [Action Surface Integration Kit Buildout](action-surface-integration-kit-buildout.md)
+  defines how the review packet becomes human-readable files,
+  machine-readable manifests, and no-bypass probe plans without applying
+  anything.
 
 ## Why It Exists
 
@@ -292,3 +296,9 @@ The packet includes readiness results, but it does not replace
 workflow is `scoped-enforce-eligible`; the packet still remains a customer
 review artifact. Scoped enforcement requires reviewed downstream controls,
 deployment evidence, and customer-controlled activation.
+
+[Action Surface Integration Kit Buildout](action-surface-integration-kit-buildout.md)
+is the planned packaging layer for this packet's next files. It keeps the same
+review-only boundary: human review pages, machine manifests, artifact digests,
+and no-bypass probe plans are useful only after customer review and downstream
+proof.
