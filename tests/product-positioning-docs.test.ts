@@ -94,17 +94,16 @@ function testReadmeKeepsDomainPacksAndLocalTruth(): void {
 
 function testReadmeLinksTheRightDeeperDocsWithoutBecomingALinkWall(): void {
   const readme = readProjectFile('README.md');
-  const integrationKitLink = [
-    '[Action surface integration kit buildout]',
-    '(docs/02-architecture/action-surface-integration-kit-buildout.md)',
-    ' - render review files from existing metadata before any apply or deploy step.',
-  ].join('');
+  const integrateDoc = readProjectFile('docs', '01-overview', 'how-to-integrate-attestor.md');
 
   includes(readme, '## Start Here', 'Product docs: README exposes a short first-visitor link surface');
   includes(readme, 'Start light. Go deeper only when you need the detail.', 'Product docs: README keeps the first path lightweight');
   includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md) - run the smallest local refund path and see the decision trail.', 'Product docs: README links the first-run guide');
   includes(readme, '[How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md) - find the real side effect and place the customer-owned gate.', 'Product docs: README links the integration guide');
-  includes(readme, integrationKitLink, 'Product docs: README links the review-only integration kit path');
+  includes(readme, '[Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md) - start from existing metadata and render review-only packets, integration files, and hosted packet output without applying anything.', 'Product docs: README links one action-surface entry point');
+  includes(integrateDoc, '[Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md)', 'Product docs: integration guide links the review-only integration kit path');
+  excludes(readme, /\[Action surface auto-context\]\(docs\/02-architecture\/action-surface-auto-context\.md\)/u, 'Product docs: README keeps action-surface support links behind the integration guide');
+  excludes(readme, /\[Action surface integration kit buildout\]\(docs\/02-architecture\/action-surface-integration-kit-buildout\.md\)/u, 'Product docs: README keeps integration kit behind the integration guide');
   includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - send observe-mode examples before enforcing anything.', 'Product docs: README links shadow observe mode');
   includes(readme, '[Consequence admission quickstart](docs/01-overview/consequence-admission-quickstart.md) - use the shared admission shape and decision vocabulary.', 'Product docs: README links the admission quickstart');
   includes(readme, '[Repository navigator](docs/01-overview/repository-navigator.md) - find deeper docs for hosted, pricing, support, proof, or maintainer work.', 'Product docs: README routes deep docs through the navigator');

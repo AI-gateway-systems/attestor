@@ -61,11 +61,17 @@ Not after the refund.
 Before the real service call.
 
 If you already have MCP tools, an OpenAPI file, AsyncAPI metadata, workflow
-jobs, OpenTelemetry spans, CloudEvents, or gateway logs, use
+jobs, OpenTelemetry spans, CloudEvents, or gateway logs, follow the
+action-surface path:
 [Action surface auto-context](../02-architecture/action-surface-auto-context.md)
-to create the first review packet. That helps Attestor infer the starting
-surface and gaps, but it is still review material. You still need policy,
-evidence, approval, receipt, credential, and gate proof before enforcement.
+-> [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md)
+-> [Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md).
+The hosted renderer for the same review packet is
+`POST /api/v1/shadow/action-surface/onboarding-packet`.
+
+That path helps Attestor infer the starting surface and gaps, but it is still
+review material. You still need policy, evidence, approval, receipt,
+credential, and gate proof before enforcement.
 
 ## Step 3: Ask Attestor First
 

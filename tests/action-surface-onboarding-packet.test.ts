@@ -200,7 +200,7 @@ function testEmptyPacketAndDocs(): void {
   excludes(doc, /packet makes the workflow production-ready/iu, 'Onboarding packet doc: production readiness is not overclaimed');
 
   const readme = readProjectFile('README.md');
-  includes(readme, '[Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md)', 'README links onboarding packet');
+  includes(readme, '[Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md)', 'README links one action-surface onboarding entry point');
   excludes(readme, /docs\/02-architecture\/action-surface-manifest-intake\.md/iu, 'README keeps supporting action-surface links inside the onboarding packet doc');
   excludes(readme, /onboarding packet deploys the gateway/iu, 'README does not overclaim deployment');
 
