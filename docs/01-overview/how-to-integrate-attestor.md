@@ -148,6 +148,10 @@ proof must remain reviewable
 Without that customer-owned gate, Attestor is decision evidence.
 With it, Attestor becomes the stop point before action.
 
+When the stop point must check target binding, body digest, freshness, and
+single-use replay, open
+[Downstream presentation binding](../02-architecture/downstream-presentation-binding.md).
+
 ## What You Need From The Company
 
 - an AI workflow that prepares actions
