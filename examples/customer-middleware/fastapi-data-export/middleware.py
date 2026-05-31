@@ -51,6 +51,14 @@ async def guarded_export(
     proposed_payload = build_export_admission_payload(intent)
     decision = await attestor.admit(proposed_payload)
 
+    if decision.get("mode") in {"observe", "warn"}:
+        return {
+            "held": True,
+            "outcome": decision.get("outcome", "observe"),
+            "reasonCodes": decision.get("reasonCodes", []),
+            "proofRefs": decision.get("proofRefs", []),
+        }
+
     if decision["outcome"] in {"review", "block"}:
         return {
             "held": True,

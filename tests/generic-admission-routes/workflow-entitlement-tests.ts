@@ -134,6 +134,35 @@ async function testWorkflowAdmissionAllowsAndConsumesUsage(): Promise<void> {
   equal(body.workflowUsage.meter, 'workflow_monthly_admissions', 'Generic admission route: workflow usage meter is explicit');
 }
 
+async function testWorkflowAdmissionIgnoresCallerGateProofFlags(): Promise<void> {
+  const entitlement = storedWorkflowEntitlement({ customerGateProofPresent: false });
+  const app = workflowApp({ entitlement });
+  const response = await app.request('/api/v1/admissions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(validAdmissionPayload({
+      workflowId: 'wf_refunds',
+      requestedCapability: 'customer-gated-enforce-mode',
+      consequencePack: 'money-movement',
+      customerGateProofPresent: true,
+      workflow: {
+        customerGateProofPresent: true,
+      },
+    })),
+  });
+  const body = await response.json() as { reasonCodes: readonly string[] };
+
+  equal(response.status, 403, 'Generic admission route: caller gate proof flag cannot unlock workflow enforce');
+  ok(
+    body.reasonCodes.includes('caller-asserted-gate-proof-ignored'),
+    'Generic admission route: caller asserted gate proof is ignored explicitly',
+  );
+  ok(
+    body.reasonCodes.includes('customer-gate-proof-required'),
+    'Generic admission route: stored customer gate proof remains required',
+  );
+}
+
 async function testWorkflowAdmissionBlocksHardQuotaDecision(): Promise<void> {
   const entitlement = storedWorkflowEntitlement();
   const app = workflowApp({ entitlement, allowUsage: false });
@@ -159,5 +188,6 @@ async function testWorkflowAdmissionBlocksHardQuotaDecision(): Promise<void> {
 export async function runWorkflowEntitlementRouteTests(): Promise<void> {
   await testWorkflowAdmissionBlocksMissingEntitlement();
   await testWorkflowAdmissionAllowsAndConsumesUsage();
+  await testWorkflowAdmissionIgnoresCallerGateProofFlags();
   await testWorkflowAdmissionBlocksHardQuotaDecision();
 }

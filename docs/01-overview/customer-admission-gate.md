@@ -28,8 +28,12 @@ The customer system passes an Attestor admission response and a downstream actio
 
 The gate returns:
 
-- `PROCEED` when Attestor returned `admit` or `narrow`, the response is not fail-closed, and required proof is present
+- `PROCEED` when Attestor returned `admit` or `narrow`, the response is not fail-closed, the response is not from `observe` or `warn`, and required execution proof is present
 - `HOLD` when Attestor returned `review` or `block`, the response is fail-closed, or required proof is missing
+
+An `admission-receipt` proves that Attestor produced an admission response. It
+is not execution proof by itself. Use a release-token proof or stronger
+customer-operated enforcement path when a real consequence will run.
 
 If a caller explicitly sets `requireProof: false` and no proof is present, the
 gate records `proofSkippedByCaller` and the reason code

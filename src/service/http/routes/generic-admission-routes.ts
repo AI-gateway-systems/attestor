@@ -18,6 +18,10 @@ import {
   type WorkflowEntitlementAccessDecision,
   type WorkflowEntitlementRecord,
 } from '../../workflow-entitlement.js';
+import type {
+  PipelineIdempotencyReadyResult,
+  PipelineIdempotencyService,
+} from '../../application/pipeline-idempotency-service.js';
 import type { WorkflowUsageDecision } from '../../workflow-entitlement-store.js';
 import { acceptsJsonRequestBody } from '../route-response-helpers.js';
 
@@ -76,8 +80,20 @@ export interface GenericAdmissionRouteDeps {
     readonly workflowId: string;
     readonly entitlement: WorkflowEntitlementRecord;
   }): WorkflowAdmissionConsumptionResult | Promise<WorkflowAdmissionConsumptionResult>;
+  readonly admissionIdempotencyService?: PipelineIdempotencyService;
   readonly requireProtectedReleaseTokenForHighRisk?: boolean;
+  readonly requireAdmissionIdempotencyKeyForEnforce?: boolean;
 }
+
+type GenericAdmissionIdempotencyBegin =
+  | {
+      readonly kind: 'ready';
+      readonly ready: PipelineIdempotencyReadyResult | null;
+    }
+  | {
+      readonly kind: 'response';
+      readonly response: Response;
+    };
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -130,6 +146,132 @@ function workflowCustomerGateProofPresent(payload: unknown): boolean {
   return workflow?.customerGateProofPresent === true
     || workflow?.policyGateProofPresent === true
     || workflow?.customerGateProof === true;
+}
+
+function admissionIdempotencyKeyFor(context: Context): string | null {
+  const value = context.req.header('Idempotency-Key')?.trim();
+  return value ? value : null;
+}
+
+function genericAdmissionReplayResponse(input: {
+  readonly statusCode: number;
+  readonly responseBody: unknown;
+}): Response {
+  return new Response(JSON.stringify(input.responseBody), {
+    status: input.statusCode,
+    headers: {
+      'content-type': 'application/json; charset=UTF-8',
+      'cache-control': 'no-store',
+      'x-attestor-idempotent-replay': 'true',
+    },
+  });
+}
+
+async function beginGenericAdmissionIdempotency(
+  context: Context,
+  deps: GenericAdmissionRouteDeps,
+  tenant: TenantContext,
+  routeId: string,
+  requestPayload: unknown,
+  mode: GenericAdmissionEnvelope['mode'],
+): Promise<GenericAdmissionIdempotencyBegin> {
+  const idempotencyKey = admissionIdempotencyKeyFor(context);
+  const keyRequired =
+    deps.requireAdmissionIdempotencyKeyForEnforce === true && mode === 'enforce';
+
+  if (!idempotencyKey && keyRequired) {
+    const problem = createConsequenceAdmissionProblem({
+      type: 'https://attestor.dev/problems/admission-idempotency-key-required',
+      title: 'Admission idempotency key required',
+      status: 428,
+      detail: 'Enforce-mode generic admissions require an Idempotency-Key before the route can produce an execution-facing response.',
+      instance: '/api/v1/admissions',
+      reasonCodes: ['admission-idempotency-key-required'],
+    });
+    return { kind: 'response', response: context.json(problem, 428) };
+  }
+
+  if (!idempotencyKey) {
+    return { kind: 'ready', ready: null };
+  }
+
+  if (!deps.admissionIdempotencyService) {
+    const problem = createConsequenceAdmissionProblem({
+      type: 'https://attestor.dev/problems/admission-idempotency-unavailable',
+      title: 'Admission idempotency unavailable',
+      status: 503,
+      detail: 'The generic admission route cannot persist idempotent admission responses in this runtime.',
+      instance: '/api/v1/admissions',
+      reasonCodes: ['admission-idempotency-unavailable'],
+    });
+    return { kind: 'response', response: context.json(problem, 503) };
+  }
+
+  const begin = await deps.admissionIdempotencyService.begin({
+    idempotencyKey,
+    tenantId: tenant.tenantId,
+    routeId,
+    requestPayload,
+  });
+
+  if (begin.kind === 'replay') {
+    return {
+      kind: 'response',
+      response: genericAdmissionReplayResponse({
+        statusCode: begin.statusCode,
+        responseBody: begin.responseBody,
+      }),
+    };
+  }
+
+  if (begin.kind === 'conflict') {
+    const problem = createConsequenceAdmissionProblem({
+      type: 'https://attestor.dev/problems/admission-idempotency-conflict',
+      title: 'Admission idempotency conflict',
+      status: 409,
+      detail: 'The Idempotency-Key was already used for a different generic admission request.',
+      instance: '/api/v1/admissions',
+      reasonCodes: ['admission-idempotency-conflict'],
+    });
+    return { kind: 'response', response: context.json(problem, 409) };
+  }
+
+  if (begin.kind === 'unavailable') {
+    const problem = createConsequenceAdmissionProblem({
+      type: 'https://attestor.dev/problems/admission-idempotency-unavailable',
+      title: 'Admission idempotency unavailable',
+      status: 503,
+      detail: 'The generic admission route cannot persist idempotent admission responses in this runtime.',
+      instance: '/api/v1/admissions',
+      reasonCodes: ['admission-idempotency-unavailable'],
+    });
+    return { kind: 'response', response: context.json(problem, 503) };
+  }
+
+  return { kind: 'ready', ready: begin };
+}
+
+async function finalizeGenericAdmissionIdempotency(
+  deps: GenericAdmissionRouteDeps,
+  tenant: TenantContext,
+  routeId: string,
+  requestPayload: unknown,
+  idempotency: PipelineIdempotencyReadyResult | null,
+  statusCode: number,
+  responseBody: GenericAdmissionRouteResponseEnvelope,
+): Promise<GenericAdmissionRouteResponseEnvelope> {
+  if (!idempotency?.idempotencyKey || !deps.admissionIdempotencyService) {
+    return responseBody;
+  }
+  const finalized = await deps.admissionIdempotencyService.finalize({
+    idempotencyKey: idempotency.idempotencyKey,
+    tenantId: tenant.tenantId,
+    routeId,
+    requestPayload,
+    statusCode,
+    responseBody: responseBody as unknown as Record<string, unknown>,
+  });
+  return finalized as unknown as GenericAdmissionRouteResponseEnvelope;
 }
 
 function nestedTenantId(value: unknown): string | null {
@@ -211,11 +353,12 @@ export function registerGenericAdmissionRoutes(
 
     try {
       const tenant = deps.currentTenant(c);
+      const routeId = 'POST /api/v1/admissions';
+      let tenantBoundPayload: unknown;
       let envelope: GenericAdmissionEnvelope;
       try {
-        envelope = createGenericAdmissionEnvelope(
-          admissionPayloadWithTenant(payload, tenant),
-        );
+        tenantBoundPayload = admissionPayloadWithTenant(payload, tenant);
+        envelope = createGenericAdmissionEnvelope(tenantBoundPayload);
       } catch (error) {
         if (error instanceof GenericAdmissionTenantScopeMismatchError) {
           const problem = createConsequenceAdmissionProblem({
@@ -241,6 +384,17 @@ export function registerGenericAdmissionRoutes(
           reasonCodes: modePolicy.reasonCodes,
         });
         return c.json(problem, 403);
+      }
+      const idempotency = await beginGenericAdmissionIdempotency(
+        c,
+        deps,
+        tenant,
+        routeId,
+        tenantBoundPayload,
+        envelope.mode,
+      );
+      if (idempotency.kind === 'response') {
+        return idempotency.response;
       }
       const workflowId = workflowIdFromAdmissionPayload(payload);
       let workflowEntitlement: WorkflowEntitlementRecord | null = null;
@@ -439,7 +593,16 @@ export function registerGenericAdmissionRoutes(
         });
         return c.json(problem, 503);
       }
-      return c.json(responseEnvelope);
+      const finalized = await finalizeGenericAdmissionIdempotency(
+        deps,
+        tenant,
+        routeId,
+        tenantBoundPayload,
+        idempotency.ready,
+        200,
+        responseEnvelope,
+      );
+      return c.json(finalized);
     } catch {
       const problem = createConsequenceAdmissionProblem({
         type: 'https://attestor.dev/problems/admission-input-invalid',

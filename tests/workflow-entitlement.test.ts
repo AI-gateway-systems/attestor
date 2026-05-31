@@ -114,6 +114,27 @@ function testStarterEnforceRequiresCustomerGateProof(): void {
   equal(withGate.includedAdmissionsMonthly, 25_000, 'Workflow entitlement: Starter quota is surfaced');
 }
 
+function testCallerGateProofFlagCannotUnlockEnforce(): void {
+  const callerAssertedGate = evaluateWorkflowEntitlementAccess({
+    workflowId: 'wf_refunds',
+    requestedMode: 'enforce',
+    requestedCapability: 'customer-gated-enforce-mode',
+    requestedConsequencePack: 'money-movement',
+    entitlement: entitlement({ customerGateProofPresent: false }),
+    customerGateProofPresent: true,
+  });
+
+  equal(callerAssertedGate.allowed, false, 'Workflow entitlement: caller gate proof flag cannot unlock enforce');
+  ok(
+    callerAssertedGate.reasonCodes.includes('caller-asserted-gate-proof-ignored'),
+    'Workflow entitlement: caller asserted gate proof is visibly ignored',
+  );
+  ok(
+    callerAssertedGate.reasonCodes.includes('customer-gate-proof-required'),
+    'Workflow entitlement: stored gate proof remains required',
+  );
+}
+
 function testWorkflowPackAndStripeBindingAreFailClosed(): void {
   const packMismatch = evaluateWorkflowEntitlementAccess({
     workflowId: 'wf_refunds',
@@ -207,6 +228,7 @@ function testInactiveStatusesDoNotSilentlyEnablePaidFeatures(): void {
 testMissingEntitlementFailsClosed();
 testPilotIncludesShadowButNotEnforce();
 testStarterEnforceRequiresCustomerGateProof();
+testCallerGateProofFlagCannotUnlockEnforce();
 testWorkflowPackAndStripeBindingAreFailClosed();
 testProStillKeepsCustomerGateBoundary();
 testInactiveStatusesDoNotSilentlyEnablePaidFeatures();
