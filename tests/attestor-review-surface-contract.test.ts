@@ -7,6 +7,7 @@ import {
   consequenceAdmissionDescriptor,
   consequenceDataMinimizationRedactionPolicyDescriptor,
   createAttestorReviewSurface,
+  createAttestorReviewCaseDetail,
   createConsequenceAuditEvidenceExport,
   createConsequenceBusinessRiskDashboard,
   createConsequenceDashboardApiSummary,
@@ -378,6 +379,74 @@ function testAggregatorRejectsMismatchedSourceDigests(): void {
   passed += 1;
 }
 
+function testCaseDetailBuildsDigestOnlyDrilldown(): void {
+  const { auditEvidence, dashboard, summary } = auditDashboardSummaryFixture();
+  const surface = createAttestorReviewSurface({
+    auditEvidence,
+    businessRiskDashboard: dashboard,
+    dashboardSummary: summary,
+    reviewInbox: reviewInboxFixture(),
+    evidenceState: evidenceStateFixture(),
+    generatedAt: '2026-05-31T10:07:00.000Z',
+  });
+  const queueItem = surface.reviewQueue[0];
+  assert.ok(queueItem, 'Review surface case detail: fixture has queue item');
+  const detail = createAttestorReviewCaseDetail({
+    reviewSurface: surface,
+    caseDigest: queueItem.caseDigest,
+    queueItemId: queueItem.queueItemId,
+    admissionDigests: [digest('admission')],
+    eventDigests: [auditEvidence.sampleEventDigests[0] ?? digest('event')],
+    proofLinkDigests: [auditEvidence.digest],
+  });
+  const serialized = JSON.stringify(detail);
+
+  equal(detail.area, 'cases', 'Review surface case detail: area is cases');
+  equal(detail.caseDigest, queueItem.caseDigest, 'Review surface case detail: case digest is retained');
+  equal(detail.queueItemId, queueItem.queueItemId, 'Review surface case detail: queue item is retained');
+  equal(detail.statusLabel, queueItem.statusLabel, 'Review surface case detail: status label follows queue');
+  equal(detail.lifecycleState, queueItem.lifecycleState, 'Review surface case detail: lifecycle follows queue');
+  ok(detail.admissionDigests.includes(digest('admission')), 'Review surface case detail: admission digest is retained');
+  ok(detail.eventDigests.length > 0, 'Review surface case detail: event digests are retained');
+  ok(detail.candidateDigests.includes(digest('policy-candidate')), 'Review surface case detail: candidate digest is retained');
+  ok(detail.evidenceDigests.includes(auditEvidence.artifactRefs[0]?.digest ?? ''), 'Review surface case detail: evidence digests default from library');
+  ok(detail.timelineDigests.includes(queueItem.caseDigest), 'Review surface case detail: timeline includes case digest');
+  ok(detail.proofLinkDigests.includes(auditEvidence.digest), 'Review surface case detail: proof link digest is retained');
+  ok(detail.correlationDigests.includes(surface.digest), 'Review surface case detail: correlation includes surface digest');
+  equal(detail.rawPayloadStored, false, 'Review surface case detail: raw payload storage is false');
+  equal(detail.rawCaseMaterialStored, false, 'Review surface case detail: raw case storage is false');
+  equal(detail.canAdmit, false, 'Review surface case detail: cannot admit');
+  equal(detail.canBlockAction, false, 'Review surface case detail: cannot block by itself');
+  ok(
+    !serialized.includes('tenant_review_surface_contract'),
+    'Review surface case detail: serialized output excludes raw tenant id',
+  );
+  ok(
+    !serialized.includes('raw_review_surface_marker_must_not_escape'),
+    'Review surface case detail: serialized output excludes raw recipient',
+  );
+}
+
+function testCaseDetailRejectsUnknownCase(): void {
+  const { auditEvidence, dashboard, summary } = auditDashboardSummaryFixture();
+  const surface = createAttestorReviewSurface({
+    auditEvidence,
+    businessRiskDashboard: dashboard,
+    dashboardSummary: summary,
+  });
+
+  assert.throws(
+    () =>
+      createAttestorReviewCaseDetail({
+        reviewSurface: surface,
+        caseDigest: digest('unknown-case'),
+      }),
+    /caseDigest must exist/u,
+    'Review surface case detail: unknown case digest is rejected',
+  );
+  passed += 1;
+}
+
 function testAdmissionAndRedactionDescriptorsExposeReviewSurface(): void {
   const admission = consequenceAdmissionDescriptor();
   const redaction = consequenceDataMinimizationRedactionPolicyDescriptor();
@@ -467,6 +536,11 @@ function testDocsAndPackageScriptExposeContract(): void {
   );
   includes(
     doc,
+    'createAttestorReviewCaseDetail',
+    'Review surface docs: case detail API is named',
+  );
+  includes(
+    doc,
     'Kubernetes conditions',
     'Review surface docs: source-backed status pattern is named',
   );
@@ -496,6 +570,8 @@ testDescriptorDefinesOneWorkspaceContract();
 testDescriptorKeepsAuthorityBoundaryClosed();
 testAggregatorComposesDigestBoundReviewSurface();
 testAggregatorRejectsMismatchedSourceDigests();
+testCaseDetailBuildsDigestOnlyDrilldown();
+testCaseDetailRejectsUnknownCase();
 testAdmissionAndRedactionDescriptorsExposeReviewSurface();
 testDocsAndPackageScriptExposeContract();
 
