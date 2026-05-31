@@ -473,7 +473,7 @@ function testPruneRemovesEntriesAfterRetention(): void {
 }
 
 function testDocsAndScriptsExposeReplayLedger(): void {
-  const readme = readProjectFile('README.md');
+  const integrationGuide = readProjectFile('docs', '01-overview', 'how-to-integrate-attestor.md');
   const ledgerDoc = readProjectFile('docs', '02-architecture', 'presentation-replay-ledger.md');
   const bindingDoc = readProjectFile('docs', '02-architecture', 'downstream-presentation-binding.md');
   const systemOverview = readProjectFile('docs', '02-architecture', 'system-overview.md');
@@ -483,9 +483,9 @@ function testDocsAndScriptsExposeReplayLedger(): void {
   };
 
   includes(
-    readme,
-    'docs/02-architecture/presentation-replay-ledger.md',
-    'Replay ledger: README links replay ledger doc',
+    integrationGuide,
+    '../02-architecture/downstream-presentation-binding.md',
+    'Replay ledger: integration guide routes readers through presentation binding',
   );
   includes(
     ledgerDoc,

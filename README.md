@@ -122,11 +122,9 @@ Start light. Go deeper only when you need the detail.
 
 - [Try Attestor first](docs/01-overview/try-attestor-first.md) - run the smallest local refund path and see the decision trail.
 - [How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md) - find the real side effect and place the customer-owned gate.
-  Use the [verifier helper](docs/02-architecture/verifier-helper.md) and
-  [presentation replay ledger](docs/02-architecture/presentation-replay-ledger.md) when wiring downstream execution.
 - [Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md) - start from existing metadata and render review-only packets, integration files, and hosted packet output without applying anything.
 - [Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - send observe-mode examples before enforcing anything.
-- [Dashboard API summary](docs/02-architecture/dashboard-api-summary.md) and [Attestor Review Surface contract](docs/02-architecture/attestor-review-surface-contract.md) - see the compact first-screen API and the review workspace contract without raw event data or enforcement claims.
+- [Dashboard API summary](docs/02-architecture/dashboard-api-summary.md) - see the compact first-screen API and hosted review surface entry without raw event data or enforcement claims.
 - [Consequence admission quickstart](docs/01-overview/consequence-admission-quickstart.md) - use the shared admission shape and decision vocabulary.
 - [Repository navigator](docs/01-overview/repository-navigator.md) - find deeper docs for hosted, pricing, support, proof, or maintainer work.
 - [License and use](docs/01-overview/license-and-use.md) and [Security Policy](SECURITY.md) - understand use boundaries and reporting.

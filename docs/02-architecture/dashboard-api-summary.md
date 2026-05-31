@@ -96,6 +96,9 @@ The route keeps these boundaries explicit:
 - `complianceClaimed: false`
 - `productionReady: false`
 
+When the first-screen summary needs a human review workspace shape, open
+[Attestor Review Surface contract](attestor-review-surface-contract.md).
+
 ## Attention Items
 
 Attention items turn audit findings into product-safe next steps.
