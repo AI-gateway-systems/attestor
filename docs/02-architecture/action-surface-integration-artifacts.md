@@ -10,6 +10,7 @@ surface non-bypassable by themselves. They are review drafts only.
 
 Part of:
 [Action Surface Onboarding Packet](action-surface-onboarding-packet.md) ->
+[Action Surface Integration Kit Buildout](action-surface-integration-kit-buildout.md) ->
 [Integration Mode Readiness](integration-mode-readiness.md) -> customer review
 of the downstream verifier, gateway, adapter, or connector.
 
