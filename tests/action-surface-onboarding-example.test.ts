@@ -173,6 +173,7 @@ function testDocsExposeTheExampleWithoutOverclaiming(): void {
     '--target-openapi=examples/action-surface-onboarding/refund.openapi.json',
   ].join(' ');
   const readme = readProjectFile('README.md');
+  const integrateDoc = readProjectFile('docs', '01-overview', 'how-to-integrate-attestor.md');
   const tryFirst = readProjectFile('docs', '01-overview', 'try-attestor-first.md');
   const demoGuide = readProjectFile('docs', '01-overview', 'demo-guide.md');
   const architectureDoc = readProjectFile('docs', '02-architecture', 'action-surface-onboarding-packet.md');
@@ -200,13 +201,23 @@ function testDocsExposeTheExampleWithoutOverclaiming(): void {
   );
   includes(
     readme,
-    '[Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md) - turn reviewed metadata into a review-required integration plan.',
-    'Action surface example: README links onboarding before the integration kit',
+    '[Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md) - start from existing metadata and render review-only packets, integration files, and hosted packet output without applying anything.',
+    'Action surface example: README keeps one action-surface onboarding entry point',
+  );
+  excludes(
+    readme,
+    /\[Action surface integration kit buildout\]\(docs\/02-architecture\/action-surface-integration-kit-buildout\.md\)/u,
+    'Action surface example: README keeps integration kit nested under the integration guide',
   );
   includes(
-    readme,
-    '[Action surface integration kit buildout](docs/02-architecture/action-surface-integration-kit-buildout.md) - render review files from existing metadata before any apply or deploy step.',
-    'Action surface example: README links integration kit after onboarding',
+    integrateDoc,
+    '[Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md)',
+    'Action surface example: integration guide links onboarding inside the action-surface path',
+  );
+  includes(
+    integrateDoc,
+    '[Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md)',
+    'Action surface example: integration guide links integration kit after onboarding',
   );
   includes(tryFirst, 'npm run example:action-surface-onboarding', 'Action surface example: try-first doc includes command');
   includes(

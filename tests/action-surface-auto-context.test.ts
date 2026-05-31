@@ -213,8 +213,13 @@ function testDescriptorDocsAndPackageScript(): void {
   const readme = readProjectFile('README.md');
   includes(
     readme,
-    '[Action surface auto-context](docs/02-architecture/action-surface-auto-context.md)',
-    'Auto-context docs: README links auto-context',
+    '[How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md)',
+    'Auto-context docs: README routes action-surface setup through the integration guide',
+  );
+  excludes(
+    readme,
+    /\[Action surface auto-context\]\(docs\/02-architecture\/action-surface-auto-context\.md\)/u,
+    'Auto-context docs: README keeps auto-context nested inside the integration path',
   );
 
   const navigator = readProjectFile('docs', '01-overview', 'repository-navigator.md');
