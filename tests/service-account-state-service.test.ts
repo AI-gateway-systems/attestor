@@ -36,6 +36,9 @@ function createDeps(): AccountStateServiceDeps {
     findAccountUserById: async () => null,
     findAccountUserByPasskeyCredentialId: async () => null,
     saveAccountUserRecord: async (record) => ({ record, path: null }),
+    consumeAccountUserRecoveryCode: async () => {
+      throw new Error('unused');
+    },
     consumeAccountUserActionToken: async () => {
       throw new Error('unused');
     },

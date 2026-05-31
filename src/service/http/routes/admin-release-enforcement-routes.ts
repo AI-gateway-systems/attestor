@@ -2,7 +2,6 @@ import type { Context, Hono } from 'hono';
 import {
   ADMIN_RELEASE_READ_ROLES,
   ADMIN_RELEASE_ROLES,
-  adminDegradedModeActor,
   adminDegradedModeError,
   adminDegradedModeScope,
   adminDegradedModeStringArray,
@@ -35,6 +34,10 @@ export function registerAdminReleaseEnforcementRoutes(app: Hono, deps: AdminRout
     requestPayload: unknown,
   ): Promise<AdminMutationReadyResultWithActor | Response> {
     return beginAdminRouteMutation(adminMutationService, context, routeId, requestPayload);
+  }
+
+  function bodyHasField(body: Record<string, unknown>, field: string): boolean {
+    return Object.prototype.hasOwnProperty.call(body, field);
   }
 
 
@@ -150,12 +153,16 @@ app.post('/api/v1/admin/release-enforcement/degraded-mode/grants', async (c) => 
 
   const body = await parseAdminJsonBody(c);
   if (body instanceof Response) return body;
+  const bodyAuthorityFields = ['approvedBy', 'authorizedBy', 'grantedBy', 'authorizedAt'] as const;
+  const suppliedAuthorityField = bodyAuthorityFields.find((field) => bodyHasField(body, field));
+  if (suppliedAuthorityField) {
+    return c.json({
+      error: `Release enforcement degraded mode grant field '${suppliedAuthorityField}' must come from server-side approval state.`,
+    }, 400);
+  }
   const state = adminDegradedModeText(body.state ?? body.posture) as DegradedModeGrantState;
   const allowedFailureReasons =
     adminDegradedModeStringArray<EnforcementFailureReason>(body.allowedFailureReasons);
-  const approvedBy = Array.isArray(body.approvedBy)
-    ? body.approvedBy.map(adminDegradedModeActor)
-    : [];
   const requestPayload = {
     id: adminDegradedModeText(body.id) || null,
     state: state || null,
@@ -180,9 +187,8 @@ app.post('/api/v1/admin/release-enforcement/degraded-mode/grants', async (c) => 
       state,
       reason: adminDegradedModeText(body.reason) as EnforcementBreakGlassReason,
       scope: adminDegradedModeScope(body.scope),
-      authorizedBy: adminDegradedModeActor(body.authorizedBy ?? body.grantedBy ?? adminMutation.adminActor.releaseActor),
-      approvedBy,
-      authorizedAt: adminDegradedModeText(body.authorizedAt) || undefined,
+      authorizedBy: adminMutation.adminActor.releaseActor,
+      approvedBy: [],
       startsAt: adminDegradedModeText(body.startsAt) || undefined,
       expiresAt: adminDegradedModeText(body.expiresAt) || undefined,
       ttlSeconds: typeof body.ttlSeconds === 'number' ? body.ttlSeconds : undefined,
@@ -235,6 +241,13 @@ app.post('/api/v1/admin/release-enforcement/degraded-mode/grants/:id/revoke', as
 
   const body = await parseAdminJsonBody(c);
   if (body instanceof Response) return body;
+  const bodyRevocationAuthorityFields = ['revokedBy', 'actor'] as const;
+  const suppliedRevocationAuthorityField = bodyRevocationAuthorityFields.find((field) => bodyHasField(body, field));
+  if (suppliedRevocationAuthorityField) {
+    return c.json({
+      error: `Release enforcement degraded mode grant field '${suppliedRevocationAuthorityField}' must come from the authenticated admin actor.`,
+    }, 400);
+  }
   const reason = adminDegradedModeText(body.reason);
   if (!reason) {
     return c.json({ error: 'Release enforcement degraded mode grant revocation reason is required.' }, 400);
@@ -254,7 +267,7 @@ app.post('/api/v1/admin/release-enforcement/degraded-mode/grants/:id/revoke', as
     const revoked = await degradedModeGrantStore.revokeGrant({
       id: c.req.param('id'),
       revokedAt: new Date().toISOString(),
-      revokedBy: adminDegradedModeActor(body.revokedBy ?? body.actor ?? adminMutation.adminActor.releaseActor),
+      revokedBy: adminMutation.adminActor.releaseActor,
       revocationReason: reason,
     });
     if (!revoked) {

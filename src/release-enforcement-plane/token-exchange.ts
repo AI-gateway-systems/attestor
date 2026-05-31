@@ -61,7 +61,8 @@ export type ReleaseTokenExchangeFailureReason =
   | 'ttl-policy-required'
   | 'ttl-exhausted'
   | 'inactive-subject-token'
-  | 'subject-introspection-unavailable';
+  | 'subject-introspection-unavailable'
+  | 'child-registration-store-required';
 
 export interface ReleaseTokenExchangeActor extends ReleaseActorReference {
   readonly tokenSubject?: string;
@@ -123,6 +124,7 @@ interface ReleaseTokenExchangeBase {
   readonly actorChain: readonly ReleaseTokenActorClaim[];
   readonly subjectTokenId: string | null;
   readonly sourceAudience: string | null;
+  readonly parentIntrospectionChecked: boolean;
   readonly failureReasons: readonly ReleaseTokenExchangeFailureReason[];
 }
 
@@ -442,6 +444,7 @@ function deny(input: {
   readonly actor: ReleaseTokenActorClaim | null;
   readonly subjectTokenId?: string | null;
   readonly sourceAudience?: string | null;
+  readonly parentIntrospectionChecked?: boolean;
   readonly failureReasons: readonly ReleaseTokenExchangeFailureReason[];
 }): ReleaseTokenExchangeDenied {
   return Object.freeze({
@@ -462,6 +465,7 @@ function deny(input: {
     actorChain: flattenActorChain(input.actor ?? undefined),
     subjectTokenId: input.subjectTokenId ?? null,
     sourceAudience: input.sourceAudience ?? null,
+    parentIntrospectionChecked: input.parentIntrospectionChecked ?? false,
     failureReasons: Object.freeze(Array.from(new Set(input.failureReasons))),
     status: 'denied',
     exchangeId: null,
@@ -613,6 +617,34 @@ export async function exchangeReleaseToken(
   }
 
   const claims = subject.claims;
+  const parentIntrospectionRequired =
+    claims.introspection_required || claims.risk_class === 'R3' || claims.risk_class === 'R4';
+  const parentBoundaryFailures: ReleaseTokenExchangeFailureReason[] = [];
+  if (parentIntrospectionRequired && !input.subjectIntrospector) {
+    parentBoundaryFailures.push('subject-introspection-unavailable');
+  }
+  if (parentIntrospectionRequired && !input.store) {
+    parentBoundaryFailures.push('child-registration-store-required');
+  }
+  if (parentBoundaryFailures.length > 0) {
+    return deny({
+      request: input.request,
+      requestedAt,
+      requestedTokenType,
+      subjectTokenType,
+      actorTokenType,
+      audience,
+      resource,
+      scope: normalizeScope(input.request.scope),
+      exchangeMode,
+      actor: null,
+      subjectTokenId: claims.jti,
+      sourceAudience: claims.aud,
+      failureReasons: parentBoundaryFailures,
+    });
+  }
+
+  let parentIntrospectionChecked = false;
   if (input.subjectIntrospector) {
     try {
       const introspection = await input.subjectIntrospector.introspect({
@@ -623,6 +655,7 @@ export async function exchangeReleaseToken(
         tokenTypeHint: input.subjectTokenTypeHint ?? DEFAULT_RELEASE_TOKEN_TYPE_HINT,
         resourceServerId: 'attestor.release-token-exchange',
       });
+      parentIntrospectionChecked = true;
 
       if (!introspection.active || introspection.jti !== claims.jti) {
         return deny({
@@ -638,6 +671,7 @@ export async function exchangeReleaseToken(
           actor: null,
           subjectTokenId: claims.jti,
           sourceAudience: claims.aud,
+          parentIntrospectionChecked,
           failureReasons: ['inactive-subject-token'],
         });
       }
@@ -655,6 +689,7 @@ export async function exchangeReleaseToken(
         actor: null,
         subjectTokenId: claims.jti,
         sourceAudience: claims.aud,
+        parentIntrospectionChecked,
         failureReasons: ['subject-introspection-unavailable'],
       });
     }
@@ -720,6 +755,7 @@ export async function exchangeReleaseToken(
       actor,
       subjectTokenId: claims.jti,
       sourceAudience: claims.aud,
+      parentIntrospectionChecked,
       failureReasons: policyFailures,
     });
   }
@@ -778,6 +814,7 @@ export async function exchangeReleaseToken(
     actorChain: flattenActorChain(actor ?? undefined),
     subjectTokenId: claims.jti,
     sourceAudience: claims.aud,
+    parentIntrospectionChecked,
     failureReasons: Object.freeze([]),
     status: 'issued',
     exchangeId,

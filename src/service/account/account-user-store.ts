@@ -145,6 +145,13 @@ export interface AccountUserRecord {
   federation: AccountUserFederationState;
 }
 
+export interface ConsumeAccountUserRecoveryCodeResult {
+  record: AccountUserRecord;
+  path: string;
+  accepted: boolean;
+  usedRecoveryCodeId: string | null;
+}
+
 interface AccountUserStoreFile {
   version: 1;
   records: AccountUserRecord[];
@@ -439,6 +446,10 @@ export function verifyAccountUserPasswordRecord(
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
+export function normalizeAccountUserRecoveryCodeCandidate(value: string): string {
+  return value.replace(/\s+/g, '').replace(/-/g, '').toUpperCase();
+}
+
 function ensureUniqueEmail(store: AccountUserStoreFile, email: string, selfId?: string): void {
   const existing = store.records.find((entry) => entry.email === email && entry.id !== selfId);
   if (existing) {
@@ -631,6 +642,38 @@ export function recordAccountUserTotpVerificationStep(
     record.updatedAt = verifiedAt;
     saveStore(store);
     return { record: normalizeRecord(record), path, accepted: true };
+  });
+}
+
+export function consumeAccountUserRecoveryCode(
+  id: string,
+  candidateCode: string,
+  verifiedAt = new Date().toISOString(),
+): ConsumeAccountUserRecoveryCodeResult {
+  const normalized = normalizeAccountUserRecoveryCodeCandidate(candidateCode);
+  return withAccountUserStoreLock((store, path) => {
+    const record = requireRecord(store, id);
+    for (const entry of record.mfa.totp.recoveryCodes) {
+      if (entry.consumedAt) continue;
+      if (!verifyAccountUserPasswordRecord(entry.hash, normalized)) continue;
+      entry.consumedAt = verifiedAt;
+      record.mfa.totp.lastVerifiedAt = verifiedAt;
+      record.mfa.totp.updatedAt = verifiedAt;
+      record.updatedAt = verifiedAt;
+      saveStore(store);
+      return {
+        record: normalizeRecord(record),
+        path,
+        accepted: true,
+        usedRecoveryCodeId: entry.id,
+      };
+    }
+    return {
+      record: normalizeRecord(record),
+      path,
+      accepted: false,
+      usedRecoveryCodeId: null,
+    };
   });
 }
 

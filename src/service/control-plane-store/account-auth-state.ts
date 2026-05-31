@@ -9,6 +9,7 @@ import { trimAndStripTrailingSlashes } from '../../platform/string-normalization
 import {
   AccountUserStoreError,
   buildAccountUserRecord,
+  consumeAccountUserRecoveryCode as consumeAccountUserRecoveryCodeFile,
   createPasswordHashState,
   createAccountUser as createAccountUserFile,
   findAccountUserByEmail as findAccountUserByEmailFile,
@@ -18,12 +19,15 @@ import {
   findAccountUserByPasskeyCredentialId as findAccountUserByPasskeyCredentialIdFile,
   listAccountUsersByAccountId as listAccountUsersByAccountIdFile,
   listAllAccountUsers as listAllAccountUsersFile,
+  normalizeAccountUserRecoveryCodeCandidate,
   normalizeAccountUserEmail,
   recordAccountUserLogin as recordAccountUserLoginFile,
   recordAccountUserTotpVerificationStep as recordAccountUserTotpVerificationStepFile,
   saveAccountUserRecord as saveAccountUserRecordFile,
   setAccountUserPassword as setAccountUserPasswordFile,
   setAccountUserStatus as setAccountUserStatusFile,
+  verifyAccountUserPasswordRecord,
+  type ConsumeAccountUserRecoveryCodeResult,
   countAccountUsersForAccount as countAccountUsersForAccountFile,
   type AccountUserRecord,
   type AccountUserStatus,
@@ -607,6 +611,51 @@ export async function recordAccountUserTotpVerificationStepState(
     record.updatedAt = verifiedAt;
     await upsertAccountUserPg(record, client);
     return { record, path: controlPlaneStoreSource(), accepted: true };
+  });
+}
+
+export async function consumeAccountUserRecoveryCodeState(
+  id: string,
+  candidateCode: string,
+  verifiedAt = new Date().toISOString(),
+): Promise<Omit<ConsumeAccountUserRecoveryCodeResult, 'path'> & { path: string | null }> {
+  if (!isSharedControlPlaneConfigured()) {
+    return consumeAccountUserRecoveryCodeFile(id, candidateCode, verifiedAt);
+  }
+  const normalized = normalizeAccountUserRecoveryCodeCandidate(candidateCode);
+  return withPgTransaction(async (client) => {
+    const result = await client.query(
+      `SELECT record_json
+         FROM attestor_control_plane.account_users
+        WHERE account_user_id = $1
+        FOR UPDATE`,
+      [id],
+    );
+    const record = result.rows[0] ? rowToAccountUser(result.rows[0]) : null;
+    if (!record) {
+      throw new AccountUserStoreError('NOT_FOUND', `Account user '${id}' was not found.`);
+    }
+    for (const entry of record.mfa.totp.recoveryCodes) {
+      if (entry.consumedAt) continue;
+      if (!verifyAccountUserPasswordRecord(entry.hash, normalized)) continue;
+      entry.consumedAt = verifiedAt;
+      record.mfa.totp.lastVerifiedAt = verifiedAt;
+      record.mfa.totp.updatedAt = verifiedAt;
+      record.updatedAt = verifiedAt;
+      await upsertAccountUserPg(record, client);
+      return {
+        record,
+        path: controlPlaneStoreSource(),
+        accepted: true,
+        usedRecoveryCodeId: entry.id,
+      };
+    }
+    return {
+      record,
+      path: controlPlaneStoreSource(),
+      accepted: false,
+      usedRecoveryCodeId: null,
+    };
   });
 }
 

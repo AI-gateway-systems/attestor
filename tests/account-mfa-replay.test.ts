@@ -11,9 +11,11 @@ import {
   verifyTotpCodeWithStep,
 } from '../src/service/account/account-mfa.js';
 import {
+  consumeAccountUserRecoveryCode,
   createAccountUser,
   recordAccountUserTotpVerificationStep,
   resetAccountUserStoreForTests,
+  saveAccountUserRecord,
   type AccountUserTotpState,
 } from '../src/service/account/account-user-store.js';
 
@@ -89,6 +91,51 @@ async function main(): Promise<void> {
       recovery.codes.every((entry) => /^[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$/.test(entry)),
       'Recovery codes: generated codes carry 80 bits as 16 base32 symbols',
     );
+    const recoveryUser = createAccountUser({
+      accountId: 'acct_recovery_replay',
+      email: 'recovery-replay@example.test',
+      displayName: 'Recovery Replay',
+      password: 'RecoveryReplayPassword123!',
+      role: 'account_admin',
+    }).record;
+    const recoveryReadyUser = structuredClone(recoveryUser);
+    recoveryReadyUser.mfa.totp = {
+      method: 'totp',
+      algorithm: 'SHA1',
+      digits: 6,
+      periodSeconds: 30,
+      enabledAt: '2026-05-06T00:00:00.000Z',
+      updatedAt: '2026-05-06T00:00:00.000Z',
+      sessionBoundaryAt: '2026-05-06T00:00:00.000Z',
+      secretCiphertext: 'ciphertext',
+      secretIv: 'iv',
+      secretAuthTag: 'auth-tag',
+      pendingSecretCiphertext: null,
+      pendingSecretIv: null,
+      pendingSecretAuthTag: null,
+      pendingIssuedAt: null,
+      recoveryCodes: recovery.hashedCodes,
+      recoveryCodesIssuedAt: '2026-05-06T00:00:00.000Z',
+      lastVerifiedAt: null,
+      lastAcceptedStep: null,
+    };
+    saveAccountUserRecord(recoveryReadyUser);
+    const recoveryFirst = consumeAccountUserRecoveryCode(
+      recoveryUser.id,
+      recovery.codes[0]!,
+      '2026-05-06T00:00:02.000Z',
+    );
+    ok(recoveryFirst.accepted === true, 'Recovery codes: store-level claim accepts a usable code once');
+    ok(
+      recoveryFirst.usedRecoveryCodeId === recovery.hashedCodes[0]!.id,
+      'Recovery codes: store-level claim returns bounded recovery-code evidence id',
+    );
+    const recoveryReplay = consumeAccountUserRecoveryCode(
+      recoveryUser.id,
+      recovery.codes[0]!,
+      '2026-05-06T00:00:03.000Z',
+    );
+    ok(recoveryReplay.accepted === false, 'Recovery codes: store-level claim rejects replay after consumption');
 
     const pendingNowMs = Date.parse('2026-05-06T00:10:00.000Z');
     ok(

@@ -6,6 +6,10 @@ import {
   type IssuedReleaseToken,
   type ReleaseTokenVerificationKey,
 } from '../src/release-kernel/release-token.js';
+import {
+  createInMemoryReleaseTokenIntrospectionStore,
+  createReleaseTokenIntrospector,
+} from '../src/release-kernel/release-introspection.js';
 import type {
   ReleaseDecision,
   ReleasePolicyProvenance,
@@ -565,6 +569,9 @@ async function testTokenExchangePreservesWorkloadBinding(): Promise<void> {
     maxTtlSeconds: 120,
     maxUses: 1,
   };
+  const store = createInMemoryReleaseTokenIntrospectionStore();
+  store.registerIssuedToken({ issuedToken: issued, decision });
+  const introspector = createReleaseTokenIntrospector(store);
   const exchange = await exchangeReleaseToken({
     request: {
       id: 'exchange-workload-binding',
@@ -578,6 +585,8 @@ async function testTokenExchangePreservesWorkloadBinding(): Promise<void> {
     verificationKey,
     policy,
     sourceAudience: TARGET_ID,
+    store,
+    subjectIntrospector: introspector,
   });
 
   equal(exchange.status, 'issued', 'Workload binding: token exchange still issues valid downstream token');
