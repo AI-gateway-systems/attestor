@@ -883,6 +883,7 @@ async function testExchangeRejectsRevokedSubjectWhenIntrospectionIsRequired(): P
     verificationKey,
     sourceAudience: 'attestor.release.authority',
     subjectIntrospector: introspector,
+    store,
     policy: {
       allowedAudiences: ['finance.reporting.record-store'],
       allowedSourceAudiences: ['attestor.release.authority'],
@@ -894,6 +895,116 @@ async function testExchangeRejectsRevokedSubjectWhenIntrospectionIsRequired(): P
 
   equal(exchanged.status, 'denied', 'Token exchange: revoked subject token cannot be exchanged');
   deepEqual(exchanged.failureReasons, ['inactive-subject-token'], 'Token exchange: inactive subject reason is explicit');
+  equal(exchanged.parentIntrospectionChecked, true, 'Token exchange: revoked-subject denial records parent introspection evidence');
+}
+
+async function testExchangeRequiresParentIntrospectionForHighRiskParents(): Promise<void> {
+  const { issuer, verificationKey } = await setupIssuer();
+  const store = createInMemoryReleaseTokenIntrospectionStore();
+  const decision = makeDecision({
+    id: 'decision-r4-exchange-missing-introspection',
+    consequenceType: 'record',
+    riskClass: 'R4',
+    targetId: 'attestor.release.authority',
+  });
+  const parent = await issuer.issue({
+    decision,
+    issuedAt: '2026-04-18T10:00:00.000Z',
+    tokenId: 'rt_parent_r4_missing_introspection',
+  });
+  store.registerIssuedToken({ issuedToken: parent, decision });
+  store.revokeToken({
+    tokenId: parent.tokenId,
+    revokedAt: '2026-04-18T10:00:20.000Z',
+    reason: 'release withdrawn before exchange',
+    revokedBy: 'risk-admin',
+  });
+
+  const exchanged = await exchangeReleaseToken({
+    request: {
+      id: 'exchange-r4-missing-introspection',
+      requestedAt: '2026-04-18T10:01:00.000Z',
+      subjectToken: parent.token,
+      audience: 'finance.reporting.record-store',
+      scope: 'record:write',
+      actor: {
+        id: 'svc.finance-writer',
+        type: 'service',
+      },
+    },
+    issuer,
+    verificationKey,
+    sourceAudience: 'attestor.release.authority',
+    store,
+    policy: {
+      allowedAudiences: ['finance.reporting.record-store'],
+      allowedSourceAudiences: ['attestor.release.authority'],
+      allowedScopes: ['record:write'],
+      maxTtlSeconds: 60,
+      requireActor: true,
+    },
+  });
+
+  equal(exchanged.status, 'denied', 'Token exchange: high-risk parent requires active-state introspection');
+  deepEqual(
+    exchanged.failureReasons,
+    ['subject-introspection-unavailable'],
+    'Token exchange: missing high-risk parent introspection is explicit',
+  );
+  equal(exchanged.parentIntrospectionChecked, false, 'Token exchange: missing introspector records no parent active-state check');
+  equal(exchanged.issuedToken, null, 'Token exchange: missing parent introspection does not issue a child token');
+}
+
+async function testExchangeRequiresChildRegistrationStoreForHighRiskParents(): Promise<void> {
+  const { issuer, verificationKey } = await setupIssuer();
+  const store = createInMemoryReleaseTokenIntrospectionStore();
+  const introspector = createReleaseTokenIntrospector(store);
+  const decision = makeDecision({
+    id: 'decision-r4-exchange-missing-child-store',
+    consequenceType: 'record',
+    riskClass: 'R4',
+    targetId: 'attestor.release.authority',
+  });
+  const parent = await issuer.issue({
+    decision,
+    issuedAt: '2026-04-18T10:00:00.000Z',
+    tokenId: 'rt_parent_r4_missing_child_store',
+  });
+  store.registerIssuedToken({ issuedToken: parent, decision });
+
+  const exchanged = await exchangeReleaseToken({
+    request: {
+      id: 'exchange-r4-missing-child-store',
+      requestedAt: '2026-04-18T10:01:00.000Z',
+      subjectToken: parent.token,
+      audience: 'finance.reporting.record-store',
+      scope: 'record:write',
+      actor: {
+        id: 'svc.finance-writer',
+        type: 'service',
+      },
+    },
+    issuer,
+    verificationKey,
+    sourceAudience: 'attestor.release.authority',
+    subjectIntrospector: introspector,
+    policy: {
+      allowedAudiences: ['finance.reporting.record-store'],
+      allowedSourceAudiences: ['attestor.release.authority'],
+      allowedScopes: ['record:write'],
+      maxTtlSeconds: 60,
+      requireActor: true,
+    },
+  });
+
+  equal(exchanged.status, 'denied', 'Token exchange: high-risk child tokens require registration store');
+  deepEqual(
+    exchanged.failureReasons,
+    ['child-registration-store-required'],
+    'Token exchange: missing high-risk child registration store is explicit',
+  );
+  equal(exchanged.parentIntrospectionChecked, false, 'Token exchange: missing child store fails before minting child authority');
+  equal(exchanged.issuedToken, null, 'Token exchange: missing child registration store does not issue a token');
 }
 
 async function testExchangeRejectsInvalidResourceUri(): Promise<void> {
@@ -945,6 +1056,8 @@ async function main(): Promise<void> {
   await testExchangeRequiresExplicitMaxTtlPolicy();
   await testHighRiskExchangeRegistersForOnlineVerifier();
   await testExchangeRejectsRevokedSubjectWhenIntrospectionIsRequired();
+  await testExchangeRequiresParentIntrospectionForHighRiskParents();
+  await testExchangeRequiresChildRegistrationStoreForHighRiskParents();
   await testExchangeRejectsInvalidResourceUri();
 
   console.log(`Release enforcement-plane token-exchange tests: ${passed} passed, 0 failed`);

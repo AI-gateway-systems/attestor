@@ -26,7 +26,6 @@ export function registerAccountMfaPasskeyRoutes(app: Hono, deps: AccountRouteDep
     verifyHostedPasskeyAuthentication,
     passkeyCredentialToWebAuthnCredential,
     verifyTotpCodeWithStep,
-    verifyAndConsumeRecoveryCode,
     isPendingTotpEnrollmentFresh,
     requireAccountSession,
     currentAccountAccess,
@@ -247,7 +246,6 @@ export function registerAccountMfaPasskeyRoutes(app: Hono, deps: AccountRouteDep
     let verified = false;
     let recoveryCodeUsed = false;
     let acceptedTotpStep: string | null = null;
-    const nextUser = structuredClone(user);
 
     if (code) {
       try {
@@ -270,13 +268,9 @@ export function registerAccountMfaPasskeyRoutes(app: Hono, deps: AccountRouteDep
         throw err;
       }
     } else {
-      const recovery = verifyAndConsumeRecoveryCode(user.mfa.totp, recoveryCode);
-      verified = recovery.ok;
-      recoveryCodeUsed = recovery.ok;
-      if (recovery.ok) {
-        nextUser.mfa.totp = recovery.nextTotp;
-        nextUser.updatedAt = recovery.nextTotp.updatedAt ?? nextUser.updatedAt;
-      }
+      const recovery = await stateService.consumeAccountUserRecoveryCode(user.id, recoveryCode);
+      verified = recovery.accepted;
+      recoveryCodeUsed = recovery.accepted;
     }
 
     if (!verified) {
@@ -303,9 +297,6 @@ export function registerAccountMfaPasskeyRoutes(app: Hono, deps: AccountRouteDep
       if (!consumed.accepted) {
         return c.json({ error: 'MFA code is invalid or expired.' }, 400);
       }
-    }
-    if (recoveryCodeUsed) {
-      await stateService.saveAccountUserRecord(nextUser);
     }
     await stateService.revokeAccountUserActionTokensForUser(user.id, 'mfa_login');
     const loginTouch = await stateService.recordAccountUserLogin(user.id);
@@ -820,6 +811,7 @@ export function registerAccountMfaPasskeyRoutes(app: Hono, deps: AccountRouteDep
 
     let verified = false;
     let recoveryCodeUsed = false;
+    let usedRecoveryCodeId: string | null = null;
     const nextUser = structuredClone(user);
     if (code) {
       try {
@@ -847,11 +839,12 @@ export function registerAccountMfaPasskeyRoutes(app: Hono, deps: AccountRouteDep
         throw err;
       }
     } else {
-      const recovery = verifyAndConsumeRecoveryCode(user.mfa.totp, recoveryCode);
-      verified = recovery.ok;
-      recoveryCodeUsed = recovery.ok;
-      if (recovery.ok) {
-        nextUser.mfa.totp = recovery.nextTotp;
+      const recovery = await stateService.consumeAccountUserRecoveryCode(user.id, recoveryCode);
+      verified = recovery.accepted;
+      recoveryCodeUsed = recovery.accepted;
+      usedRecoveryCodeId = recovery.usedRecoveryCodeId;
+      if (recovery.accepted) {
+        nextUser.mfa.totp = recovery.record.mfa.totp;
       }
     }
     if (!verified) {
@@ -893,12 +886,14 @@ export function registerAccountMfaPasskeyRoutes(app: Hono, deps: AccountRouteDep
         accountId: access.accountId,
         accountUserId: user.id,
         usedRecoveryCode: recoveryCodeUsed,
+        recoveryCodeId: usedRecoveryCodeId,
       },
       statusCode: 200,
       metadata: {
         sessionBoundaryAt: now,
         revokedPriorSessions: true,
         recoveryCodeUsed,
+        recoveryCodeId: usedRecoveryCodeId,
       },
     });
 

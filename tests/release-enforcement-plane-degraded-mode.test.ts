@@ -517,6 +517,26 @@ async function requestJson(
 
 async function testAdminRoutes(): Promise<void> {
   const fixture = createAdminFixture();
+  const selfAttestedApproval = await requestJson(fixture.app, '/api/v1/admin/release-enforcement/degraded-mode/grants', {
+    method: 'POST',
+    body: {
+      id: 'dmg_body_approval',
+      state: 'break-glass-open',
+      reason: 'control-plane-recovery',
+      scope: sampleScope(),
+      approvedBy: [adminActor('user_second_admin'), adminActor('user_third_admin')],
+      startsAt: CHECKED_AT,
+      expiresAt: EXPIRES_AT,
+      ticketId: 'INC-ADMIN-SELF-APPROVAL',
+      rationale: 'Restore policy enforcement during a confirmed control-plane outage.',
+      allowedFailureReasons: ['introspection-unavailable'],
+      maxUses: 1,
+    },
+  });
+
+  equal(selfAttestedApproval.status, 400, 'Degraded mode admin routes: body-supplied approvers are rejected');
+  equal(fixture.store.listGrants().length, 0, 'Degraded mode admin routes: rejected body approvals do not create grants');
+
   const created = await requestJson(fixture.app, '/api/v1/admin/release-enforcement/degraded-mode/grants', {
     method: 'POST',
     body: {
@@ -524,9 +544,6 @@ async function testAdminRoutes(): Promise<void> {
       state: 'break-glass-open',
       reason: 'control-plane-recovery',
       scope: sampleScope(),
-      authorizedBy: adminActor(),
-      approvedBy: [adminActor('user_second_admin')],
-      authorizedAt: CHECKED_AT,
       startsAt: CHECKED_AT,
       expiresAt: EXPIRES_AT,
       ticketId: 'INC-ADMIN-1',
@@ -538,12 +555,27 @@ async function testAdminRoutes(): Promise<void> {
 
   equal(created.status, 201, 'Degraded mode admin routes: grant creation returns 201');
   equal(created.body.grant.id, 'dmg_admin_1', 'Degraded mode admin routes: created grant is returned');
+  equal(created.body.grant.authorizedBy.id, 'admin-credential:admin-release-admin', 'Degraded mode admin routes: authorizer comes from the authenticated admin credential');
+  equal(created.body.grant.approvedBy.length, 0, 'Degraded mode admin routes: creation does not self-attest approvers');
   equal(fixture.store.findGrant('dmg_admin_1')?.reason, 'control-plane-recovery', 'Degraded mode admin routes: created grant is stored');
 
   const listed = await requestJson(fixture.app, '/api/v1/admin/release-enforcement/degraded-mode/grants');
   equal(listed.status, 200, 'Degraded mode admin routes: list returns 200');
   equal(listed.body.grants.length, 1, 'Degraded mode admin routes: list returns stored grant');
   ok(typeof listed.body.summary.auditHead === 'string', 'Degraded mode admin routes: list exposes audit head');
+
+  const selfAttestedRevoker = await requestJson(
+    fixture.app,
+    '/api/v1/admin/release-enforcement/degraded-mode/grants/dmg_admin_1/revoke',
+    {
+      method: 'POST',
+      body: {
+        reason: 'control plane recovered',
+        actor: adminActor('body_revoker'),
+      },
+    },
+  );
+  equal(selfAttestedRevoker.status, 400, 'Degraded mode admin routes: body-supplied revoker is rejected');
 
   const revoked = await requestJson(
     fixture.app,
@@ -552,7 +584,6 @@ async function testAdminRoutes(): Promise<void> {
       method: 'POST',
       body: {
         reason: 'control plane recovered',
-        actor: adminActor(),
       },
     },
   );

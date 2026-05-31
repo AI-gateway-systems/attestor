@@ -22,6 +22,7 @@ export {
 } from './control-plane-store/admin-idempotency-state.js';
 export {
   consumeAccountUserActionTokenState,
+  consumeAccountUserRecoveryCodeState,
   countAccountUsersForAccountState,
   createAccountUserState,
   exportAccountSessionStoreSnapshot,

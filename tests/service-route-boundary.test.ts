@@ -501,6 +501,7 @@ function testAccountRouteUsesStateServicePort(): void {
   assert.match(accountRoutes, /stateService\.issueAccountSession/u);
   assert.match(accountRoutes, /stateService\.findHostedAccountById/u);
   assert.match(accountRoutes, /stateService\.saveAccountUserRecord/u);
+  assert.match(accountRoutes, /stateService\.consumeAccountUserRecoveryCode/u);
   assert.match(accountRoutes, /stateService\.recordHostedSamlReplay/u);
   assert.match(accountRoutes, /stateService\.listHostedEmailDeliveries/u);
   assert.doesNotMatch(accountRoute, /control-plane-store/u);
@@ -508,6 +509,7 @@ function testAccountRouteUsesStateServicePort(): void {
   assert.doesNotMatch(accountRoute, /issueAccountSessionState/u);
   assert.doesNotMatch(accountRoute, /findHostedAccountByIdState/u);
   assert.doesNotMatch(accountRoute, /saveAccountUserRecordState/u);
+  assert.doesNotMatch(accountRoute, /consumeAccountUserRecoveryCodeState/u);
   assert.doesNotMatch(accountRoute, /recordHostedSamlReplayState/u);
   assert.doesNotMatch(accountRoute, /listHostedEmailDeliveriesState/u);
 
