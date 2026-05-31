@@ -32,6 +32,7 @@ export const WORKFLOW_ENTITLEMENT_REASON_CODES = [
   'workflow-mode-not-in-tier',
   'workflow-capability-not-in-tier',
   'workflow-pack-not-in-tier',
+  'caller-asserted-gate-proof-ignored',
   'customer-gate-proof-required',
   'billing-metadata-incomplete',
 ] as const;
@@ -222,14 +223,15 @@ export function evaluateWorkflowEntitlementAccess(
     reasons.push('workflow-pack-not-in-tier');
   }
 
-  const customerGateProofPresent =
-    input.customerGateProofPresent === true ||
-    entitlement.customerGateProofPresent === true;
+  const customerGateProofPresent = entitlement.customerGateProofPresent === true;
   if (
     requestedMode === 'enforce' &&
     tier.customerGateRequiredForEnforce &&
     !customerGateProofPresent
   ) {
+    if (input.customerGateProofPresent === true) {
+      reasons.push('caller-asserted-gate-proof-ignored');
+    }
     reasons.push('customer-gate-proof-required');
   }
 

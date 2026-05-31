@@ -28,6 +28,7 @@ import {
   assertConsequenceAdmissionGateAllows,
   assertConsequenceAdmissionGateAllowsSignedBearerToken,
   createConsequenceAdmissionFacadeResponse,
+  createGenericAdmissionEnvelope,
   evaluateConsequenceAdmissionGate,
   evaluateConsequenceAdmissionGateWithReleaseEnforcement,
   evaluateConsequenceAdmissionGateWithSignedBearerToken,
@@ -208,6 +209,99 @@ function testAssertGateThrowsWhenHeld(): void {
     },
   );
   passed += 1;
+}
+
+function validGenericMoneyAdmission(mode: 'observe' | 'enforce') {
+  return createGenericAdmissionEnvelope({
+    mode,
+    actor: 'support-ai-agent',
+    action: 'issue_refund',
+    domain: 'money-movement',
+    downstreamSystem: 'refund-service',
+    requestedAt: '2026-05-01T18:00:00.000Z',
+    decidedAt: '2026-05-01T18:00:01.000Z',
+    tenantId: 'tenant_customer_gate',
+    policyRef: 'policy:refunds:v1',
+    reviewerRef: 'reviewer:risk-owner',
+    evidenceRefs: ['order:987', 'payment:456'],
+    authoritySources: [{
+      sourceKind: 'verified-approval',
+      claimKind: 'approval',
+      sourceRef: 'approval:refund:987',
+      evidenceDigest: `sha256:${'a'.repeat(64)}`,
+    }],
+    approvals: [{
+      approvalRef: 'approval:refund:987',
+      sourceKind: 'approval-workflow',
+      state: 'approved',
+      sourceRef: 'workflow:refund-approval:987',
+      reviewerRef: 'reviewer:risk-owner',
+      reviewerAuthorityDigest: `sha256:${'b'.repeat(64)}`,
+      approvalDigest: `sha256:${'c'.repeat(64)}`,
+      scopeDigest: `sha256:${'d'.repeat(64)}`,
+      issuedAt: '2026-05-01T17:00:00.000Z',
+      expiresAt: '2026-05-01T19:00:00.000Z',
+      signatureVerified: true,
+    }],
+    amount: {
+      value: 38000,
+      currency: 'HUF',
+    },
+    recipient: 'customer_123',
+  });
+}
+
+function testNonEnforcingAdmissionCannotPassCustomerGate(): void {
+  const envelope = createGenericAdmissionEnvelope({
+    mode: 'observe',
+    actor: 'support-ai-agent',
+    action: 'issue_refund',
+    domain: 'money-movement',
+    downstreamSystem: 'refund-service',
+    amount: {
+      value: 38000,
+      currency: 'HUF',
+    },
+    recipient: 'customer_123',
+  });
+  const gate = evaluateConsequenceAdmissionGate({
+    admission: envelope.admission,
+    downstreamAction: 'refund-service.issueRefund',
+  });
+
+  equal(envelope.admission.allowed, true, 'Customer gate: observe admission can remain adoption-visible');
+  equal(gate.outcome, 'hold', 'Customer gate: observe admission cannot execute');
+  equal(gate.failClosed, true, 'Customer gate: observe admission holds fail closed');
+  ok(
+    gate.reasonCodes.includes('customer-gate-non-enforcing-mode-held'),
+    'Customer gate: non-enforcing mode hold reason is explicit',
+  );
+  assert.throws(
+    () =>
+      assertConsequenceAdmissionGateAllows({
+        admission: envelope.admission,
+        downstreamAction: 'refund-service.issueRefund',
+      }),
+    ConsequenceAdmissionGateHeldError,
+  );
+  passed += 1;
+}
+
+function testAdmissionReceiptAloneDoesNotSatisfyExecutionProof(): void {
+  const envelope = validGenericMoneyAdmission('enforce');
+  const gate = evaluateConsequenceAdmissionGate({
+    admission: envelope.admission,
+    downstreamAction: 'refund-service.issueRefund',
+  });
+
+  equal(envelope.admission.allowed, true, 'Customer gate: complete generic enforce admission remains admitted');
+  equal(envelope.admission.proof[0]?.kind, 'admission-receipt', 'Customer gate: generic proof is an admission receipt');
+  equal(gate.outcome, 'hold', 'Customer gate: admission receipt alone does not execute');
+  equal(gate.proofSatisfied, false, 'Customer gate: execution proof excludes admission receipts');
+  ok(
+    gate.reasonCodes.includes('customer-gate-execution-proof-required'),
+    'Customer gate: execution proof requirement is explicit',
+  );
 }
 
 async function issueCustomerGateReleaseToken(input: {
@@ -688,6 +782,7 @@ function testExampleAndDocs(): void {
   includes(doc, 'npm run example:customer-gate', 'Customer gate doc: includes runnable command');
   includes(doc, 'assertConsequenceAdmissionGateAllows', 'Customer gate doc: includes copy-paste helper');
   includes(doc, 'This helper is not the hosted admission API.', 'Customer gate doc: keeps route boundary honest');
+  includes(doc, 'execution proof by itself.', 'Customer gate doc: admission receipt is not execution proof');
   includes(doc, '`POST /api/v1/admissions`', 'Customer gate doc: points to the generic route');
   includes(doc, 'This does not add a public hosted crypto route.', 'Customer gate doc: keeps crypto boundary honest');
   includes(doc, 'This does not auto-detect packs from payload shape.', 'Customer gate doc: rejects auto detection');
@@ -712,6 +807,8 @@ testRequiredProofHoldsEvenWhenNativeDecisionPassed();
 testDefaultProofRequirementHoldsAdmittedResponseWithoutProof();
 testRequiredCheckFailureHoldsEvenWithProof();
 testAssertGateThrowsWhenHeld();
+testNonEnforcingAdmissionCannotPassCustomerGate();
+testAdmissionReceiptAloneDoesNotSatisfyExecutionProof();
 await testSignedBearerGateAllowsMatchingReleaseToken();
 await testSignedBearerGateFailsClosedWithoutProofMatch();
 await testSignedBearerGateRejectsBearerOnlyUpgradeForProtectedTokens();

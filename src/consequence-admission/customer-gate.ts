@@ -157,6 +157,14 @@ function readonlyCopy<T>(items: readonly T[]): readonly T[] {
   return Object.freeze([...items]);
 }
 
+function executionProofRefs(
+  proofRefs: readonly ConsequenceAdmissionProofRef[],
+): readonly ConsequenceAdmissionProofRef[] {
+  return Object.freeze(
+    proofRefs.filter((proofRef) => proofRef.kind !== 'admission-receipt'),
+  );
+}
+
 function normalizeOptionalIdentifier(value: string | null | undefined): string | null {
   if (value === undefined || value === null) return null;
   const normalized = value.trim();
@@ -272,38 +280,52 @@ export function evaluateConsequenceAdmissionGate(
   const proofRequired =
     input.requireProof ?? (input.admission.decision === 'admit' || input.admission.decision === 'narrow');
   const proofRefs = readonlyCopy(input.admission.proof);
+  const executableProofRefs = executionProofRefs(proofRefs);
   const proofSkippedByCaller = input.requireProof === false && proofRefs.length === 0;
-  const proofSatisfied = !proofRequired || proofRefs.length > 0;
+  const proofSatisfied = !proofRequired || executableProofRefs.length > 0;
   const failedRequiredChecks = input.admission.checks.filter((check) =>
     check.required && check.outcome === 'fail',
   );
   const requiredChecksSatisfied = failedRequiredChecks.length === 0;
+  const nonEnforcingMode = input.admission.operationalContext.nonEnforcingMode === true;
   const allowedByAdmission =
     input.admission.allowed &&
     (input.admission.decision === 'admit' || input.admission.decision === 'narrow') &&
-    !input.admission.failClosed;
+    !input.admission.failClosed &&
+    !nonEnforcingMode;
   const outcome: ConsequenceAdmissionCustomerGateOutcome =
     allowedByAdmission && proofSatisfied && requiredChecksSatisfied ? 'proceed' : 'hold';
   const missingRequiredProof = proofRequired && !proofSatisfied;
+  const receiptOnlyProof =
+    proofRefs.length > 0 &&
+    executableProofRefs.length === 0 &&
+    proofRefs.every((proofRef) => proofRef.kind === 'admission-receipt');
   const failedRequiredCheckCodes = failedRequiredChecks.map((check) => check.kind);
   const reasonCodes = Object.freeze([
     ...input.admission.reasonCodes,
     missingRequiredProof
-      ? 'customer-gate-proof-required'
+      ? receiptOnlyProof
+        ? 'customer-gate-execution-proof-required'
+        : 'customer-gate-proof-required'
       : proofSkippedByCaller
         ? 'customer-gate-proof-skipped-by-caller'
         : 'customer-gate-proof-satisfied',
     requiredChecksSatisfied ? 'customer-gate-required-checks-satisfied' : 'customer-gate-required-check-failed',
     ...failedRequiredCheckCodes.map((kind) => `customer-gate-required-${kind}-failed`),
+    nonEnforcingMode ? 'customer-gate-non-enforcing-mode-held' : 'customer-gate-enforcing-mode',
     `customer-gate-${outcome}`,
   ]);
   const reason = missingRequiredProof
-    ? 'Customer gate held the consequence because required proof references were missing.'
-    : !requiredChecksSatisfied
-      ? `Customer gate held the consequence because required Attestor checks failed: ${failedRequiredCheckCodes.join(', ')}.`
-    : outcome === 'proceed'
-      ? 'Customer gate may run the downstream action because Attestor admitted the consequence.'
-      : `Customer gate held the consequence because Attestor returned ${input.admission.decision}.`;
+    ? receiptOnlyProof
+      ? 'Customer gate held the consequence because an admission receipt is not execution proof.'
+      : 'Customer gate held the consequence because required proof references were missing.'
+    : nonEnforcingMode
+      ? 'Customer gate held the consequence because observe and warn admissions are not execution authority.'
+      : !requiredChecksSatisfied
+        ? `Customer gate held the consequence because required Attestor checks failed: ${failedRequiredCheckCodes.join(', ')}.`
+      : outcome === 'proceed'
+        ? 'Customer gate may run the downstream action because Attestor admitted the consequence.'
+        : `Customer gate held the consequence because Attestor returned ${input.admission.decision}.`;
 
   return Object.freeze({
     version: CONSEQUENCE_ADMISSION_CUSTOMER_GATE_VERSION,

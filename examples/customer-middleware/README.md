@@ -12,6 +12,7 @@ await downstreamService.execute(intent);
 // with Attestor
 const decision = await attestor.admit(attestorIntent);
 if (decision.outcome !== 'admit' && decision.outcome !== 'narrow') return decision;
+if (decision.mode === 'observe' || decision.mode === 'warn') return decision;
 await downstreamService.execute(decision.narrowedIntent ?? attestorIntent);
 ```
 
@@ -30,6 +31,10 @@ Outcome rules:
 - `narrow` executes only the bounded action Attestor returned.
 - `review` holds the action for a customer-owned review path.
 - `block` rejects before the downstream system is called.
+
+Observe and warn responses are learning signals, not execution authority. For
+enforce-mode routes, send an `Idempotency-Key` and require execution proof
+beyond a plain admission receipt.
 
 ## Boundary
 

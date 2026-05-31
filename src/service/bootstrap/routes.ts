@@ -190,6 +190,9 @@ export function createGenericAdmissionRouteDeps<Packet>(
         billingMetering,
       };
     },
+    admissionIdempotencyService:
+      runtime.services.httpRoutes.pipeline.pipelineIdempotencyService,
+    requireAdmissionIdempotencyKeyForEnforce: true,
     ...(genericAdmissionProtectedIssuer && genericAdmissionProtectedIntrospectionStore
       ? {
           resolveProtectedReleaseTokenConfirmation: async ({ context, receivedAt }) => {

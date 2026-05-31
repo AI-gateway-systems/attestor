@@ -99,6 +99,10 @@ key, database rows, private thresholds, or downstream error body.
 
 ## Step 4: Enforce The Decision In Your App
 
+Use this shape only after you move out of `observe` or `warn` and into a
+review/enforce path with a customer-owned gate. Observe and warn responses are
+for learning; the customer gate must hold them.
+
 ```ts
 const decision = await attestor.admit(intent);
 
@@ -132,6 +136,10 @@ this permission grant would have been blocked
 
 Your team can compare those decisions against real workflow expectations before
 turning the gate into an enforcement point.
+
+Do not call the real service from an observe or warn response. When you move to
+`enforce`, send an `Idempotency-Key` and use execution proof, not just an
+admission receipt.
 
 ## Step 6: Prove The Gate Cannot Be Bypassed
 
