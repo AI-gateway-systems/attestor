@@ -40,6 +40,17 @@ jobs:
           mkdir -p .attestor/release-provenance
           npm run sbom:cyclonedx
 
+      - name: Scan release artifacts for redaction
+        run: npm run check:public-artifacts-redaction
+
+      - name: Summarize release artifact disclosure boundary
+        run: |
+          {
+            echo "### Release artifact disclosure boundary"
+            echo "- Generated proof and showcase artifacts passed the public artifact redaction scan before upload."
+            echo "- GitHub artifact attestation proves archive provenance and integrity, not safe public disclosure by itself."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Package release evaluation artifacts
         run: |
           mkdir -p .attestor/release-provenance

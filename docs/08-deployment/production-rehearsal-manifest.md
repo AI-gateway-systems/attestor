@@ -95,7 +95,9 @@ The workflow intentionally uses `deployment: false` for the environment because 
 This workflow is still not proof that production readiness has happened. A real claim requires a filled manifest, a protected environment with real target secrets, passing execute-mode evidence, and human review of the generated production-promotion candidate bundle.
 Step 12 also requires the protected environment to supply the external signer
 proof digest and any scoped customer PEP or provider-route proof digest before
-the go/no-go packet can return `go`.
+the go/no-go packet can return `go`. The final approval input must identify an
+independent approval source and evidence reference; the workflow dispatcher
+actor and current timestamp alone are not enough.
 
 ## Target Profile Binding
 
@@ -291,5 +293,6 @@ adds the remaining decision gates: target runtime external signer proof,
 shared-store boundary, scoped customer PEP cutover proof when customer
 enforcement is in scope, live LLM provider-route proof when a production route
 depends on a live provider, incident/runbook evidence, and digest-only human
-approval. It writes a final `go` or `no-go` packet; a `go` verdict remains
-target-bound and is not a blanket production-readiness claim.
+approval with independent approval provenance. It writes a final `go` or
+`no-go` packet; a `go` verdict remains target-bound and is not a blanket
+production-readiness claim.

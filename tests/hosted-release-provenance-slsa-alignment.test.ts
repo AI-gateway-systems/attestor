@@ -174,6 +174,7 @@ function testReleaseWorkflowAndAttestationPlanMatchContract(): void {
   includes(workflow, 'npm run proof:surface', 'Hosted release provenance SLSA evidence: proof surface is rendered');
   includes(workflow, 'npm run showcase:proof', 'Hosted release provenance SLSA evidence: proof showcase is rendered');
   includes(workflow, 'npm run sbom:cyclonedx', 'Hosted release provenance SLSA evidence: SBOM is generated');
+  includes(workflow, 'npm run check:public-artifacts-redaction', 'Hosted release provenance SLSA evidence: generated release artifacts are redaction-scanned before upload');
   includes(workflow, '.attestor/release-provenance/sbom.cyclonedx.json', 'Hosted release provenance SLSA evidence: SBOM is packaged');
   excludes(workflow, /showcase:proof:hybrid/iu, 'Hosted release provenance SLSA evidence: release archive stays offline-capable');
   excludes(smoke, /attestations:\s*write|id-token:\s*write/iu, 'Hosted release provenance SLSA evidence: smoke workflow remains read-only');

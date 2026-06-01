@@ -75,8 +75,8 @@ function writeEvidence(root: string, options?: {
   readonly omitArtifact?: string;
 }): void {
   const files: Record<string, unknown | string> = {
-    'evidence/repo-verify.txt': 'verify passed\n',
-    'evidence/readiness.json': {
+    '.attestor/rehearsal/evidence/repo-verify.txt': 'verify passed\n',
+    '.attestor/production-readiness/evidence/readiness.json': {
       readiness: {
         state: options?.readinessState ?? 'ready-for-environment-promotion',
         promotionGatePassed: options?.readinessPromotionGatePassed ?? true,
@@ -88,12 +88,12 @@ function writeEvidence(root: string, options?: {
           : [],
       },
     },
-    'evidence/substrate.json': { readiness: { state: 'ready-for-rehearsal', passed: true, issues: [] } },
-    'evidence/consequence.json': { readiness: { state: 'passed-core-consequence-rehearsal', passed: true, issues: [] } },
-    'evidence/async.json': { readiness: { state: 'passed-async-recovery-rehearsal', passed: true, issues: [] } },
-    'evidence/dr.json': { readiness: { state: 'passed-backup-restore-dr-rehearsal', passed: true, issues: [] } },
-    'evidence/observability.json': { readiness: { state: 'passed-observability-alerting-runbook-rehearsal', passed: true, issues: [] } },
-    'evidence/release-provenance.txt': 'gh attestation verified\n',
+    '.attestor/rehearsal/evidence/substrate.json': { readiness: { state: 'ready-for-rehearsal', passed: true, issues: [] } },
+    '.attestor/rehearsal/evidence/consequence.json': { readiness: { state: 'passed-core-consequence-rehearsal', passed: true, issues: [] } },
+    '.attestor/rehearsal/evidence/async.json': { readiness: { state: 'passed-async-recovery-rehearsal', passed: true, issues: [] } },
+    '.attestor/rehearsal/evidence/dr.json': { readiness: { state: 'passed-backup-restore-dr-rehearsal', passed: true, issues: [] } },
+    '.attestor/rehearsal/evidence/observability.json': { readiness: { state: 'passed-observability-alerting-runbook-rehearsal', passed: true, issues: [] } },
+    '.attestor/rehearsal/release-provenance/release-provenance.txt': 'gh attestation verified\n',
   };
   for (const [relativePath, value] of Object.entries(files)) {
     if (relativePath === options?.omitArtifact) continue;
@@ -107,6 +107,7 @@ function manifest(root: string, options?: {
   readonly verdict?: 'pending' | 'go' | 'no-go';
   readonly failedEvidenceId?: string;
   readonly missingArtifactPath?: string;
+  readonly extraEvidenceItems?: readonly unknown[];
 }): unknown {
   const evidence = [
     {
@@ -114,7 +115,7 @@ function manifest(root: string, options?: {
       phase: 'repo-baseline',
       kind: 'terminal-output',
       producer: 'npm run verify',
-      artifactPath: 'evidence/repo-verify.txt',
+      artifactPath: '.attestor/rehearsal/evidence/repo-verify.txt',
       verification: 'All suite commands exit 0.',
     },
     {
@@ -122,7 +123,7 @@ function manifest(root: string, options?: {
       phase: 'render',
       kind: 'json',
       producer: 'npm run render:production-readiness-packet',
-      artifactPath: 'evidence/readiness.json',
+      artifactPath: '.attestor/production-readiness/evidence/readiness.json',
       verification: 'Readiness state is ready-for-environment-promotion.',
     },
     {
@@ -130,7 +131,7 @@ function manifest(root: string, options?: {
       phase: 'probe',
       kind: 'json',
       producer: 'npm run probe:production-rehearsal-substrates',
-      artifactPath: 'evidence/substrate.json',
+      artifactPath: '.attestor/rehearsal/evidence/substrate.json',
       verification: 'Substrate readiness passed.',
     },
     {
@@ -138,7 +139,7 @@ function manifest(root: string, options?: {
       phase: 'rehearsal',
       kind: 'json',
       producer: 'npm run rehearse:production-consequence',
-      artifactPath: 'evidence/consequence.json',
+      artifactPath: '.attestor/rehearsal/evidence/consequence.json',
       verification: 'Consequence behavior passed.',
     },
     {
@@ -146,7 +147,7 @@ function manifest(root: string, options?: {
       phase: 'rehearsal',
       kind: 'json',
       producer: 'npm run rehearse:production-async-recovery',
-      artifactPath: 'evidence/async.json',
+      artifactPath: '.attestor/rehearsal/evidence/async.json',
       verification: 'Async recovery passed.',
     },
     {
@@ -154,7 +155,7 @@ function manifest(root: string, options?: {
       phase: 'recovery',
       kind: 'json',
       producer: 'npm run rehearse:production-backup-restore-dr',
-      artifactPath: 'evidence/dr.json',
+      artifactPath: '.attestor/rehearsal/evidence/dr.json',
       verification: 'Backup restore DR passed.',
     },
     {
@@ -162,7 +163,7 @@ function manifest(root: string, options?: {
       phase: 'observability',
       kind: 'json',
       producer: 'npm run rehearse:production-observability-alerting',
-      artifactPath: options?.missingArtifactPath ?? 'evidence/observability.json',
+      artifactPath: options?.missingArtifactPath ?? '.attestor/rehearsal/evidence/observability.json',
       verification: 'Observability alerting passed.',
     },
     {
@@ -170,8 +171,8 @@ function manifest(root: string, options?: {
       phase: 'provenance',
       kind: 'attestation',
       producer: 'gh attestation verify',
-      artifactPath: 'evidence/release-provenance.txt',
-      digestSha256: sha256(resolve(root, 'evidence/release-provenance.txt')),
+      artifactPath: '.attestor/rehearsal/release-provenance/release-provenance.txt',
+      digestSha256: sha256(resolve(root, '.attestor/rehearsal/release-provenance/release-provenance.txt')),
       verification: 'Release provenance verified.',
     },
   ].map((item) => ({
@@ -227,7 +228,7 @@ function manifest(root: string, options?: {
         command: 'npm run verify',
         required: true,
         stopOnFailure: true,
-        expectedArtifacts: ['evidence/repo-verify.txt'],
+        expectedArtifacts: ['.attestor/rehearsal/evidence/repo-verify.txt'],
         evidenceIds: ['repo-verify-output'],
       },
       {
@@ -236,7 +237,7 @@ function manifest(root: string, options?: {
         command: 'npm run rehearse:production-observability-alerting',
         required: true,
         stopOnFailure: true,
-        expectedArtifacts: ['evidence/observability.json'],
+        expectedArtifacts: ['.attestor/rehearsal/evidence/observability.json'],
         evidenceIds: ['production-rehearsal-observability-alerting'],
       },
       {
@@ -258,6 +259,7 @@ function manifest(root: string, options?: {
     ],
     evidenceItems: [
       ...evidence,
+      ...(options?.extraEvidenceItems ?? []),
       {
         id: 'production-promotion-candidate-bundle',
         phase: 'decision',
@@ -305,6 +307,9 @@ async function packageFixture(options?: {
   readonly readinessState?: string;
   readonly readinessPromotionGatePassed?: boolean;
   readonly omitSigningKey?: boolean;
+  readonly extraEvidenceItems?: readonly unknown[];
+  readonly extraEvidenceItemsFactory?: (root: string) => readonly unknown[];
+  readonly extraFiles?: Readonly<Record<string, string>>;
 }): Promise<{
   readonly root: string;
   readonly summary: ProductionPromotionCandidateSummary;
@@ -315,11 +320,19 @@ async function packageFixture(options?: {
     readinessPromotionGatePassed: options?.readinessPromotionGatePassed,
     omitArtifact: options?.omitArtifact,
   });
+  for (const [path, value] of Object.entries(options?.extraFiles ?? {})) {
+    writeText(resolve(root, path), value);
+  }
   const manifestPath = resolve(root, 'manifest.json');
+  const extraEvidenceItems = [
+    ...(options?.extraEvidenceItems ?? []),
+    ...(options?.extraEvidenceItemsFactory?.(root) ?? []),
+  ];
   writeJson(manifestPath, manifest(root, {
     verdict: options?.verdict,
     failedEvidenceId: options?.failedEvidenceId,
     missingArtifactPath: options?.missingArtifactPath,
+    extraEvidenceItems,
   }));
   const signingKey = options?.omitSigningKey ? null : createSigningKey(root);
   const summary = await packageProductionPromotionCandidate({
@@ -364,7 +377,7 @@ async function testPackagesGoCandidateAndSignsArchive(): Promise<void> {
 
 async function testMissingRequiredArtifactProducesNoGoBundle(): Promise<void> {
   const { root, summary } = await packageFixture({
-    omitArtifact: 'evidence/observability.json',
+    omitArtifact: '.attestor/rehearsal/evidence/observability.json',
   });
   try {
     equal(summary.goNoGo.verdict, 'no-go', 'Production promotion bundle: missing required artifact produces no-go');
@@ -411,6 +424,92 @@ async function testMissingSigningKeyProducesNoGoWithoutSignature(): Promise<void
   }
 }
 
+async function testManifestArtifactPathBoundaryDeniesUnsafePaths(): Promise<void> {
+  const { root, summary } = await packageFixture({
+    extraFiles: {
+      'package-lock.json': '{}\n',
+      '.env': 'PLACEHOLDER_ONLY=true\n',
+      'outside.txt': 'outside allowlist\n',
+    },
+    extraEvidenceItemsFactory: (fixtureRoot) => [
+      {
+        id: 'unsafe-absolute-path',
+        phase: 'repo-baseline',
+        kind: 'terminal-output',
+        required: true,
+        producer: 'fixture',
+        artifactPath: resolve(fixtureRoot, 'package-lock.json'),
+        verification: 'Must be denied by absolute-path boundary.',
+        status: 'pass',
+      },
+      {
+        id: 'unsafe-parent-traversal',
+        phase: 'repo-baseline',
+        kind: 'terminal-output',
+        required: true,
+        producer: 'fixture',
+        artifactPath: '.attestor/rehearsal/../outside.txt',
+        verification: 'Must be denied by parent traversal boundary.',
+        status: 'pass',
+      },
+      {
+        id: 'unsafe-repo-file',
+        phase: 'repo-baseline',
+        kind: 'terminal-output',
+        required: true,
+        producer: 'fixture',
+        artifactPath: 'package-lock.json',
+        verification: 'Must be denied outside the promotion evidence roots.',
+        status: 'pass',
+      },
+      {
+        id: 'unsafe-env-file',
+        phase: 'repo-baseline',
+        kind: 'terminal-output',
+        required: true,
+        producer: 'fixture',
+        artifactPath: '.env',
+        verification: 'Must be denied outside the promotion evidence roots.',
+        status: 'pass',
+      },
+    ],
+  });
+  try {
+    equal(summary.goNoGo.verdict, 'no-go', 'Production promotion bundle: denied artifact paths produce no-go');
+    equal(
+      summary.artifactPathBoundary.policyVersion,
+      'attestor.production-promotion.artifact-path-boundary.v1',
+      'Production promotion bundle: artifact path boundary policy is recorded',
+    );
+    ok(
+      summary.evidence.deniedArtifacts.some((artifact) =>
+        artifact.id === 'unsafe-absolute-path' && artifact.reason === 'absolute-path-not-allowed'),
+      'Production promotion bundle: absolute manifest artifact paths are denied',
+    );
+    ok(
+      summary.evidence.deniedArtifacts.some((artifact) =>
+        artifact.id === 'unsafe-parent-traversal' && artifact.reason === 'parent-traversal-not-allowed'),
+      'Production promotion bundle: parent traversal manifest artifact paths are denied',
+    );
+    ok(
+      summary.evidence.deniedArtifacts.some((artifact) =>
+        artifact.id === 'unsafe-repo-file' && artifact.reason === 'outside-allowed-artifact-roots'),
+      'Production promotion bundle: unrelated repository files are denied',
+    );
+    ok(
+      summary.evidence.deniedArtifacts.some((artifact) =>
+        artifact.id === 'unsafe-env-file' && artifact.reason === 'outside-allowed-artifact-roots'),
+      'Production promotion bundle: local env files are denied',
+    );
+    ok(
+      summary.goNoGo.blockers.some((blocker) => blocker.includes('artifact-path-boundary')),
+      'Production promotion bundle: artifact path boundary blocker is surfaced',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 function testDocsAndScriptsExposeStep10(): void {
   const packageJson = JSON.parse(readProjectFile('package.json')) as {
     readonly scripts: Record<string, string>;
@@ -443,6 +542,7 @@ await testMissingRequiredArtifactProducesNoGoBundle();
 await testPendingManifestVerdictProducesNoGo();
 await testBlockedEnvironmentPacketProducesNoGo();
 await testMissingSigningKeyProducesNoGoWithoutSignature();
+await testManifestArtifactPathBoundaryDeniesUnsafePaths();
 testDocsAndScriptsExposeStep10();
 
 console.log(`Production rehearsal promotion bundle tests: ${passed} passed, 0 failed`);

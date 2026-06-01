@@ -94,7 +94,11 @@ function testWorkflowRunsTargetBoundChain(): void {
   includes(yaml, 'npm run package:production-promotion-candidate -- --manifest "$MANIFEST_PATH"', 'Production rehearsal workflow: execute packages the promotion candidate from the selected manifest');
   includes(yaml, 'npm run render:production-go-no-go-packet', 'Production rehearsal workflow: execute renders the final go/no-go packet');
   includes(yaml, 'ATTESTOR_PRODUCTION_GO_NO_GO_EXTERNAL_SIGNER_PROOF_DIGEST', 'Production rehearsal workflow: execute requires target signer proof env');
-  includes(yaml, '--approved-by="$GITHUB_ACTOR"', 'Production rehearsal workflow: execute binds human approval actor to the protected environment reviewer');
+  includes(yaml, 'ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_SOURCE', 'Production rehearsal workflow: execute requires an explicit approval source env');
+  includes(yaml, 'ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_EVIDENCE_REF', 'Production rehearsal workflow: execute requires an approval evidence reference env');
+  includes(yaml, '--approved-by="$ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_BY"', 'Production rehearsal workflow: execute passes operator-supplied approval actor metadata');
+  includes(yaml, '--approval-source="$ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_SOURCE"', 'Production rehearsal workflow: execute passes the independent approval source');
+  notIncludes(yaml, '--approved-by="$GITHUB_ACTOR"', 'Production rehearsal workflow: execute must not convert dispatcher identity into approval');
   includes(yaml, 'path: .attestor/rehearsal/', 'Production rehearsal workflow: execute uploads rehearsal artifacts');
 }
 

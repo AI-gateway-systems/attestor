@@ -9,6 +9,9 @@ const PUBLIC_ARTIFACT_ROOTS = Object.freeze([
   '.well-known/security.txt',
   'docs/00-evaluation',
   'docs/evidence',
+  '.attestor/proof-surface/latest',
+  '.attestor/showcase/latest',
+  '.attestor/release-provenance',
 ]);
 
 const TEXT_EXTENSIONS = new Set([

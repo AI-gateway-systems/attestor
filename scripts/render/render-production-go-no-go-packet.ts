@@ -21,6 +21,7 @@ type GateStatus = 'pass' | 'fail' | 'not-applicable';
 type GoNoGoVerdict = 'go' | 'no-go';
 type TargetScope = 'environment-promotion' | 'customer-enforcement';
 type ProviderRouteMode = 'not-used' | 'required';
+type ApprovalSource = 'workflow-actor' | 'protected-environment' | 'signed-approval';
 
 interface IncludedArtifact {
   readonly id?: string;
@@ -111,6 +112,8 @@ export interface ProductionGoNoGoPacket {
     readonly humanApproval: {
       readonly actorRef: string | null;
       readonly approvedAt: string | null;
+      readonly source: ApprovalSource;
+      readonly evidenceRef: string | null;
       readonly present: boolean;
     };
   };
@@ -170,6 +173,11 @@ function normalizeProviderRouteMode(value: string | null | undefined): ProviderR
   return value === 'required' ? 'required' : 'not-used';
 }
 
+function normalizeApprovalSource(value: string | null | undefined): ApprovalSource {
+  if (value === 'protected-environment' || value === 'signed-approval') return value;
+  return 'workflow-actor';
+}
+
 function validDigest(value: string | null): boolean {
   if (!value) return false;
   return /^sha256:[a-f0-9]{32,64}$/iu.test(value)
@@ -180,6 +188,13 @@ function validIsoTimestamp(value: string | null): boolean {
   if (!value) return false;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) && parsed <= Date.now() + 300_000;
+}
+
+function validApprovalEvidenceRef(value: string | null): boolean {
+  if (!value) return false;
+  return validDigest(value)
+    || /^github-environment:[A-Za-z0-9_.:/@-]{3,200}$/u.test(value)
+    || /^signed-approval:[A-Za-z0-9_.:/@-]{3,200}$/u.test(value);
 }
 
 function gate(input: ProductionGoNoGoGate): ProductionGoNoGoGate {
@@ -476,11 +491,29 @@ function incidentRunbookGate(rootDir: string, path: string, summary: ProductionP
   });
 }
 
-function humanApprovalGate(approvedBy: string | null, approvedAt: string | null): ProductionGoNoGoGate {
+function humanApprovalGate(input: {
+  readonly approvedBy: string | null;
+  readonly approvedAt: string | null;
+  readonly approvalSource: ApprovalSource;
+  readonly approvalEvidenceRef: string | null;
+  readonly targetScope: TargetScope;
+}): ProductionGoNoGoGate {
+  const approvedBy = input.approvedBy;
+  const approvedAt = input.approvedAt;
   const actorRef = digestReference('approval-actor', approvedBy);
+  const evidenceRef = digestReference('approval-evidence', input.approvalEvidenceRef);
   const blockers: string[] = [];
   if (!actorRef) blockers.push('human-approval-actor-required');
   if (!validIsoTimestamp(approvedAt)) blockers.push('human-approval-timestamp-required');
+  if (input.approvalSource === 'workflow-actor') {
+    blockers.push('independent-human-approval-source-required');
+  }
+  if (!validApprovalEvidenceRef(input.approvalEvidenceRef)) {
+    blockers.push('human-approval-evidence-ref-required');
+  }
+  if (input.targetScope === 'customer-enforcement' && input.approvalSource !== 'signed-approval') {
+    blockers.push('customer-enforcement-signed-approval-required');
+  }
 
   if (blockers.length > 0) {
     return fail({
@@ -488,7 +521,7 @@ function humanApprovalGate(approvedBy: string | null, approvedAt: string | null)
       title: 'Human approval',
       required: true,
       protectedPrinciples: ['customer authority', 'no overclaim', 'operational boundedness'],
-      summary: 'A final go decision requires an explicit human approval actor and timestamp.',
+      summary: 'A final go decision requires independent approval provenance, not only workflow actor metadata.',
       evidenceRefs: [],
       blockers,
     });
@@ -499,8 +532,8 @@ function humanApprovalGate(approvedBy: string | null, approvedAt: string | null)
     title: 'Human approval',
     required: true,
     protectedPrinciples: ['customer authority', 'no overclaim', 'operational boundedness'],
-    summary: 'A digest-only human approval reference and timestamp are present.',
-    evidenceRefs: [actorRef!, approvedAt!],
+    summary: 'A digest-only human approval reference, timestamp, independent source, and evidence reference are present.',
+    evidenceRefs: [actorRef!, approvedAt!, input.approvalSource, evidenceRef!],
   });
 }
 
@@ -523,7 +556,9 @@ Decision:
 - target scope: ${packet.targetScope}
 - provider route mode: ${packet.providerRouteMode}
 - human approval present: ${packet.decision.humanApproval.present}
+- human approval source: ${packet.decision.humanApproval.source}
 - human approval actor ref: ${packet.decision.humanApproval.actorRef ?? 'missing'}
+- human approval evidence ref: ${packet.decision.humanApproval.evidenceRef ?? 'missing'}
 
 Target:
 
@@ -558,6 +593,8 @@ export async function renderProductionGoNoGoPacket(options?: {
   readonly providerRouteProofDigest?: string | null;
   readonly approvedBy?: string | null;
   readonly approvedAt?: string | null;
+  readonly approvalSource?: ApprovalSource;
+  readonly approvalEvidenceRef?: string | null;
   readonly operatorRunbookPath?: string;
 }): Promise<ProductionGoNoGoPacket> {
   const rootDir = resolve(options?.rootDir ?? process.cwd());
@@ -573,7 +610,17 @@ export async function renderProductionGoNoGoPacket(options?: {
   const providerRouteMode = options?.providerRouteMode ?? normalizeProviderRouteMode(arg('provider-route-mode', env('ATTESTOR_PRODUCTION_GO_NO_GO_PROVIDER_ROUTE_MODE') ?? undefined));
   const approvedBy = options?.approvedBy ?? arg('approved-by', env('ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_BY') ?? undefined) ?? null;
   const approvedAt = options?.approvedAt ?? arg('approved-at', env('ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_AT') ?? undefined) ?? null;
+  const approvalSource = normalizeApprovalSource(options?.approvalSource ?? arg('approval-source', env('ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_SOURCE') ?? undefined));
+  const approvalEvidenceRef = options?.approvalEvidenceRef ?? arg('approval-evidence-ref', env('ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_EVIDENCE_REF') ?? undefined) ?? null;
   const actorRef = digestReference('approval-actor', approvedBy);
+  const approvalEvidenceRefDigest = digestReference('approval-evidence', approvalEvidenceRef);
+  const approvalGate = humanApprovalGate({
+    approvedBy,
+    approvedAt,
+    approvalSource,
+    approvalEvidenceRef,
+    targetScope,
+  });
 
   const gates = [
     promotionCandidateGate(promotion),
@@ -583,7 +630,7 @@ export async function renderProductionGoNoGoPacket(options?: {
     customerPepGate(targetScope, options?.customerPepProofDigest ?? arg('customer-pep-proof-digest', env('ATTESTOR_PRODUCTION_GO_NO_GO_CUSTOMER_PEP_PROOF_DIGEST') ?? undefined) ?? null),
     providerRouteGate(providerRouteMode, options?.providerRouteProofDigest ?? arg('provider-route-proof-digest', env('ATTESTOR_PRODUCTION_GO_NO_GO_PROVIDER_ROUTE_PROOF_DIGEST') ?? undefined) ?? null),
     incidentRunbookGate(rootDir, options?.operatorRunbookPath ?? arg('operator-runbook', DEFAULT_RUNBOOK_PATH)!, promotion),
-    humanApprovalGate(approvedBy, approvedAt),
+    approvalGate,
   ] as const;
 
   const blockers = gates
@@ -609,7 +656,9 @@ export async function renderProductionGoNoGoPacket(options?: {
       humanApproval: {
         actorRef,
         approvedAt: validIsoTimestamp(approvedAt) ? approvedAt : null,
-        present: Boolean(actorRef && validIsoTimestamp(approvedAt)),
+        source: approvalSource,
+        evidenceRef: approvalEvidenceRefDigest,
+        present: approvalGate.status === 'pass',
       },
     },
     gates,
@@ -623,6 +672,7 @@ export async function renderProductionGoNoGoPacket(options?: {
       'This packet does not replace independent security, compliance, or customer approval.',
       'Customer PEP traffic cutover is claimed only when targetScope is customer-enforcement and the PEP proof digest gate passes.',
       'Live LLM provider route readiness is claimed only when providerRouteMode is required and the provider route proof digest gate passes.',
+      'Workflow actor and timestamp metadata alone are not accepted as final human approval provenance.',
       'A go verdict is an operator promotion decision for the named target, not a blanket production guarantee.',
     ],
   };

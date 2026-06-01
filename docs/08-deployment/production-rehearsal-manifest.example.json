@@ -184,7 +184,7 @@
       "required": true,
       "stopOnFailure": true,
       "expectedArtifacts": [
-        "evaluation-artifacts.tar.gz"
+        ".attestor/rehearsal/release-provenance/evaluation-artifacts.tar.gz"
       ],
       "evidenceIds": [
         "release-provenance-verification"
@@ -316,7 +316,7 @@
       "kind": "attestation",
       "required": true,
       "producer": "gh attestation verify",
-      "artifactPath": "evaluation-artifacts.tar.gz",
+      "artifactPath": ".attestor/rehearsal/release-provenance/evaluation-artifacts.tar.gz",
       "verification": "GitHub attestation verifies repository and signer workflow for the release artifact.",
       "status": "pending"
     },

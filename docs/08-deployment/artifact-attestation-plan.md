@@ -37,10 +37,11 @@ The dedicated [release-provenance.yml](../../.github/workflows/release-provenanc
 1. checks out the selected tag or manual-dispatch ref
 2. runs `npm run proof:surface`
 3. runs `npm run showcase:proof`
-4. packages the review artifacts into `.attestor/release-provenance/evaluation-artifacts.tar.gz`
-5. uploads that archive as the `evaluation-artifacts` workflow artifact
-6. publishes a GitHub build provenance attestation for that archive with `actions/attest@v4`
-7. publishes a separate GitHub SBOM attestation for the same archive subject with `sbom-path`
+4. runs the public artifact redaction scan over committed public roots and generated proof/showcase output
+5. packages the review artifacts into `.attestor/release-provenance/evaluation-artifacts.tar.gz`
+6. uploads that archive as the `evaluation-artifacts` workflow artifact
+7. publishes a GitHub build provenance attestation for that archive with `actions/attest@v4`
+8. publishes a separate GitHub SBOM attestation for the same archive subject with `sbom-path`
 
 The current `Evaluation Smoke` and `Full Verify` workflows are not repurposed for that job.
 
@@ -90,3 +91,4 @@ This plan also does not claim:
 - SLSA compliance by itself
 - production deployment provenance for customer environments
 - attested provenance for secrets, external databases, or downstream systems
+- that provenance attestation alone proves an artifact is safe to disclose
