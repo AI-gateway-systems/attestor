@@ -42,6 +42,10 @@ autoEnforce: false
 
 This is deliberate. Shadow mode may discover a candidate policy, but a customer or operator must approve it before any enforcement posture changes.
 
+Hosted status transitions derive the status actor from the authenticated account or tenant route context. A request body may carry an actor label for compatibility, but that label is recorded only as bounded request metadata; it is not approval authority.
+
+Approval also stays tied to the current candidate digest and source binding. If a materialized candidate changes content or source report binding, its prior approval history is cleared and the candidate returns to `draft` for re-review. Promotion drafts use only approval history entries that match the current candidate digest.
+
 ## Data Boundary
 
 The candidate bundle is data-minimized. It works from simulation recommendations, action surfaces, counters, reason codes, and report digests.
@@ -63,7 +67,7 @@ Attestor applies the same discipline to AI action authorization: observe actions
 
 ## Current Boundary
 
-This is an evaluation candidate model with a hosted read route, file-backed candidate materialization, lifecycle transitions, a non-enforcing promotion draft, a non-enforcing policy promotion packet, a packet impact simulation over shadow events, a signed policy bundle publication artifact, a downstream verification binding draft, a downstream integration proof artifact, an activation readiness gate, a customer-controlled activation handoff, a customer activation receipt, and file-backed activation receipt history. It is not yet:
+This is an evaluation candidate model with a hosted read route, file-backed candidate materialization, credential-derived lifecycle actor attribution, digest-bound lifecycle transitions, a non-enforcing promotion draft, a non-enforcing policy promotion packet, a packet impact simulation over shadow events, a signed policy bundle publication artifact, a downstream verification binding draft, a downstream integration proof artifact, an activation readiness gate, a customer-controlled activation handoff, a customer activation receipt, and file-backed activation receipt history. It is not yet:
 
 - an automatic policy writer
 - a policy compiler

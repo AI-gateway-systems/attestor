@@ -32,6 +32,8 @@ interface ShadowPolicyCandidateStoreFile {
   records: ShadowPolicyCandidateStoreRecord[];
 }
 
+const STATUS_HISTORY_MISSING_CANDIDATE_DIGEST = 'missing:candidate-digest';
+
 function defaultCandidateStore(): ShadowPolicyCandidateStoreFile {
   return { version: 1, records: [] };
 }
@@ -39,12 +41,19 @@ function defaultCandidateStore(): ShadowPolicyCandidateStoreFile {
 function normalizeStatusHistory(
   history: readonly ShadowPolicyCandidateStatusChange[],
 ): readonly ShadowPolicyCandidateStatusChange[] {
-  return Object.freeze(history.map((entry) => ({
-    status: normalizeCandidateStatus(entry.status, 'statusHistory.status'),
-    changedAt: normalizeIsoTimestamp(entry.changedAt, new Date().toISOString(), 'statusHistory.changedAt'),
-    actorRef: normalizeIdentifier(entry.actorRef, 'statusHistory.actorRef'),
-    reason: normalizeIdentifier(entry.reason, 'statusHistory.reason'),
-  })));
+  return Object.freeze(history.map((entry) => {
+    const candidateDigestValue = normalizeOptionalString(entry.candidateDigest) ??
+      STATUS_HISTORY_MISSING_CANDIDATE_DIGEST;
+    return {
+      status: normalizeCandidateStatus(entry.status, 'statusHistory.status'),
+      changedAt: normalizeIsoTimestamp(entry.changedAt, new Date().toISOString(), 'statusHistory.changedAt'),
+      candidateDigest: candidateDigestValue === STATUS_HISTORY_MISSING_CANDIDATE_DIGEST
+        ? candidateDigestValue
+        : normalizeIdentifier(candidateDigestValue, 'statusHistory.candidateDigest'),
+      actorRef: normalizeIdentifier(entry.actorRef, 'statusHistory.actorRef'),
+      reason: normalizeIdentifier(entry.reason, 'statusHistory.reason'),
+    };
+  }));
 }
 
 function candidateDigest(candidate: ShadowPolicyDiscoveryCandidate): string {
@@ -105,13 +114,19 @@ function sortCandidateRecords(
   });
 }
 
-function createInitialStatusHistory(createdAt: string): readonly ShadowPolicyCandidateStatusChange[] {
+function createInitialStatusHistory(
+  createdAt: string,
+  candidateDigest: string,
+  reason =
+    'Candidate was derived from shadow-mode observations and requires customer approval.',
+): readonly ShadowPolicyCandidateStatusChange[] {
   return Object.freeze([
     {
       status: 'draft',
       changedAt: createdAt,
+      candidateDigest,
       actorRef: 'attestor:policy-discovery',
-      reason: 'Candidate was derived from shadow-mode observations and requires customer approval.',
+      reason,
     },
   ]);
 }
@@ -123,16 +138,17 @@ function createCandidateRecord(input: UpsertShadowPolicyCandidateInput): ShadowP
     new Date().toISOString(),
     'observedAt',
   );
+  const digest = candidateDigest(input.candidate);
   return {
     version: SHADOW_POLICY_CANDIDATE_STORE_VERSION,
     tenantId,
     candidateId: normalizeIdentifier(input.candidate.candidateId, 'candidateId'),
-    candidateDigest: candidateDigest(input.candidate),
+    candidateDigest: digest,
     candidate: input.candidate,
     sourceReportId: normalizeOptionalString(input.sourceReportId),
     sourceReportDigest: normalizeOptionalString(input.sourceReportDigest),
     status: 'draft',
-    statusHistory: createInitialStatusHistory(createdAt),
+    statusHistory: createInitialStatusHistory(createdAt, digest),
     createdAt,
     updatedAt: createdAt,
     approvalRequired: true,
@@ -170,6 +186,12 @@ function upsertCandidateInStore(
     candidate: next.candidate,
     sourceReportId: next.sourceReportId,
     sourceReportDigest: next.sourceReportDigest,
+    status: 'draft',
+    statusHistory: createInitialStatusHistory(
+      next.updatedAt,
+      next.candidateDigest,
+      'Candidate content or source binding changed; previous approval status was cleared for re-review.',
+    ),
     updatedAt: next.updatedAt,
   };
   store.records[existingIndex] = updated;
@@ -297,6 +319,7 @@ export function createFileBackedShadowPolicyCandidateStore(options?: {
             {
               status: nextStatus,
               changedAt,
+              candidateDigest: current.candidateDigest,
               actorRef,
               reason,
             },

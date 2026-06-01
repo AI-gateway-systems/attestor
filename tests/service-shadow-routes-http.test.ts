@@ -95,6 +95,7 @@ function createApp(
   options?: {
     readonly now?: () => string;
     readonly pipelineIdempotencyService?: PipelineIdempotencyService;
+    readonly currentShadowMutationActorRef?: () => string;
   },
 ): Hono {
   const simulationStore = createFileBackedShadowPolicySimulationReportStore({
@@ -113,6 +114,9 @@ function createApp(
   const app = new Hono();
   registerShadowRoutes(app, {
     currentTenant: () => tenant,
+    ...(options?.currentShadowMutationActorRef
+      ? { currentShadowMutationActorRef: () => options.currentShadowMutationActorRef!() }
+      : {}),
     listShadowEvents: ({ tenant: routeTenant }) =>
       routeTenant.tenantId === tenant.tenantId ? events : [],
     listShadowSimulations: ({ tenant: routeTenant }) =>
@@ -647,6 +651,63 @@ async function testShadowSimulationRejectsIdempotencyConflicts(): Promise<void> 
   }
 }
 
+async function testPolicyCandidateStatusIdempotencyBindsDerivedActor(): Promise<void> {
+  const restoreEnv = withPipelineIdempotencyEnv();
+  try {
+    const auditInputs: ShadowMutationAuditInput[] = [];
+    let actorRef = 'account-session:policy_reviewer:acct_1';
+    const app = createApp(auditInputs, {
+      pipelineIdempotencyService: pipelineIdempotencyService(),
+      currentShadowMutationActorRef: () => actorRef,
+    });
+    await postJson(app, '/api/v1/shadow/simulations', { proposedMode: 'review' });
+    const materializeResponse = await app.request('/api/v1/shadow/policy-candidates/materialize', {
+      method: 'POST',
+    });
+    const materializeBody = await materializeResponse.json() as {
+      readonly persisted: { readonly records: readonly { readonly candidateId: string }[] };
+    };
+    const candidateId = materializeBody.persisted.records[0]?.candidateId ?? '';
+    const headers = {
+      'content-type': 'application/json',
+      'Idempotency-Key': 'shadow-policy-status-actor-boundary',
+    };
+    const body = {
+      status: 'proposed',
+      actorRef: 'operator:body-label-is-metadata',
+      reason: 'Move candidate to proposed.',
+    };
+
+    const first = await app.request(`/api/v1/shadow/policy-candidates/${encodeURIComponent(candidateId)}/status`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(body),
+    });
+    actorRef = 'account-session:policy_reviewer:acct_2';
+    const conflict = await app.request(`/api/v1/shadow/policy-candidates/${encodeURIComponent(candidateId)}/status`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(body),
+    });
+    const conflictBody = await conflict.json() as { readonly reasonCodes: readonly string[] };
+
+    equal(first.status, 200, 'Shadow policy status idempotency: first actor-bound request succeeds');
+    equal(conflict.status, 409, 'Shadow policy status idempotency: same key with different derived actor conflicts');
+    equal(
+      conflictBody.reasonCodes.includes('shadow-mutation-idempotency-conflict'),
+      true,
+      'Shadow policy status idempotency: actor-context conflict is bounded',
+    );
+    equal(
+      auditInputs.filter((input) => input.routeId === 'shadow.policy_candidates.status.update').length,
+      1,
+      'Shadow policy status idempotency: rejected actor conflict does not duplicate audit',
+    );
+  } finally {
+    restoreEnv();
+  }
+}
+
 async function testShadowListRoutesApplyPaginationBounds(): Promise<void> {
   const auditInputs: ShadowMutationAuditInput[] = [];
   let tick = 0;
@@ -756,6 +817,7 @@ try {
   await testShadowMutationRateLimitIsTenantRouteScoped();
   await testShadowSimulationReplaysWithIdempotencyKey();
   await testShadowSimulationRejectsIdempotencyConflicts();
+  await testPolicyCandidateStatusIdempotencyBindsDerivedActor();
   await testShadowListRoutesApplyPaginationBounds();
   await testShadowProblemDetailsAreBounded();
 

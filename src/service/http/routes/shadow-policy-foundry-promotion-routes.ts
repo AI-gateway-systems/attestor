@@ -80,7 +80,7 @@ function selectPolicyFoundryCandidate(input: {
 
 async function readStatusTransitionBody(c: Context): Promise<{
   readonly status: ShadowPolicyCandidateStatus;
-  readonly actorRef: string;
+  readonly assertedActorRef: string | null;
   readonly reason: string;
 } | Response> {
   if (!acceptsJsonRequestBody(c)) {
@@ -114,19 +114,31 @@ async function readStatusTransitionBody(c: Context): Promise<{
     });
   }
   const status = typeof body.status === 'string' ? parseCandidateStatus(body.status) : null;
-  const actorRef = typeof body.actorRef === 'string' ? body.actorRef.trim() : '';
+  const assertedActorRef = typeof body.actorRef === 'string' && body.actorRef.trim().length > 0
+    ? body.actorRef.trim()
+    : null;
   const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
-  if (!status || !actorRef || !reason) {
+  if (!status || !reason) {
     return problem(c, {
       type: 'https://attestor.dev/problems/policy-candidate-status-input-invalid',
       title: 'Invalid policy candidate status input',
       status: 400,
       detail:
-        'The policy candidate status route requires status, actorRef, and reason. Status must be one of the supported candidate states.',
+        'The policy candidate status route requires status and reason. Status must be one of the supported candidate states.',
       reasonCodes: ['invalid-policy-candidate-status-input'],
     });
   }
-  return { status, actorRef, reason };
+  return { status, assertedActorRef, reason };
+}
+
+function shadowMutationActorRef(
+  c: Context,
+  deps: ShadowRouteDeps,
+  tenant: ReturnType<ShadowRouteDeps['currentTenant']>,
+): string {
+  const resolved = deps.currentShadowMutationActorRef?.({ context: c, tenant })?.trim();
+  if (resolved) return resolved;
+  return `tenant-auth:${tenant.source}:${tenant.tenantId}`;
 }
 
 export function registerShadowPolicyFoundryPromotionRoutes(app: Hono, deps: ShadowRouteDeps): void {
@@ -869,10 +881,12 @@ export function registerShadowPolicyFoundryPromotionRoutes(app: Hono, deps: Shad
     try {
       const routeId = 'shadow.policy_candidates.status.update';
       const candidateId = c.req.param('candidateId');
+      const preflightTenant = deps.currentTenant(c);
+      const actorRef = shadowMutationActorRef(c, deps, preflightTenant);
       const requestPayload = {
         candidateId,
         status: body.status,
-        actorRef: body.actorRef,
+        actorRef,
         reason: body.reason,
       };
       const idempotency = await beginShadowMutationIdempotency(c, deps, routeId, requestPayload);
@@ -884,7 +898,7 @@ export function registerShadowPolicyFoundryPromotionRoutes(app: Hono, deps: Shad
           tenant,
           candidateId,
           status: body.status,
-          actorRef: body.actorRef,
+          actorRef,
           reason: body.reason,
         }),
         'shadow policy candidate',
@@ -896,7 +910,8 @@ export function registerShadowPolicyFoundryPromotionRoutes(app: Hono, deps: Shad
         requestPayload: {
           candidateId,
           status: body.status,
-          actorRef: body.actorRef,
+          assertedActorRefPresent: body.assertedActorRef !== null,
+          assertedActorRefLength: body.assertedActorRef?.length ?? 0,
           reasonLength: body.reason.length,
         },
         statusCode: 200,
@@ -904,6 +919,7 @@ export function registerShadowPolicyFoundryPromotionRoutes(app: Hono, deps: Shad
           candidateId: record.candidateId,
           candidateDigest: record.candidateDigest,
           status: record.status,
+          actorRef,
           statusHistoryLength: record.statusHistory.length,
         },
       });
