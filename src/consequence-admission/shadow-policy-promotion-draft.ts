@@ -27,6 +27,7 @@ export type ShadowPolicyPromotionSourceStatus =
 export interface ShadowPolicyPromotionStatusChange {
   readonly status: string;
   readonly changedAt: string;
+  readonly candidateDigest: string;
   readonly actorRef: string;
   readonly reason: string;
 }
@@ -143,8 +144,10 @@ function isPromotionSourceStatus(value: string): value is ShadowPolicyPromotionS
 function approvalActors(
   history: readonly ShadowPolicyPromotionStatusChange[],
   sourceStatus: ShadowPolicyPromotionSourceStatus,
+  candidateDigest: string,
 ): readonly string[] {
   return uniqueSorted(history
+    .filter((entry) => entry.candidateDigest === candidateDigest)
     .filter((entry) => entry.status === sourceStatus || entry.status === 'approved')
     .map((entry) => entry.actorRef));
 }
@@ -184,8 +187,11 @@ function createEntry(
     reasonCodes: candidate.reasonCodes,
     summary: candidate.summary,
     approvalStatus: sourceStatus,
-    approverRefs: approvalActors(record.statusHistory, sourceStatus),
-    approvalTrailDigest: hashCanonical(record.statusHistory as unknown as CanonicalReleaseJsonValue),
+    approverRefs: approvalActors(record.statusHistory, sourceStatus, record.candidateDigest),
+    approvalTrailDigest: hashCanonical(
+      record.statusHistory
+        .filter((entry) => entry.candidateDigest === record.candidateDigest) as unknown as CanonicalReleaseJsonValue,
+    ),
     enforcementState: 'draft-only',
   });
 }

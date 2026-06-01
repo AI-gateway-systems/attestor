@@ -203,7 +203,10 @@ async function testPromotionDraftExportsApprovedCandidateWithoutRawPayload(): Pr
   equal(entry?.proposedMode, 'observe', 'Promotion draft route: entry keeps the proposed mode from the candidate');
   equal(entry?.enforcementState, 'draft-only', 'Promotion draft route: entry remains draft-only');
   equal(entry?.approvalStatus, 'approved', 'Promotion draft route: entry records approval status');
-  ok(entry?.approverRefs.includes('operator:approved'), 'Promotion draft route: entry carries approval actor ref');
+  ok(
+    entry?.approverRefs.includes('tenant-auth:api_key:tenant_shadow_promotion'),
+    'Promotion draft route: entry carries credential-bound approval actor ref',
+  );
   ok(entry?.approvalTrailDigest.startsWith('sha256:'), 'Promotion draft route: approval trail is digest-bound');
   ok(body.draft.digest.startsWith('sha256:'), 'Promotion draft route: draft has deterministic digest');
   ok(!text.includes('raw_customer_value_must_not_escape'), 'Promotion draft route: raw recipient is not exported');

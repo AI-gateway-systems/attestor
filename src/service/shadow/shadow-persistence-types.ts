@@ -158,6 +158,7 @@ export interface FileBackedShadowPolicySimulationReportStore {
 export interface ShadowPolicyCandidateStatusChange {
   readonly status: ShadowPolicyCandidateStatus;
   readonly changedAt: string;
+  readonly candidateDigest: string;
   readonly actorRef: string;
   readonly reason: string;
 }

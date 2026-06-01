@@ -71,6 +71,7 @@ function createApp(events: readonly ShadowAdmissionEvent[]): Hono {
   const app = new Hono();
   registerShadowRoutes(app, {
     currentTenant: () => tenant,
+    currentShadowMutationActorRef: () => 'account-session:policy_reviewer:acct_user_1',
     listShadowEvents: ({ tenant: routeTenant }) =>
       routeTenant.tenantId === tenant.tenantId ? events : [],
     listShadowSimulations: () => [],
@@ -155,7 +156,10 @@ async function testMaterializeListAndTransitionLifecycle(): Promise<void> {
     readonly rawPayloadStored: boolean;
     readonly record: {
       readonly status: string;
-      readonly statusHistory: readonly unknown[];
+      readonly statusHistory: readonly {
+        readonly candidateDigest: string;
+        readonly actorRef: string;
+      }[];
       readonly approvalRequired: boolean;
       readonly autoEnforce: boolean;
       readonly rawPayloadStored: boolean;
@@ -192,10 +196,19 @@ async function testMaterializeListAndTransitionLifecycle(): Promise<void> {
   equal(activatedBody.rawPayloadStored, false, 'Policy candidate approval route: activation response is data-minimized');
   equal(activatedBody.record.status, 'activated', 'Policy candidate approval route: record status is activated');
   equal(activatedBody.record.statusHistory.length, 4, 'Policy candidate approval route: status history is retained');
+  ok(
+    activatedBody.record.statusHistory.every((entry) => entry.candidateDigest === activatedBody.record.statusHistory[0]?.candidateDigest),
+    'Policy candidate approval route: status history is candidate-digest bound',
+  );
+  ok(
+    activatedBody.record.statusHistory.some((entry) => entry.actorRef === 'account-session:policy_reviewer:acct_user_1'),
+    'Policy candidate approval route: status history uses credential-bound actor ref',
+  );
   equal(activatedBody.record.approvalRequired, true, 'Policy candidate approval route: activated record requires approval boundary');
   equal(activatedBody.record.autoEnforce, false, 'Policy candidate approval route: activated record does not auto-enforce');
   equal(activatedBody.record.rawPayloadStored, false, 'Policy candidate approval route: activated record is data-minimized');
   ok(!activatedText.includes('raw_customer_value_must_not_escape'), 'Policy candidate approval route: raw recipient is not returned after transition');
+  ok(!activatedText.includes('operator:approved'), 'Policy candidate approval route: body actorRef is not persisted as approval authority');
 }
 
 async function testInvalidStatusInputsFailClosed(): Promise<void> {

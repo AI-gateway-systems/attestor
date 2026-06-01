@@ -34,6 +34,10 @@ export type { ShadowMutationAuditInput } from './shadow-mutation-route-helpers.j
 
 export interface ShadowRouteDeps {
   currentTenant(context: Context): TenantContext;
+  currentShadowMutationActorRef?(input: {
+    readonly context: Context;
+    readonly tenant: TenantContext;
+  }): string | null;
   listShadowEvents(input: { readonly tenant: TenantContext }): readonly ShadowAdmissionEvent[];
   recordShadowMutationAudit?(input: ShadowMutationAuditInput): Promise<void>;
   pipelineIdempotencyService?: PipelineIdempotencyService;

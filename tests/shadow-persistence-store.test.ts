@@ -386,6 +386,69 @@ function testPolicyCandidateStorePreservesApprovalLifecycle(): void {
   );
 }
 
+function testPolicyCandidateStoreClearsApprovalWhenCandidateChanges(): void {
+  const eventWithoutPolicy = createEvent({
+    tenantId: tenantA.tenantId,
+    policyRef: null,
+    occurredAt: '2026-05-02T08:30:00.000Z',
+  });
+  const report = createShadowPolicySimulationReport({
+    events: [eventWithoutPolicy],
+    proposedMode: 'review',
+    generatedAt: '2026-05-02T08:31:00.000Z',
+  });
+  const bundle = createShadowPolicyDiscoveryCandidates({
+    report,
+    generatedAt: '2026-05-02T08:32:00.000Z',
+  });
+  const store = createFileBackedShadowPolicyCandidateStore({ path: candidatePath });
+  const created = store.upsertBundle({ tenantId: tenantA.tenantId, bundle }).records[0]!;
+  store.transitionStatus({
+    tenantId: tenantA.tenantId,
+    candidateId: created.candidateId,
+    status: 'proposed',
+    actorRef: 'risk-owner:1',
+    reason: 'Ready for review.',
+    changedAt: '2026-05-02T08:33:00.000Z',
+  });
+  const approved = store.transitionStatus({
+    tenantId: tenantA.tenantId,
+    candidateId: created.candidateId,
+    status: 'approved',
+    actorRef: 'risk-owner:1',
+    reason: 'Approved digest A.',
+    changedAt: '2026-05-02T08:34:00.000Z',
+  }).record;
+  const updated = store.upsertCandidate({
+    tenantId: tenantA.tenantId,
+    candidate: {
+      ...approved.candidate,
+      summary: `${approved.candidate.summary} Re-review changed candidate text.`,
+    },
+    sourceReportId: bundle.sourceReportId,
+    sourceReportDigest: bundle.sourceReportDigest,
+    observedAt: '2026-05-02T08:35:00.000Z',
+  });
+
+  equal(updated.kind, 'updated', 'Policy candidate persistence: changed candidate digest updates the record');
+  equal(updated.record.status, 'draft', 'Policy candidate persistence: changed candidate resets to draft');
+  equal(updated.record.statusHistory.length, 1, 'Policy candidate persistence: changed candidate clears prior approval history');
+  equal(
+    updated.record.statusHistory[0]?.candidateDigest,
+    updated.record.candidateDigest,
+    'Policy candidate persistence: reset status history is bound to the new digest',
+  );
+  equal(
+    store.list({ tenantId: tenantA.tenantId, status: 'approved' }).records.length,
+    0,
+    'Policy candidate persistence: changed candidate no longer lists as approved',
+  );
+  ok(
+    updated.record.candidateDigest !== approved.candidateDigest,
+    'Policy candidate persistence: changed candidate has a new digest',
+  );
+}
+
 try {
   resetShadowPersistenceStoresForTests({
     admissionEventPath: admissionPath,
@@ -397,6 +460,12 @@ try {
   testSimulationReportStorePersistsTenantScopedReports();
   testSimulationReportStoreFailsClosedOnCorruption();
   testPolicyCandidateStorePreservesApprovalLifecycle();
+  resetShadowPersistenceStoresForTests({
+    admissionEventPath: admissionPath,
+    policyCandidatePath: candidatePath,
+    policySimulationReportPath: simulationPath,
+  });
+  testPolicyCandidateStoreClearsApprovalWhenCandidateChanges();
 
   console.log(`Shadow persistence store tests: ${passed} passed, 0 failed`);
 } finally {

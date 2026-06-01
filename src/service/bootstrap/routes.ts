@@ -232,6 +232,13 @@ export function createShadowRouteDeps<Packet>(
   const shadowActivationReceiptStore = createFileBackedShadowCustomerActivationReceiptStore();
   return {
     currentTenant: runtime.services.httpRoutes.pipeline.currentTenant,
+    currentShadowMutationActorRef: ({ context, tenant }) => {
+      const access = runtime.services.httpRoutes.account.currentAccountAccess(context);
+      if (access) {
+        return `account-session:${access.role}:${access.accountUserId}`;
+      }
+      return `tenant-auth:${tenant.source}:${tenant.tenantId}`;
+    },
     async recordShadowMutationAudit(auditInput) {
       await appendAdminAuditRecordState({
         actorType: 'tenant_context',
