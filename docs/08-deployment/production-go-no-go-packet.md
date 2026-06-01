@@ -13,7 +13,9 @@ npm run render:production-go-no-go-packet -- \
   --promotion-summary=.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/summary.json \
   --external-signer-proof-digest=sha256:<target-runtime-signer-proof> \
   --approved-by=<operator-or-approver-id> \
-  --approved-at=<iso-timestamp>
+  --approved-at=<iso-timestamp> \
+  --approval-source=protected-environment \
+  --approval-evidence-ref=github-environment:<environment>:<run-id>
 ```
 
 The command writes:
@@ -47,7 +49,7 @@ summary instead of silently treating it as proof.
 | `customer-pep-cutover-proof` | `--target-scope=customer-enforcement` | Customer PEP cutover proof for live enforcement scope. | Customer-enforcement scope without a PEP proof digest. |
 | `llm-provider-route-proof` | `--provider-route-mode=required` | Fresh live provider-route proof for any production route that depends on live LLM output. | A provider-dependent route without a provider proof digest. |
 | `incident-runbook-and-observability` | Always | The operator runbook has stop conditions and the target has observability/alerting rehearsal evidence. | Missing runbook, missing stop conditions, missing observability step, or missing observability evidence. |
-| `human-approval` | Always | A digest-only human approval actor reference and timestamp exist. | Missing approval actor or approval timestamp. |
+| `human-approval` | Always | A digest-only approval actor, timestamp, independent source, and approval evidence reference exist. | Missing approval actor, timestamp, source stronger than workflow actor, or approval evidence reference. |
 
 ## Scope Controls
 
@@ -89,11 +91,18 @@ The CLI accepts arguments or equivalent environment variables:
 | `--provider-route-proof-digest` | `ATTESTOR_PRODUCTION_GO_NO_GO_PROVIDER_ROUTE_PROOF_DIGEST` |
 | `--approved-by` | `ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_BY` |
 | `--approved-at` | `ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_AT` |
+| `--approval-source` | `ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_SOURCE` |
+| `--approval-evidence-ref` | `ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_EVIDENCE_REF` |
 | `--operator-runbook` | none |
 
-The approval actor is stored as a digest-only reference. Do not put raw
-customer identifiers, credentials, database URLs, provider bodies, payment
-details, wallet material, or private thresholds into the packet.
+`--approval-source` accepts `protected-environment` or `signed-approval` for a
+`go` decision. `workflow-actor` is recorded as a weak source and fails the
+approval gate. Customer-enforcement scope requires `signed-approval`.
+
+The approval actor and approval evidence reference are stored as digest-only
+references. Do not put raw customer identifiers, credentials, database URLs,
+provider bodies, payment details, wallet material, or private thresholds into
+the packet.
 
 ## Research Anchors
 

@@ -145,6 +145,9 @@ async function renderFixture(options?: {
   readonly providerRouteProofDigest?: string | null;
   readonly externalSignerProofDigest?: string | null;
   readonly approvedBy?: string | null;
+  readonly approvedAt?: string | null;
+  readonly approvalSource?: 'workflow-actor' | 'protected-environment' | 'signed-approval';
+  readonly approvalEvidenceRef?: string | null;
 }): Promise<{
   readonly root: string;
   readonly summaryPath: string;
@@ -161,6 +164,14 @@ async function renderFixture(options?: {
     options ?? {},
     'approvedBy',
   );
+  const hasApprovedAtOverride = Object.prototype.hasOwnProperty.call(
+    options ?? {},
+    'approvedAt',
+  );
+  const hasApprovalEvidenceOverride = Object.prototype.hasOwnProperty.call(
+    options ?? {},
+    'approvalEvidenceRef',
+  );
   const packet = await renderProductionGoNoGoPacket({
     rootDir: process.cwd(),
     promotionSummaryPath: summaryPath,
@@ -173,7 +184,13 @@ async function renderFixture(options?: {
     customerPepProofDigest: options?.customerPepProofDigest,
     providerRouteProofDigest: options?.providerRouteProofDigest,
     approvedBy: hasApprovedByOverride ? options?.approvedBy ?? null : 'operator@example.invalid',
-    approvedAt: new Date(Date.now() - 1_000).toISOString(),
+    approvedAt: hasApprovedAtOverride
+      ? options?.approvedAt ?? null
+      : new Date(Date.now() - 1_000).toISOString(),
+    approvalSource: options?.approvalSource ?? 'protected-environment',
+    approvalEvidenceRef: hasApprovalEvidenceOverride
+      ? options?.approvalEvidenceRef ?? null
+      : digest('approval-evidence'),
   });
   return { root, summaryPath, packet };
 }
@@ -204,7 +221,10 @@ async function testEnvironmentPromotionCanGoWithScopedNonClaims(): Promise<void>
 }
 
 async function testCustomerEnforcementRequiresPepProof(): Promise<void> {
-  const missing = await renderFixture({ targetScope: 'customer-enforcement' });
+  const missing = await renderFixture({
+    targetScope: 'customer-enforcement',
+    approvalSource: 'signed-approval',
+  });
   try {
     equal(missing.packet.decision.verdict, 'no-go', 'Production go/no-go packet: customer enforcement without PEP proof fails closed');
     ok(
@@ -219,6 +239,7 @@ async function testCustomerEnforcementRequiresPepProof(): Promise<void> {
   const present = await renderFixture({
     targetScope: 'customer-enforcement',
     customerPepProofDigest: digest('customer-pep'),
+    approvalSource: 'signed-approval',
   });
   try {
     equal(present.packet.decision.verdict, 'go', 'Production go/no-go packet: customer enforcement can go with PEP proof');
@@ -301,6 +322,47 @@ async function testMissingSignerAndApprovalRemainNoGoAndSecretSafe(): Promise<vo
   }
 }
 
+async function testWorkflowActorMetadataAloneDoesNotApprovePromotion(): Promise<void> {
+  const { root, packet } = await renderFixture({
+    approvalSource: 'workflow-actor',
+    approvalEvidenceRef: null,
+  });
+  try {
+    equal(packet.decision.verdict, 'no-go', 'Production go/no-go packet: workflow actor metadata alone cannot approve promotion');
+    equal(packet.decision.humanApproval.present, false, 'Production go/no-go packet: weak approval source is not marked present');
+    ok(
+      packet.decision.blockers.some((blocker) =>
+        blocker.includes('independent-human-approval-source-required')),
+      'Production go/no-go packet: independent approval source blocker is surfaced',
+    );
+    ok(
+      packet.decision.blockers.some((blocker) =>
+        blocker.includes('human-approval-evidence-ref-required')),
+      'Production go/no-go packet: approval evidence reference blocker is surfaced',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+async function testCustomerEnforcementRequiresSignedApprovalSource(): Promise<void> {
+  const { root, packet } = await renderFixture({
+    targetScope: 'customer-enforcement',
+    customerPepProofDigest: digest('customer-pep'),
+    approvalSource: 'protected-environment',
+  });
+  try {
+    equal(packet.decision.verdict, 'no-go', 'Production go/no-go packet: customer enforcement requires signed approval provenance');
+    ok(
+      packet.decision.blockers.some((blocker) =>
+        blocker.includes('customer-enforcement-signed-approval-required')),
+      'Production go/no-go packet: signed approval blocker is surfaced for customer enforcement',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 function testDocsAndScriptsExposeStep12(): void {
   const packageJson = JSON.parse(readProjectFile('package.json')) as {
     readonly scripts: Record<string, string>;
@@ -326,6 +388,8 @@ function testDocsAndScriptsExposeStep12(): void {
   includes(goNoGoDoc, 'external-signer-runtime-proof', 'Production go/no-go doc: signer gate is documented');
   includes(goNoGoDoc, 'customer-pep-cutover-proof', 'Production go/no-go doc: PEP gate is documented');
   includes(goNoGoDoc, 'llm-provider-route-proof', 'Production go/no-go doc: provider route gate is documented');
+  includes(goNoGoDoc, '--approval-source', 'Production go/no-go doc: approval source input is documented');
+  includes(goNoGoDoc, 'workflow-actor', 'Production go/no-go doc: weak workflow actor approval source is documented');
   includes(tracker, '| Complete in this tracker | 12 |', 'Unlock tracker: Step 12 completion count is updated');
   includes(tracker, '| Remaining after this tracker | 0 |', 'Unlock tracker: no remaining tracker steps');
   includes(tracker, '| 12 | complete | Production rehearsal go/no-go packet |', 'Unlock tracker: Step 12 is complete');
@@ -346,6 +410,8 @@ await testCustomerEnforcementRequiresPepProof();
 await testProviderRouteRequiredNeedsProof();
 await testPromotionCandidateBlockersRemainNoGo();
 await testMissingSignerAndApprovalRemainNoGoAndSecretSafe();
+await testWorkflowActorMetadataAloneDoesNotApprovePromotion();
+await testCustomerEnforcementRequiresSignedApprovalSource();
 testDocsAndScriptsExposeStep12();
 
 console.log(`Production go/no-go packet tests: ${passed} passed, 0 failed`);

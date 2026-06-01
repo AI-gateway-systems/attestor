@@ -293,6 +293,9 @@ function testPublicArtifactRedactionScannerIsWired(): void {
   ok(workflow.includes('npm run check:public-artifacts-redaction'), 'Secret-safe output: security scan runs public artifact redaction scan');
   ok(scanner.includes('docs/evidence'), 'Secret-safe output: scanner includes public evidence artifacts');
   ok(scanner.includes('docs/00-evaluation'), 'Secret-safe output: scanner includes evaluation artifacts');
+  ok(scanner.includes('.attestor/proof-surface/latest'), 'Secret-safe output: scanner includes generated proof-surface artifacts');
+  ok(scanner.includes('.attestor/showcase/latest'), 'Secret-safe output: scanner includes generated proof showcase artifacts');
+  ok(scanner.includes('.attestor/release-provenance'), 'Secret-safe output: scanner includes release provenance staging artifacts');
 }
 
 testRedactsKnownLiveSecretShapes();

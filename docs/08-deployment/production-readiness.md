@@ -21,8 +21,8 @@ The final operator decision handoff is the
 [Production go/no-go packet](production-go-no-go-packet.md). It consumes the
 signed production-promotion candidate bundle plus target signer proof, scoped
 customer PEP proof when in scope, provider-route proof when in scope,
-observability/runbook evidence, and human approval. It returns `go` or `no-go`
-without widening the claim beyond the named target.
+observability/runbook evidence, and independent approval provenance. It returns
+`go` or `no-go` without widening the claim beyond the named target.
 
 ## What "Ready" Means Here
 

@@ -5,10 +5,11 @@ import {
 import {
   copyFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
-  statSync,
+  realpathSync,
   writeFileSync,
 } from 'node:fs';
 import {
@@ -130,6 +131,28 @@ interface MissingArtifact {
   readonly required: boolean;
 }
 
+type ArtifactPathBoundaryReason =
+  | 'absolute-path-not-allowed'
+  | 'parent-traversal-not-allowed'
+  | 'outside-allowed-artifact-roots'
+  | 'symlink-artifact-not-allowed';
+
+interface DeniedArtifact {
+  readonly id: string;
+  readonly path: string;
+  readonly required: boolean;
+  readonly reason: ArtifactPathBoundaryReason;
+  readonly allowedRoots: readonly string[];
+}
+
+interface ArtifactPathBoundary {
+  readonly policyVersion: 'attestor.production-promotion.artifact-path-boundary.v1';
+  readonly allowedRoots: readonly string[];
+  readonly denyAbsolutePaths: boolean;
+  readonly denyParentTraversal: boolean;
+  readonly denySymlinkArtifacts: boolean;
+}
+
 interface BundleSignature {
   readonly type: 'attestor.production-promotion.attestation.v1';
   readonly subject: {
@@ -181,8 +204,10 @@ export interface ProductionPromotionCandidateSummary {
     readonly finalEvidenceIds: readonly string[];
     readonly includedArtifacts: readonly IncludedArtifact[];
     readonly missingArtifacts: readonly MissingArtifact[];
+    readonly deniedArtifacts: readonly DeniedArtifact[];
     readonly digestMismatches: readonly string[];
   };
+  readonly artifactPathBoundary: ArtifactPathBoundary;
   readonly checks: readonly ProductionPromotionCandidateCheck[];
   readonly goNoGo: {
     readonly verdict: GoNoGoVerdict;
@@ -212,6 +237,17 @@ export interface ProductionPromotionCandidateSummary {
 const DEFAULT_MANIFEST_PATH = 'docs/08-deployment/production-rehearsal-manifest.example.json';
 const DEFAULT_OUTPUT_DIR = '.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate';
 const FINAL_COMMAND_ID = 'package-production-promotion-candidate';
+const ARTIFACT_PATH_BOUNDARY: ArtifactPathBoundary = Object.freeze({
+  policyVersion: 'attestor.production-promotion.artifact-path-boundary.v1',
+  allowedRoots: Object.freeze([
+    '.attestor/rehearsal',
+    '.attestor/production-readiness',
+    '.attestor/release-provenance',
+  ]),
+  denyAbsolutePaths: true,
+  denyParentTraversal: true,
+  denySymlinkArtifacts: true,
+});
 const REQUIRED_WORKFLOW_RUNS = [
   'evaluationSmoke',
   'fullVerify',
@@ -259,6 +295,136 @@ function resolveFromRoot(rootDir: string, path: string): string {
   return isAbsolute(path) ? path : resolve(rootDir, path);
 }
 
+function containsParentTraversal(path: string): boolean {
+  return path.split(/[\\/]+/u).some((segment) => segment === '..');
+}
+
+function isInsidePath(parentPath: string, candidatePath: string): boolean {
+  const candidateRelative = relative(parentPath, candidatePath);
+  return candidateRelative === ''
+    || (!candidateRelative.startsWith('..') && !isAbsolute(candidateRelative));
+}
+
+function allowedArtifactRootPaths(rootDir: string): readonly string[] {
+  return ARTIFACT_PATH_BOUNDARY.allowedRoots.map((allowedRoot) => {
+    const resolved = resolve(rootDir, allowedRoot);
+    return existsSync(resolved) ? realpathSync(resolved) : resolved;
+  });
+}
+
+function artifactPathBoundaryDenial(
+  rootDir: string,
+  ref: {
+    readonly id: string;
+    readonly path: string;
+    readonly required: boolean;
+  },
+): {
+  readonly absolutePath: string;
+  readonly deniedArtifact?: DeniedArtifact;
+} {
+  if (isAbsolute(ref.path)) {
+    return {
+      absolutePath: ref.path,
+      deniedArtifact: {
+        id: ref.id,
+        path: ref.path,
+        required: ref.required,
+        reason: 'absolute-path-not-allowed',
+        allowedRoots: ARTIFACT_PATH_BOUNDARY.allowedRoots,
+      },
+    };
+  }
+
+  if (containsParentTraversal(ref.path)) {
+    return {
+      absolutePath: resolve(rootDir, ref.path),
+      deniedArtifact: {
+        id: ref.id,
+        path: ref.path,
+        required: ref.required,
+        reason: 'parent-traversal-not-allowed',
+        allowedRoots: ARTIFACT_PATH_BOUNDARY.allowedRoots,
+      },
+    };
+  }
+
+  const absolutePath = resolve(rootDir, ref.path);
+  const allowedRoots = allowedArtifactRootPaths(rootDir);
+  if (!allowedRoots.some((allowedRoot) => isInsidePath(allowedRoot, absolutePath))) {
+    return {
+      absolutePath,
+      deniedArtifact: {
+        id: ref.id,
+        path: ref.path,
+        required: ref.required,
+        reason: 'outside-allowed-artifact-roots',
+        allowedRoots: ARTIFACT_PATH_BOUNDARY.allowedRoots,
+      },
+    };
+  }
+
+  if (existsSync(absolutePath)) {
+    const lstat = lstatSync(absolutePath);
+    if (lstat.isSymbolicLink()) {
+      return {
+        absolutePath,
+        deniedArtifact: {
+          id: ref.id,
+          path: ref.path,
+          required: ref.required,
+          reason: 'symlink-artifact-not-allowed',
+          allowedRoots: ARTIFACT_PATH_BOUNDARY.allowedRoots,
+        },
+      };
+    }
+    const realPath = realpathSync(absolutePath);
+    if (!allowedRoots.some((allowedRoot) => isInsidePath(allowedRoot, realPath))) {
+      return {
+        absolutePath,
+        deniedArtifact: {
+          id: ref.id,
+          path: ref.path,
+          required: ref.required,
+          reason: 'outside-allowed-artifact-roots',
+          allowedRoots: ARTIFACT_PATH_BOUNDARY.allowedRoots,
+        },
+      };
+    }
+  }
+
+  return { absolutePath };
+}
+
+function sourceFileBoundaryDenial(rootDir: string, sourceFile: string, ref: {
+  readonly id: string;
+  readonly path: string;
+  readonly required: boolean;
+}): DeniedArtifact | null {
+  const allowedRoots = allowedArtifactRootPaths(rootDir);
+  const lstat = lstatSync(sourceFile);
+  if (lstat.isSymbolicLink()) {
+    return {
+      id: ref.id,
+      path: relative(rootDir, sourceFile).replaceAll('\\', '/'),
+      required: ref.required,
+      reason: 'symlink-artifact-not-allowed',
+      allowedRoots: ARTIFACT_PATH_BOUNDARY.allowedRoots,
+    };
+  }
+  const realPath = realpathSync(sourceFile);
+  if (!allowedRoots.some((allowedRoot) => isInsidePath(allowedRoot, realPath))) {
+    return {
+      id: ref.id,
+      path: relative(rootDir, sourceFile).replaceAll('\\', '/'),
+      required: ref.required,
+      reason: 'outside-allowed-artifact-roots',
+      allowedRoots: ARTIFACT_PATH_BOUNDARY.allowedRoots,
+    };
+  }
+  return null;
+}
+
 function isPlaceholder(value: string | undefined | null): boolean {
   if (!value) return true;
   const normalized = value.trim().toLowerCase();
@@ -281,8 +447,9 @@ function safeArtifactName(id: string, sourcePath: string): string {
 }
 
 function listFiles(path: string): readonly string[] {
-  const stat = statSync(path);
+  const stat = lstatSync(path);
   if (stat.isFile()) return [path];
+  if (stat.isSymbolicLink()) return [path];
   if (!stat.isDirectory()) return [];
   return readdirSync(path)
     .flatMap((entry) => listFiles(join(path, entry)))
@@ -362,22 +529,33 @@ function copyReferencedArtifacts(
 ): {
   readonly includedArtifacts: readonly IncludedArtifact[];
   readonly missingArtifacts: readonly MissingArtifact[];
+  readonly deniedArtifacts: readonly DeniedArtifact[];
   readonly digestMismatches: readonly string[];
 } {
   const artifactDir = resolve(bundleDir, 'artifacts');
   mkdirSync(artifactDir, { recursive: true });
   const includedArtifacts: IncludedArtifact[] = [];
   const missingArtifacts: MissingArtifact[] = [];
+  const deniedArtifacts: DeniedArtifact[] = [];
   const digestMismatches: string[] = [];
 
   for (const ref of collectArtifactReferences(manifest, finalIds)) {
-    const absolutePath = resolveFromRoot(rootDir, ref.path);
+    const { absolutePath, deniedArtifact } = artifactPathBoundaryDenial(rootDir, ref);
+    if (deniedArtifact) {
+      deniedArtifacts.push(deniedArtifact);
+      continue;
+    }
     if (!existsSync(absolutePath)) {
       missingArtifacts.push({ id: ref.id, path: ref.path, required: ref.required });
       continue;
     }
 
     for (const sourceFile of listFiles(absolutePath)) {
+      const fileDenial = sourceFileBoundaryDenial(rootDir, sourceFile, ref);
+      if (fileDenial) {
+        deniedArtifacts.push(fileDenial);
+        continue;
+      }
       const buffer = readFileSync(sourceFile);
       const digest = sha256(buffer);
       if (ref.expectedDigest && ref.expectedDigest !== digest) {
@@ -398,7 +576,7 @@ function copyReferencedArtifacts(
     }
   }
 
-  return { includedArtifacts, missingArtifacts, digestMismatches };
+  return { includedArtifacts, missingArtifacts, deniedArtifacts, digestMismatches };
 }
 
 function validateManifest(
@@ -681,6 +859,11 @@ export async function packageProductionPromotionCandidate(options?: {
   const environmentPacket = readEnvironmentPacket(rootDir, manifest);
 
   checks.push(
+    artifactResult.deniedArtifacts.length === 0
+      ? pass('artifact-path-boundary', 'All manifest artifact paths stayed inside the promotion evidence allowlist.', ARTIFACT_PATH_BOUNDARY)
+      : fail('artifact-path-boundary', `Denied artifact paths: ${artifactResult.deniedArtifacts.map((item) => `${item.id}:${item.reason}`).join(', ')}`, artifactResult.deniedArtifacts),
+  );
+  checks.push(
     artifactResult.missingArtifacts.filter((item) => item.required).length === 0
       ? pass('required-artifacts-present', 'All required prerequisite artifacts are present.')
       : fail('required-artifacts-present', `Missing required artifacts: ${artifactResult.missingArtifacts.filter((item) => item.required).map((item) => `${item.id}:${item.path}`).join(', ')}.`),
@@ -737,8 +920,10 @@ export async function packageProductionPromotionCandidate(options?: {
       finalEvidenceIds: [...finalIds],
       includedArtifacts: artifactResult.includedArtifacts,
       missingArtifacts: artifactResult.missingArtifacts,
+      deniedArtifacts: artifactResult.deniedArtifacts,
       digestMismatches: artifactResult.digestMismatches,
     },
+    artifactPathBoundary: ARTIFACT_PATH_BOUNDARY,
     checks,
     goNoGo: {
       verdict,

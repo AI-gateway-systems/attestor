@@ -142,6 +142,10 @@ jobs:
       ATTESTOR_PRODUCTION_GO_NO_GO_EXTERNAL_SIGNER_PROOF_DIGEST: ${{ secrets.ATTESTOR_PRODUCTION_GO_NO_GO_EXTERNAL_SIGNER_PROOF_DIGEST }}
       ATTESTOR_PRODUCTION_GO_NO_GO_CUSTOMER_PEP_PROOF_DIGEST: ${{ secrets.ATTESTOR_PRODUCTION_GO_NO_GO_CUSTOMER_PEP_PROOF_DIGEST }}
       ATTESTOR_PRODUCTION_GO_NO_GO_PROVIDER_ROUTE_PROOF_DIGEST: ${{ secrets.ATTESTOR_PRODUCTION_GO_NO_GO_PROVIDER_ROUTE_PROOF_DIGEST }}
+      ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_BY: ${{ vars.ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_BY }}
+      ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_AT: ${{ vars.ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_AT }}
+      ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_SOURCE: ${{ vars.ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_SOURCE }}
+      ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_EVIDENCE_REF: ${{ secrets.ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_EVIDENCE_REF }}
 
     steps:
       - name: Checkout
@@ -209,8 +213,10 @@ jobs:
           npm run render:production-go-no-go-packet -- \
             --promotion-summary=.attestor/rehearsal/gke-production-rehearsal/production-promotion-candidate/summary.json \
             --output-dir=.attestor/rehearsal/gke-production-rehearsal/production-go-no-go \
-            --approved-by="$GITHUB_ACTOR" \
-            --approved-at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            --approved-by="$ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_BY" \
+            --approved-at="$ATTESTOR_PRODUCTION_GO_NO_GO_APPROVED_AT" \
+            --approval-source="$ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_SOURCE" \
+            --approval-evidence-ref="$ATTESTOR_PRODUCTION_GO_NO_GO_APPROVAL_EVIDENCE_REF"
 
       - name: Upload production rehearsal artifacts
         if: always()
