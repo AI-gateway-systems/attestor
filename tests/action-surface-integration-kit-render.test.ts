@@ -110,6 +110,19 @@ function testRendererWritesReviewOnlyIntegrationKit(): void {
       existsSync(rendered.artifacts.noBypassProbeBundlePath),
       'Integration kit render: no-bypass probe bundle is written',
     );
+    includes(readme, 'Start here:', 'Integration kit render: README starts with the reviewer entry point');
+    includes(readme, 'What this is:', 'Integration kit render: README explains the local handoff shape');
+    includes(
+      readme,
+      'local-first review package',
+      'Integration kit render: README keeps local-first positioning',
+    );
+    includes(readme, 'Decision checklist:', 'Integration kit render: README gives reviewer decisions');
+    includes(
+      readme,
+      'no source manifests are uploaded by this renderer',
+      'Integration kit render: README keeps upload boundary explicit',
+    );
     includes(readme, 'Safety boundary', 'Integration kit render: README exposes safety boundary');
     includes(readme, 'does not apply infrastructure', 'Integration kit render: README blocks apply claims');
     includes(summary, 'artifactManifestDigest', 'Integration kit render: summary binds artifact digest');

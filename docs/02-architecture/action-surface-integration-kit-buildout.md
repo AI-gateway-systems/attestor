@@ -147,6 +147,30 @@ until the probes run against a reviewed customer or sandbox stop point.
 `approval-record.template.json` shows what a customer reviewer must fill in.
 It records review scope and decision; it does not grant authority by itself.
 
+## Local-First Use
+
+The first supported path is local-first. A team runs the renderer against
+metadata it already owns, reviews the generated directory, and decides which
+customer stop point to wire next.
+
+The renderer should make the first screen answer five questions:
+
+1. what action surface was found;
+2. where the downstream stop point should sit;
+3. whether the credential boundary still allows bypass;
+4. which generated files need developer or security review;
+5. which no-bypass probes must run later against a customer-owned gate.
+
+This avoids a new required hosted upload path. Hosted onboarding can still
+render the existing action-surface onboarding packet, but the integration kit
+does not require customers to send full API inventories, tool manifests,
+gateway logs, prompts, provider bodies, credentials, private thresholds, or
+raw customer records to Attestor.
+
+The local output may be shared as reviewed artifacts after redaction and
+approval. Until customer probes run and bind results back to the packet and
+artifact digests, the output remains review material only.
+
 ## Machine-Readable Contract
 
 The repo-side packet contract lives in
@@ -271,6 +295,10 @@ Use it to turn reviewed metadata into a local review directory:
 ```bash
 npm run render:action-surface-integration-kit -- --openapi=path/to/openapi.json
 ```
+
+The renderer is intentionally a local handoff tool. It reads the provided
+metadata, writes digest-bound review files, and keeps the human `README.md`
+focused on the next decision instead of long explanatory checklists.
 
 The bundled refund OpenAPI example uses the same renderer:
 
