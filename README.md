@@ -103,11 +103,6 @@ Release type:    GitHub pre-release / Golden Path evaluation baseline
 This is an evaluation release. It is not public SaaS, a production guarantee, a
 completed customer deployment, or a substitute for an external security audit.
 
-Repo-side production rehearsal work is tracked in
-[Production rehearsal buildout](docs/02-architecture/production-rehearsal-buildout.md).
-The broader repo-side unlock tracker is
-[Attestor unlock source of truth](docs/02-architecture/attestor-unlock-source-of-truth.md).
-
 ## Data Posture
 
 This is a control point, not a data lake.
