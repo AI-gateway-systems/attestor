@@ -61,11 +61,17 @@ Not after the refund.
 Before the real service call.
 
 If you already have MCP tools, an OpenAPI file, AsyncAPI metadata, workflow
-jobs, OpenTelemetry spans, CloudEvents, or gateway logs, follow the
-action-surface path:
-[Action surface auto-context](../02-architecture/action-surface-auto-context.md)
--> [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md)
--> [Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md).
+jobs, OpenTelemetry spans, CloudEvents, or gateway logs, start with the
+[Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md).
+That path gathers auto-context, onboarding material, integration-kit review
+files, readiness checks, and customer-owned gate proof planning under one
+review-first flow.
+
+Use [Action surface auto-context](../02-architecture/action-surface-auto-context.md)
+when you need the metadata inference details. Use
+[Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md)
+when you need the generated review files and no-bypass probe plan.
+
 The hosted renderer for the same review packet is
 `POST /api/v1/shadow/action-surface/onboarding-packet`.
 
@@ -189,13 +195,12 @@ Pick the next page by where you are in the integration:
 | If you are... | Open |
 |---|---|
 | still proving the shape | [Try Attestor first](try-attestor-first.md) |
-| observing without enforcement | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) |
-| starting from existing metadata | [Action surface auto-context](../02-architecture/action-surface-auto-context.md) |
-| sending the first admission request | [Consequence admission quickstart](consequence-admission-quickstart.md) |
-| wiring the downstream stop point | [Customer admission gate](customer-admission-gate.md) |
-| choosing placement in a customer app | [Customer integration recipes](customer-integration-recipes.md) |
-| copying framework-shaped examples | [Customer middleware examples](../../examples/customer-middleware/README.md) |
-| starting from a hosted account | [First hosted API call](hosted-first-api-call.md) |
+| using existing metadata first | [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) |
+| observing before enforcement | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) |
+| sending a concrete admission request | [Consequence admission quickstart](consequence-admission-quickstart.md) |
+| holding the real service call | [Customer admission gate](customer-admission-gate.md) |
+| reviewing shadow, admission, evidence, and boundary material | [Dashboard API summary](../02-architecture/dashboard-api-summary.md) |
+| finding deeper hosted, proof, support, or maintainer docs | [Repository navigator](repository-navigator.md) |
 
 For review/support language, use [Reason codes](../05-proof/reason-codes.md).
 For hosted buying and package boundaries, use
