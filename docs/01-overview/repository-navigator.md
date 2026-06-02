@@ -26,7 +26,7 @@ Use these when you need the main Attestor route, not every supporting page.
 | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) | Send observe-mode examples before enforcement. |
 | [Consequence admission quickstart](consequence-admission-quickstart.md) | Send a concrete admission request and read `admit`, `narrow`, `review`, or `block`. |
 | [Customer admission gate](customer-admission-gate.md) | Hold the real service call in the customer app, gateway, or middleware. |
-| [Dashboard API summary](../02-architecture/dashboard-api-summary.md) | Review shadow, admission, evidence, boundary, reason, and next-step material without raw event data. |
+| [Review surface dashboard summary](../02-architecture/dashboard-api-summary.md) | Review shadow, admission, evidence, boundary, reason, and next-step material without raw event data. |
 | [Repository navigator](repository-navigator.md) | Keep going into hosted, pricing, proof, support, deployment, or maintainer docs. |
 
 ## Pick One Door
@@ -45,7 +45,7 @@ do the next action there, and come back only if you still need more context.
 | "What code do I copy?" | [Customer middleware examples](../../examples/customer-middleware/README.md) | you have the closest framework example open. |
 | "What JSON do I send?" | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) | you have copied the closest payload shape for your action class. |
 | "What holds the real service call?" | [Customer admission gate](customer-admission-gate.md) | you know how the customer-owned gate holds observe, warn, review, block, missing-proof, and fail-closed outcomes. |
-| "What does the reviewer see?" | [Dashboard API summary](../02-architecture/dashboard-api-summary.md) | you understand the compact review surface without treating it as enforcement. |
+| "What does the reviewer see?" | [Review surface dashboard summary](../02-architecture/dashboard-api-summary.md) | you understand the compact review surface without treating it as enforcement. |
 | "Why did it review or block?" | [Reason codes](../05-proof/reason-codes.md) | you understand the reason code and the next safe step. |
 | "What is proven today?" | [README current state](../../README.md#current-state) | you can separate repo-side evidence from live proof. |
 | "What still needs real deployment evidence?" | [Live proof register](../audit/live-proof-register.md) | you know which proof is live/customer/operator-only. |
@@ -67,7 +67,7 @@ do the next action there, and come back only if you still need more context.
 | Start from MCP, OpenAPI, AsyncAPI, workflow, or telemetry metadata | [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) | follow the packet's next safe step. |
 | Make the first hosted API call | [First hosted API call](hosted-first-api-call.md) | [Hosted action authorization API](hosted-action-authorization-api.md) |
 | Understand `admit`, `narrow`, `review`, and `block` | [Consequence admission quickstart](consequence-admission-quickstart.md) | [Reason codes](../05-proof/reason-codes.md) |
-| Review shadow, admission, evidence, and boundary material | [Dashboard API summary](../02-architecture/dashboard-api-summary.md) | [Attestor Review Surface contract](../02-architecture/attestor-review-surface-contract.md) |
+| Review shadow, admission, evidence, and boundary material | [Review surface dashboard summary](../02-architecture/dashboard-api-summary.md) | [Attestor Review Surface contract](../02-architecture/attestor-review-surface-contract.md) |
 | Decode Attestor terms | [Glossary](../02-architecture/glossary.md) | [Attestor language contract](../02-architecture/attestor-language-contract.md) |
 | Explain a review or block reason | [Reason codes](../05-proof/reason-codes.md) | [Failure modes and controls](../05-proof/failure-modes-and-controls.md) |
 | Check what is real today | [README current state](../../README.md#current-state) | [Current posture baseline](../audit/current-posture-baseline.md) |

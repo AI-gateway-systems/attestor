@@ -292,7 +292,7 @@ function testDescriptorDocsAndPackageSurface(): void {
   );
   includes(
     systemOverview,
-    '[Dashboard API summary](dashboard-api-summary.md)',
+    '[Review surface dashboard summary](dashboard-api-summary.md)',
     'Dashboard API summary: system overview links doc',
   );
   equal(

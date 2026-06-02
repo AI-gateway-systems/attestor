@@ -199,7 +199,7 @@ Pick the next page by where you are in the integration:
 | observing before enforcement | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) |
 | sending a concrete admission request | [Consequence admission quickstart](consequence-admission-quickstart.md) |
 | holding the real service call | [Customer admission gate](customer-admission-gate.md) |
-| reviewing shadow, admission, evidence, and boundary material | [Dashboard API summary](../02-architecture/dashboard-api-summary.md) |
+| reviewing shadow, admission, evidence, and boundary material | [Review surface dashboard summary](../02-architecture/dashboard-api-summary.md) |
 | finding deeper hosted, proof, support, or maintainer docs | [Repository navigator](repository-navigator.md) |
 
 For review/support language, use [Reason codes](../05-proof/reason-codes.md).

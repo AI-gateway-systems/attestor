@@ -64,7 +64,7 @@ The append-only proof trail lives in [Tamper-evident history](tamper-evident-his
 
 The operator-facing risk summary lives in [Business risk dashboard](business-risk-dashboard.md). Use it when a customer needs to see action volume, review load, blocked actions, policy gaps, consequence-domain risk, downstream proof coverage, and operator-supplied impact without turning raw logs into the product.
 
-The first-screen dashboard API lives in [Dashboard API summary](dashboard-api-summary.md). Use it when a UI, CLI, or customer-facing API needs compact tiles, attention items, top domains, and links to deeper proof surfaces without exposing raw event data.
+The first-screen dashboard API lives in [Review surface dashboard summary](dashboard-api-summary.md). Use it when a UI, CLI, or customer-facing API needs compact tiles, attention items, top domains, and links to deeper proof surfaces without exposing raw event data.
 
 The unified review workspace contract lives in [Attestor Review Surface contract](attestor-review-surface-contract.md). Use it when dashboard, queue, case, action-map, evidence, policy, and assurance views need one redacted, digest-first contract before hosted UI, API routes, or exports are implemented.
 

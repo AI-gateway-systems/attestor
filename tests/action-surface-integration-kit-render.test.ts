@@ -83,6 +83,7 @@ function testRendererWritesReviewOnlyIntegrationKit(): void {
       rendered.artifacts.customerGateWiringPacketPath,
       'utf8',
     );
+    const liveProofPrep = readFileSync(rendered.artifacts.liveProofPrepPath, 'utf8');
 
     equal(rendered.kit.status, 'review-required', 'Integration kit render: surfaces require review');
     equal(rendered.kit.deploysInfrastructure, false, 'Integration kit render: deployment is false');
@@ -119,6 +120,10 @@ function testRendererWritesReviewOnlyIntegrationKit(): void {
     ok(
       existsSync(rendered.artifacts.customerGateWiringPacketPath),
       'Integration kit render: customer gate wiring packet is written',
+    );
+    ok(
+      existsSync(rendered.artifacts.liveProofPrepPath),
+      'Integration kit render: live proof prep is written',
     );
     includes(readme, 'Start here:', 'Integration kit render: README starts with the reviewer entry point');
     includes(readme, 'What this is:', 'Integration kit render: README explains the local handoff shape');
@@ -168,6 +173,21 @@ function testRendererWritesReviewOnlyIntegrationKit(): void {
       '"activatesEnforcement": false',
       'Integration kit render: customer gate wiring packet does not activate enforcement',
     );
+    includes(
+      liveProofPrep,
+      '"executesLiveProof": false',
+      'Integration kit render: live proof prep does not execute proof',
+    );
+    includes(
+      liveProofPrep,
+      'ATTESTOR_CUSTOMER_PEP_NO_BYPASS_PROOF',
+      'Integration kit render: live proof prep names proof gate',
+    );
+    includes(
+      liveProofPrep,
+      '"generatedBundleMayCloseLiveProof": false',
+      'Integration kit render: live proof prep cannot close live proof',
+    );
     excludes(summary, /raw_prompt_must_not_escape/u, 'Integration kit render: raw OpenAPI text is not serialized');
     excludes(summary, /sk_live_must_not_escape/u, 'Integration kit render: secret-like text is not serialized');
     excludes(readme, /production ready: true/iu, 'Integration kit render: README does not overclaim production');
@@ -212,6 +232,10 @@ function testRendererCliAndDocsAndPackageScript(): void {
     ok(
       existsSync(join(outputDir, 'artifacts', 'customer-gate-wiring-packet.json')),
       'Integration kit CLI: customer gate wiring packet is written',
+    );
+    ok(
+      existsSync(join(outputDir, 'artifacts', 'live-proof-prep.json')),
+      'Integration kit CLI: live proof prep is written',
     );
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
