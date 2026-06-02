@@ -114,6 +114,10 @@ function formatList(items: readonly string[]): string {
   return items.length ? items.map((item) => `- ${item}`).join('\n') : '- none';
 }
 
+function formatInlineList(items: readonly string[]): string {
+  return items.length ? items.join(', ') : 'none';
+}
+
 function renderReadme(input: {
   readonly kit: RenderedActionSurfaceIntegrationKit['kit'];
   readonly artifactDrafts:
@@ -124,21 +128,77 @@ function renderReadme(input: {
     ReturnType<typeof createActionSurfaceIntegrationKitNoBypassProbeBundle>;
 }): string {
   const { kit, artifactDrafts, mcpGatewayDrafts, noBypassProbeBundle } = input;
+  const firstArtifact = kit.artifactManifest.artifacts[0];
+  const artifactKinds = Object.freeze(
+    [...new Set(kit.artifactManifest.artifacts.map((artifact) => artifact.kind))].sort(),
+  );
+  const modes = Object.freeze(
+    [...new Set(kit.artifactManifest.artifacts.map((artifact) => artifact.mode))].sort(),
+  );
+  const firstSurface = firstArtifact?.actionSurface ?? 'none';
+  const firstDomain = firstArtifact?.domain ?? 'not declared';
+  const firstDownstream = firstArtifact?.downstreamSystem ?? 'not declared';
+  const firstMode = firstArtifact?.mode ?? 'none';
   return `# Attestor action surface integration kit
 
-Generated at:
+Start here:
 
-- ${kit.generatedAt}
-
-Packet:
-
-- version: ${kit.version}
 - status: ${kit.status}
-- digest: ${kit.digest}
-- source packet digest: ${kit.sourcePacketDigest}
+- first surface: ${firstSurface}
+- domain: ${firstDomain}
+- downstream system: ${firstDownstream}
+- selected mode: ${firstMode}
 - surfaces: ${kit.summary.surfaceCount}
 - generated artifacts: ${kit.artifactManifest.artifactCount}
 - no-bypass probe cases: ${kit.noBypassProbePlan.probeCaseCount}
+
+What this is:
+
+- a local-first review package for one Attestor action-surface path
+- a developer and reviewer handoff, not a gateway apply step
+- a compact map from metadata to review files, proof-plan, and next safe step
+- no source manifests are uploaded by this renderer
+
+Decision checklist:
+
+1. Confirm the action surface and downstream stop point.
+2. Confirm the credential boundary blocks direct agent bypass.
+3. Review the generated overlay, gateway, MCP, and probe drafts.
+4. Decide whether the customer-owned gate is ready for sandbox probes.
+5. Bind any later probe result back to these packet and artifact digests.
+
+Review files:
+
+| File | Use |
+|---|---|
+| summary.json | machine entry point and digest links |
+| artifact-manifest.json | generated artifact ids, kinds, and digests |
+| no-bypass-probes.json | customer stop-point proof plan |
+| approval-record.template.json | reviewer decision template |
+| artifacts/openapi-overlay.json | OpenAPI Overlay review draft |
+| artifacts/envoy-ext-authz.json | Envoy ext_authz review draft |
+| artifacts/mcp-gateway-drafts.json | MCP tool-gateway review draft |
+| artifacts/no-bypass-probe-bundle.json | expanded probe definitions |
+
+Generated draft summary:
+
+- OpenAPI routes: ${artifactDrafts.routeCount}
+- MCP tool drafts: ${mcpGatewayDrafts.toolCount}
+- no-bypass probe bundle cases: ${noBypassProbeBundle.probeCaseCount}
+- integration modes: ${formatInlineList(modes)}
+- artifact kinds: ${formatInlineList(artifactKinds)}
+- probe bundle executes probes: ${noBypassProbeBundle.executesProbes}
+- proof result recorded: ${noBypassProbeBundle.proofResultRecorded}
+
+Machine anchors:
+
+- version: ${kit.version}
+- generated at: ${kit.generatedAt}
+- kit digest: ${kit.digest}
+- source packet digest: ${kit.sourcePacketDigest}
+- artifact manifest digest: ${kit.summary.artifactManifestDigest}
+- no-bypass probe plan digest: ${kit.summary.noBypassProbePlanDigest}
+- approval template digest: ${kit.summary.approvalRecordTemplateDigest}
 
 Safety boundary:
 
@@ -151,25 +211,6 @@ Safety boundary:
 - issues credentials: ${kit.issuesCredentials}
 - activates enforcement: ${kit.activatesEnforcement}
 - non-bypassable claim allowed: ${kit.nonBypassableClaimAllowed}
-
-Generated review files:
-
-- summary.json
-- artifact-manifest.json
-- no-bypass-probes.json
-- approval-record.template.json
-- artifacts/openapi-overlay.json
-- artifacts/envoy-ext-authz.json
-- artifacts/mcp-gateway-drafts.json
-- artifacts/no-bypass-probe-bundle.json
-
-Review status:
-
-- OpenAPI routes: ${artifactDrafts.routeCount}
-- MCP tool drafts: ${mcpGatewayDrafts.toolCount}
-- no-bypass probe bundle cases: ${noBypassProbeBundle.probeCaseCount}
-- probe bundle executes probes: ${noBypassProbeBundle.executesProbes}
-- proof result recorded: ${noBypassProbeBundle.proofResultRecorded}
 
 Limitations:
 

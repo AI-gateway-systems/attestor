@@ -49,6 +49,17 @@ function testBuildoutDocDefinesHumanAndMachineOutputs(): void {
   includes(doc, 'artifact-manifest.json', 'Integration kit doc: artifact manifest is named');
   includes(doc, 'no-bypass-probes.json', 'Integration kit doc: no-bypass probe plan is named');
   includes(doc, 'approval-record.template.json', 'Integration kit doc: approval template is named');
+  includes(doc, 'Local-First Use', 'Integration kit doc: local-first use section exists');
+  includes(
+    doc,
+    'The first supported path is local-first.',
+    'Integration kit doc: local-first path is explicit',
+  );
+  includes(
+    doc,
+    'does not require customers to send full API inventories',
+    'Integration kit doc: hosted upload boundary is explicit',
+  );
   includes(doc, 'rawPayloadStored: false', 'Integration kit doc: raw payload storage boundary is explicit');
   includes(doc, 'productionReady: false', 'Integration kit doc: production readiness no-claim is explicit');
   includes(doc, 'nonBypassableClaimAllowed: false', 'Integration kit doc: non-bypassable claim guard is explicit');
@@ -106,6 +117,11 @@ function testBuildoutDocStaysReviewOnlyAndLinked(): void {
     doc,
     'does not deploy gateways, issue credentials',
     'Integration kit doc: deployment boundary is documented',
+  );
+  includes(
+    doc,
+    'focused on the next decision instead of long explanatory checklists',
+    'Integration kit doc: renderer output stays human-decision focused',
   );
   includes(
     doc,
