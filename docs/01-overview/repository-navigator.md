@@ -14,6 +14,21 @@ Use this page as the single navigation hub from the repository front page.
 - [Repository map](repository-map.md) - codebase layout, package boundaries, and nearby test surfaces.
 - [Test system map](../02-architecture/test-system-map.md) - which test gate to run for a change.
 
+## Primary Paths
+
+Use these when you need the main Attestor route, not every supporting page.
+
+| Path | Use it for |
+|---|---|
+| [Try Attestor first](try-attestor-first.md) | Run the smallest local example and read the decision trail. |
+| [How to integrate Attestor](how-to-integrate-attestor.md) | Find the real side effect, then choose the right technical path. |
+| [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) | Start from OpenAPI, MCP, workflow, telemetry, CloudEvents, or gateway-log metadata. |
+| [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) | Send observe-mode examples before enforcement. |
+| [Consequence admission quickstart](consequence-admission-quickstart.md) | Send a concrete admission request and read `admit`, `narrow`, `review`, or `block`. |
+| [Customer admission gate](customer-admission-gate.md) | Hold the real service call in the customer app, gateway, or middleware. |
+| [Dashboard API summary](../02-architecture/dashboard-api-summary.md) | Review shadow, admission, evidence, boundary, reason, and next-step material without raw event data. |
+| [Repository navigator](repository-navigator.md) | Keep going into hosted, pricing, proof, support, deployment, or maintainer docs. |
+
 ## Pick One Door
 
 Do not read everything.
@@ -26,9 +41,11 @@ do the next action there, and come back only if you still need more context.
 | "Show me what this does." | [Try Attestor first](try-attestor-first.md) | the refund demo runs and you can explain why it held or blocked. |
 | "Show me all demos in order." | [Run the demos in order](demo-guide.md) | you have run the refund path, the all-pack path, and the closest integration-shape example. |
 | "Where do I put this in my app?" | [How to integrate Attestor](how-to-integrate-attestor.md) | you can point to the line before the real service is called. |
-| "Can Attestor infer my tools or APIs first?" | [Action surface auto-context](../02-architecture/action-surface-auto-context.md) | you know which metadata is safe to infer and which proof still needs review. |
+| "Can Attestor infer my tools or APIs first?" | [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) | you have one review packet and know which supporting auto-context or integration-kit detail to open next. |
 | "What code do I copy?" | [Customer middleware examples](../../examples/customer-middleware/README.md) | you have the closest framework example open. |
 | "What JSON do I send?" | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) | you have copied the closest payload shape for your action class. |
+| "What holds the real service call?" | [Customer admission gate](customer-admission-gate.md) | you know how the customer-owned gate holds observe, warn, review, block, missing-proof, and fail-closed outcomes. |
+| "What does the reviewer see?" | [Dashboard API summary](../02-architecture/dashboard-api-summary.md) | you understand the compact review surface without treating it as enforcement. |
 | "Why did it review or block?" | [Reason codes](../05-proof/reason-codes.md) | you understand the reason code and the next safe step. |
 | "What is proven today?" | [README current state](../../README.md#current-state) | you can separate repo-side evidence from live proof. |
 | "What still needs real deployment evidence?" | [Live proof register](../audit/live-proof-register.md) | you know which proof is live/customer/operator-only. |
@@ -47,9 +64,10 @@ do the next action there, and come back only if you still need more context.
 | Run the demo path | [Run the demos in order](demo-guide.md) | [Golden Path: Refund](../02-architecture/golden-refund-shadow-pilot.md) |
 | Send shadow events | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) | [Customer middleware examples](../../examples/customer-middleware/README.md) |
 | Wire a customer app | [How to integrate Attestor](how-to-integrate-attestor.md) | [Customer middleware examples](../../examples/customer-middleware/README.md) |
-| Start from MCP, OpenAPI, AsyncAPI, workflow, or telemetry metadata | [Action surface auto-context](../02-architecture/action-surface-auto-context.md) | [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) |
+| Start from MCP, OpenAPI, AsyncAPI, workflow, or telemetry metadata | [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) | [Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md) |
 | Make the first hosted API call | [First hosted API call](hosted-first-api-call.md) | [Hosted action authorization API](hosted-action-authorization-api.md) |
 | Understand `admit`, `narrow`, `review`, and `block` | [Consequence admission quickstart](consequence-admission-quickstart.md) | [Reason codes](../05-proof/reason-codes.md) |
+| Review shadow, admission, evidence, and boundary material | [Dashboard API summary](../02-architecture/dashboard-api-summary.md) | [Attestor Review Surface contract](../02-architecture/attestor-review-surface-contract.md) |
 | Decode Attestor terms | [Glossary](../02-architecture/glossary.md) | [Attestor language contract](../02-architecture/attestor-language-contract.md) |
 | Explain a review or block reason | [Reason codes](../05-proof/reason-codes.md) | [Failure modes and controls](../05-proof/failure-modes-and-controls.md) |
 | Check what is real today | [README current state](../../README.md#current-state) | [Current posture baseline](../audit/current-posture-baseline.md) |
@@ -93,9 +111,10 @@ code or review public package boundaries.
 
 1. Want to see value fast? Run [Try Attestor first](try-attestor-first.md), then [Run the demos in order](demo-guide.md).
 2. Want to wire something? Open [How to integrate Attestor](how-to-integrate-attestor.md).
-3. Want to explain a decision? Open [Reason codes](../05-proof/reason-codes.md).
-4. Want to verify a claim? Open [Audit evidence system](../audit/README.md).
-5. Want to change internals? Open [Internal machine map](../02-architecture/attestor-internal-machine-map.md).
+3. Want to start from existing API, tool, workflow, or telemetry metadata? Open [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md).
+4. Want to explain a decision? Open [Reason codes](../05-proof/reason-codes.md).
+5. Want to verify a claim? Open [Audit evidence system](../audit/README.md).
+6. Want to change internals? Open [Internal machine map](../02-architecture/attestor-internal-machine-map.md).
 
 Keep the distinction clean:
 

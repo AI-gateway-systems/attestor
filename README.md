@@ -126,12 +126,14 @@ The [data minimization and redaction policy](docs/02-architecture/data-minimizat
 ## Start Here
 
 Start light. Go deeper only when you need the detail.
+Pick the path that matches the job in front of you.
 
 - [Try Attestor first](docs/01-overview/try-attestor-first.md) - run the smallest local refund path and see the decision trail.
 - [How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md) - find the real side effect and place the customer-owned gate.
 - [Action surface onboarding packet](docs/02-architecture/action-surface-onboarding-packet.md) - start from existing metadata and render review-only packets, integration files, and hosted packet output without applying anything.
 - [Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - send observe-mode examples before enforcing anything.
-- [Dashboard API summary](docs/02-architecture/dashboard-api-summary.md) - see the compact first-screen API and hosted review surface entry without raw event data or enforcement claims.
 - [Consequence admission quickstart](docs/01-overview/consequence-admission-quickstart.md) - use the shared admission shape and decision vocabulary.
+- [Customer admission gate](docs/01-overview/customer-admission-gate.md) - hold the real service call in the customer app, gateway, or middleware.
+- [Dashboard API summary](docs/02-architecture/dashboard-api-summary.md) - see the compact first-screen API and hosted review surface entry without raw event data or enforcement claims.
 - [Repository navigator](docs/01-overview/repository-navigator.md) - find deeper docs for hosted, pricing, support, proof, or maintainer work.
 - [License and use](docs/01-overview/license-and-use.md) and [Security Policy](SECURITY.md) - understand use boundaries and reporting.
