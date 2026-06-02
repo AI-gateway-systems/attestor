@@ -108,6 +108,7 @@ Each kit should produce one directory per reviewed packet:
   approval-record.template.json
   artifacts/
     customer-gate-wiring-packet.json
+    live-proof-prep.json
 ```
 
 `README.md` is the human entry point. It should fit on one screen for the first
@@ -155,6 +156,12 @@ adoption-package evidence, source readiness digests, and the live-proof
 blocker. It does not deploy a PEP, issue credentials, run probes, activate
 enforcement, or prove
 non-bypassability.
+
+`artifacts/live-proof-prep.json` is the repo-side checklist for the later live
+proof capture. It connects the kit digest, no-bypass probe bundle digest,
+customer gate wiring packet digest, capture record fields, and
+`ATTESTOR_CUSTOMER_PEP_NO_BYPASS_PROOF` gate. It does not run probes, update
+the live proof register, or close `LP-CUSTOMER-PEP-NO-BYPASS`.
 
 ## Local-First Use
 
@@ -331,9 +338,9 @@ npm run example:action-surface-integration-kit
 
 It writes `README.md`, `summary.json`, `artifact-manifest.json`,
 `no-bypass-probes.json`, `approval-record.template.json`, and review artifacts
-under `artifacts/`. It does not deploy anything, expose MCP tools, issue or
-rotate credentials, run no-bypass probes, activate enforcement, or prove
-customer PEP no-bypass.
+under `artifacts/`, including `live-proof-prep.json`. It does not deploy
+anything, expose MCP tools, issue or rotate credentials, run no-bypass probes,
+activate enforcement, or prove customer PEP no-bypass.
 
 ## No-Bypass Probe Plan
 
@@ -400,6 +407,30 @@ customer-gate review candidates. The packet keeps
 `issuesCredentials: false`, `activatesEnforcement: false`, and
 `nonBypassableClaimAllowed: false`.
 
+## Live Proof Prep Bundle
+
+The live proof prep bundle contract lives in
+`src/consequence-admission/action-surface-integration-kit-live-proof-prep.ts`
+and is covered by
+`npm run test:action-surface-integration-kit-live-proof-prep`.
+
+It composes the same kit into a review-only capture plan for the existing
+`LP-CUSTOMER-PEP-NO-BYPASS` register entry:
+
+- kit, source packet, probe-plan, probe-bundle, and customer-gate wiring digests
+- per-surface live-proof candidate status
+- route or tool refs for the customer stop point
+- required wiring and probe evidence fields
+- live proof capture record fields: environment, timestamp, probe command,
+  redacted artifact, responsible operator, no-raw-data confirmation, and
+  remaining limitation
+- `ATTESTOR_CUSTOMER_PEP_NO_BYPASS_PROOF` as the later proof gate
+
+The bundle separates prep from proof. It keeps `executesLiveProof: false`,
+`recordsLiveProof: false`, `generatedBundleMayCloseLiveProof: false`,
+`productionReady: false`, and `nonBypassableClaimAllowed: false`. Observe-only
+surfaces stay non-candidates until a customer-owned stop point is selected.
+
 ## Implementation Order
 
 1. Document this buildout path and lock the no-overclaim wording.
@@ -409,9 +440,11 @@ customer-gate review candidates. The packet keeps
 5. Generate no-bypass probe bundles for gateway, SDK, and MCP modes.
 6. Add a customer gate wiring packet that maps kit outputs to customer-owned
    stop point evidence.
-7. Add a CLI/render entry point that composes scan, generate, and verify-review
+7. Add a live proof prep bundle that composes the generated kit, probe bundle,
+   and customer gate wiring packet without running probes.
+8. Add a CLI/render entry point that composes scan, generate, and verify-review
    outputs without applying anything.
-8. Link the path from the integration docs and examples after the contract is
+9. Link the path from the integration docs and examples after the contract is
    covered by tests.
 
 Each step must keep the files review-only until a customer-controlled downstream

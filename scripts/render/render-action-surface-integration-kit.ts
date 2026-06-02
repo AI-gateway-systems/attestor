@@ -5,6 +5,7 @@ import {
   ACTION_SURFACE_DECLARED_CREDENTIAL_POSTURES,
   createActionSurfaceIntegrationKitArtifactDraftBundle,
   createActionSurfaceIntegrationKitCustomerGateWiringPacket,
+  createActionSurfaceIntegrationKitLiveProofPrepBundle,
   createActionSurfaceIntegrationKitMcpGatewayDraftBundle,
   createActionSurfaceIntegrationKitNoBypassProbeBundle,
   createActionSurfaceIntegrationKitPacket,
@@ -57,6 +58,7 @@ export interface RenderedActionSurfaceIntegrationKit {
     readonly mcpGatewayDraftsPath: string;
     readonly noBypassProbeBundlePath: string;
     readonly customerGateWiringPacketPath: string;
+    readonly liveProofPrepPath: string;
   };
 }
 
@@ -130,6 +132,8 @@ function renderReadme(input: {
     ReturnType<typeof createActionSurfaceIntegrationKitNoBypassProbeBundle>;
   readonly customerGateWiringPacket:
     ReturnType<typeof createActionSurfaceIntegrationKitCustomerGateWiringPacket>;
+  readonly liveProofPrep:
+    ReturnType<typeof createActionSurfaceIntegrationKitLiveProofPrepBundle>;
 }): string {
   const {
     kit,
@@ -137,6 +141,7 @@ function renderReadme(input: {
     mcpGatewayDrafts,
     noBypassProbeBundle,
     customerGateWiringPacket,
+    liveProofPrep,
   } = input;
   const firstArtifact = kit.artifactManifest.artifacts[0];
   const artifactKinds = Object.freeze(
@@ -162,6 +167,7 @@ Start here:
 - generated artifacts: ${kit.artifactManifest.artifactCount}
 - no-bypass probe cases: ${kit.noBypassProbePlan.probeCaseCount}
 - customer gate wiring plans: ${customerGateWiringPacket.wiringPlanCount}
+- live-proof prep candidates: ${liveProofPrep.liveProofCandidateCount}
 
 What this is:
 
@@ -191,6 +197,7 @@ Review files:
 | artifacts/mcp-gateway-drafts.json | MCP tool-gateway review draft |
 | artifacts/no-bypass-probe-bundle.json | expanded probe definitions |
 | artifacts/customer-gate-wiring-packet.json | customer stop-point wiring review |
+| artifacts/live-proof-prep.json | repo-side live proof capture prep |
 
 Generated draft summary:
 
@@ -198,6 +205,7 @@ Generated draft summary:
 - MCP tool drafts: ${mcpGatewayDrafts.toolCount}
 - no-bypass probe bundle cases: ${noBypassProbeBundle.probeCaseCount}
 - customer gate wiring plans: ${customerGateWiringPacket.wiringPlanCount}
+- live-proof prep candidates: ${liveProofPrep.liveProofCandidateCount}
 - integration modes: ${formatInlineList(modes)}
 - artifact kinds: ${formatInlineList(artifactKinds)}
 - probe bundle executes probes: ${noBypassProbeBundle.executesProbes}
@@ -213,6 +221,7 @@ Machine anchors:
 - no-bypass probe plan digest: ${kit.summary.noBypassProbePlanDigest}
 - approval template digest: ${kit.summary.approvalRecordTemplateDigest}
 - customer gate wiring packet digest: ${customerGateWiringPacket.digest}
+- live-proof prep digest: ${liveProofPrep.digest}
 
 Safety boundary:
 
@@ -322,6 +331,10 @@ export function renderActionSurfaceIntegrationKit(
     kit,
     generatedAt,
   });
+  const liveProofPrep = createActionSurfaceIntegrationKitLiveProofPrepBundle({
+    kit,
+    generatedAt,
+  });
 
   const artifactsDir = resolve(outputDir, 'artifacts');
   mkdirSync(artifactsDir, { recursive: true });
@@ -339,6 +352,7 @@ export function renderActionSurfaceIntegrationKit(
     artifactsDir,
     'customer-gate-wiring-packet.json',
   );
+  const liveProofPrepPath = resolve(artifactsDir, 'live-proof-prep.json');
 
   writeFileSync(
     readmePath,
@@ -348,6 +362,7 @@ export function renderActionSurfaceIntegrationKit(
       mcpGatewayDrafts,
       noBypassProbeBundle,
       customerGateWiringPacket,
+      liveProofPrep,
     }),
     'utf8',
   );
@@ -360,6 +375,7 @@ export function renderActionSurfaceIntegrationKit(
   writeJson(mcpGatewayDraftsPath, mcpGatewayDrafts);
   writeJson(noBypassProbeBundlePath, noBypassProbeBundle);
   writeJson(customerGateWiringPacketPath, customerGateWiringPacket);
+  writeJson(liveProofPrepPath, liveProofPrep);
 
   return Object.freeze({
     kit,
@@ -376,6 +392,7 @@ export function renderActionSurfaceIntegrationKit(
       mcpGatewayDraftsPath,
       noBypassProbeBundlePath,
       customerGateWiringPacketPath,
+      liveProofPrepPath,
     }),
   });
 }
@@ -429,10 +446,12 @@ function main(): void {
       basename(result.artifacts.mcpGatewayDraftsPath),
       basename(result.artifacts.noBypassProbeBundlePath),
       basename(result.artifacts.customerGateWiringPacketPath),
+      basename(result.artifacts.liveProofPrepPath),
     ],
     surfaceCount: result.kit.summary.surfaceCount,
     probeCaseCount: result.kit.noBypassProbePlan.probeCaseCount,
     customerGateWiringPacket: basename(result.artifacts.customerGateWiringPacketPath),
+    liveProofPrep: basename(result.artifacts.liveProofPrepPath),
     deploysInfrastructure: result.kit.deploysInfrastructure,
     activatesEnforcement: result.kit.activatesEnforcement,
     nonBypassableClaimAllowed: result.kit.nonBypassableClaimAllowed,
