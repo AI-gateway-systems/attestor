@@ -72,6 +72,10 @@ becomes the stop point.
 
 ### Run Attestor in shadow pilot mode - and map what your AI agents are trying to do in the shadow of your systems.
 
+Observe mode maps every action your agents would take: what, why, and with
+what authority, backed by a digest-bound decision trail. You see the risk
+before it moves.
+
 [Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)
 
 ## The Same Pattern Across Operations
