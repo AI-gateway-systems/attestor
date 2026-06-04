@@ -110,7 +110,7 @@ This limitation is captured as OPS-166 and OPS-171.
 | Layer | Module / contact point | Authority | Feeds | Authority NOT held |
 |---|---|---|---|---|
 | Engine contract barrel | `src/consequence-admission/index.ts` | contract-shaping and advisory | admission responses, feedback, retry-budget evaluation, descriptors | cannot grant authority, reduce review, or activate enforcement |
-| Facade | `facade.ts` | explicit surface selection | finance pipeline admission and crypto execution-plan admission | cannot auto-detect packs or claim a public hosted crypto route |
+| Facade | `facade.ts` | explicit surface selection | finance admission projection and crypto execution-plan admission | cannot auto-detect packs or claim a public hosted crypto route |
 | Generic admission route | `src/service/http/routes/generic-admission-routes.ts` | mode-gated hosted route | shadow admission record, loop-abuse guard, protected token issuance | cannot prove live PEP no-bypass |
 | Retry budget | `index.ts` and `retry-attempt-ledger.ts` | hard-floor retry binding | retry admission attempts and shared-store proof path | cannot prove multi-instance shared-store runtime without live proof |
 | No-go ledger | `no-go-condition-ledger.ts` | hard block / review pressure | hold/no-go evaluation | cannot let natural language or LLM summaries release a hold |

@@ -16,7 +16,7 @@
 
 ## Validation Frame
 
-This validation intake checked whether the finance pipeline admission projection
+This validation intake checked whether the finance admission projection
 uses the same structured trust guards that already exist on the generic
 admission path when finance receives matching metadata.
 
@@ -68,7 +68,7 @@ These anchors support engineering direction only. They are not certifications.
 ## Finding
 
 `FIN-ADMISSION-01` is repo-proven on the source HEAD: the generic admission path
-ran structured guard families, while the finance pipeline admission projection
+ran structured guard families, while the finance admission projection
 only built finance-native checks or a smaller trust-guard subset. A native
 finance `pass` or filing release `accepted` response could therefore stay
 canonical `admit` or be held only at `review` even when structured metadata
