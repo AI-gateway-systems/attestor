@@ -10,14 +10,15 @@
 - Direct regression checked: finance admission stays on `/api/v1/pipeline/run`;
   native finance decisions, proof refs, release-token freshness, and existing
   finance checks remain intact.
-- Cross-fix interaction checked: this slice reuses the existing authority,
-  approval, and tool-result guards; it does not create a second decision engine.
+- Cross-fix interaction checked: this slice reuses the existing generic
+  consequence guard families inside the finance projection; it does not create
+  a second decision engine.
 
 ## Validation Frame
 
 This validation intake checked whether the finance pipeline admission projection
-used the same structured authority, approval, and tool-result trust guards that
-already exist on the generic admission path.
+uses the same structured trust guards that already exist on the generic
+admission path when finance receives matching metadata.
 
 Protected principles:
 
@@ -49,8 +50,17 @@ These anchors support engineering direction only. They are not certifications.
 - `src/consequence-admission/untrusted-content-authority-guard.ts`
 - `src/consequence-admission/approval-provenance-guard.ts`
 - `src/consequence-admission/tool-result-poisoning-guard.ts`
+- `src/consequence-admission/no-go-condition-ledger.ts`
+- `src/consequence-admission/scope-explosion-guard.ts`
+- `src/consequence-admission/agentic-supply-chain-guard.ts`
+- `src/consequence-admission/human-review-fatigue-guard.ts`
+- `src/consequence-admission/multi-agent-delegation-guard.ts`
+- `src/consequence-admission/stale-authority-policy-guard.ts`
+- `src/consequence-admission/decision-context-drift-binding.ts`
+- `src/consequence-admission/guard-input-provenance.ts`
 - `src/consequence-admission/facade.ts`
 - `tests/consequence-admission-finance.test.ts`
+- `tests/consequence-admission-facade.test.ts`
 - `docs/audit/report-index.md`
 - `docs/audit/finding-index.md`
 - `docs/audit/control-map.md`
@@ -58,11 +68,13 @@ These anchors support engineering direction only. They are not certifications.
 ## Finding
 
 `FIN-ADMISSION-01` is repo-proven on the source HEAD: the generic admission path
-ran the structured authority, approval, and tool-result guards, while the finance
-pipeline admission projection only built finance-native checks. A native finance
-`pass` or filing release `accepted` response could therefore stay canonical
-`admit` even when structured metadata showed chat-sourced authority,
-chat-sourced approval, or model-generated tool-result authority.
+ran structured guard families, while the finance pipeline admission projection
+only built finance-native checks or a smaller trust-guard subset. A native
+finance `pass` or filing release `accepted` response could therefore stay
+canonical `admit` or be held only at `review` even when structured metadata
+showed block-grade authority, approval, no-go, scope, tool-result,
+supply-chain, reviewer, delegation, stale-policy, context, or guard-input
+provenance risk.
 
 ## Remediation
 
@@ -71,19 +83,44 @@ finance admission input and facade forwarding:
 
 - `authoritySources`
 - `approvals`
+- `scopeOwnerPolicyRef`
+- `requestedScope`
+- `approvedScope`
 - `allowedToolResultEvidenceClasses`
 - `toolResults`
+- `agenticSupplyChain`
+- `humanReviewFatigue`
+- `multiAgentDelegation`
+- `staleAuthorityPolicy`
+- `decisionContextDrift`
+- `guardInputProvenance`
+- `requiredGuardInputProvenance`
+- `noGoLedgerRef`
+- `noGoConditions`
+- `noGoNaturalLanguageBypassAttempted`
+- `noGoNaturalLanguageSignals`
+- `noGoBypassAttemptRef`
 
 When those inputs are present, the finance admission projection now runs:
 
 - `evaluateConsequenceUntrustedContentAuthority`
 - `evaluateConsequenceApprovalProvenance`
+- `evaluateConsequenceScopeExplosion`
 - `evaluateConsequenceToolResultPoisoning`
+- `evaluateConsequenceAgenticSupplyChain`
+- `evaluateConsequenceHumanReviewFatigue`
+- `evaluateConsequenceMultiAgentDelegation`
+- `evaluateConsequenceStaleAuthorityPolicy`
+- `evaluateConsequenceDecisionContextDrift`
+- `evaluateConsequenceNoGoConditionLedger`
+- `evaluateGenericAdmissionGuardInputProvenance`
 
-Guard `review` or `block` outcomes hold native finance `admit` / `narrow` at
-canonical `review`, so the response is not `allowed` and is fail-closed for
-automatic downstream consequence. The response carries guard reason codes and
-digest-only guard evidence refs; it does not expose raw source material.
+Guard `block` outcomes make the canonical finance admission `block`. Scope
+guard `narrow` outcomes make native finance `admit` become canonical `narrow`
+with digest-bound constraints. Guard `review` outcomes hold native finance
+`admit` / `narrow` at canonical `review`. The response carries guard reason
+codes and digest-only guard evidence refs; it does not expose raw source
+material.
 
 ## Locking Tests
 
@@ -95,6 +132,13 @@ New regression cases prove:
 - chat-message approval cannot keep an accepted filing release as `admit`;
 - model-generated tool-result authority cannot keep a native finance `pass` as
   `admit`.
+- active no-go metadata blocks a native finance `pass`;
+- scope expansion narrows a native finance `pass` with customer-approved-scope
+  constraints;
+- caller-supplied guard-input provenance blocks finance authority;
+- supply-chain, human-review, delegation, stale-policy, and decision-context
+  metadata cannot keep a native finance `pass` as `admit`;
+- facade forwarding reaches finance no-go metadata.
 
 ## Non-Claims
 
@@ -105,9 +149,8 @@ compliance readiness, external KMS/HSM signing, live connector evidence,
 live workflow approval provenance, or live shared-store behavior.
 
 The finance path still depends on customer/operator/integration systems to pass
-accurate structured metadata. If those systems do not provide authority,
-approval, or tool-result metadata, this slice does not infer it from raw
-payloads.
+accurate structured metadata. If those systems do not provide the relevant
+guard metadata, this slice does not infer it from raw payloads.
 
 ## Verdict
 

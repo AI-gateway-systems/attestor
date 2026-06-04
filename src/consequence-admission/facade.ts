@@ -140,9 +140,26 @@ export function createConsequenceAdmissionFacadeResponse(
       operationalContext: input.operationalContext,
       authoritySources: input.requestInput?.authoritySources,
       approvals: input.requestInput?.approvals,
+      scopeOwnerPolicyRef: input.requestInput?.scopeOwnerPolicyRef,
+      requestedScope: input.requestInput?.requestedScope,
+      approvedScope: input.requestInput?.approvedScope,
       allowedToolResultEvidenceClasses:
         input.requestInput?.allowedToolResultEvidenceClasses,
       toolResults: input.requestInput?.toolResults,
+      agenticSupplyChain: input.requestInput?.agenticSupplyChain,
+      humanReviewFatigue: input.requestInput?.humanReviewFatigue,
+      multiAgentDelegation: input.requestInput?.multiAgentDelegation,
+      staleAuthorityPolicy: input.requestInput?.staleAuthorityPolicy,
+      decisionContextDrift: input.requestInput?.decisionContextDrift,
+      guardInputProvenance: input.requestInput?.guardInputProvenance,
+      requiredGuardInputProvenance:
+        input.requestInput?.requiredGuardInputProvenance,
+      noGoLedgerRef: input.requestInput?.noGoLedgerRef,
+      noGoConditions: input.requestInput?.noGoConditions,
+      noGoNaturalLanguageBypassAttempted:
+        input.requestInput?.noGoNaturalLanguageBypassAttempted,
+      noGoNaturalLanguageSignals: input.requestInput?.noGoNaturalLanguageSignals,
+      noGoBypassAttemptRef: input.requestInput?.noGoBypassAttemptRef,
     });
   }
 

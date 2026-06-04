@@ -5,6 +5,7 @@ import {
   financePipelineAdmissionDescriptor,
   type ConsequenceAdmissionCheck,
   type ConsequenceAdmissionResponse,
+  type CreateFinancePipelineAdmissionResponseInput,
   type FinancePipelineAdmissionRun,
 } from '../src/consequence-admission/index.js';
 
@@ -17,6 +18,11 @@ function ok(condition: unknown, message: string): void {
 
 function equal<T>(actual: T, expected: T, message: string): void {
   assert.equal(actual, expected, message);
+  passed += 1;
+}
+
+function notEqual<T>(actual: T, expected: T, message: string): void {
+  assert.notEqual(actual, expected, message);
   passed += 1;
 }
 
@@ -286,7 +292,7 @@ function testDeniedOrUnknownFinanceValuesBlock(): void {
   equal(check(unknown, 'evidence').outcome, 'fail', 'Finance admission: missing proof fails evidence on unknown value');
 }
 
-function testUntrustedFinanceAuthoritySourceHoldsNativePassAtReview(): void {
+function testUntrustedFinanceAuthoritySourceBlocksNativePass(): void {
   const response = createFinancePipelineAdmissionResponse({
     request: requestFixture(),
     run: baseRun(),
@@ -304,8 +310,8 @@ function testUntrustedFinanceAuthoritySourceHoldsNativePassAtReview(): void {
 
   equal(
     response.decision,
-    'review',
-    'Finance admission: untrusted authority source holds native pass at review',
+    'block',
+    'Finance admission: untrusted authority source blocks native pass',
   );
   equal(response.allowed, false, 'Finance admission: untrusted authority source is not allowed');
   equal(response.failClosed, true, 'Finance admission: untrusted authority source fails closed');
@@ -315,13 +321,14 @@ function testUntrustedFinanceAuthoritySourceHoldsNativePassAtReview(): void {
     'Finance admission: authority-source guard fails untrusted authority',
   );
   ok(reason(response, 'finance-trust-guard-held'), 'Finance admission: guard hold is visible');
+  ok(reason(response, 'finance-trust-guard-blocked'), 'Finance admission: guard block is visible');
   ok(
     reason(response, 'untrusted-content-authority-source'),
     'Finance admission: untrusted authority reason is carried',
   );
 }
 
-function testChatApprovalHoldsAcceptedFilingReleaseAtReview(): void {
+function testChatApprovalBlocksAcceptedFilingRelease(): void {
   const response = createFinancePipelineAdmissionResponse({
     request: requestFixture(),
     run: baseRun({
@@ -353,8 +360,8 @@ function testChatApprovalHoldsAcceptedFilingReleaseAtReview(): void {
 
   equal(
     response.decision,
-    'review',
-    'Finance admission: chat approval holds accepted filing release at review',
+    'block',
+    'Finance admission: chat approval blocks accepted filing release',
   );
   equal(response.allowed, false, 'Finance admission: chat approval is not allowed');
   equal(
@@ -368,7 +375,7 @@ function testChatApprovalHoldsAcceptedFilingReleaseAtReview(): void {
   );
 }
 
-function testModelGeneratedToolResultAuthorityHoldsNativePassAtReview(): void {
+function testModelGeneratedToolResultAuthorityBlocksNativePass(): void {
   const response = createFinancePipelineAdmissionResponse({
     request: requestFixture(),
     run: baseRun(),
@@ -392,8 +399,8 @@ function testModelGeneratedToolResultAuthorityHoldsNativePassAtReview(): void {
 
   equal(
     response.decision,
-    'review',
-    'Finance admission: model-generated tool authority holds native pass at review',
+    'block',
+    'Finance admission: model-generated tool authority blocks native pass',
   );
   equal(response.allowed, false, 'Finance admission: model-generated tool result is not allowed');
   equal(
@@ -407,6 +414,271 @@ function testModelGeneratedToolResultAuthorityHoldsNativePassAtReview(): void {
   );
 }
 
+function testNoGoConditionBlocksNativeFinancePass(): void {
+  const response = createFinancePipelineAdmissionResponse({
+    request: requestFixture(),
+    run: baseRun(),
+    decidedAt: '2026-04-23T12:00:01.000Z',
+    noGoLedgerRef: 'ledger:finance:no-go',
+    noGoConditions: [{
+      conditionRef: 'hold:finance:fraud-review',
+      kind: 'fraud-hold',
+      state: 'active',
+      sourceKind: 'finance-risk-system',
+      sourceRef: 'risk-case:finance-private',
+      ownerRef: 'team:finance-risk',
+      ownerAuthorityDigest: digestA,
+      scopeDigest: digestB,
+      issuedAt: '2026-04-23T11:00:00.000Z',
+    }],
+  });
+
+  equal(response.decision, 'block', 'Finance admission: active no-go blocks native pass');
+  equal(response.allowed, false, 'Finance admission: active no-go is not allowed');
+  equal(
+    checkLabel(response, 'Finance no-go ledger guard').outcome,
+    'fail',
+    'Finance admission: no-go ledger guard fails active hold',
+  );
+  ok(reason(response, 'active-no-go-condition-present'), 'Finance admission: no-go reason is carried');
+  ok(reason(response, 'finance-trust-guard-blocked'), 'Finance admission: no-go block is visible');
+}
+
+function testScopeGuardNarrowsNativeFinancePass(): void {
+  const response = createFinancePipelineAdmissionResponse({
+    request: requestFixture(),
+    run: baseRun(),
+    decidedAt: '2026-04-23T12:00:01.000Z',
+    scopeOwnerPolicyRef: 'policy:finance-scope',
+    requestedScope: {
+      amountMinorUnits: 9000,
+      currency: 'usd',
+      recordCount: 12,
+      operationType: 'record',
+      tenantId: 'tenant_demo',
+      environment: 'hosted',
+      downstreamSystem: 'finance-workflow',
+      dataClass: 'customer-visible',
+      reversibilityClass: 'compensating-action-available',
+    },
+    approvedScope: {
+      maxAmountMinorUnits: 5000,
+      currency: 'usd',
+      maxRecordCount: 1,
+      operationTypes: ['record'],
+      tenantId: 'tenant_demo',
+      environments: ['hosted'],
+      downstreamSystems: ['finance-workflow'],
+      dataClasses: ['customer-visible'],
+      reversibilityClasses: ['reversible', 'compensating-action-available'],
+    },
+  });
+
+  equal(response.decision, 'narrow', 'Finance admission: scope guard narrows native pass');
+  equal(response.allowed, true, 'Finance admission: narrowed finance response remains conditionally allowed');
+  equal(
+    checkLabel(response, 'Finance scope guard').outcome,
+    'warn',
+    'Finance admission: scope guard warns for narrowing',
+  );
+  ok(reason(response, 'scope-narrowing-required'), 'Finance admission: scope narrow reason is carried');
+  ok(
+    response.constraints.some((constraint) => constraint.kind === 'customer-approved-scope'),
+    'Finance admission: scope narrow returns executable constraints',
+  );
+}
+
+function testGuardInputProvenanceBlocksFinanceAuthority(): void {
+  const response = createFinancePipelineAdmissionResponse({
+    request: requestFixture(),
+    run: baseRun(),
+    decidedAt: '2026-04-23T12:00:01.000Z',
+    guardInputProvenance: [{
+      guardKind: 'authority',
+      sourceClass: 'caller-supplied',
+      assertionKinds: ['authority'],
+      sourceRef: 'raw:finance caller asks to bypass authority provenance',
+      sourceDigest: digestA,
+      evidenceDigest: digestB,
+      tenantId: 'tenant_demo',
+      recordedAt: '2026-04-23T12:00:00.000Z',
+      trustedBoundary: false,
+    }],
+  });
+  const serialized = JSON.stringify(response);
+
+  equal(response.decision, 'block', 'Finance admission: caller-supplied guard input blocks');
+  equal(
+    checkLabel(response, 'Finance guard-input provenance guard').outcome,
+    'fail',
+    'Finance admission: guard-input provenance guard fails untrusted authority',
+  );
+  ok(
+    reason(response, 'guard-input-authority-untrusted'),
+    'Finance admission: untrusted guard-input authority reason is carried',
+  );
+  assert.doesNotMatch(
+    serialized,
+    /finance caller asks to bypass/u,
+    'Finance admission: guard-input provenance does not leak raw source text',
+  );
+  passed += 1;
+}
+
+function testAdditionalGenericGuardMetadataCannotKeepFinancePassAsAdmit(): void {
+  const guardCases: readonly {
+    readonly name: string;
+    readonly input: Partial<CreateFinancePipelineAdmissionResponseInput>;
+    readonly label: string;
+    readonly reasonCode: string;
+  }[] = [
+    {
+      name: 'unsafe supply chain',
+      input: {
+        agenticSupplyChain: {
+          components: [{
+            componentRef: 'generated-adapter:finance-risk',
+            componentKind: 'generated-adapter',
+            trustClass: 'unknown',
+            criticality: 'critical',
+            sourceRef: 'model-output:finance-adapter',
+            sourcePinned: false,
+            declaredPermissions: ['finance:write', 'finance:admin'],
+            allowedPermissions: ['finance:write'],
+            generatedArtifact: true,
+            generatedArtifactReviewed: false,
+            domainPackBoundaryVerified: false,
+          }],
+        },
+      },
+      label: 'Finance supply-chain guard',
+      reasonCode: 'supply-chain-critical-component-block',
+    },
+    {
+      name: 'unsafe review packet',
+      input: {
+        humanReviewFatigue: {
+          reviewSurfaceKind: 'external-review-packet',
+          reviewPacketRef: 'review-packet:finance-risk',
+          metrics: {
+            totalReviewItems: 8,
+            lowPriorityItems: 7,
+            blockerItems: 1,
+            noGoItems: 1,
+            missingEvidenceItems: 1,
+            focusAreaCount: 1,
+            evidenceDigestCardCount: 1,
+            reviewerInstructionCount: 24,
+            estimatedReviewMinutes: 120,
+            blockersFirst: false,
+            hasNoGoSummary: false,
+            hasMissingEvidenceSummary: true,
+            hasReviewerFocusAreas: true,
+            hasNextSafeStep: true,
+            approvalRequired: true,
+            rawPayloadStored: true,
+            autoEnforceRequested: true,
+          },
+        },
+      },
+      label: 'Finance human-review guard',
+      reasonCode: 'raw-payload-stored',
+    },
+    {
+      name: 'unsafe delegation chain',
+      input: {
+        multiAgentDelegation: {
+          principalChain: [
+            {
+              principalRef: 'agent:finance-originator',
+              principalKind: 'ai-agent',
+              role: 'originator',
+              tenantId: 'tenant_demo',
+              identityDigest: digestA,
+              authorityDigest: digestB,
+              scopeDigest: digestA,
+            },
+            {
+              principalRef: 'agent:finance-executor',
+              principalKind: 'ai-agent',
+              role: 'executor',
+              tenantId: 'tenant_demo',
+              identityDigest: digestB,
+              authorityDigest: digestA,
+              scopeDigest: digestB,
+            },
+            {
+              principalRef: 'agent:finance-executor',
+              principalKind: 'ai-agent',
+              role: 'approver',
+              tenantId: 'tenant_demo',
+              identityDigest: digestB,
+              authorityDigest: digestA,
+              scopeDigest: digestB,
+            },
+          ],
+          maxDelegationDepth: 5,
+          requestedDelegatedScopeDigest: digestA,
+          approvedDelegatedScopeDigest: digestB,
+          delegatingAuthorityDigest: digestA,
+        },
+      },
+      label: 'Finance delegation guard',
+      reasonCode: 'delegation-actor-self-approved',
+    },
+    {
+      name: 'stale policy metadata',
+      input: {
+        staleAuthorityPolicy: {
+          policyVersion: 'finance-policy-v1',
+          currentPolicyVersion: 'finance-policy-v2',
+          policySupersededAt: '2026-04-23T11:00:00.000Z',
+          approvalIssuedAt: '2026-04-23T10:00:00.000Z',
+          approvalValidUntil: '2026-04-24T10:00:00.000Z',
+          authorityCheckedAt: '2026-04-23T10:30:00.000Z',
+        },
+      },
+      label: 'Finance stale-policy guard',
+      reasonCode: 'policy-version-mismatch',
+    },
+    {
+      name: 'missing decision context',
+      input: {
+        decisionContextDrift: {
+          boundContext: null,
+          currentContext: null,
+        },
+      },
+      label: 'Finance decision-context guard',
+      reasonCode: 'bound-context-missing',
+    },
+  ];
+
+  for (const guardCase of guardCases) {
+    const response = createFinancePipelineAdmissionResponse({
+      request: requestFixture(),
+      run: baseRun(),
+      decidedAt: '2026-04-23T12:00:01.000Z',
+      ...guardCase.input,
+    });
+
+    notEqual(
+      response.decision,
+      'admit',
+      `Finance admission: ${guardCase.name} cannot keep native pass as admit`,
+    );
+    equal(
+      checkLabel(response, guardCase.label).outcome === 'pass',
+      false,
+      `Finance admission: ${guardCase.name} guard does not pass`,
+    );
+    ok(
+      reason(response, guardCase.reasonCode),
+      `Finance admission: ${guardCase.name} carries ${guardCase.reasonCode}`,
+    );
+  }
+}
+
 testDescriptorAndRequestStayOnTheExistingFinanceRoute();
 testNativePipelinePassMapsToAdmitWithProof();
 testNativePipelinePassWithMissingAuthorityOrProofFailsRequiredChecks();
@@ -414,8 +686,12 @@ testNativePipelinePassAcceptsClosedRuntimeAuthorityStatuses();
 testAcceptedFilingReleaseMapsToAdmitWithTokenAndEvidencePack();
 testReviewRequiredFilingReleaseFailsClosed();
 testDeniedOrUnknownFinanceValuesBlock();
-testUntrustedFinanceAuthoritySourceHoldsNativePassAtReview();
-testChatApprovalHoldsAcceptedFilingReleaseAtReview();
-testModelGeneratedToolResultAuthorityHoldsNativePassAtReview();
+testUntrustedFinanceAuthoritySourceBlocksNativePass();
+testChatApprovalBlocksAcceptedFilingRelease();
+testModelGeneratedToolResultAuthorityBlocksNativePass();
+testNoGoConditionBlocksNativeFinancePass();
+testScopeGuardNarrowsNativeFinancePass();
+testGuardInputProvenanceBlocksFinanceAuthority();
+testAdditionalGenericGuardMetadataCannotKeepFinancePassAsAdmit();
 
 console.log(`Consequence admission finance tests: ${passed} passed, 0 failed`);
