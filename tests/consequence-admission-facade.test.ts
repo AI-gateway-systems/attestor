@@ -232,7 +232,7 @@ function testFinanceFacadeForwardsAuthorityGuardMetadata(): void {
     },
   });
 
-  assertCanonicalResponse(response, 'review');
+  assertCanonicalResponse(response, 'block');
   equal(response.allowed, false, 'Facade: forwarded untrusted authority is not allowed');
   equal(response.failClosed, true, 'Facade: forwarded untrusted authority fails closed');
   equal(
@@ -241,6 +241,7 @@ function testFinanceFacadeForwardsAuthorityGuardMetadata(): void {
     'Facade: finance authority guard runs through the facade',
   );
   ok(reason(response, 'finance-trust-guard-held'), 'Facade: guard hold is carried');
+  ok(reason(response, 'finance-trust-guard-blocked'), 'Facade: guard block is carried');
   ok(
     reason(response, 'untrusted-content-authority-source'),
     'Facade: untrusted authority reason is carried',
@@ -282,7 +283,7 @@ function testFinanceFacadeForwardsApprovalGuardMetadata(): void {
     },
   });
 
-  assertCanonicalResponse(response, 'review');
+  assertCanonicalResponse(response, 'block');
   equal(response.allowed, false, 'Facade: forwarded chat approval is not allowed');
   equal(
     checkLabel(response, 'Finance approval provenance guard').outcome,
@@ -322,7 +323,7 @@ function testFinanceFacadeForwardsToolResultGuardMetadata(): void {
     },
   });
 
-  assertCanonicalResponse(response, 'review');
+  assertCanonicalResponse(response, 'block');
   equal(response.allowed, false, 'Facade: forwarded model-generated tool result is not allowed');
   equal(
     checkLabel(response, 'Finance tool-result guard').outcome,
@@ -333,6 +334,39 @@ function testFinanceFacadeForwardsToolResultGuardMetadata(): void {
     reason(response, 'tool-result-model-generated-source'),
     'Facade: model-generated tool-result reason is carried',
   );
+}
+
+function testFinanceFacadeForwardsNoGoMetadata(): void {
+  const response = createConsequenceAdmissionFacadeResponse({
+    surface: 'finance-pipeline-run',
+    run: financeRunFixture(),
+    decidedAt: '2026-04-23T14:02:00.000Z',
+    requestInput: {
+      actorRef: 'actor:finance-agent',
+      reviewerRef: 'reviewer:controller',
+      authorityMode: 'dual-approval',
+      noGoLedgerRef: 'ledger:finance:facade',
+      noGoConditions: [{
+        conditionRef: 'hold:finance:facade-risk',
+        kind: 'fraud-hold',
+        state: 'active',
+        sourceKind: 'finance-risk-system',
+        sourceRef: 'risk-case:facade-private',
+        ownerRef: 'team:finance-risk',
+        ownerAuthorityDigest: digestA,
+        scopeDigest: digestB,
+        issuedAt: '2026-04-23T13:00:00.000Z',
+      }],
+    },
+  });
+
+  assertCanonicalResponse(response, 'block');
+  equal(
+    checkLabel(response, 'Finance no-go ledger guard').outcome,
+    'fail',
+    'Facade: finance no-go guard runs through the facade',
+  );
+  ok(reason(response, 'active-no-go-condition-present'), 'Facade: no-go reason is carried');
 }
 
 function testCryptoFacadeUsesPackageProjection(): void {
@@ -375,6 +409,7 @@ testFinanceFacadeUsesFinanceProjection();
 testFinanceFacadeForwardsAuthorityGuardMetadata();
 testFinanceFacadeForwardsApprovalGuardMetadata();
 testFinanceFacadeForwardsToolResultGuardMetadata();
+testFinanceFacadeForwardsNoGoMetadata();
 testCryptoFacadeUsesPackageProjection();
 testInvalidSurfaceFailsClosedBeforeGuessing();
 

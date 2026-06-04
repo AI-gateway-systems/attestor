@@ -4,6 +4,7 @@ import {
   createConsequenceAdmissionResponse,
   mapFinancePipelineDecisionToAdmission,
   type ConsequenceAdmissionCheck,
+  type ConsequenceAdmissionCheckKind,
   type ConsequenceAdmissionCheckOutcome,
   type ConsequenceAdmissionConstraint,
   type ConsequenceAdmissionDecision,
@@ -19,6 +20,49 @@ import {
   type ConsequenceApprovalProvenanceClaim,
   type ConsequenceApprovalProvenanceDecision,
 } from './approval-provenance-guard.js';
+import {
+  evaluateConsequenceAgenticSupplyChain,
+  type ConsequenceAgenticSupplyChainDecision,
+} from './agentic-supply-chain-guard.js';
+import type {
+  GenericAdmissionAgenticSupplyChain,
+  GenericAdmissionDecisionContextDrift,
+  GenericAdmissionGuardInputKind,
+  GenericAdmissionGuardInputProvenanceDecision,
+  GenericAdmissionGuardInputProvenanceRecord,
+  GenericAdmissionHumanReviewFatigue,
+  GenericAdmissionMultiAgentDelegation,
+  GenericAdmissionNoGoCondition,
+  GenericAdmissionScopeInput,
+  GenericAdmissionStaleAuthorityPolicy,
+} from './contracts.js';
+import {
+  evaluateConsequenceDecisionContextDrift,
+  type ConsequenceDecisionContextDriftDecision,
+} from './decision-context-drift-binding.js';
+import {
+  evaluateGenericAdmissionGuardInputProvenance,
+} from './guard-input-provenance.js';
+import {
+  evaluateConsequenceHumanReviewFatigue,
+  type ConsequenceHumanReviewFatigueDecision,
+} from './human-review-fatigue-guard.js';
+import {
+  evaluateConsequenceMultiAgentDelegation,
+  type ConsequenceMultiAgentDelegationDecision,
+} from './multi-agent-delegation-guard.js';
+import {
+  evaluateConsequenceNoGoConditionLedger,
+  type ConsequenceNoGoConditionLedgerDecision,
+} from './no-go-condition-ledger.js';
+import {
+  evaluateConsequenceScopeExplosion,
+  type ConsequenceScopeExplosionDecision,
+} from './scope-explosion-guard.js';
+import {
+  evaluateConsequenceStaleAuthorityPolicy,
+  type ConsequenceStaleAuthorityPolicyDecision,
+} from './stale-authority-policy-guard.js';
 import {
   evaluateConsequenceToolResultPoisoning,
   type ConsequenceToolResultClaim,
@@ -41,9 +85,26 @@ type OperationalPrimitive = string | number | boolean | null;
 export interface FinancePipelineAdmissionTrustGuardInput {
   readonly authoritySources?: readonly ConsequenceUntrustedContentAuthoritySource[];
   readonly approvals?: readonly ConsequenceApprovalProvenanceClaim[];
+  readonly scopeOwnerPolicyRef?: string | null;
+  readonly requestedScope?: GenericAdmissionScopeInput | null;
+  readonly approvedScope?: GenericAdmissionScopeInput | null;
   readonly allowedToolResultEvidenceClasses?:
     readonly ConsequenceToolResultEvidenceClass[] | null;
   readonly toolResults?: readonly ConsequenceToolResultClaim[] | null;
+  readonly agenticSupplyChain?: GenericAdmissionAgenticSupplyChain | null;
+  readonly humanReviewFatigue?: GenericAdmissionHumanReviewFatigue | null;
+  readonly multiAgentDelegation?: GenericAdmissionMultiAgentDelegation | null;
+  readonly staleAuthorityPolicy?: GenericAdmissionStaleAuthorityPolicy | null;
+  readonly decisionContextDrift?: GenericAdmissionDecisionContextDrift | null;
+  readonly guardInputProvenance?:
+    readonly GenericAdmissionGuardInputProvenanceRecord[];
+  readonly requiredGuardInputProvenance?:
+    readonly GenericAdmissionGuardInputKind[];
+  readonly noGoLedgerRef?: string | null;
+  readonly noGoConditions?: readonly GenericAdmissionNoGoCondition[] | null;
+  readonly noGoNaturalLanguageBypassAttempted?: boolean | null;
+  readonly noGoNaturalLanguageSignals?: readonly string[];
+  readonly noGoBypassAttemptRef?: string | null;
 }
 
 export interface FinancePipelineAdmissionRequestInput
@@ -398,63 +459,327 @@ function financeToolResultGuardDecisionFor(input: {
   });
 }
 
+function financeScopeExplosionGuardDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+  readonly scopeOwnerPolicyRef?: string | null;
+  readonly requestedScope?: GenericAdmissionScopeInput | null;
+  readonly approvedScope?: GenericAdmissionScopeInput | null;
+}): ConsequenceScopeExplosionDecision | null {
+  const hasInput =
+    (input.scopeOwnerPolicyRef !== null && input.scopeOwnerPolicyRef !== undefined) ||
+    (input.requestedScope !== null && input.requestedScope !== undefined) ||
+    (input.approvedScope !== null && input.approvedScope !== undefined);
+  if (!hasInput) return null;
+  return evaluateConsequenceScopeExplosion({
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+    scopeOwnerPolicyRef: input.scopeOwnerPolicyRef ?? null,
+    requestedScope: input.requestedScope ?? null,
+    approvedScope: input.approvedScope ?? null,
+  });
+}
+
+function financeAgenticSupplyChainGuardDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+  readonly agenticSupplyChain?: GenericAdmissionAgenticSupplyChain | null;
+}): ConsequenceAgenticSupplyChainDecision | null {
+  if (input.agenticSupplyChain === null || input.agenticSupplyChain === undefined) return null;
+  return evaluateConsequenceAgenticSupplyChain({
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+    components: input.agenticSupplyChain.components,
+  });
+}
+
+function financeHumanReviewFatigueGuardDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+  readonly humanReviewFatigue?: GenericAdmissionHumanReviewFatigue | null;
+}): ConsequenceHumanReviewFatigueDecision | null {
+  if (input.humanReviewFatigue === null || input.humanReviewFatigue === undefined) return null;
+  return evaluateConsequenceHumanReviewFatigue({
+    ...input.humanReviewFatigue,
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+  });
+}
+
+function financeMultiAgentDelegationGuardDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+  readonly multiAgentDelegation?: GenericAdmissionMultiAgentDelegation | null;
+}): ConsequenceMultiAgentDelegationDecision | null {
+  if (input.multiAgentDelegation === null || input.multiAgentDelegation === undefined) {
+    return null;
+  }
+  return evaluateConsequenceMultiAgentDelegation({
+    ...input.multiAgentDelegation,
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+  });
+}
+
+function financeStaleAuthorityPolicyGuardDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+  readonly staleAuthorityPolicy?: GenericAdmissionStaleAuthorityPolicy | null;
+}): ConsequenceStaleAuthorityPolicyDecision | null {
+  if (input.staleAuthorityPolicy === null || input.staleAuthorityPolicy === undefined) {
+    return null;
+  }
+  return evaluateConsequenceStaleAuthorityPolicy({
+    ...input.staleAuthorityPolicy,
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+  });
+}
+
+function financeDecisionContextDriftDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+  readonly decisionContextDrift?: GenericAdmissionDecisionContextDrift | null;
+}): ConsequenceDecisionContextDriftDecision | null {
+  if (input.decisionContextDrift === null || input.decisionContextDrift === undefined) {
+    return null;
+  }
+  return evaluateConsequenceDecisionContextDrift({
+    ...input.decisionContextDrift,
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+  });
+}
+
+function financeHasNoGoInput(input: FinancePipelineAdmissionTrustGuardInput): boolean {
+  return input.noGoLedgerRef !== null && input.noGoLedgerRef !== undefined ||
+    input.noGoConditions !== null && input.noGoConditions !== undefined ||
+    input.noGoNaturalLanguageBypassAttempted === true ||
+    (input.noGoNaturalLanguageSignals ?? []).length > 0 ||
+    input.noGoBypassAttemptRef !== null && input.noGoBypassAttemptRef !== undefined;
+}
+
+function financeNoGoConditionLedgerDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+} & FinancePipelineAdmissionTrustGuardInput): ConsequenceNoGoConditionLedgerDecision | null {
+  if (!financeHasNoGoInput(input)) return null;
+  return evaluateConsequenceNoGoConditionLedger({
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+    ledgerRef: input.noGoLedgerRef ?? null,
+    conditions: input.noGoConditions ?? null,
+    naturalLanguageBypassAttempted: input.noGoNaturalLanguageBypassAttempted ?? null,
+    naturalLanguageSignals: input.noGoNaturalLanguageSignals ?? [],
+    bypassAttemptRef: input.noGoBypassAttemptRef ?? null,
+  });
+}
+
+function financeGuardInputProvenanceDecisionFor(input: {
+  readonly request: ConsequenceAdmissionRequest;
+  readonly decidedAt: string;
+  readonly guardInputProvenance?:
+    readonly GenericAdmissionGuardInputProvenanceRecord[];
+  readonly requiredGuardInputProvenance?:
+    readonly GenericAdmissionGuardInputKind[];
+}): GenericAdmissionGuardInputProvenanceDecision | null {
+  const records = input.guardInputProvenance ?? [];
+  const requiredGuardKinds = input.requiredGuardInputProvenance ?? [];
+  if (records.length === 0 && requiredGuardKinds.length === 0) return null;
+  return evaluateGenericAdmissionGuardInputProvenance({
+    generatedAt: input.decidedAt,
+    actionSurface: 'finance-pipeline',
+    action: input.request.proposedConsequence.action,
+    records,
+    requiredGuardKinds,
+  });
+}
+
 function financeGuardOutcome(
-  outcome: 'pass' | 'review' | 'block',
+  outcome: 'pass' | 'review' | 'block' | 'narrow',
 ): ConsequenceAdmissionCheckOutcome {
   if (outcome === 'pass') return 'pass';
-  return outcome === 'review' ? 'warn' : 'fail';
+  if (outcome === 'block') return 'fail';
+  return 'warn';
+}
+
+function addFinanceGuardCheck(
+  checks: ConsequenceAdmissionCheck[],
+  input: {
+    readonly kind: ConsequenceAdmissionCheckKind;
+    readonly label: string;
+    readonly outcome: 'pass' | 'review' | 'block' | 'narrow';
+    readonly passSummary: string;
+    readonly holdSummary: string;
+    readonly reasonCodes: readonly string[];
+    readonly digest: string;
+  },
+): void {
+  checks.push(createConsequenceAdmissionCheck({
+    kind: input.kind,
+    label: input.label,
+    outcome: financeGuardOutcome(input.outcome),
+    required: true,
+    summary: input.outcome === 'pass' ? input.passSummary : input.holdSummary,
+    reasonCodes: input.reasonCodes,
+    evidenceRefs: [input.digest],
+  }));
 }
 
 function buildFinanceTrustGuardChecks(input: {
   readonly authorityGuardDecision: ConsequenceUntrustedContentAuthorityDecision | null;
   readonly approvalGuardDecision: ConsequenceApprovalProvenanceDecision | null;
+  readonly scopeExplosionGuardDecision: ConsequenceScopeExplosionDecision | null;
   readonly toolResultGuardDecision: ConsequenceToolResultPoisoningDecision | null;
+  readonly agenticSupplyChainGuardDecision: ConsequenceAgenticSupplyChainDecision | null;
+  readonly humanReviewFatigueGuardDecision: ConsequenceHumanReviewFatigueDecision | null;
+  readonly multiAgentDelegationGuardDecision: ConsequenceMultiAgentDelegationDecision | null;
+  readonly staleAuthorityPolicyGuardDecision: ConsequenceStaleAuthorityPolicyDecision | null;
+  readonly decisionContextDriftDecision: ConsequenceDecisionContextDriftDecision | null;
+  readonly noGoConditionLedgerDecision: ConsequenceNoGoConditionLedgerDecision | null;
+  readonly guardInputProvenanceDecision: GenericAdmissionGuardInputProvenanceDecision | null;
 }): readonly ConsequenceAdmissionCheck[] {
   const checks: ConsequenceAdmissionCheck[] = [];
 
   if (input.authorityGuardDecision !== null) {
-    checks.push(createConsequenceAdmissionCheck({
+    addFinanceGuardCheck(checks, {
       kind: 'authority',
       label: 'Finance authority-source guard',
-      outcome: financeGuardOutcome(input.authorityGuardDecision.outcome),
-      required: true,
-      summary:
-        input.authorityGuardDecision.outcome === 'pass'
-          ? 'Structured finance authority sources passed the untrusted-content guard.'
-          : 'Structured finance authority sources require review before downstream consequence.',
+      outcome: input.authorityGuardDecision.outcome,
+      passSummary: 'Structured finance authority sources passed the untrusted-content guard.',
+      holdSummary:
+        'Structured finance authority sources require review before downstream consequence.',
       reasonCodes: input.authorityGuardDecision.reasonCodes,
-      evidenceRefs: [input.authorityGuardDecision.digest],
-    }));
+      digest: input.authorityGuardDecision.digest,
+    });
   }
 
   if (input.approvalGuardDecision !== null) {
-    checks.push(createConsequenceAdmissionCheck({
+    addFinanceGuardCheck(checks, {
       kind: 'authority',
       label: 'Finance approval provenance guard',
-      outcome: financeGuardOutcome(input.approvalGuardDecision.outcome),
-      required: true,
-      summary:
-        input.approvalGuardDecision.outcome === 'pass'
-          ? 'Structured finance approvals passed provenance checks.'
-          : 'Structured finance approvals require review before downstream consequence.',
+      outcome: input.approvalGuardDecision.outcome,
+      passSummary: 'Structured finance approvals passed provenance checks.',
+      holdSummary: 'Structured finance approvals require review before downstream consequence.',
       reasonCodes: input.approvalGuardDecision.reasonCodes,
-      evidenceRefs: [input.approvalGuardDecision.digest],
-    }));
+      digest: input.approvalGuardDecision.digest,
+    });
+  }
+
+  if (input.scopeExplosionGuardDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'authority',
+      label: 'Finance scope guard',
+      outcome: input.scopeExplosionGuardDecision.outcome,
+      passSummary: 'Structured finance scope metadata stayed within the approved boundary.',
+      holdSummary: 'Structured finance scope metadata requires narrowing or review.',
+      reasonCodes: input.scopeExplosionGuardDecision.reasonCodes,
+      digest: input.scopeExplosionGuardDecision.digest,
+    });
   }
 
   if (input.toolResultGuardDecision !== null) {
-    checks.push(createConsequenceAdmissionCheck({
+    addFinanceGuardCheck(checks, {
       kind: 'evidence',
       label: 'Finance tool-result guard',
-      outcome: financeGuardOutcome(input.toolResultGuardDecision.outcome),
-      required: true,
-      summary:
-        input.toolResultGuardDecision.outcome === 'pass'
-          ? 'Structured finance tool-result evidence passed poisoning checks.'
-          : 'Structured finance tool-result evidence requires review before downstream consequence.',
+      outcome: input.toolResultGuardDecision.outcome,
+      passSummary: 'Structured finance tool-result evidence passed poisoning checks.',
+      holdSummary:
+        'Structured finance tool-result evidence requires review before downstream consequence.',
       reasonCodes: input.toolResultGuardDecision.reasonCodes,
-      evidenceRefs: [input.toolResultGuardDecision.digest],
-    }));
+      digest: input.toolResultGuardDecision.digest,
+    });
+  }
+
+  if (input.agenticSupplyChainGuardDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'evidence',
+      label: 'Finance supply-chain guard',
+      outcome: input.agenticSupplyChainGuardDecision.outcome,
+      passSummary: 'Structured finance supply-chain metadata passed guard checks.',
+      holdSummary: 'Structured finance supply-chain metadata requires review.',
+      reasonCodes: input.agenticSupplyChainGuardDecision.reasonCodes,
+      digest: input.agenticSupplyChainGuardDecision.digest,
+    });
+  }
+
+  if (input.humanReviewFatigueGuardDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'evidence',
+      label: 'Finance human-review guard',
+      outcome: input.humanReviewFatigueGuardDecision.outcome,
+      passSummary: 'Structured finance review metadata passed reviewer-safety checks.',
+      holdSummary: 'Structured finance review metadata requires review before promotion.',
+      reasonCodes: input.humanReviewFatigueGuardDecision.reasonCodes,
+      digest: input.humanReviewFatigueGuardDecision.digest,
+    });
+  }
+
+  if (input.multiAgentDelegationGuardDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'authority',
+      label: 'Finance delegation guard',
+      outcome: input.multiAgentDelegationGuardDecision.outcome,
+      passSummary: 'Structured finance delegation metadata passed guard checks.',
+      holdSummary: 'Structured finance delegation metadata requires review.',
+      reasonCodes: input.multiAgentDelegationGuardDecision.reasonCodes,
+      digest: input.multiAgentDelegationGuardDecision.digest,
+    });
+  }
+
+  if (input.staleAuthorityPolicyGuardDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'policy',
+      label: 'Finance stale-policy guard',
+      outcome: input.staleAuthorityPolicyGuardDecision.outcome,
+      passSummary: 'Structured finance policy and authority freshness metadata passed.',
+      holdSummary: 'Structured finance policy or authority freshness requires review.',
+      reasonCodes: input.staleAuthorityPolicyGuardDecision.reasonCodes,
+      digest: input.staleAuthorityPolicyGuardDecision.digest,
+    });
+  }
+
+  if (input.decisionContextDriftDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'freshness',
+      label: 'Finance decision-context guard',
+      outcome: input.decisionContextDriftDecision.outcome,
+      passSummary: 'Structured finance decision context stayed bound to current metadata.',
+      holdSummary: 'Structured finance decision context requires review.',
+      reasonCodes: input.decisionContextDriftDecision.reasonCodes,
+      digest: input.decisionContextDriftDecision.digest,
+    });
+  }
+
+  if (input.noGoConditionLedgerDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'policy',
+      label: 'Finance no-go ledger guard',
+      outcome: input.noGoConditionLedgerDecision.outcome,
+      passSummary: 'Structured finance no-go ledger metadata passed guard checks.',
+      holdSummary: 'Structured finance no-go ledger metadata requires review or block.',
+      reasonCodes: input.noGoConditionLedgerDecision.reasonCodes,
+      digest: input.noGoConditionLedgerDecision.digest,
+    });
+  }
+
+  if (input.guardInputProvenanceDecision !== null) {
+    addFinanceGuardCheck(checks, {
+      kind: 'authority',
+      label: 'Finance guard-input provenance guard',
+      outcome: input.guardInputProvenanceDecision.outcome,
+      passSummary: 'Structured finance guard-input provenance passed guard checks.',
+      holdSummary: 'Structured finance guard-input provenance requires review or block.',
+      reasonCodes: input.guardInputProvenanceDecision.reasonCodes,
+      digest: input.guardInputProvenanceDecision.digest,
+    });
   }
 
   return Object.freeze(checks);
@@ -594,13 +919,28 @@ function failedRequiredChecks(
 function effectiveFinanceDecision(
   nativeDecision: ConsequenceAdmissionNativeDecision,
   failedChecks: readonly ConsequenceAdmissionCheck[],
-  trustGuardHolds: readonly ConsequenceAdmissionCheck[],
+  guardBlockHolds: readonly ConsequenceAdmissionCheck[],
+  reviewGuardHolds: readonly ConsequenceAdmissionCheck[],
+  scopeNarrowHolds: readonly ConsequenceAdmissionCheck[],
 ): ConsequenceAdmissionDecision {
   if (
-    (failedChecks.length > 0 || trustGuardHolds.length > 0) &&
+    guardBlockHolds.length > 0 &&
+    (nativeDecision.mappedDecision === 'admit' ||
+      nativeDecision.mappedDecision === 'narrow' ||
+      nativeDecision.mappedDecision === 'review')
+  ) {
+    return 'block';
+  }
+
+  if (
+    (failedChecks.length > 0 || reviewGuardHolds.length > 0) &&
     (nativeDecision.mappedDecision === 'admit' || nativeDecision.mappedDecision === 'narrow')
   ) {
     return 'review';
+  }
+
+  if (scopeNarrowHolds.length > 0 && nativeDecision.mappedDecision === 'admit') {
+    return 'narrow';
   }
 
   return nativeDecision.mappedDecision;
@@ -617,11 +957,16 @@ function nativeDecisionForEffectiveDecision(input: {
   }
 
   const heldLabels = holdChecks.map((check) => check.label).join(', ');
+  const effectiveReason = decision === 'block'
+    ? 'blocked by structured guard constraints'
+    : decision === 'narrow'
+      ? 'narrowed by structured guard constraints'
+      : 'held at review because required checks require review';
   return Object.freeze({
     ...nativeDecision,
     mappedDecision: decision,
     mappingReason:
-      `${nativeDecision.mappingReason} Effective canonical admission is held at review because required checks require review: ${heldLabels}.`,
+      `${nativeDecision.mappingReason} Effective canonical admission is ${effectiveReason}: ${heldLabels}.`,
   });
 }
 
@@ -630,6 +975,37 @@ function financeTrustGuardHoldChecks(
 ): readonly ConsequenceAdmissionCheck[] {
   return Object.freeze(
     checks.filter((check) => check.outcome === 'warn' || check.outcome === 'fail'),
+  );
+}
+
+function financeScopeNarrowHoldChecks(
+  checks: readonly ConsequenceAdmissionCheck[],
+): readonly ConsequenceAdmissionCheck[] {
+  return Object.freeze(
+    checks.filter((check) =>
+      check.label === 'Finance scope guard' &&
+      check.outcome === 'warn' &&
+      check.reasonCodes.includes('scope-narrowing-required')
+    ),
+  );
+}
+
+function financeReviewGuardHoldChecks(
+  checks: readonly ConsequenceAdmissionCheck[],
+): readonly ConsequenceAdmissionCheck[] {
+  const scopeNarrowChecks = new Set(financeScopeNarrowHoldChecks(checks));
+  return Object.freeze(
+    financeTrustGuardHoldChecks(checks).filter((check) =>
+      check.outcome !== 'fail' && !scopeNarrowChecks.has(check)
+    ),
+  );
+}
+
+function financeBlockGuardHoldChecks(
+  checks: readonly ConsequenceAdmissionCheck[],
+): readonly ConsequenceAdmissionCheck[] {
+  return Object.freeze(
+    checks.filter((check) => check.outcome === 'fail'),
   );
 }
 
@@ -657,6 +1033,21 @@ function defaultNarrowConstraints(): readonly ConsequenceAdmissionConstraint[] {
       parameterDigest: null,
     },
   ]);
+}
+
+function financeScopeConstraints(
+  decision: ConsequenceScopeExplosionDecision | null,
+): readonly ConsequenceAdmissionConstraint[] {
+  if (decision?.outcome !== 'narrow') return Object.freeze([]);
+  return Object.freeze(
+    decision.constraints.map((constraint) => Object.freeze({
+      id: `finance-scope:${constraint.dimension}`,
+      kind: 'customer-approved-scope',
+      summary: constraint.safeSummary,
+      enforcedBy: 'customer finance workflow',
+      parameterDigest: constraint.constraintDigest,
+    })),
+  );
 }
 
 export function createFinancePipelineAdmissionRequest(
@@ -745,45 +1136,113 @@ export function createFinancePipelineAdmissionResponse(
     allowedToolResultEvidenceClasses: input.allowedToolResultEvidenceClasses,
     toolResults: input.toolResults,
   });
+  const scopeExplosionGuardDecision = financeScopeExplosionGuardDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    scopeOwnerPolicyRef: input.scopeOwnerPolicyRef,
+    requestedScope: input.requestedScope,
+    approvedScope: input.approvedScope,
+  });
+  const agenticSupplyChainGuardDecision = financeAgenticSupplyChainGuardDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    agenticSupplyChain: input.agenticSupplyChain,
+  });
+  const humanReviewFatigueGuardDecision = financeHumanReviewFatigueGuardDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    humanReviewFatigue: input.humanReviewFatigue,
+  });
+  const multiAgentDelegationGuardDecision = financeMultiAgentDelegationGuardDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    multiAgentDelegation: input.multiAgentDelegation,
+  });
+  const staleAuthorityPolicyGuardDecision = financeStaleAuthorityPolicyGuardDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    staleAuthorityPolicy: input.staleAuthorityPolicy,
+  });
+  const decisionContextDriftDecision = financeDecisionContextDriftDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    decisionContextDrift: input.decisionContextDrift,
+  });
+  const noGoConditionLedgerDecision = financeNoGoConditionLedgerDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    noGoLedgerRef: input.noGoLedgerRef,
+    noGoConditions: input.noGoConditions,
+    noGoNaturalLanguageBypassAttempted: input.noGoNaturalLanguageBypassAttempted,
+    noGoNaturalLanguageSignals: input.noGoNaturalLanguageSignals,
+    noGoBypassAttemptRef: input.noGoBypassAttemptRef,
+  });
+  const guardInputProvenanceDecision = financeGuardInputProvenanceDecisionFor({
+    request,
+    decidedAt: input.decidedAt,
+    guardInputProvenance: input.guardInputProvenance,
+    requiredGuardInputProvenance: input.requiredGuardInputProvenance,
+  });
   const guardChecks = buildFinanceTrustGuardChecks({
     authorityGuardDecision,
     approvalGuardDecision,
+    scopeExplosionGuardDecision,
     toolResultGuardDecision,
+    agenticSupplyChainGuardDecision,
+    humanReviewFatigueGuardDecision,
+    multiAgentDelegationGuardDecision,
+    staleAuthorityPolicyGuardDecision,
+    decisionContextDriftDecision,
+    noGoConditionLedgerDecision,
+    guardInputProvenanceDecision,
   });
   const checks = Object.freeze([...financeChecks, ...guardChecks]);
-  const requiredFailures = failedRequiredChecks(checks);
+  const requiredFailures = failedRequiredChecks(financeChecks);
   const trustGuardHolds = financeTrustGuardHoldChecks(guardChecks);
+  const guardBlockHolds = financeBlockGuardHoldChecks(guardChecks);
+  const reviewGuardHolds = financeReviewGuardHoldChecks(guardChecks);
+  const scopeNarrowHolds = financeScopeNarrowHoldChecks(guardChecks);
   const trustGuardReasons = financeTrustGuardReasonCodes(trustGuardHolds);
   const holdChecks = uniqueChecksByLabel([...requiredFailures, ...trustGuardHolds]);
   const decision = effectiveFinanceDecision(
     nativeDecision,
     requiredFailures,
-    trustGuardHolds,
+    guardBlockHolds,
+    reviewGuardHolds,
+    scopeNarrowHolds,
   );
   const effectiveNativeDecision = nativeDecisionForEffectiveDecision({
     nativeDecision,
     decision,
     holdChecks,
   });
+  const scopeConstraints = financeScopeConstraints(scopeExplosionGuardDecision);
   const constraints =
     decision === 'narrow'
       ? input.constraints?.length
         ? input.constraints
-        : defaultNarrowConstraints()
+        : scopeConstraints.length > 0
+          ? scopeConstraints
+          : defaultNarrowConstraints()
       : input.constraints ?? [];
   const nativeDecisionPhrase =
     native.source === 'release.filingExport.decisionStatus'
       ? `Finance filing release status ${native.value}`
       : `Finance pipeline decision ${native.value}`;
   const reason =
-    requiredFailures.length > 0 && decision !== nativeDecision.mappedDecision
+    guardBlockHolds.length > 0 && decision !== nativeDecision.mappedDecision
+      ? `${nativeDecisionPhrase} maps to native ${nativeDecision.mappedDecision}, but structured finance guards blocked so canonical admission is block.`
+      : requiredFailures.length > 0 && decision !== nativeDecision.mappedDecision
       ? `${nativeDecisionPhrase} maps to native ${nativeDecision.mappedDecision}, but required checks failed so canonical admission is review.`
+      : scopeNarrowHolds.length > 0 && decision !== nativeDecision.mappedDecision
+        ? `${nativeDecisionPhrase} maps to native ${nativeDecision.mappedDecision}, but structured finance scope requires narrowing so canonical admission is narrow.`
       : `${nativeDecisionPhrase} maps to canonical ${decision}.`;
   const reasonCodes = [
     `finance-${native.source === 'decision' ? 'pipeline' : 'release'}-${decision}`,
     `finance-native-${native.value.toLowerCase()}`,
     ...(requiredFailures.length > 0 ? ['finance-required-check-failed'] : []),
     ...(trustGuardHolds.length > 0 ? ['finance-trust-guard-held'] : []),
+    ...(guardBlockHolds.length > 0 ? ['finance-trust-guard-blocked'] : []),
     ...trustGuardReasons,
   ];
 
@@ -817,7 +1276,15 @@ export function createFinancePipelineAdmissionResponse(
       releaseIntrospectionRequired: boolOrNull(native.filingRelease?.introspectionRequired),
       authorityGuardOutcome: authorityGuardDecision?.outcome ?? null,
       approvalGuardOutcome: approvalGuardDecision?.outcome ?? null,
+      scopeExplosionGuardOutcome: scopeExplosionGuardDecision?.outcome ?? null,
       toolResultGuardOutcome: toolResultGuardDecision?.outcome ?? null,
+      agenticSupplyChainGuardOutcome: agenticSupplyChainGuardDecision?.outcome ?? null,
+      humanReviewFatigueGuardOutcome: humanReviewFatigueGuardDecision?.outcome ?? null,
+      multiAgentDelegationGuardOutcome: multiAgentDelegationGuardDecision?.outcome ?? null,
+      staleAuthorityPolicyGuardOutcome: staleAuthorityPolicyGuardDecision?.outcome ?? null,
+      decisionContextDriftOutcome: decisionContextDriftDecision?.outcome ?? null,
+      noGoConditionOutcome: noGoConditionLedgerDecision?.outcome ?? null,
+      guardInputProvenanceOutcome: guardInputProvenanceDecision?.outcome ?? null,
       ...(input.operationalContext ?? {}),
     }),
   });
