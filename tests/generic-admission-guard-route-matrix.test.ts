@@ -740,6 +740,59 @@ const routeAdapterReadinessCases: readonly RouteDimensionCase[] = [
   },
 ];
 
+const routeDomainMetadataCases: readonly RouteDimensionCase[] = [
+  {
+    name: 'money movement missing amount metadata',
+    payload: validAdmissionPayload({
+      amount: null,
+    }),
+    reasonCode: 'amount-scope-missing',
+    dimensions: [['domain', 'money-movement']],
+    missingFields: ['amount'],
+    requiredEvidenceKinds: [],
+    operatorOnlyReasonCodes: [],
+  },
+  {
+    name: 'money movement missing recipient metadata',
+    payload: validAdmissionPayload({
+      recipient: null,
+    }),
+    reasonCode: 'recipient-scope-missing',
+    dimensions: [['domain', 'money-movement']],
+    missingFields: ['recipient'],
+    requiredEvidenceKinds: [],
+    operatorOnlyReasonCodes: [],
+  },
+  {
+    name: 'data disclosure missing data scope metadata',
+    payload: validAdmissionPayload({
+      domain: 'data-disclosure',
+      action: 'export_customer_package',
+      downstreamSystem: 'customer-export-service',
+      dataScope: null,
+    }),
+    reasonCode: 'data-scope-missing',
+    dimensions: [['domain', 'data-disclosure']],
+    missingFields: ['dataScope'],
+    requiredEvidenceKinds: ['data_scope_ref'],
+    operatorOnlyReasonCodes: [],
+  },
+  {
+    name: 'authority change missing authority mode metadata',
+    payload: validAdmissionPayload({
+      domain: 'authority-change',
+      action: 'grant_admin_role',
+      downstreamSystem: 'identity-provider',
+      authorityMode: null,
+    }),
+    reasonCode: 'authority-mode-missing',
+    dimensions: [['domain', 'authority-change']],
+    missingFields: ['authorityMode'],
+    requiredEvidenceKinds: ['authority_ref'],
+    operatorOnlyReasonCodes: [],
+  },
+];
+
 async function postAdmission(payload: Record<string, unknown>): Promise<GenericAdmissionEnvelope> {
   const app = createApp();
   const response = await app.request('/api/v1/admissions', {
@@ -843,7 +896,7 @@ async function testRequiredEvidenceRouteCase(routeCase: RouteRequiredEvidenceCas
   }
 }
 
-async function testAdapterReadinessRouteCase(routeCase: RouteDimensionCase): Promise<void> {
+async function testDimensionRouteCase(routeCase: RouteDimensionCase): Promise<void> {
   const body = await postAdmission(routeCase.payload);
   const dimensions = body.admission.request.policyScope.dimensions as Record<string, unknown>;
 
@@ -999,7 +1052,10 @@ for (const routeCase of routeRequiredEvidenceCases) {
   await testRequiredEvidenceRouteCase(routeCase);
 }
 for (const routeCase of routeAdapterReadinessCases) {
-  await testAdapterReadinessRouteCase(routeCase);
+  await testDimensionRouteCase(routeCase);
+}
+for (const routeCase of routeDomainMetadataCases) {
+  await testDimensionRouteCase(routeCase);
 }
 await testRouteHardInvariantBlockPrecedence();
 await testAgentLoopAbuseGuardCase();
