@@ -342,6 +342,7 @@
     "test:release-enforcement-plane-degraded-mode": "tsx tests/release-enforcement-plane-degraded-mode.test.ts",
     "test:data-movement-full-consequence-engine-proof-m02a": "tsx tests/data-movement-full-consequence-engine-proof-m02a.test.ts",
     "test:data-movement-full-consequence-engine-proof-m02b": "tsx tests/data-movement-full-consequence-engine-proof-m02b.test.ts",
+    "test:data-movement-external-engine-run-contract": "tsx tests/data-movement-external-engine-run-contract.test.ts",
     "proof:data-movement-full-consequence-engine": "npm run test:data-movement-full-consequence-engine-proof-m02a && npm run test:data-movement-full-consequence-engine-proof-m02b",
     "proof:data-movement-public-artifact-readiness": "npm run proof:data-movement-full-consequence-engine && npm run check:public-artifacts-redaction -- --root .attestor/proof-surface/latest --root .attestor/showcase/latest",
     "test:generic-admission-routes": "tsx tests/generic-admission-routes.test.ts",
