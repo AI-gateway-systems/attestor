@@ -61,6 +61,9 @@ Context anchors: [EU AI Act](https://digital-strategy.ec.europa.eu/en/policies/r
 
 ## What It Does
 
+Attestor translates AI intent into a structured consequence, then reduces it to
+a decision, a gate outcome, and proof.
+
 It checks policy, approval, evidence, allowed scope, freshness, replay, tenant,
 token, and proof references. It returns one decision with reasons: `admit`,
 `narrow`, `review`, or `block`.

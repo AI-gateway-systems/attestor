@@ -40,6 +40,7 @@ function testReadmeStartsWithAConcreteWorkflow(): void {
   includes(readme, 'With a customer-owned gate in place, the downstream action stays behind', 'Product docs: README ties downstream no-bypass posture to the customer gate');
   includes(readme, 'The trail records what was proposed', 'Product docs: README explains the audit trail in plain language');
   includes(readme, '## One Concrete Workflow', 'Product docs: README starts product understanding from one concrete workflow');
+  includes(readme, 'Attestor translates AI intent into a structured consequence, then reduces it to', 'Product docs: README keeps the consequence translation shape');
   includes(readme, 'Refund $8,750 to customer_123 for order_789.', 'Product docs: README uses a concrete refund action');
   includes(readme, 'refundService.issueRefund(...)', 'Product docs: README names the dangerous service call');
   includes(readme, 'stops it before the service runs', 'Product docs: README gives one concrete refund outcome');
