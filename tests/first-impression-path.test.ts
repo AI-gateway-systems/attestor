@@ -45,6 +45,7 @@ function testReadmeHasAPlainFirstThirtySeconds(): void {
   includes(readme, 'With a customer-owned gate in place, the downstream action stays behind', 'README: keeps the no-bypass posture tied to the customer gate');
   includes(readme, 'The trail records what was proposed', 'README: shows that the decision stays reviewable');
   includes(readme, '## One Concrete Workflow', 'README: starts with one concrete workflow before abstract categories');
+  includes(readme, 'Attestor translates AI intent into a structured consequence, then reduces it to', 'README: states the consequence translation shape');
   includes(readme, 'Refund $8,750 to customer_123 for order_789.', 'README: shows one high-risk action immediately');
   includes(readme, 'refundService.issueRefund(...)', 'README: names the dangerous downstream service call');
   includes(readme, 'stops it before the service runs', 'README: gives one concrete outcome without slash ambiguity');
