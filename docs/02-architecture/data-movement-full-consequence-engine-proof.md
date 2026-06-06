@@ -1,6 +1,6 @@
 # Data Movement Consequence Engine Proof
 
-Status: M04 repository-side proof contract. This document defines the
+Status: M05A external provider run contract. This document defines the
 repository-side and external-provider path for proving the Data Movement
 consequence engine without claiming SaaS production readiness.
 
@@ -207,6 +207,101 @@ Generated public proof artifacts for this track must stay digest-first and must
 not include raw release tokens, sender proofs, prompts, payloads, provider
 bodies, rows, customer identifiers, tenant secrets, or raw field names.
 
+## M05A - External Data Provider Run Contract
+
+M05A chooses the first credible external-provider proof shape. It does not run
+the provider, create cloud resources, issue credentials, publish artifacts, or
+claim production readiness. It defines what the M05 run must prove when the
+paid/provider step is deliberately turned on.
+
+The first M05 target is a controlled BigQuery to Cloud Storage export run:
+
+```text
+same M02-M04 engine path
+-> provider preflight and cost guard
+-> BigQuery query/export job
+-> Cloud Storage object receipt
+-> provider receipt refs in the proof packet
+-> public redaction gate before publication
+```
+
+This shape is decision-adjacent because the external provider receives the
+action only after the Attestor decision, release-enforcement result, export
+intent binding, tenant/scope checks, and sandbox export gate have passed.
+
+Snowflake remains a valid later external-provider target because the repository
+already has a Snowflake connector and live test surface. It is not the first
+M05 target in this track because the current proof need is a small, bounded
+export receipt with explicit object metadata and cost controls.
+
+### M05A Source Anchors
+
+Reviewed on 2026-06-06:
+
+- BigQuery supports exporting table data and query results to Cloud Storage:
+  [Export table data to Cloud Storage](https://docs.cloud.google.com/bigquery/docs/exporting-data).
+- BigQuery dry runs validate a query and estimate bytes/cost without charging
+  for the dry run:
+  [Run a query - Dry run](https://docs.cloud.google.com/bigquery/docs/running-queries#dry_run).
+- BigQuery cost controls include daily custom query quotas for processed data:
+  [Create custom query quotas](https://docs.cloud.google.com/bigquery/docs/custom-quotas).
+- BigQuery pricing bills on-demand queries by bytes processed and documents a
+  monthly free usage tier:
+  [BigQuery pricing](https://cloud.google.com/bigquery/pricing).
+- Cloud Storage object metadata includes generation, metageneration, CRC32C,
+  and timestamps that can become receipt references:
+  [Object metadata](https://docs.cloud.google.com/storage/docs/metadata).
+- Cloud Storage audit logs can record Admin Activity and Data Access events;
+  Data Access logs must be explicitly enabled:
+  [Cloud Audit Logs with Cloud Storage](https://docs.cloud.google.com/storage/docs/audit-logging).
+- Cloud Billing budgets and alerts help monitor spend, but a budget alert does
+  not automatically cap usage:
+  [Create budgets and budget alerts](https://docs.cloud.google.com/billing/docs/how-to/budgets).
+- Snowflake query history exposes a query id that can serve as a later
+  provider-side receipt reference:
+  [QUERY_HISTORY](https://docs.snowflake.com/en/sql-reference/functions/query_history).
+
+These are engineering anchors only. They do not prove Google Cloud readiness,
+Snowflake readiness, compliance, production security posture, customer
+deployment, or live no-bypass enforcement.
+
+### Required M05 Run Evidence
+
+The external run may count as M05 evidence only when the proof packet can show
+all of the following without raw sensitive material:
+
+| Evidence area | Required evidence | Must not publish |
+| --- | --- | --- |
+| Engine path | `POST /api/v1/admissions`, protected release token, online introspection, replay consumption, release-enforcement PEP decision, export gate outcome. | Raw token, sender proof, raw prompt, raw request body. |
+| Provider preflight | BigQuery dry-run result or equivalent provider estimate, explicit byte/cost cap, selected dataset/table/export prefix digests. | Raw SQL, raw table names, raw field names, raw customer identifiers. |
+| Provider execution | BigQuery job id or digest, job status, destination URI digest, bounded exported scope digest, Cloud Storage object generation/metageneration/CRC32C refs. | Raw rows, object body, provider body, full bucket URI if it exposes private context. |
+| Audit receipt | Cloud audit log ref or digest when Data Access logging is enabled; otherwise an explicit `audit-log-not-enabled` limitation. | Raw audit log body, principal email, IP address, user agent. |
+| Redaction gate | `npm run check:public-artifacts-redaction` over the generated M05 public artifact root before publication. | Unscanned generated artifact publication. |
+| Cost guard | Budget alert evidence, BigQuery dry run, `maximumBytesBilled` or custom query quota evidence where available. | Claim that budget alerts hard-cap spend. |
+
+M05 must still use the same consequence engine. A provider script, notebook,
+warehouse console run, or one-off export that bypasses admission, token,
+introspection, PEP, export gate, and proof-packet generation does not satisfy
+this contract.
+
+### M05 External Fail-Closed Cases
+
+The external-provider run must include provider-call evidence for the positive
+case and no-provider-call evidence for negative cases:
+
+| Case | Required behavior |
+| --- | --- |
+| Admit | Provider export may execute only after the gate verifies the decision, token/proof reference, tenant, target, scope, and export intent digest. |
+| Narrow | Provider export may execute only for the narrowed record cap and approved field class; the receipt must bind the narrowed scope digest. |
+| Review or block | No provider export call may be made. The proof packet must show a held or blocked outcome. |
+| Wrong tenant, target, or scope | No provider export call may be made. |
+| Missing proof, stale token, or replay | No provider export call may be made, including retries. |
+| Redaction failure | No public artifact may be published. |
+
+M05 can prove a credible external engine run. It still cannot prove customer
+PEP no-bypass enforcement unless the customer-owned stop point is separately
+wired and probed.
+
 ## Paid Service Timing
 
 Paid services are only required when they strengthen decision-adjacent proof for
@@ -214,13 +309,15 @@ M05 or M06. They are not required for M02-M04 repository-side engine integrity.
 
 Decision-adjacent paid services for M05 may include:
 
-- a controlled external data provider or warehouse surface;
+- a controlled external data provider or warehouse surface, with BigQuery to
+  Cloud Storage as the first selected M05 target;
 - a managed secrets or signing surface if needed to show non-local authority;
-- external audit storage if the proof requires provider-side persistence.
+- external audit storage if the proof requires provider-side persistence;
+- provider-local cost controls that directly bound the external run.
 
 Production infrastructure services such as WAF, Cloud Armor, GKE hardening,
-NetworkPolicy, production observability, budget alerting, live shared
-Postgres/Redis, and operator diagnostics are M06 or production-readiness
+NetworkPolicy, production observability, production-wide budget alerting, live
+shared Postgres/Redis, and operator diagnostics are M06 or production-readiness
 concerns unless a specific service directly participates in the engine proof
 being shown.
 

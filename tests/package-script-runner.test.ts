@@ -78,6 +78,7 @@ function testPackageJsonDelegatesLargeSuitesToRunner(): void {
   equal(pkg.scripts['verify:full'], 'npm run verify && node scripts/run/run-live-ops-gate.mjs full', 'Package runner: full verification delegates live/ops work to the live/ops runner');
   equal(pkg.scripts['typecheck:hygiene'], 'tsc --noEmit --noUnusedLocals --noUnusedParameters', 'Package runner: strict unused-code hygiene is available as an explicit check');
   equal(pkg.scripts['test:package-script-runner'], 'tsx tests/package-script-runner.test.ts', 'Package runner: runner contract test is exposed');
+  equal(pkg.scripts['test:data-movement-external-engine-run-contract'], 'tsx tests/data-movement-external-engine-run-contract.test.ts', 'Package runner: data movement M05A external engine run contract test is exposed');
   equal(pkg.scripts['proof:data-movement-full-consequence-engine'], 'npm run test:data-movement-full-consequence-engine-proof-m02a && npm run test:data-movement-full-consequence-engine-proof-m02b', 'Package runner: data movement proof run composes the M02A and M02B engine proof tests');
   equal(pkg.scripts['proof:data-movement-public-artifact-readiness'], 'npm run proof:data-movement-full-consequence-engine && npm run check:public-artifacts-redaction -- --root .attestor/proof-surface/latest --root .attestor/showcase/latest', 'Package runner: data movement public artifact readiness composes proof and redaction checks');
 }
@@ -245,6 +246,9 @@ function testDataMovementProofRunContractIsDocumented(): void {
   includes(doc, 'npm run proof:data-movement-public-artifact-readiness', 'Data movement proof contract: public artifact readiness command is documented');
   includes(doc, '.attestor/proof-surface/latest', 'Data movement proof contract: proof-surface artifact root is documented');
   includes(doc, '.attestor/showcase/latest', 'Data movement proof contract: showcase artifact root is documented');
+  includes(doc, '## M05A - External Data Provider Run Contract', 'Data movement proof contract: M05A external provider run contract is documented');
+  includes(doc, 'controlled BigQuery to Cloud Storage export run', 'Data movement proof contract: M05A first external provider target is documented');
+  includes(doc, 'M05 must still use the same consequence engine.', 'Data movement proof contract: M05A preserves the one-engine boundary');
   includes(doc, 'Not live customer PEP no-bypass proof.', 'Data movement proof contract: customer PEP no-bypass remains a non-claim');
   includes(doc, 'Not multi-instance Redis/Postgres replay-store proof.', 'Data movement proof contract: shared replay store remains a non-claim');
   includes(doc, 'Not a live Snowflake, Databricks, BigQuery, GCS, or warehouse integration.', 'Data movement proof contract: live provider integration remains a non-claim');
