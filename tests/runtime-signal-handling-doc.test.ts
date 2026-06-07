@@ -182,6 +182,19 @@ function testRs02EnvelopeAndNonClaimsStayNarrow(): void {
     'It cannot admit, grant authority, deploy a gate, externally verify receipt bytes, activate enforcement, or prove production readiness.',
     'Runtime signal doc: RS10 authority boundary is explicit',
   );
+  includes(doc, 'RS11 Public Package Surface', 'Runtime signal doc: RS11 public package surface section is named');
+  includes(doc, '`attestor/consequence-admission`', 'Runtime signal doc: RS11 stable package subpath is named');
+  includes(doc, 'src/consequence-admission/public-surface.ts', 'Runtime signal doc: RS11 public-surface catalogue path is named');
+  includesNormalized(
+    doc,
+    'Individual runtime signal deep module paths remain private package internals.',
+    'Runtime signal doc: RS11 deep-import boundary is explicit',
+  );
+  includesNormalized(
+    doc,
+    'It does not expose a separate runtime-signal product surface, promise public npm availability, freeze the internal file layout, wire a live route, activate enforcement, or prove production readiness.',
+    'Runtime signal doc: RS11 no-overclaim boundary is explicit',
+  );
   includes(doc, 'signalKind', 'Runtime signal doc: envelope includes signal kind');
   includes(doc, 'sourceSystem', 'Runtime signal doc: envelope includes source system');
   includes(doc, 'tenantRefDigest', 'Runtime signal doc: envelope includes tenant digest');
@@ -194,6 +207,7 @@ function testRs02EnvelopeAndNonClaimsStayNarrow(): void {
   includes(doc, '`generated gate plan != deployed gate`', 'Runtime signal doc: gate-plan no-claim is explicit');
   includes(doc, '`PEP receipt != production readiness`', 'Runtime signal doc: PEP receipt no-claim is explicit');
   includes(doc, '`proof intake material != external verification`', 'Runtime signal doc: proof intake no-claim is explicit');
+  includes(doc, '`public contract surface != deep internal module path`', 'Runtime signal doc: public surface no-claim is explicit');
   equal(
     pkg.scripts['test:runtime-signal-handling-doc'],
     'tsx tests/runtime-signal-handling-doc.test.ts',
@@ -239,6 +253,11 @@ function testRs02EnvelopeAndNonClaimsStayNarrow(): void {
     'tsx tests/runtime-signal-proof-intake.test.ts',
     'package.json exposes runtime signal proof intake test',
   );
+  equal(
+    pkg.scripts['test:runtime-signal-public-surface'],
+    'tsx tests/runtime-signal-public-surface.test.ts',
+    'package.json exposes runtime signal public surface test',
+  );
 }
 
 function testResearchAnchorsAreOfficialAndNoModelNamesLeak(): void {
@@ -279,6 +298,9 @@ function testResearchAnchorsAreOfficialAndNoModelNamesLeak(): void {
   includes(doc, 'Google SRE alerting guidance', 'Runtime signal doc: Google SRE anchor is present');
   includes(doc, 'GitHub branch protection documentation', 'Runtime signal doc: GitHub branch protection anchor is present');
   includes(doc, 'Terraform plan and apply', 'Runtime signal doc: Terraform plan/apply anchor is present');
+  includes(doc, 'Node.js package exports', 'Runtime signal doc: Node.js package exports anchor is present');
+  includes(doc, 'TypeScript module resolution', 'Runtime signal doc: TypeScript module resolution anchor is present');
+  includes(doc, 'npm package.json exports', 'Runtime signal doc: npm package exports anchor is present');
   excludes(doc, forbiddenModelNamePattern, 'Runtime signal doc: no model or tool names are used');
   excludes(
     doc,
