@@ -71,6 +71,14 @@ evidence, not enforcement. With that
 [downstream point](docs/02-architecture/downstream-enforcement-contract.md), it
 becomes the stop point.
 
+### Run Attestor in shadow pilot mode - and map what your AI agents are trying to do in the shadow of your systems.
+
+Observe mode maps every action your agents would take: what, why, and with
+what authority, backed by a digest-bound decision trail. You see the risk
+before it moves.
+
+[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)
+
 ## The Same Pattern Across Operations
 
 The same gate can sit before these operation classes:
@@ -108,6 +116,8 @@ Start light. Go deeper only when you need the detail.
 Pick the path that matches the job in front of you.
 
 - [Try Attestor first](docs/01-overview/try-attestor-first.md) - run the smallest local refund path and see the decision trail.
+- [Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - send observe-mode examples before enforcing anything.
 - [How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md) - find the real side effect and place the customer-owned gate.
 - [Repository navigator](docs/01-overview/repository-navigator.md) - find deeper docs for hosted, pricing, support, proof, or maintainer work.
-- [License and use](docs/01-overview/license-and-use.md) and [Security Policy](SECURITY.md) - understand use boundaries and reporting.
+
+Use boundaries: [License and use](docs/01-overview/license-and-use.md) and [Security Policy](SECURITY.md).

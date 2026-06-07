@@ -63,7 +63,10 @@ function testReadmeKeepsTheControlBoundaryAndLocalRunPath(): void {
   includes(readme, 'It checks policy, approval, evidence, allowed scope, freshness, replay, tenant', 'README: keeps the check vocabulary');
   includes(readme, 'The real service should run only through the customer-owned gate.', 'README: keeps the customer gate boundary');
   includes(readme, 'Without a customer-side gate, gateway, verifier, or adapter, the decision is', 'README: makes advisory versus control posture explicit');
-  excludes(readme, /### Run Attestor in shadow pilot mode/u, 'README: keeps the shadow pilot path behind the navigator');
+  includes(readme, '### Run Attestor in shadow pilot mode - and map what your AI agents are trying to do in the shadow of your systems.', 'README: restores the shadow pilot path before the operation table');
+  includes(readme, 'Observe mode maps every action your agents would take', 'README: explains shadow mode as observe-first visibility');
+  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)', 'README: links the shadow pilot path directly');
+  appearsBefore(readme, '### Run Attestor in shadow pilot mode', '## The Same Pattern Across Operations', 'README: shadow mode appears before the operation-class table');
   excludes(readme, /\[Run the local evaluation path\]\(docs\/01-overview\/demo-guide\.md\)/u, 'README: keeps local evaluation behind the first-run and navigator paths');
   includes(readme, '[How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md)', 'README: links the integration guide for customer-gate placement');
   includes(readme, '[Repository navigator](docs/01-overview/repository-navigator.md)', 'README: routes deeper proof and maintainer docs through the navigator');
@@ -93,6 +96,9 @@ function testReadmeKeepsEvaluationTruthBeforeDeepDocs(): void {
   includes(readme, 'Attestor is a control point, not a data lake.', 'README: keeps raw customer data posture visible');
   includes(readme, 'structured request', 'README: states bounded request context plainly');
   includes(readme, 'not raw customer data', 'README: states data minimization plainly');
+  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - send observe-mode examples before enforcing anything.', 'README: Start Here includes observe mode before integration');
+  includes(readme, 'Use boundaries: [License and use](docs/01-overview/license-and-use.md) and [Security Policy](SECURITY.md).', 'README: use boundaries are separated from main onboarding paths');
+  appearsBefore(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - send observe-mode examples before enforcing anything.', '[How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md)', 'README: observe path comes before integration path');
   appearsBefore(readme, '## Current State', '## Data Posture', 'README: current state comes before data posture');
   appearsBefore(readme, '## Data Posture', '## Start Here', 'README: data posture comes before first-reader links');
   appearsBefore(readme, '## Current State', '## Start Here', 'README: current state comes before first-reader links');

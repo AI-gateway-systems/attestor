@@ -21,9 +21,18 @@ function excludes(content: string, unexpected: RegExp, message: string): void {
   passed += 1;
 }
 
+function equal<T>(actual: T, expected: T, message: string): void {
+  assert.equal(actual, expected, message);
+  passed += 1;
+}
+
 function ok(condition: unknown, message: string): void {
   assert.ok(condition, message);
   passed += 1;
+}
+
+function countOccurrences(content: string, expected: string): number {
+  return content.split(expected).length - 1;
 }
 
 function testNavigatorKeepsFirstVisitorPaths(): void {
@@ -32,23 +41,20 @@ function testNavigatorKeepsFirstVisitorPaths(): void {
 
   includes(doc, '# Repository Navigator', 'Repository navigator: title is present');
   includes(doc, 'Use this when the repository feels large', 'Repository navigator: purpose is plain');
-  includes(doc, '## What This Opens', 'Repository navigator: names the embedded navigation hubs');
-  includes(doc, '## Pick One Door', 'Repository navigator: guided decision entry is present');
-  includes(doc, 'Do not read everything.', 'Repository navigator: avoids scavenger-hunt reading');
-  includes(doc, 'Stop when...', 'Repository navigator: each path has a stopping rule');
-  includes(doc, '"Where does this actually run?"', 'Repository navigator: routes runtime-shape questions to the local path');
-  includes(doc, 'local command, the hosted/API route shape, the customer gate, and the proof packet', 'Repository navigator: stopping rule names the concrete developer artifacts');
-  includes(doc, '"What is proven today?"', 'Repository navigator: frames readiness as evidence, not a production claim');
+  includes(doc, 'Use this as secondary navigation after the repository README.', 'Repository navigator: stays secondary to the front README');
+  includes(doc, '## Primary Paths', 'Repository navigator: primary paths are the first navigation surface');
   includes(doc, '## Start By Intent', 'Repository navigator: task-first navigation is present');
   includes(doc, '## Start By Role', 'Repository navigator: role-first navigation is present');
   includes(doc, '## Maintainer Maps', 'Repository navigator: deep maps are grouped behind a maintainer section');
   includes(doc, '## If You Are Lost', 'Repository navigator: lost-reader rescue path is present');
+  excludes(doc, /## What This Opens/u, 'Repository navigator: does not keep an extra navigation hub section');
+  excludes(doc, /## Pick One Door/u, 'Repository navigator: avoids duplicate guided-entry sections');
+  excludes(doc, /Stop when\.\.\./u, 'Repository navigator: removes the old stopping-rule table');
 
   for (const expected of [
     '[Try Attestor first](try-attestor-first.md)',
     '[Run the local evaluation path](demo-guide.md)',
     '[How to integrate Attestor](how-to-integrate-attestor.md)',
-    '[Docs index](../README.md)',
     '[README current state](../../README.md#current-state)',
     '[Live proof register](../audit/live-proof-register.md)',
     '[Run Attestor in shadow pilot mode](shadow-event-payload-examples.md)',
@@ -156,7 +162,14 @@ function testDocsFrontDoorPullsReadersToTheNextAction(): void {
   includes(doc, 'Use this docs index when the README gave you the shape', 'Docs front door: purpose names the index');
   includes(doc, 'understand -> try -> integrate -> explain decisions -> verify claims -> maintain', 'Docs front door: keeps the reader path explicit');
   includes(doc, '## Start Here', 'Docs front door: has a first-reader section');
-  includes(doc, 'See where it runs, what JSON moves, and where the gate sits', 'Docs front door: starts with concrete developer artifacts');
+  includes(doc, 'The main first-reader path starts in the repository README', 'Docs front door: points first readers to the repository README');
+  includes(doc, 'index is secondary navigation.', 'Docs front door: stays secondary to the repository README');
+  includes(doc, 'Run the local evaluation path and see where the gate sits', 'Docs front door: keeps the local evaluation path in one row');
+  equal(
+    countOccurrences(doc, '| Run the local evaluation path'),
+    1,
+    'Docs front door: local evaluation path is not duplicated in Start Here',
+  );
   includes(doc, '## Canonical Docs', 'Docs front door: has a canonical-docs section');
   includes(doc, 'This table is navigation, not a new authority surface.', 'Docs front door: canonical table is not an authority surface');
   includes(doc, '## Integrate', 'Docs front door: has an integration section');
