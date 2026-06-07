@@ -194,6 +194,16 @@ export interface ActionSurfaceAutoContextDescriptor {
 }
 
 const WRITE_HTTP_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const RUNTIME_SIGNAL_HTTP_METHODS = new Set([
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'HEAD',
+  'OPTIONS',
+  'TRACE',
+]);
 
 function canonicalObject(value: CanonicalReleaseJsonValue): {
   readonly canonical: string;
@@ -739,14 +749,36 @@ function httpOperationParts(operationRef: string | null): {
   readonly path: string | null;
   readonly operationId: string | null;
 } {
-  const match = operationRef?.match(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)\s+([^#]+)(?:#(.+))?$/u);
-  if (!match) {
+  const value = normalizeOptionalString(operationRef);
+  if (!value) {
     return Object.freeze({ method: null, path: null, operationId: null });
   }
+  const separator = value.indexOf(' ');
+  if (separator <= 0) {
+    return Object.freeze({ method: null, path: null, operationId: null });
+  }
+  const method = value.slice(0, separator).toUpperCase();
+  if (!RUNTIME_SIGNAL_HTTP_METHODS.has(method)) {
+    return Object.freeze({ method: null, path: null, operationId: null });
+  }
+  let restStart = separator + 1;
+  while (value.charCodeAt(restStart) === 32) {
+    restStart += 1;
+  }
+  const rest = value.slice(restStart);
+  if (!rest.startsWith('/')) {
+    return Object.freeze({ method: null, path: null, operationId: null });
+  }
+  const hashIndex = rest.indexOf('#');
+  const path = (hashIndex >= 0 ? rest.slice(0, hashIndex) : rest).trim();
+  if (!path) {
+    return Object.freeze({ method: null, path: null, operationId: null });
+  }
+  const operationId = hashIndex >= 0 ? normalizeOptionalString(rest.slice(hashIndex + 1)) : null;
   return Object.freeze({
-    method: match[1] ?? null,
-    path: match[2] ?? null,
-    operationId: match[3] ?? null,
+    method,
+    path,
+    operationId,
   });
 }
 
