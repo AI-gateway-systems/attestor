@@ -1,4 +1,32 @@
-# Runtime Signal Handling
+# System Signals to Gate Plans
+
+## Short Version
+
+Customer systems already expose useful clues: API routes, tool schemas,
+telemetry, proposed actions, gate receipts, and replay records.
+
+Attestor uses those clues to find where an AI-prepared action could become a
+real consequence:
+
+```text
+system metadata / telemetry / proof
+  -> digest-only signal
+  -> consequence candidate
+  -> gate/readiness plan
+```
+
+This helps place the customer-owned gate before the real action. It does not
+authorize, execute, deploy a gate, or prove production readiness.
+
+## Local Example
+
+The local example turns OpenAPI/MCP/OpenTelemetry metadata into a digest-only
+signal, consequence candidate, and gate/readiness plan.
+
+- Source: `examples/runtime-signal-path/metadata-to-gate-plan.ts`
+- Check: `npm run test:runtime-signal-example-path`
+
+## Technical Boundary
 
 Runtime signals are controlled metadata, telemetry, proposed-action records, or
 enforcement evidence from systems a customer already runs. They help Attestor

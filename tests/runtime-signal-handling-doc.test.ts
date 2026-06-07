@@ -42,7 +42,19 @@ function testRuntimeSignalBoundaryIsExplicit(): void {
     'runtime-signal-handling.md',
   );
 
-  includes(doc, 'Runtime Signal Handling', 'Runtime signal doc: title exists');
+  includes(doc, 'System Signals to Gate Plans', 'Runtime signal doc: human-readable title exists');
+  includes(doc, 'Short Version', 'Runtime signal doc: short version section exists');
+  includes(doc, 'Local Example', 'Runtime signal doc: local example section exists');
+  includesNormalized(
+    doc,
+    'system metadata / telemetry / proof -> digest-only signal -> consequence candidate -> gate/readiness plan',
+    'Runtime signal doc: short path is visible before detailed sections',
+  );
+  includesNormalized(
+    doc,
+    'This helps place the customer-owned gate before the real action.',
+    'Runtime signal doc: short version names the customer-owned gate',
+  );
   includes(
     doc,
     'They help Attestor see. They do not authorize.',
