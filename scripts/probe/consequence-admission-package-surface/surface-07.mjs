@@ -309,22 +309,35 @@ export async function runConsequenceAdmissionPackageSurface07({ assert, root, ad
     'function',
   );
 
+  const blockedInternalPaths = [
+    'attestor/consequence-admission/facade.js',
+    'attestor/consequence-admission/runtime-signal-envelope.js',
+    'attestor/consequence-admission/runtime-signal-authority-guard.js',
+    'attestor/consequence-admission/runtime-signal-source-binding.js',
+    'attestor/consequence-admission/runtime-signal-normalizer.js',
+    'attestor/consequence-admission/runtime-signal-consequence-mapping.js',
+    'attestor/consequence-admission/action-surface-auto-context.js',
+    'attestor/consequence-admission/runtime-signal-integration-readiness-bridge.js',
+    'attestor/consequence-admission/runtime-signal-review-packet.js',
+    'attestor/consequence-admission/runtime-signal-proof-intake.js',
+  ];
 
-  let blockedInternalPath = false;
-  try {
-    await import('attestor/consequence-admission/facade.js');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    blockedInternalPath =
-      message.includes('Package subpath') ||
-      message.includes('ERR_PACKAGE_PATH_NOT_EXPORTED');
+  for (const internalPath of blockedInternalPaths) {
+    let blockedInternalPath = false;
+    try {
+      await import(internalPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      blockedInternalPath =
+        message.includes('Package subpath') ||
+        message.includes('ERR_PACKAGE_PATH_NOT_EXPORTED');
+    }
+
+    assert.equal(
+      blockedInternalPath,
+      true,
+      `${internalPath} should stay outside the public package surface`,
+    );
   }
-
-
-  assert.equal(
-    blockedInternalPath,
-    true,
-    'internal consequence admission module paths should stay outside the public package surface',
-  );
 
 }

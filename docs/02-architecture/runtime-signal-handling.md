@@ -253,6 +253,21 @@ It cannot admit, grant authority, deploy a gate, externally verify receipt
 bytes, activate enforcement, or prove production readiness. The focused local
 check is `npm run test:runtime-signal-proof-intake`.
 
+## RS11 Public Package Surface
+
+The runtime signal contracts are exposed through the stable
+`attestor/consequence-admission` package subpath and the curated
+`src/consequence-admission/public-surface.ts` catalogue. Individual runtime
+signal deep module paths remain private package internals.
+
+The public surface includes only stable contract pieces: versions, descriptors,
+type contracts, and pure builders or mappers. It does not expose a separate
+runtime-signal product surface, promise public npm availability, freeze the
+internal file layout, wire a live route, activate enforcement, or prove
+production readiness. The focused local check is
+`npm run test:runtime-signal-public-surface`; the package-level check is
+`npm run test:consequence-admission-package-surface` after build.
+
 ## Boundaries
 
 - `runtime signal != authority`
@@ -261,6 +276,7 @@ check is `npm run test:runtime-signal-proof-intake`.
 - `generated gate plan != deployed gate`
 - `PEP receipt != production readiness`
 - `proof intake material != external verification`
+- `public contract surface != deep internal module path`
 
 These are separate proof obligations.
 
@@ -305,3 +321,7 @@ These sources are engineering anchors only. They do not certify Attestor.
 - [Terraform plan and apply](https://developer.hashicorp.com/terraform/cli/commands/plan)
   anchors the review-before-change pattern: show intended changes before
   applying them.
+- [Node.js package exports](https://nodejs.org/api/packages.html#exports),
+  [TypeScript module resolution](https://www.typescriptlang.org/tsconfig/#moduleResolution),
+  and [npm package.json exports](https://docs.npmjs.com/cli/v11/configuring-npm/package-json#exports)
+  anchor package entrypoint encapsulation and public import boundaries.
