@@ -159,16 +159,8 @@ function testDocsAndScriptsStayAligned(): void {
     'G07 ledger: records demo CLI',
   );
   for (const expected of [
-    '## One Concrete Workflow',
-    'Refund $8,750 to customer_123 for order_789.',
-    'refundService.issueRefund(...)',
-    'stops it before the service runs',
-    'manager approval is missing',
-    'that AI-prepared request can become a real refund call',
-    'The trail remains: proposed request',
-    '[Run the local evaluation path](docs/01-overview/demo-guide.md)',
-    'The repo demo is synthetic and shadow-only.',
-    'bank, or a live customer deployment.',
+    '[Try Attestor first](docs/01-overview/try-attestor-first.md)',
+    '[Repository navigator](docs/01-overview/repository-navigator.md)',
   ]) {
     includes(readme, expected, `G07 README: records ${expected}`);
   }
