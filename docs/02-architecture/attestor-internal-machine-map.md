@@ -313,6 +313,52 @@ The admission check kinds stay explicit in the map contract: `policy`,
 `authority`, `evidence`, `freshness`, `enforcement`, and
 `adapter-readiness`.
 
+## Side Loops
+
+These loops sit beside the main consequence path. They can create review
+pressure, correction evidence, and policy candidates, but they do not execute
+the downstream action and they do not grant authority by themselves.
+
+### Safe Retry
+
+Safe retry is bounded correction, not probing:
+
+```text
+review / correctable hold
+  -> model-safe feedback
+  -> changed retry request
+  -> retry binding to the held admission
+  -> retry budget check
+  -> retry attempt ledger
+  -> corrected admission request
+  -> PDP re-evaluation
+```
+
+No retry path:
+
+```text
+block / unsafe signal / policy-blocked / replay failure / human rejection
+  -> no model retry
+  -> customer review or operator control
+```
+
+### Shadow-To-Policy
+
+Shadow mode can turn observed action surfaces into policy work:
+
+```text
+observed shadow/admission events
+  -> action-surface inventory
+  -> policy gaps and candidate policies
+  -> active questions and review packets
+  -> human/operator approval
+  -> policy activation path
+```
+
+Candidate policies are review material. They do not activate enforcement or
+reduce evidence, review, replay, or customer-gate requirements unless a human
+or operator-owned policy process approves them.
+
 ## Proof Packet Shape
 
 The proof packet is the audit output of the whole path. It should carry
@@ -350,7 +396,7 @@ policy internals, or provider error bodies.
 | Domain packs | `src/financial/*`, `src/crypto-*/*`, `src/filing/*`, `src/domains/*` | Project domain-specific actions into the same consequence-admission engine. |
 | Hosted service/runtime | `src/service/*` | Routes, tenant context, account/admin surfaces, stores, workers, and runtime composition. |
 | Signing and proof support | `src/signing/*`, `src/proof-surface/*`, `src/showcase/*` | Verification kits, certificates, proof display, and reviewable proof artifacts. |
-| Shadow-to-policy loop | `src/consequence-admission/shadow-*`, `src/consequence-admission/policy-foundry-*`, `src/consequence-admission/action-surface-*` | Review/onboarding side loop; it informs future policy but is not the enforcement edge. |
+| Shadow-to-policy loop | `src/consequence-admission/shadow-*`, `src/consequence-admission/policy-foundry-*`, `src/consequence-admission/action-surface-*` | Turns observed action surfaces into risk inventories, policy gaps, candidate policies, active questions, and review packets; it informs future policy but is not the enforcement edge. |
 
 ## Path Notes
 
@@ -383,11 +429,13 @@ review
   -> no executable downstream authority
   -> customer gate holds
   -> proof explains why no action ran
+  -> optional safe retry only when model-safe feedback, retry binding, retry budget, and retry attempt ledger close
 
 block
   -> no executable downstream authority
   -> customer gate holds or blocks
   -> proof explains why no action ran
+  -> no model retry
 ```
 
 ### Failure Paths
