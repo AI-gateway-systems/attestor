@@ -21,6 +21,18 @@ function excludes(content: string, unexpected: RegExp, message: string): void {
   passed += 1;
 }
 
+function appearsBefore(content: string, earlier: string, later: string, message: string): void {
+  const earlierIndex = content.indexOf(earlier);
+  const laterIndex = content.indexOf(later);
+  assert.ok(earlierIndex >= 0, `${message}\nMissing earlier marker: ${earlier}`);
+  assert.ok(laterIndex >= 0, `${message}\nMissing later marker: ${later}`);
+  assert.ok(
+    earlierIndex < laterIndex,
+    `${message}\nExpected "${earlier}" to appear before "${later}"`,
+  );
+  passed += 1;
+}
+
 function testGuideExplainsTheCustomerIntegrationPath(): void {
   const doc = readProjectFile('docs', '01-overview', 'how-to-integrate-attestor.md');
 
@@ -38,6 +50,11 @@ function testGuideExplainsTheCustomerIntegrationPath(): void {
   includes(doc, "decision.outcome !== 'admit' && decision.outcome !== 'narrow'", 'How-to integrate docs: holds review and block');
   includes(doc, 'direct call to the downstream service must fail', 'How-to integrate docs: states no-bypass proof');
   includes(doc, 'Without that customer-owned gate, Attestor is decision evidence.', 'How-to integrate docs: keeps advisory boundary clear');
+  appearsBefore(doc, '## Step 1: Pick One Risky Action', '## Step 2: Find The Real Side Effect', 'How-to integrate docs: starts with one risky action before side-effect placement');
+  appearsBefore(doc, '## Step 2: Find The Real Side Effect', '## Step 3: Start In Observe Mode', 'How-to integrate docs: finds side effect before observe mode');
+  appearsBefore(doc, '## Step 3: Start In Observe Mode', '## Step 4: Ask Attestor First', 'How-to integrate docs: observe mode comes before admission call');
+  appearsBefore(doc, '## Step 4: Ask Attestor First', '## Step 5: Enforce The Decision In Your App', 'How-to integrate docs: admission call comes before enforcement');
+  appearsBefore(doc, '## Step 5: Enforce The Decision In Your App', '## Step 6: Prove The Gate Cannot Be Bypassed', 'How-to integrate docs: enforcement comes before no-bypass proof');
 }
 
 function testGuideUsesReferenceSafePayloadsAndNoOverclaim(): void {

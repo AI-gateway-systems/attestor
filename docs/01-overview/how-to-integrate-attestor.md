@@ -79,7 +79,26 @@ That path helps Attestor infer the starting surface and gaps, but it is still
 review material. You still need policy, evidence, approval, receipt,
 credential, and gate proof before enforcement.
 
-## Step 3: Ask Attestor First
+## Step 3: Start In Observe Mode
+
+Use `mode: "observe"` first.
+
+In observe mode, Attestor tells you what it would have done:
+
+```text
+this refund would have required review
+this export would have been narrowed
+this permission grant would have been blocked
+```
+
+Your team can compare those decisions against real workflow expectations before
+turning the gate into an enforcement point.
+
+Do not call the real service from an observe or warn response. When you move to
+`enforce`, send an `Idempotency-Key` and use execution proof, not just an
+admission receipt.
+
+## Step 4: Ask Attestor First
 
 Send structured action context.
 Use references and digests, not raw customer data.
@@ -103,7 +122,7 @@ Use references and digests, not raw customer data.
 Attestor does not need the raw prompt, full ticket body, payment card, wallet
 key, database rows, private thresholds, or downstream error body.
 
-## Step 4: Enforce The Decision In Your App
+## Step 5: Enforce The Decision In Your App
 
 Use this shape only after you move out of `observe` or `warn` and into a
 review/enforce path with a customer-owned gate. Observe and warn responses are
@@ -140,25 +159,6 @@ Meaning:
 | `narrow` | call the real service only with the safer version |
 | `review` | hold the action for a human or existing approval workflow |
 | `block` | reject before the real service is called |
-
-## Step 5: Start In Observe Mode
-
-Use `mode: "observe"` first.
-
-In observe mode, Attestor tells you what it would have done:
-
-```text
-this refund would have required review
-this export would have been narrowed
-this permission grant would have been blocked
-```
-
-Your team can compare those decisions against real workflow expectations before
-turning the gate into an enforcement point.
-
-Do not call the real service from an observe or warn response. When you move to
-`enforce`, send an `Idempotency-Key` and use execution proof, not just an
-admission receipt.
 
 ## Step 6: Prove The Gate Cannot Be Bypassed
 
