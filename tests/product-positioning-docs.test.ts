@@ -31,7 +31,7 @@ function testReadmeStartsWithAConcreteWorkflow(): void {
   includes(readme, 'alt="ISO 42001 mapped"', 'Product docs: README exposes the ISO 42001 mapped badge');
   includes(readme, 'alt="fail-closed locked"', 'Product docs: README exposes the fail-closed evidence badge');
   includes(readme, 'docs/02-architecture/data-movement-full-consequence-engine-proof.md#m03b---fail-closed-matrix', 'Product docs: README fail-closed badge links to the proof matrix');
-  includes(readme, 'Badges describe repository evidence and framework mappings, not certification or production readiness.', 'Product docs: README badge row avoids certification and production overclaim');
+  includes(readme, 'Badges are not certifications.', 'Product docs: README badge row avoids certification overclaim');
   includes(readme, '**Control infrastructure for high-risk AI-driven operations.**', 'Product docs: README keeps the short product promise');
   includes(readme, 'Attestor sits between an AI-prepared operation and the system that would execute it.', 'Product docs: README starts with plain placement language');
   includes(readme, 'Prompts can guide behavior, but they cannot enforce it', 'Product docs: README keeps the prompt-control contrast');
@@ -39,21 +39,14 @@ function testReadmeStartsWithAConcreteWorkflow(): void {
   includes(readme, 'Before anything runs, Attestor checks', 'Product docs: README preserves the pre-execution control boundary');
   includes(readme, 'With a customer-owned gate in place, the downstream action stays behind', 'Product docs: README ties downstream no-bypass posture to the customer gate');
   includes(readme, 'The trail records what was proposed', 'Product docs: README explains the audit trail in plain language');
-  includes(readme, '## One Concrete Workflow', 'Product docs: README starts product understanding from one concrete workflow');
+  excludes(readme, /## One Concrete Workflow/u, 'Product docs: README keeps the concrete workflow behind the first-run guide');
   includes(readme, 'Attestor translates AI intent into a structured consequence, then reduces it to', 'Product docs: README keeps the consequence translation shape');
-  includes(readme, 'Refund $8,750 to customer_123 for order_789.', 'Product docs: README uses a concrete refund action');
-  includes(readme, 'refundService.issueRefund(...)', 'Product docs: README names the dangerous service call');
-  includes(readme, 'stops it before the service runs', 'Product docs: README gives one concrete refund outcome');
-  includes(readme, 'manager approval is missing', 'Product docs: README shows a concrete stop reason');
-  includes(readme, 'that AI-prepared request can become a real refund call', 'Product docs: README shows the without-Attestor failure mode');
-  includes(readme, 'The trail remains: proposed request', 'Product docs: README shows the trail left by the decision');
   includes(readme, '## Why This Matters Now', 'Product docs: README keeps urgency context after the core workflow');
   includes(readme, '[EU AI Act](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)', 'Product docs: README keeps the EU AI Act as a bounded context anchor');
   includes(readme, '[NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)', 'Product docs: README keeps NIST AI RMF as a bounded context anchor');
   includes(readme, '[DORA](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32022R2554)', 'Product docs: README keeps DORA as a bounded context anchor');
   includes(readme, 'These are not compliance claims.', 'Product docs: README explicitly avoids compliance overclaim');
-  includes(readme, 'The repo demo is synthetic and shadow-only', 'Product docs: README keeps the refund demo no-claim visible');
-  includes(readme, '[Run the local evaluation path](docs/01-overview/demo-guide.md)', 'Product docs: README keeps the local evaluation path visible');
+  includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'Product docs: README routes the first concrete run through the first-run guide');
 }
 
 function testReadmeKeepsSingleEngineAndCustomerBoundary(): void {
@@ -63,12 +56,10 @@ function testReadmeKeepsSingleEngineAndCustomerBoundary(): void {
   includes(readme, 'It checks policy, approval, evidence, allowed scope, freshness, replay, tenant', 'Product docs: README keeps the core check vocabulary in plain language');
   includes(readme, 'The real service should run only through the customer-owned gate.', 'Product docs: README keeps the customer enforcement boundary');
   includes(readme, 'Without a customer-side gate, gateway, verifier, or adapter, the decision is', 'Product docs: README distinguishes advisory evidence from control point');
-  includes(readme, '### Run Attestor in shadow pilot mode - and map what your AI agents are trying to do in the shadow of your systems.', 'Product docs: README makes the original shadow-pilot line visible');
-  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)', 'Product docs: README links the shadow pilot guide');
+  excludes(readme, /### Run Attestor in shadow pilot mode/u, 'Product docs: README keeps shadow pilot detail behind the navigator');
+  excludes(readme, /\[Run Attestor in shadow pilot mode\]\(docs\/01-overview\/shadow-event-payload-examples\.md\)/u, 'Product docs: README keeps shadow pilot out of the main link set');
   includes(readme, 'The same gate can sit before these operation classes:', 'Product docs: README keeps cross-operation framing concise');
-  includes(readme, 'This is a control point, not a data lake.', 'Product docs: README keeps data-posture positioning');
-  includes(readme, 'Customer systems keep the model, agent, workflow, wallet, database, service', 'Product docs: README keeps customer ownership boundary');
-  includes(readme, 'Without a customer-owned gate, it is evidence, not enforcement.', 'Product docs: README keeps the customer enforcement no-claim simple');
+  excludes(readme, /## Data Posture/u, 'Product docs: README keeps data posture behind deeper docs');
 }
 
 function testReadmeKeepsDomainPacksAndLocalTruth(): void {
@@ -86,7 +77,7 @@ function testReadmeKeepsDomainPacksAndLocalTruth(): void {
     includes(readme, pack, `Product docs: README names ${pack}`);
   }
 
-  includes(readme, '[Run the local evaluation path](docs/01-overview/demo-guide.md)', 'Product docs: README links the local evaluation path early');
+  includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'Product docs: README links the first-run path early');
   includes(demoGuide, '## Five-Minute Developer Path', 'Product docs: demo guide starts with a concrete developer path');
   includes(demoGuide, 'request in, decision out, gate before the', 'Product docs: demo guide summarizes the developer flow plainly');
   includes(demoGuide, 'downstream call, proof trail after the decision', 'Product docs: demo guide keeps proof output close to execution');
@@ -117,7 +108,7 @@ function testReadmeLinksTheRightDeeperDocsWithoutBecomingALinkWall(): void {
   includes(integrateDoc, '[Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md)', 'Product docs: integration guide links the review-only integration kit path');
   excludes(readme, /\[Action surface auto-context\]\(docs\/02-architecture\/action-surface-auto-context\.md\)/u, 'Product docs: README keeps action-surface support links behind the integration guide');
   excludes(readme, /\[Action surface integration kit buildout\]\(docs\/02-architecture\/action-surface-integration-kit-buildout\.md\)/u, 'Product docs: README keeps integration kit behind the integration guide');
-  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - send observe-mode examples before enforcing anything.', 'Product docs: README links shadow observe mode');
+  excludes(readme, /\[Run Attestor in shadow pilot mode\]\(docs\/01-overview\/shadow-event-payload-examples\.md\)/u, 'Product docs: README routes shadow observe mode through the navigator');
   excludes(readme, /\[Consequence admission quickstart\]\(docs\/01-overview\/consequence-admission-quickstart\.md\)/u, 'Product docs: README keeps admission detail behind the integration guide and navigator');
   includes(readme, '[Repository navigator](docs/01-overview/repository-navigator.md) - find deeper docs for hosted, pricing, support, proof, or maintainer work.', 'Product docs: README routes deep docs through the navigator');
   includes(readme, '[License and use](docs/01-overview/license-and-use.md) and [Security Policy](SECURITY.md)', 'Product docs: README links use and security boundaries');

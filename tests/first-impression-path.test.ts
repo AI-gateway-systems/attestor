@@ -44,22 +44,12 @@ function testReadmeHasAPlainFirstThirtySeconds(): void {
   includes(readme, 'Before anything runs, Attestor checks', 'README: names pre-execution checks without overclaiming');
   includes(readme, 'With a customer-owned gate in place, the downstream action stays behind', 'README: keeps the no-bypass posture tied to the customer gate');
   includes(readme, 'The trail records what was proposed', 'README: shows that the decision stays reviewable');
-  includes(readme, '## One Concrete Workflow', 'README: starts with one concrete workflow before abstract categories');
+  excludes(readme, /## One Concrete Workflow/u, 'README: keeps the concrete workflow behind the first-run guide');
+  includes(readme, '## Why This Matters Now', 'README: moves from placement into urgency before mechanism');
   includes(readme, 'Attestor translates AI intent into a structured consequence, then reduces it to', 'README: states the consequence translation shape');
-  includes(readme, 'Refund $8,750 to customer_123 for order_789.', 'README: shows one high-risk action immediately');
-  includes(readme, 'refundService.issueRefund(...)', 'README: names the dangerous downstream service call');
-  includes(readme, 'stops it before the service runs', 'README: gives one concrete outcome without slash ambiguity');
-  includes(
-    readme,
-    'manager approval is missing',
-    'README: gives the concrete stop reason',
-  );
-  includes(readme, 'that AI-prepared request can become a real refund call', 'README: shows the without-gate failure mode');
-  includes(readme, 'The trail remains: proposed request', 'README: shows the trail left by the decision');
-  includes(readme, 'The repo demo is synthetic and shadow-only', 'README: keeps local-demo no-claims close to the example');
-  appearsBefore(readme, '## One Concrete Workflow', '## What It Does', 'README: concrete story comes before broad mechanism');
+  includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'README: sends the concrete first run to the first-run guide');
   appearsBefore(readme, '## Why This Matters Now', '## What It Does', 'README: urgency comes before broad mechanism');
-  appearsBefore(readme, '## One Concrete Workflow', '## The Same Pattern Across Operations', 'README: concrete story comes before pack taxonomy');
+  appearsBefore(readme, '## What It Does', '## The Same Pattern Across Operations', 'README: mechanism comes before pack taxonomy');
 }
 
 function testReadmeKeepsTheControlBoundaryAndLocalRunPath(): void {
@@ -70,9 +60,10 @@ function testReadmeKeepsTheControlBoundaryAndLocalRunPath(): void {
   includes(readme, 'It checks policy, approval, evidence, allowed scope, freshness, replay, tenant', 'README: keeps the check vocabulary');
   includes(readme, 'The real service should run only through the customer-owned gate.', 'README: keeps the customer gate boundary');
   includes(readme, 'Without a customer-side gate, gateway, verifier, or adapter, the decision is', 'README: makes advisory versus control posture explicit');
-  includes(readme, '### Run Attestor in shadow pilot mode - and map what your AI agents are trying to do in the shadow of your systems.', 'README: makes the original shadow-pilot line visible');
-  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)', 'README: links the shadow pilot path near the adoption wedge');
-  includes(readme, '[Run the local evaluation path](docs/01-overview/demo-guide.md)', 'README: points early to the local evaluation path');
+  excludes(readme, /### Run Attestor in shadow pilot mode/u, 'README: keeps the shadow pilot path behind the navigator');
+  excludes(readme, /\[Run the local evaluation path\]\(docs\/01-overview\/demo-guide\.md\)/u, 'README: keeps local evaluation behind the first-run and navigator paths');
+  includes(readme, '[How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md)', 'README: links the integration guide for customer-gate placement');
+  includes(readme, '[Repository navigator](docs/01-overview/repository-navigator.md)', 'README: routes deeper proof and maintainer docs through the navigator');
   includes(demoGuide, 'npm run demo:golden-paths', 'Demo guide: shows the all-pack local evaluator');
   includes(demoGuide, 'npm ci', 'Demo guide: keeps reproducible install for the reviewer path');
   includes(demoGuide, 'npm run demo:golden-refund', 'Demo guide: shows the first concrete runnable path');
@@ -94,9 +85,10 @@ function testReadmeKeepsEvaluationTruthBeforeDeepDocs(): void {
   includes(readme, 'Release stage:   evaluation release', 'README: states evaluation-release status plainly');
   includes(readme, 'Release type:    GitHub pre-release / Golden Path evaluation baseline', 'README: states current release type plainly');
   includes(readme, 'The same gate can sit before these operation classes:', 'README: keeps cross-operation framing concise');
-  includes(readme, 'This is a control point, not a data lake.', 'README: states data posture plainly');
-  appearsBefore(readme, '## Current State', '## Data Posture', 'README: current state comes before deeper trust posture');
+  includes(readme, 'This is an evaluation release.', 'README: keeps evaluation no-claim near current state');
+  appearsBefore(readme, '## Current State', '## Start Here', 'README: current state comes before first-reader links');
   excludes(readme, /## Decision Model/u, 'README: should not keep a separate decision-model section');
+  excludes(readme, /## Data Posture/u, 'README: keeps data posture behind deeper docs instead of a front-page block');
 }
 
 function testReadmeStaysReadableInsteadOfDense(): void {

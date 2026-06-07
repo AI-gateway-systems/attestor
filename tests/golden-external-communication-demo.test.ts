@@ -153,8 +153,8 @@ function testDocsAndScriptsStayAligned(): void {
   );
   includes(
     readme,
-    '[Run the local evaluation path](docs/01-overview/demo-guide.md)',
-    'E04 README: links the local evaluation guide',
+    '[Try Attestor first](docs/01-overview/try-attestor-first.md)',
+    'E04 README: links the first-run guide',
   );
   equal(
     packageJson.scripts['demo:golden-external-communication'],
