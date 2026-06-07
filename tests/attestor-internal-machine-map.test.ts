@@ -118,6 +118,40 @@ function testMachineMapPreservesAuthorityBoundaries(): void {
   excludes(doc, /- not production readiness/u, 'Machine map: avoids long negative bullet lists');
 }
 
+function testMachineMapShowsBoundedSideLoops(): void {
+  const doc = readProjectFile('docs', '02-architecture', 'attestor-internal-machine-map.md');
+
+  for (const expected of [
+    '## Side Loops',
+    'Safe retry is bounded correction, not probing',
+    'model-safe feedback',
+    'changed retry request',
+    'retry binding to the held admission',
+    'retry budget check',
+    'retry attempt ledger',
+    'corrected admission request',
+    'PDP re-evaluation',
+    'no model retry',
+    'customer review or operator control',
+  ]) {
+    includes(doc, expected, `Machine map: safe retry side loop ${expected} is visible`);
+  }
+
+  for (const expected of [
+    'Shadow mode can turn observed action surfaces into policy work',
+    'action-surface inventory',
+    'policy gaps and candidate policies',
+    'active questions and review packets',
+    'human/operator approval',
+    'policy activation path',
+    'Candidate policies are review material.',
+    'do not activate enforcement',
+    'operator-owned policy process approves them',
+  ]) {
+    includes(doc, expected, `Machine map: shadow-to-policy boundary ${expected} is visible`);
+  }
+}
+
 function testMachineMapLinksAndSourceAreasArePresent(): void {
   const doc = readProjectFile('docs', '02-architecture', 'attestor-internal-machine-map.md');
   const readme = readProjectFile('README.md');
@@ -167,6 +201,7 @@ function testMachineMapLinksAndSourceAreasArePresent(): void {
 testMachineMapExistsAndUsesTheTextDiagram();
 testMachineMapNamesTheBranchingSemantics();
 testMachineMapPreservesAuthorityBoundaries();
+testMachineMapShowsBoundedSideLoops();
 testMachineMapLinksAndSourceAreasArePresent();
 
 console.log(`Attestor internal machine map tests: ${passed} passed, 0 failed`);
