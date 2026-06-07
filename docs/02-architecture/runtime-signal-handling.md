@@ -238,6 +238,21 @@ authorize, deploy a gate, consume proof, activate enforcement, or prove
 production readiness. The focused local check is
 `npm run test:runtime-signal-review-packet`.
 
+## RS10 Proof Intake
+
+The repo-side proof intake contract lives in
+`src/consequence-admission/runtime-signal-proof-intake.ts` as
+`attestor.runtime-signal-proof-intake.v1`. It accepts only RS02
+`enforcement-proof` signals with `enforcement-proof` trust.
+
+The intake classifies PEP, customer-gate, no-bypass probe, replay-ledger,
+release-enforcement, and downstream receipt signals as digest-only proof packet
+material when tenant, actor, runtime correlation, action surface, downstream
+system, operation, schema, body digest, and proof evidence refs are present.
+It cannot admit, grant authority, deploy a gate, externally verify receipt
+bytes, activate enforcement, or prove production readiness. The focused local
+check is `npm run test:runtime-signal-proof-intake`.
+
 ## Boundaries
 
 - `runtime signal != authority`
@@ -245,6 +260,7 @@ production readiness. The focused local check is
 - `telemetry != admission`
 - `generated gate plan != deployed gate`
 - `PEP receipt != production readiness`
+- `proof intake material != external verification`
 
 These are separate proof obligations.
 

@@ -33,6 +33,7 @@ export * from './runtime-signal-normalizer.js';
 export * from './runtime-signal-consequence-mapping.js';
 export * from './runtime-signal-integration-readiness-bridge.js';
 export * from './runtime-signal-review-packet.js';
+export * from './runtime-signal-proof-intake.js';
 export * from './signal-extractor-contract.js';
 export * from './signal-adapter-registry.js';
 export * from './relationship-detector-contract.js';

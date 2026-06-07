@@ -330,6 +330,36 @@ export async function runConsequenceAdmissionPackageSurface03({ assert, root, ad
   );
 
   assert.equal(
+    admission.RUNTIME_SIGNAL_PROOF_INTAKE_VERSION,
+    'attestor.runtime-signal-proof-intake.v1',
+  );
+
+  assert.equal(
+    admission.runtimeSignalProofIntakeDescriptor().runtimeSignalEnvelopeVersion,
+    admission.RUNTIME_SIGNAL_ENVELOPE_VERSION,
+  );
+
+  assert.equal(
+    admission.runtimeSignalProofIntakeDescriptor().proofSignalsOnly,
+    true,
+  );
+
+  assert.equal(
+    admission.runtimeSignalProofIntakeDescriptor().telemetryAcceptedAsProof,
+    false,
+  );
+
+  assert.equal(
+    admission.runtimeSignalProofIntakeDescriptor().canAdmit,
+    false,
+  );
+
+  assert.equal(
+    typeof admission.createRuntimeSignalProofIntake,
+    'function',
+  );
+
+  assert.equal(
     admission.ACTION_SURFACE_RUNTIME_SIGNAL_BRIDGE_VERSION,
     'attestor.action-surface-runtime-signal-bridge.v1',
   );

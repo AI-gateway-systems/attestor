@@ -169,6 +169,19 @@ function testRs02EnvelopeAndNonClaimsStayNarrow(): void {
     'It cannot admit, authorize, deploy a gate, consume proof, activate enforcement, or prove production readiness.',
     'Runtime signal doc: RS09 authority boundary is explicit',
   );
+  includes(doc, 'RS10 Proof Intake', 'Runtime signal doc: RS10 proof intake section is named');
+  includes(doc, 'src/consequence-admission/runtime-signal-proof-intake.ts', 'Runtime signal doc: RS10 implementation path is named');
+  includes(doc, 'attestor.runtime-signal-proof-intake.v1', 'Runtime signal doc: RS10 intake version is named');
+  includesNormalized(
+    doc,
+    'It accepts only RS02 `enforcement-proof` signals with `enforcement-proof` trust.',
+    'Runtime signal doc: RS10 proof-only input boundary is explicit',
+  );
+  includesNormalized(
+    doc,
+    'It cannot admit, grant authority, deploy a gate, externally verify receipt bytes, activate enforcement, or prove production readiness.',
+    'Runtime signal doc: RS10 authority boundary is explicit',
+  );
   includes(doc, 'signalKind', 'Runtime signal doc: envelope includes signal kind');
   includes(doc, 'sourceSystem', 'Runtime signal doc: envelope includes source system');
   includes(doc, 'tenantRefDigest', 'Runtime signal doc: envelope includes tenant digest');
@@ -180,6 +193,7 @@ function testRs02EnvelopeAndNonClaimsStayNarrow(): void {
   includes(doc, '`telemetry != admission`', 'Runtime signal doc: telemetry no-claim is explicit');
   includes(doc, '`generated gate plan != deployed gate`', 'Runtime signal doc: gate-plan no-claim is explicit');
   includes(doc, '`PEP receipt != production readiness`', 'Runtime signal doc: PEP receipt no-claim is explicit');
+  includes(doc, '`proof intake material != external verification`', 'Runtime signal doc: proof intake no-claim is explicit');
   equal(
     pkg.scripts['test:runtime-signal-handling-doc'],
     'tsx tests/runtime-signal-handling-doc.test.ts',
@@ -219,6 +233,11 @@ function testRs02EnvelopeAndNonClaimsStayNarrow(): void {
     pkg.scripts['test:runtime-signal-review-packet'],
     'tsx tests/runtime-signal-review-packet.test.ts',
     'package.json exposes runtime signal review packet test',
+  );
+  equal(
+    pkg.scripts['test:runtime-signal-proof-intake'],
+    'tsx tests/runtime-signal-proof-intake.test.ts',
+    'package.json exposes runtime signal proof intake test',
   );
 }
 
