@@ -781,14 +781,13 @@ function testExampleAndDocs(): void {
   includes(integrationHub, '[Customer admission gate](customer-admission-gate.md)', 'Integration hub: links customer gate docs');
   includes(doc, 'npm run example:customer-gate', 'Customer gate doc: includes runnable command');
   includes(doc, 'assertConsequenceAdmissionGateAllows', 'Customer gate doc: includes copy-paste helper');
-  includes(doc, 'This helper is not the hosted admission API.', 'Customer gate doc: keeps route boundary honest');
+  includes(doc, 'This page shows customer-side gate helpers.', 'Customer gate doc: keeps route boundary honest');
   includes(doc, 'execution proof by itself.', 'Customer gate doc: admission receipt is not execution proof');
-  includes(doc, '`POST /api/v1/admissions`', 'Customer gate doc: points to the generic route');
-  includes(doc, 'This does not add a public hosted crypto route.', 'Customer gate doc: keeps crypto boundary honest');
-  includes(doc, 'This does not auto-detect packs from payload shape.', 'Customer gate doc: rejects auto detection');
+  includes(doc, 'The hosted admission API, crypto', 'Customer gate doc: keeps route and crypto boundaries honest');
+  includes(doc, 'domain selection', 'Customer gate doc: keeps domain selection explicit');
   includes(doc, 'Signed bearer compatibility path', 'Customer gate doc: documents signed bearer compatibility');
   includes(doc, 'does not store the raw bearer token', 'Customer gate doc: signed bearer path is secret-safe');
-  includes(doc, 'not protected production enforcement', 'Customer gate doc: bearer-only path does not overclaim production enforcement');
+  includes(doc, 'bearer-token compatibility path', 'Customer gate doc: bearer-only path is described as compatibility');
   includes(doc, 'Release-enforcement proof path', 'Customer gate doc: documents release-enforcement proof path');
   includes(doc, 'assertConsequenceAdmissionGateAllowsReleaseEnforcement', 'Customer gate doc: includes release-enforcement helper');
   includes(doc, 'sender-constrained, online-checked, replay-consumed', 'Customer gate doc: protected path requires sender constraint, online liveness, and replay consumption');

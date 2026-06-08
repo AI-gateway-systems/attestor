@@ -22,7 +22,8 @@ Your system is not handing control to Attestor. It is adding a gate before conse
 3. Attestor returns a decision, proof posture, tenant context, and usage state
 4. your system only writes, sends, files, executes, or settles if the decision allows it
 
-Attestor does not auto-detect packs from magic input. You call the hosted path that matches the consequence you need to control.
+Choose the hosted path that matches the consequence you need to control. Do not
+rely on payload shape to select the domain for you.
 
 ## 1. Configure The Client
 

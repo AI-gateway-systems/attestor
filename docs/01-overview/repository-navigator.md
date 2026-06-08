@@ -3,8 +3,8 @@
 Use this when the repository feels large and you want the shortest path to the
 right place.
 
-This is a map, not a new authority surface. It does not replace the README,
-the audit baseline, or the live proof register.
+This is secondary navigation. The README remains the first page; audit and live
+proof records remain the source for readiness claims.
 
 Use this as secondary navigation after the repository README. Start with
 Primary Paths. Use the intent or role tables only when the first path is not
@@ -53,7 +53,7 @@ Use these when you need the main Attestor route, not every supporting page.
 | API integrator | [First hosted API call](hosted-first-api-call.md) | Tenant key, first request, and decision handling. |
 | Reviewer or auditor | [Audit evidence system](../audit/README.md) | Current baseline, finding state, live-proof separation. |
 | Maintainer | [Developer entry path](developer-entry-path.md) | The shortest code-reading path before deeper architecture maps. |
-| Product or docs editor | [Attestor language contract](../02-architecture/attestor-language-contract.md) | Public wording, no-claims, and one-engine terminology. |
+| Product or docs editor | [Attestor language contract](../02-architecture/attestor-language-contract.md) | Public wording, boundary language, and one-engine terminology. |
 | Term lookup | [Glossary](../02-architecture/glossary.md) | Short definitions for terms that otherwise sound too similar. |
 
 ## Maintainer Maps
@@ -81,11 +81,11 @@ code or review public package boundaries.
 6. Want to verify a claim? Open [Audit evidence system](../audit/README.md).
 7. Want to change internals? Open [Developer entry path](developer-entry-path.md), then [Internal machine map](../02-architecture/attestor-internal-machine-map.md).
 
-Keep the distinction clean:
+Keep the boundary clean:
 
 ```text
 repo-side evidence is not live production proof
 package boundary is not hosted enforcement
 admission decision is not downstream execution
-customer PEP / gate is where non-bypassability must be proven
+customer gate is where non-bypassability must be proven
 ```

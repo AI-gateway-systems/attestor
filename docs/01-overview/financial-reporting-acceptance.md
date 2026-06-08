@@ -83,15 +83,10 @@ Instead:
 - a hosted API/control layer for reporting workflows that need release discipline, proof, and reviewer closure
 - a customer-operated deployment path when the release boundary cannot stay hosted
 
-## What This Does Not Claim
+## Boundary
 
-This wedge does **not** claim that Attestor is the whole reporting stack.
+Attestor is not the reporting stack. ERP, warehouse, filing, and human control
+systems remain the systems of record.
 
-It does **not** replace:
-
-- the ERP
-- the reporting warehouse
-- the filing system
-- the human control function
-
-It sits between generated output and reporting consequence, and makes that boundary legible.
+Attestor sits between generated output and reporting consequence, and makes
+that boundary legible.

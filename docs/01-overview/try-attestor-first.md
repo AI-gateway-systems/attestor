@@ -8,15 +8,14 @@ npm run demo:golden-refund
 ```
 
 The demo renders the current Golden Path: Refund as Markdown by default. It
-uses synthetic, digest-only refund fixtures and shows the compact evaluation
-shape:
+uses safe local refund examples and shows the basic path:
 
 ```text
 proposed refund -> Attestor decision -> proof refs -> downstream gate shape
 ```
 
-It does not execute a refund, call Stripe or Shopify, activate policy, write an
-audit-plane record, train a model, or claim production readiness.
+This is a local safety example: no refund is executed and no external service
+is called. Live deployment is separate.
 
 To see the machine-readable form, run:
 
@@ -36,13 +35,13 @@ To try one strict, local reviewer-supplied refund input, run:
 npm run demo:golden-refund -- --scenario fixtures/golden-refund-reviewer-sandbox.example.json
 ```
 
-To see the smaller admission primitive behind that path, run:
+To see the smaller admission example behind that path, run:
 
 ```bash
 npm run example:admission
 ```
 
-The demo shows two AI-assisted finance consequences:
+The demo shows two refund outcomes:
 
 - one is admitted and allowed to proceed
 - one is blocked fail-closed before the downstream action happens
@@ -57,12 +56,12 @@ proposed consequence -> Attestor admission decision -> proof refs -> downstream 
 
 The Golden Path output is grouped into practical parts:
 
-- **Business contrast:** what would be missing without the Attestor path versus what the shadow run produces: gate trace, issue codes, no-claims, target-call count, and readiness evidence.
+- **Decision trail:** what was proposed, what was checked, why it was allowed or held, and which proof references were used.
 - **Scenario coverage:** 8 synthetic refund scenarios across normal, missing evidence, stale evidence, repeated refund, approval-required, instruction-like evidence text, external risk signal, and over-policy amount.
-- **Engine Visibility:** gate order, derived gate metrics, reason codes, no-claims, and digest stability.
-- **Reviewer Sandbox:** one schema-bound local refund JSON input through the same shadow-only path.
-- **Safety boundary:** no target-system call, no audit-plane write, no policy activation, no learning/training, no auto-enforcement.
-- **Readiness:** whether the synthetic path is ready for a shadow pilot or not-ready.
+- **Checks and reasons:** gate order, derived metrics, reason codes, and digest stability.
+- **Reviewer input:** one schema-bound local refund JSON input through the same shadow-only path.
+- **Safety boundary:** no target-system call, policy activation, or auto-enforcement.
+- **Pilot readiness:** whether the local path is ready for a shadow pilot.
 
 This is the simplest way to see Attestor's role: proof first, action second.
 
@@ -82,13 +81,15 @@ npm run example:agent-retry-wrapper
 
 That demo shows model-safe feedback, retry attempt binding, retry budget evaluation, and attempt-ledger duplicate handling.
 
-To render a first action-surface onboarding packet from a safe OpenAPI example, run:
+To start from a safe OpenAPI description, run:
 
 ```bash
 npm run example:action-surface-onboarding
 ```
 
-That example shows how Attestor can turn existing API metadata into review material: discovered action surfaces, generated integration drafts, readiness blockers, and next onboarding steps. It is still only a packet. It does not deploy a gateway, issue credentials, activate enforcement, or claim production readiness.
+That example turns existing API metadata into review material: possible actions,
+draft integration files, missing controls, and next onboarding steps. It does
+not deploy a gateway or activate enforcement.
 
 To render the fuller local review package from that same OpenAPI example, run:
 
@@ -97,19 +98,14 @@ npm run example:action-surface-integration-kit
 ```
 
 That package adds the machine summary, artifact manifest, approval template,
-OpenAPI/Envoy/MCP drafts, and no-bypass probe definitions. It still does not
-apply infrastructure, expose tools, issue credentials, run probes, activate
-enforcement, or prove customer PEP no-bypass.
+OpenAPI/Envoy/MCP drafts, and no-bypass probe definitions. It prepares review
+files; applying infrastructure and proving the customer gate are separate steps.
 
-## What This Does Not Claim
+## Boundary
 
-- It is not the generic hosted `POST /api/v1/admissions` route.
-- It is not an apply step for the generated action-surface onboarding packet or integration kit.
-- It is not a public hosted crypto route.
-- It is not a wallet, custody platform, agent runtime, or orchestration layer.
-- It does not auto-detect packs from payload shape.
-
-Customer systems still choose the relevant Attestor surface explicitly.
+This page is for local examples. Hosted API calls, generated integration files,
+crypto or wallet paths, and domain selection are covered by their own docs.
+Customer systems still choose the relevant Attestor path explicitly.
 
 ## Where To Go Next
 

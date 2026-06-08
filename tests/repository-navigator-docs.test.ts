@@ -41,7 +41,7 @@ function testNavigatorKeepsFirstVisitorPaths(): void {
 
   includes(doc, '# Repository Navigator', 'Repository navigator: title is present');
   includes(doc, 'Use this when the repository feels large', 'Repository navigator: purpose is plain');
-  includes(doc, 'Use this as secondary navigation after the repository README.', 'Repository navigator: stays secondary to the front README');
+  includes(doc, 'This is secondary navigation.', 'Repository navigator: stays secondary to the front README');
   includes(doc, '## Primary Paths', 'Repository navigator: primary paths are the first navigation surface');
   includes(doc, '## Start By Intent', 'Repository navigator: task-first navigation is present');
   includes(doc, '## Start By Role', 'Repository navigator: role-first navigation is present');
@@ -164,13 +164,15 @@ function testNavigatorKeepsNoClaimBoundaries(): void {
   const doc = readProjectFile('docs', '01-overview', 'repository-navigator.md');
   const map = readProjectFile('docs', '01-overview', 'repository-map.md');
 
-  includes(doc, 'This is a map, not a new authority surface.', 'Repository navigator: map is not an authority surface');
+  includes(doc, 'audit and live', 'Repository navigator: readiness claim source starts with audit/live proof records');
+  includes(doc, 'proof records remain the source for readiness claims.', 'Repository navigator: readiness claims stay with evidence records');
   includes(doc, 'repo-side evidence is not live production proof', 'Repository navigator: live proof boundary is explicit');
   includes(doc, 'package boundary is not hosted enforcement', 'Repository navigator: package boundary no-claim is explicit');
   includes(doc, 'admission decision is not downstream execution', 'Repository navigator: decision/execution split is explicit');
-  includes(doc, 'customer PEP / gate is where non-bypassability must be proven', 'Repository navigator: customer PEP proof boundary is explicit');
+  includes(doc, 'customer gate is where non-bypassability must be proven', 'Repository navigator: customer gate proof boundary is explicit');
   excludes(doc, /"Is this production-ready\?"/u, 'Repository navigator: avoids production-ready as a front-door link prompt');
-  includes(map, 'This is a map, not an authority surface.', 'Repository map: map is not an authority surface');
+  includes(map, 'This is a code map.', 'Repository map: map purpose is plain');
+  includes(map, 'proven in their own evidence records.', 'Repository map: readiness boundary points to evidence records');
   includes(map, 'package map = what import path means', 'Repository map: package map boundary is explicit');
 }
 
@@ -217,7 +219,8 @@ function testDocsFrontDoorPullsReadersToTheNextAction(): void {
     'Docs front door: local evaluation path is not duplicated in Start Here',
   );
   includes(doc, '## Canonical Docs', 'Docs front door: has a canonical-docs section');
-  includes(doc, 'This table is navigation, not a new authority surface.', 'Docs front door: canonical table is not an authority surface');
+  includes(doc, 'This table is navigation; readiness', 'Docs front door: canonical table is navigation');
+  includes(doc, 'claims stay with the linked evidence records.', 'Docs front door: canonical table points readiness claims at evidence records');
   includes(doc, '## Integrate', 'Docs front door: has an integration section');
   includes(doc, '## Explain Decisions', 'Docs front door: has a decision-explanation section');
   includes(doc, '## Evaluate Trust', 'Docs front door: has a trust-evaluation section');

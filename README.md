@@ -9,7 +9,7 @@
   <a href="docs/02-architecture/data-movement-full-consequence-engine-proof.md#m03b---fail-closed-matrix"><img alt="fail-closed locked" src="https://img.shields.io/badge/fail--closed-locked-16a34a"></a>
 </p>
 
-<p align="center"><sub>Badges are not certifications.</sub></p>
+<p align="center"><sub>Badges point to repository evidence.</sub></p>
 
 <p align="center">
   <a href="docs/02-architecture/attestor-internal-machine-map.md"><strong>View the full consequence path map</strong></a>
@@ -43,7 +43,7 @@ Context anchors: [EU AI Act](https://digital-strategy.ec.europa.eu/en/policies/r
 ## What It Does
 
 Attestor translates AI intent into a structured consequence, then reduces it to
-a decision, gate/readiness status, and proof references.
+a decision, gate status, and proof references.
 
 It checks policy, approval, evidence, allowed scope, freshness, replay, tenant,
 and token, then returns one bounded decision with reasons: `admit`, `narrow`,
@@ -51,9 +51,9 @@ and token, then returns one bounded decision with reasons: `admit`, `narrow`,
 
 The real service should run only through the customer-owned gate.
 
-System metadata can show where consequences are forming. The
-local example turns OpenAPI/MCP/OpenTelemetry metadata into a digest-only signal,
-consequence candidate, and gate-placement/readiness plan.
+System metadata can show where risky actions are forming. The local example
+turns OpenAPI, MCP, and OpenTelemetry metadata into a redacted signal, an
+action review, and a gate placement plan.
 
 [Open the runtime signal example](docs/02-architecture/runtime-signal-handling.md#rs12-example-path)
 
@@ -66,16 +66,15 @@ Customer-owned gate
   -> calls the real service only when allowed
 ```
 
-Without a customer-side gate, gateway, verifier, or adapter, the decision is
-evidence, not enforcement. With that
-[downstream point](docs/02-architecture/downstream-enforcement-contract.md), it
-becomes the stop point.
+Without a customer-side gate, the decision is evidence, not enforcement. With
+that [downstream point](docs/02-architecture/downstream-enforcement-contract.md),
+it becomes the stop point.
 
-### Run Attestor in shadow pilot mode - and map what your AI agents are trying to do in the shadow of your systems.
+### Run Attestor in shadow pilot mode
 
-Observe mode maps every action your agents would take: what, why, and with
-what authority, backed by a digest-bound decision trail. You see the risk
-before it moves.
+Observe mode shows what actions agents would try, why they may be risky, and
+which policy, approval, and evidence are present. You see the risk before a
+real service runs.
 
 [Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)
 
@@ -101,8 +100,8 @@ Release stage:   evaluation release
 Release type:    GitHub pre-release / multi-path evaluation baseline
 ```
 
-This is an evaluation release. It is not public SaaS, a production guarantee, a
-completed customer deployment, or a substitute for an external security audit.
+This is an evaluation release for local review and integration planning. Live
+customer deployment and external security audit are separate proof steps.
 
 ## Data Posture
 
@@ -116,7 +115,7 @@ Start light. Go deeper only when you need the detail.
 If you are new, follow this order: [local run](docs/01-overview/try-attestor-first.md), [shadow pilot](docs/01-overview/shadow-event-payload-examples.md), then [customer gate](docs/01-overview/customer-admission-gate.md).
 
 - [Try Attestor first](docs/01-overview/try-attestor-first.md) - run the smallest local refund path and see the decision trail.
-- [Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - observe one real action surface before enforcing anything.
+- [Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - observe one real action path before enforcing anything.
 - [How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md) - find the real side effect and place the customer-owned gate.
 - [Repository navigator](docs/01-overview/repository-navigator.md) - find deeper docs for hosted, pricing, support, proof, or maintainer work.
 

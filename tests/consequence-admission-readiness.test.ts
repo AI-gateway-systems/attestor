@@ -65,7 +65,8 @@ function testDocsPointToOneAdmissionStory(): void {
   const systemOverview = readProjectFile('docs', '02-architecture', 'system-overview.md');
   const tracker = readProjectFile('docs', '02-architecture', 'consequence-admission-buildout.md');
 
-  includes(readme, 'docs/01-overview/consequence-admission-quickstart.md', 'Admission readiness: README links quickstart');
+  includes(readme, 'docs/01-overview/how-to-integrate-attestor.md', 'Admission readiness: README sends admission detail through the integration hub');
+  excludes(readme, /docs\/01-overview\/consequence-admission-quickstart\.md/u, 'Admission readiness: README keeps quickstart behind deeper docs');
   includes(docsFrontDoor, '01-overview/consequence-admission-quickstart.md', 'Admission readiness: docs front door links quickstart');
   includes(docsFrontDoor, '01-overview/hosted-first-api-call.md', 'Admission readiness: docs front door links first hosted call');
   includes(integrationHub, '[Consequence admission quickstart](consequence-admission-quickstart.md)', 'Admission readiness: integration hub links quickstart');

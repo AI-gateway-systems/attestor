@@ -1,7 +1,7 @@
 # Run Attestor In Shadow Pilot Mode
 
-Run Attestor in shadow pilot mode - and map what your AI agents are trying to
-do in the shadow of your systems.
+Use shadow pilot mode to see what agents try to do before any gate enforces a
+decision.
 
 Most organisations don't have a clear picture of what their AI agents are
 actually attempting inside their systems. Shadow pilot mode gives you that
@@ -61,7 +61,7 @@ actually needs.
 
 ## Send The First Payload
 
-Send them to the generic admission route:
+Send them to the admission route:
 
 ```http
 POST /api/v1/admissions
@@ -70,17 +70,16 @@ Authorization: Bearer <redacted>
 ```
 
 Use `mode: "observe"` first. Attestor evaluates the proposed action, records
-shadow evidence, and can project that evidence into the canonical shadow event
-schema. This page does not define a separate public `/shadow-events` ingest
-route.
+shadow evidence, and can project that evidence into the shadow event record.
+This page does not define a separate public `/shadow-events` ingest route.
 
 Do not send raw prompts, raw customer records, message bodies, SQL result rows,
 payment details, wallet material, secrets, downstream error bodies, or private
 thresholds. Send opaque references and digests.
 
-The event shape follows the shipped generic admission route and the canonical
-shadow-event contract. The contract is aligned with common event and audit
-shapes such as [CloudEvents](https://github.com/cloudevents/spec),
+The event shape follows the shipped admission route and the shadow-event
+contract. The contract is aligned with common event and audit shapes such as
+[CloudEvents](https://github.com/cloudevents/spec),
 [OpenTelemetry logs](https://opentelemetry.io/docs/specs/otel/logs/data-model/),
 [W3C PROV](https://www.w3.org/TR/prov-dm/), and
 [OPA decision logs](https://www.openpolicyagent.org/docs/management-decision-logs).
@@ -569,9 +568,8 @@ by.
 
 These examples are synthetic and repo-side only.
 
-They do not prove live customer PEP no-bypass, KMS-backed signing,
-multi-instance replay safety, wallet settlement, customer deployment, external
-security certification, production readiness, or compliance.
+They show the observe-mode shape. Live customer enforcement, settlement,
+production operations, and external audit evidence are separate proof steps.
 
 For the canonical shadow-event projection contract, see
 [Shadow Event Canonical Schema](../02-architecture/shadow-event-canonical-schema.md).

@@ -25,7 +25,10 @@ proposed consequence
   -> downstream system proceeds only if allowed
 ```
 
-Attestor does not auto-detect finance, crypto, or future packs from magic input. The customer chooses the relevant path for the consequence it needs to control. The generic hosted path is `POST /api/v1/admissions`; shipped pack-specific surfaces remain explicit package or route boundaries.
+Choose the path that matches the consequence you need to control. Do not rely
+on payload shape to select finance, crypto, or future domain paths for you. The
+generic hosted path is `POST /api/v1/admissions`; shipped pack-specific surfaces
+remain explicit package or route boundaries.
 
 Concrete examples:
 
@@ -64,7 +67,7 @@ The typed contract lives in `src/consequence-admission/index.ts`. It defines the
 
 The generic hosted route lives at `POST /api/v1/admissions`. Callers must choose the consequence domain and mode explicitly. It is not the old placeholder `POST /api/v1/admit`, not automatic pack detection, and not a hosted crypto route.
 
-The first customer-facing facade is exported through `attestor/consequence-admission`. Callers must choose `finance-pipeline-run` or `crypto-execution-plan` explicitly. The facade does not auto-detect packs and does not claim a hosted crypto route.
+The first customer-facing facade is exported through `attestor/consequence-admission`. Callers must choose `finance-pipeline-run` or `crypto-execution-plan` explicitly. The facade keeps domain selection explicit and does not add a hosted crypto route.
 
 The finance projection lives in `src/consequence-admission/finance.ts`. It wraps the existing finance hosted route response into the canonical admission response shape without changing `POST /api/v1/pipeline/run` behavior.
 
@@ -81,13 +84,16 @@ The crypto projection lives in `src/consequence-admission/crypto.ts`. It wraps `
 
 That is the operating model whether the first integration is finance, crypto, or a later consequence pack.
 
-## What Is Not Claimed Yet
+## Boundary
 
-- No public hosted crypto HTTP route is claimed until a route contract, implementation, tests, and tracker step exist.
-- No legacy `POST /api/v1/admit` route is claimed.
-- No automatic pack router is claimed.
-- No wallet, custody, model-runtime, agent-runtime, or orchestration ownership is claimed.
-- No downstream execution happens merely because Attestor returned a proof object; the customer-operated downstream system must enforce the returned decision.
+A public hosted crypto HTTP route needs its own route contract,
+implementation, tests, and tracker step. The legacy `POST /api/v1/admit` name
+is not the active route.
+
+Attestor keeps route and package selection explicit. It does not own the
+wallet, custody layer, model runtime, agent runtime, orchestration layer, or
+downstream execution path. The customer-operated downstream system must enforce
+the returned decision.
 
 ## Design Rule For Future Work
 
