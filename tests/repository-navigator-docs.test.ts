@@ -207,15 +207,14 @@ function testDocsFrontDoorPullsReadersToTheNextAction(): void {
   const doc = readProjectFile('docs', 'README.md');
 
   includes(doc, '# Attestor Docs', 'Docs front door: title is present');
-  includes(doc, 'Use this docs index when the README gave you the shape', 'Docs front door: purpose names the index');
-  includes(doc, 'understand -> try -> integrate -> explain decisions -> verify claims -> maintain', 'Docs front door: keeps the reader path explicit');
+  includes(doc, 'Use this docs index after the repository README.', 'Docs front door: purpose names the index');
+  includes(doc, 'understand -> try -> observe -> integrate -> explain -> verify -> maintain', 'Docs front door: keeps the reader path explicit');
   includes(doc, '## Start Here', 'Docs front door: has a first-reader section');
-  includes(doc, 'The main first-reader path starts in the repository README', 'Docs front door: points first readers to the repository README');
-  includes(doc, 'index is secondary navigation.', 'Docs front door: stays secondary to the repository README');
-  includes(doc, 'Run the local evaluation path and see where the gate sits', 'Docs front door: keeps the local evaluation path in one row');
+  includes(doc, 'It is secondary navigation, not', 'Docs front door: stays secondary to the repository README');
+  includes(doc, 'Observe one real action path', 'Docs front door: keeps observe path near the top');
   equal(
     countOccurrences(doc, '| Run the local evaluation path'),
-    1,
+    0,
     'Docs front door: local evaluation path is not duplicated in Start Here',
   );
   includes(doc, '## Canonical Docs', 'Docs front door: has a canonical-docs section');
@@ -233,8 +232,7 @@ function testDocsFrontDoorPullsReadersToTheNextAction(): void {
   includes(doc, '[README current state](../README.md#current-state)', 'Docs front door: names README current state clearly');
   includes(doc, '[Live proof register](audit/live-proof-register.md)', 'Docs front door: links live proof owner doc');
   includes(doc, '[How to integrate Attestor](01-overview/how-to-integrate-attestor.md)', 'Docs front door: links integration guide');
-  includes(doc, '[Action surface onboarding packet](02-architecture/action-surface-onboarding-packet.md)', 'Docs front door: links the action-surface onboarding entry point');
-  includes(doc, '[Run the local evaluation path](01-overview/demo-guide.md)', 'Docs front door: links local evaluation path');
+  includes(doc, '[Action surface onboarding packet](02-architecture/action-surface-onboarding-packet.md)', 'Docs front door: links the metadata onboarding entry point');
   includes(doc, '[Developer entry path](01-overview/developer-entry-path.md)', 'Docs front door: links developer entry path');
   includes(doc, '[Customer middleware examples](../examples/customer-middleware/README.md)', 'Docs front door: links middleware examples');
   includes(doc, '[Reason codes](05-proof/reason-codes.md)', 'Docs front door: links reason codes');

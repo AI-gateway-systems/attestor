@@ -95,13 +95,13 @@ The same gate can sit before these operation classes:
 
 ```text
 Package version: 0.3.0-evaluation
-Tag target:      v0.3.0-evaluation
-Release stage:   evaluation release
-Release type:    GitHub pre-release / multi-path evaluation baseline
+Release tag:     pending
+Release stage:   evaluation baseline
+Release type:    repository baseline / multi-path local review
 ```
 
-This is an evaluation release for local review and integration planning. Live
-customer deployment and external security audit are separate proof steps.
+This baseline is for local review and integration planning. Live customer
+deployment and external security audit are separate proof steps.
 
 ## Data Posture
 

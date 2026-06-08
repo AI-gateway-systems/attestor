@@ -19,11 +19,9 @@ Use these when you need the main Attestor route, not every supporting page.
 | [Try Attestor first](try-attestor-first.md) | Run the smallest local example and read the decision trail. |
 | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) | Send observe-mode examples before enforcement. |
 | [How to integrate Attestor](how-to-integrate-attestor.md) | Find the real side effect, then choose the right technical path. |
-| [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) | Start from existing API, tool, workflow, telemetry, CloudEvents, or gateway-log metadata. |
 | [Consequence admission quickstart](consequence-admission-quickstart.md) | Send a concrete admission request and read `admit`, `narrow`, `review`, or `block`. |
 | [Customer admission gate](customer-admission-gate.md) | Hold the real service call in the customer app, gateway, or middleware. |
 | [Developer entry path](developer-entry-path.md) | Follow the main request, route, guard, decision, proof, and gate path before changing code. |
-| [Review surface dashboard summary](../02-architecture/dashboard-api-summary.md) | Review shadow, admission, evidence, boundary, reason, and next-step material without raw event data. |
 
 ## Start By Intent
 
@@ -33,7 +31,7 @@ Use these when you need the main Attestor route, not every supporting page.
 | Run the local evaluation path | [Run the local evaluation path](demo-guide.md) | [Golden Path: Refund](../02-architecture/golden-refund-shadow-pilot.md) |
 | Start in observe mode | [Run Attestor in shadow pilot mode](shadow-event-payload-examples.md) | [Customer middleware examples](../../examples/customer-middleware/README.md) |
 | Wire a customer app | [How to integrate Attestor](how-to-integrate-attestor.md) | [Customer middleware examples](../../examples/customer-middleware/README.md) |
-| Start from MCP, OpenAPI, AsyncAPI, workflow, or telemetry metadata | [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) | follow the packet's next safe step. |
+| Start from API, tool, workflow, or telemetry metadata | [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md) | follow the packet's next safe step. |
 | Make the first hosted API call | [First hosted API call](hosted-first-api-call.md) | [Hosted action authorization API](hosted-action-authorization-api.md) |
 | Understand `admit`, `narrow`, `review`, and `block` | [Consequence admission quickstart](consequence-admission-quickstart.md) | [Reason codes](../05-proof/reason-codes.md) |
 | Review shadow, admission, evidence, and boundary material | [Review surface dashboard summary](../02-architecture/dashboard-api-summary.md) | [Attestor Review Surface contract](../02-architecture/attestor-review-surface-contract.md) |
