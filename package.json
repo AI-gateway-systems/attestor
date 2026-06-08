@@ -736,7 +736,7 @@
     "dotenv": "^17.4.2",
     "embedded-postgres": "^18.3.0-beta.17",
     "hono": "4.12.23",
-    "ioredis": "5.10.1",
+    "ioredis": "5.11.1",
     "jose": "6.2.3",
     "js-yaml": "^4.2.0",
     "jszip": "^3.10.1",
