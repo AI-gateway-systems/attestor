@@ -3,8 +3,8 @@
 Use this when you are ready to change code and need the owning directory,
 nearest test surface, or public package boundary.
 
-This is a map, not an authority surface. It does not prove production
-readiness, hosted enforcement, or live customer non-bypassability.
+This is a code map. Production readiness, hosted enforcement, and live customer
+non-bypassability are proven in their own evidence records.
 
 ## Code Map
 

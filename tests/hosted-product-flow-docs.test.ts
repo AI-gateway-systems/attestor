@@ -315,7 +315,12 @@ function testFirstApiCallQuickstartStaysGrounded(): void {
   );
   includes(
     firstApiCall,
-    'Attestor does not auto-detect packs from magic input.',
+    'Do not',
+    'Hosted first API-call docs: no auto-detect promise starts plainly',
+  );
+  includes(
+    firstApiCall,
+    'rely on payload shape to select the domain for you.',
     'Hosted first API-call docs: no auto-detect promise is made',
   );
   includes(

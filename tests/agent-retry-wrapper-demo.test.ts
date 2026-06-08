@@ -147,7 +147,7 @@ function testDemoIsReachableFromDocsAndScripts(): void {
     'tsx tests/agent-retry-wrapper-demo.test.ts',
     'Agent retry wrapper: test script is exported',
   );
-  includes(readme, 'npm run example:agent-retry-wrapper', 'Agent retry wrapper: README includes command');
+  includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'Agent retry wrapper: README links first-run guide');
   includes(quickstart, 'agent retry wrapper demo', 'Agent retry wrapper: quickstart links demo');
   includes(tryFirst, '[Agent retry wrapper demo](agent-retry-wrapper-demo.md)', 'Agent retry wrapper: try-first links demo');
   includes(doc, 'npm run example:agent-retry-wrapper', 'Agent retry wrapper: doc includes command');

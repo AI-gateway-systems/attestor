@@ -55,9 +55,9 @@ That demo shows an agent receiving model-safe feedback, creating a bound retry a
 - Use the package facade when you already have a shipped Attestor surface result: `finance-pipeline-run` or `crypto-execution-plan`.
 - Use finance when the source result came from `POST /api/v1/pipeline/run`.
 - Use crypto when the source result is a `CryptoExecutionAdmissionPlan` from `attestor/crypto-execution-admission`.
-- Do not auto-detect packs from payload shape.
+- Keep route and package selection explicit.
 - Do not use the old placeholder `POST /api/v1/admit` route name.
-- Do not treat the generic route as a magic pack router.
+- Use the generic route for generic admission, not for hidden pack selection.
 - Do not treat crypto as generally available through a public hosted route.
 
 ## Generic Hosted Admission

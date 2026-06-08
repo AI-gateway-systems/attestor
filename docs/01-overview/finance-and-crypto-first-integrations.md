@@ -22,7 +22,8 @@ Every first integration follows the same shape:
 4. the downstream system only proceeds if the returned decision allows it
 5. the customer keeps proof, usage, entitlement, and operational evidence attached to the same Attestor account/adoption path
 
-Attestor does not auto-detect finance or crypto from magic input. The customer chooses the relevant path for the consequence it needs to control.
+Choose the path that matches the consequence you need to control. Do not rely
+on payload shape to select finance or crypto for you.
 
 Canonical admission vocabulary is shared across packs: `admit`, `narrow`, `review`, or `block`. Current shipped surfaces may expose domain-native values; this guide names the mapping when that happens.
 

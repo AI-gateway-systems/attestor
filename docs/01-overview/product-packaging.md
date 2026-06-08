@@ -139,7 +139,9 @@ The trial is an onboarding state for serious evaluation, not a permanent plan.
 - no card required
 - converts to Developer, Starter, Pro, Scale, or Enterprise
 
-High-consequence teams need enough time to observe real action surfaces before asking workflows to stop. Fourteen days is usually too short for finance, crypto, healthcare, custody, or regulated operational buyers.
+High-consequence teams need enough time to observe real action paths before
+asking workflows to stop. Fourteen days is usually too short for finance,
+crypto, healthcare, custody, or regulated operational buyers.
 
 ## Policy Foundry Packaging Boundary
 

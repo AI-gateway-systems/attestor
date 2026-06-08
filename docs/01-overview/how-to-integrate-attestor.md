@@ -11,15 +11,14 @@ points to the more detailed pages only when you need them.
 This page covers: where Attestor sits, what to send first, how to gate the real
 side effect, and which page to open next.
 
-If you do not yet know the real action surface, start with
+If you do not yet know the real action path, start with
 [shadow pilot mode](shadow-event-payload-examples.md): observe one proposed
 consequence path, then come back here to place the gate.
 
 For the hosted finance request shape, use
 [First hosted API call](hosted-first-api-call.md).
 
-This page does not cover: pricing, hosted signup, live production proof, or
-customer PEP no-bypass proof.
+Pricing, hosted signup, and production proof live in separate pages.
 
 Do not start with a dashboard.
 Start with the line of code that does the real thing.
@@ -70,21 +69,20 @@ Before the real service call.
 If you already have MCP tools, an OpenAPI file, AsyncAPI metadata, workflow
 jobs, OpenTelemetry spans, CloudEvents, or gateway logs, start with the
 [Action surface onboarding packet](../02-architecture/action-surface-onboarding-packet.md).
-That path gathers auto-context, onboarding material, integration-kit review
-files, readiness checks, and customer-owned gate proof planning under one
-review-first flow.
+That path turns existing metadata into a review packet: candidate actions,
+draft integration files, missing controls, and gate placement notes.
 
 Use [Action surface auto-context](../02-architecture/action-surface-auto-context.md)
-when you need the metadata inference details. Use
+when you need the metadata details. Use
 [Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md)
-when you need the generated review files and no-bypass probe plan.
+when you need generated review files and a no-bypass probe plan.
 
 The hosted renderer for the same review packet is
 `POST /api/v1/shadow/action-surface/onboarding-packet`.
 
-That path helps Attestor infer the starting surface and gaps, but it is still
-review material. You still need policy, evidence, approval, receipt,
-credential, and gate proof before enforcement.
+That path helps identify the starting action and the missing controls, but it
+is still review material. You still need policy, evidence, approval, receipt,
+credentials, and gate proof before enforcement.
 
 ## Step 3: Start In Observe Mode
 
@@ -218,6 +216,6 @@ For hosted buying and package boundaries, use
 Back: [Docs index](../README.md). Deeper:
 [Repository navigator](repository-navigator.md).
 
-Boundary: this page explains the integration shape. It does not prove live
-customer no-bypass enforcement, external KMS signing, shared replay safety,
-production readiness, or enterprise readiness.
+Boundary: this page explains where the gate goes. Live customer enforcement,
+external signing, shared replay, and production readiness require their own
+proof.

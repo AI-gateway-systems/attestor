@@ -225,7 +225,7 @@ function testDocsAndScriptsStayAligned(): void {
   ]) {
     includes(doc, expected, `G09 doc: records ${expected}`);
   }
-  includes(readme, '--scenario fixtures/golden-refund-reviewer-sandbox.example.json', 'G09 README: documents scenario flag');
+  includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'G09 README links first-run guide for scenario details');
   includes(tryFirst, '--scenario fixtures/golden-refund-reviewer-sandbox.example.json', 'G09 try-first: documents scenario flag');
   includes(ledger, 'G09 reviewer sandbox', 'G09 ledger: records reviewer sandbox');
   includes(fixture, GOLDEN_REFUND_REVIEWER_SANDBOX_INPUT_VERSION, 'G09 fixture: example input version is present');

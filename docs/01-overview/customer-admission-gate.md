@@ -5,9 +5,8 @@ Use this after [Try Attestor first](try-attestor-first.md) when you want to see 
 Part of: [How to integrate Attestor](how-to-integrate-attestor.md)
 
 Use this page when the customer application is ready to turn an Attestor
-admission response into a local `PROCEED` or `HOLD`. The deeper protected
-enforcement paths are linked here, but they do not become live proof until a
-customer-operated PEP/gate is actually proven.
+admission response into a local `PROCEED` or `HOLD`. The stronger enforcement
+paths are linked here, but live proof still requires a customer-operated gate.
 
 ```bash
 npm run example:customer-gate
@@ -65,11 +64,11 @@ This path verifies the release-token signature, audience, tenant binding, and
 the admission `release-token` proof reference by token id and token digest. The
 gate records only digest/token metadata and does not store the raw bearer token.
 
-It is still bearer-only compatibility, not protected production enforcement. If
-the token requires online introspection, replay consumption, DPoP, mTLS,
-SPIFFE, or HTTP Message Signature binding, the helper holds the consequence and
-the integration must use `attestor/release-enforcement-plane` or an equivalent
-customer-operated verifier.
+This is a bearer-token compatibility path. If the token needs live checking,
+single-use replay protection, or sender binding such as DPoP, mTLS, SPIFFE, or
+HTTP Message Signatures, the helper holds the consequence. Use
+`attestor/release-enforcement-plane` or an equivalent customer-operated verifier
+for that stronger path.
 
 ## Release-enforcement proof path
 
@@ -97,25 +96,36 @@ matched, and bound to an admission `release-token` proof reference by token id
 and digest. The gate records only digest/token/verifier metadata and does not
 store the raw release token or sender proof.
 
-## Protected customer enforcement profile
+## Choose The Right Gate
 
-The customer gate is the smallest local helper. It is not the protected production path for high-risk consequences.
+The customer gate is the smallest local helper. High-risk consequences need a
+stronger customer-operated verifier.
 
-Use the protected customer enforcement profile when an integration needs to decide which enforcement path is required:
+Use this table to choose the path:
 
-- `customer-gate` for low-risk, non-production-sensitive compatibility paths
-- `downstream-contract` when the customer enforcement point must bind admission id, digest, downstream system, proof, policy, idempotency, and constraint acknowledgement
-- `attestor/release-enforcement-plane` when production-sensitive, R3, or R4 execution requires sender-constrained presentation, online introspection, and replay consumption
+| Need | Use |
+|---|---|
+| Local app gate | `customer-gate` |
+| Downstream binding | `downstream-contract` |
+| High-risk execution | `attestor/release-enforcement-plane` or an equivalent verifier |
 
-For R3/R4 consequences, bearer-only or helper-only enforcement is not sufficient. The integration must use `attestor/release-enforcement-plane` or an equivalent customer-operated verifier that fails closed on missing sender constraint, stale introspection, replay, target mismatch, or authorization downgrade.
+Bearer-only or helper-only enforcement is not enough for high-risk execution.
+The verifier must fail closed on missing sender binding, stale live checks,
+replay, target mismatch, or authorization downgrade.
 
-## Customer PEP Runtime Adoption Proof
+## Customer Gate Adoption Evidence
 
-Use `evaluateCustomerPepRuntimeAdoption(...)` after a customer has configured a real PEP path and wants a machine-readable adoption artifact for that scoped runtime.
+Use `evaluateCustomerPepRuntimeAdoption(...)` after a customer has configured a
+real gate path and wants a machine-readable adoption artifact for that scoped
+runtime.
 
-The proof is held unless the runtime uses the release-enforcement-plane protected profile, covers all protected routes, is fail-closed, has no bypass routes, integrates the verifier, requires sender-constrained presentation, requires online introspection, requires replay consumption, binds proof/audience/tenant fields, uses durable replay and token-introspection stores, has health/rollback/kill-switch/monitoring/audit/customer-approval evidence, carries activation handoff and receipt digests, and stores no raw token, raw payload, or provider body.
+The artifact is held unless the configured gate proves the protected routes are
+covered, the path fails closed, bypass routes are absent, verifier and replay
+checks are in place, operational evidence is present, and raw tokens or payloads
+are not stored.
 
-This proof can support a scoped customer-runtime adoption claim. It does not deploy Envoy, Istio, OPA, Hono, or Node middleware; operate the customer PEP; migrate stores; or prove hosted production configuration.
+This artifact records adoption evidence only. Deploying or operating the
+customer runtime is separate.
 
 ## Minimal Shape
 
@@ -142,19 +152,9 @@ assertConsequenceAdmissionGateAllows({
 
 ## Boundary
 
-- This helper is not the hosted admission API. Use `POST /api/v1/admissions` when a customer system needs the generic route.
-- This does not add a public hosted crypto route.
-- This does not auto-detect packs from payload shape.
-- This does not make Attestor the downstream system.
-- The signed-bearer helper verifies compact signed release tokens for
-  compatibility paths, but it does not perform sender-constrained presentation
-  checks, online introspection, or replay consumption.
-- The release-enforcement proof helper consumes an already verified
-  release-enforcement result; it does not operate the customer's PEP, replay
-  store, token introspection authority, DPoP key, mTLS trust anchors, or SPIFFE
-  bundle.
-- The customer PEP runtime adoption proof records scoped customer runtime
-  evidence; it does not deploy or operate that runtime.
+This page shows customer-side gate helpers. The hosted admission API, crypto
+routes, domain selection, customer gate operation, replay store, token
+authority, and production runtime remain separate responsibilities.
 
 Attestor supplies the decision and proof. The customer system enforces the final gate before consequence.
 

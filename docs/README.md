@@ -31,7 +31,8 @@ understand -> try -> integrate -> explain decisions -> verify claims -> maintain
 ## Canonical Docs
 
 When the same idea appears in more than one page, use the owner page below
-instead of restating the whole system. This table is navigation, not a new authority surface.
+instead of restating the whole system. This table is navigation; readiness
+claims stay with the linked evidence records.
 
 | Concept | Canonical doc |
 |---|---|
@@ -43,7 +44,7 @@ instead of restating the whole system. This table is navigation, not a new autho
 | Reason codes | [Reason codes](05-proof/reason-codes.md) |
 | Policy Foundry | [Policy Foundry onboarding](02-architecture/policy-foundry-onboarding.md) |
 | Review workspace | [Attestor Review Surface contract](02-architecture/attestor-review-surface-contract.md) |
-| Current truth / no-claims | [README current state](../README.md#current-state) and [Live proof register](audit/live-proof-register.md) |
+| Current state and live proof | [README current state](../README.md#current-state) and [Live proof register](audit/live-proof-register.md) |
 
 ## Integrate
 

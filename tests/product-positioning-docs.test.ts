@@ -31,7 +31,7 @@ function testReadmeStartsWithAConcreteWorkflow(): void {
   includes(readme, 'alt="ISO 42001 mapped"', 'Product docs: README exposes the ISO 42001 mapped badge');
   includes(readme, 'alt="fail-closed locked"', 'Product docs: README exposes the fail-closed evidence badge');
   includes(readme, 'docs/02-architecture/data-movement-full-consequence-engine-proof.md#m03b---fail-closed-matrix', 'Product docs: README fail-closed badge links to the proof matrix');
-  includes(readme, 'Badges are not certifications.', 'Product docs: README badge row avoids certification overclaim');
+  includes(readme, 'Badges point to repository evidence.', 'Product docs: README badge row points to evidence without overclaim');
   includes(readme, '**Control infrastructure for high-risk AI-driven operations.**', 'Product docs: README keeps the short product promise');
   includes(readme, 'Attestor sits between an AI-prepared operation and the system that would execute it.', 'Product docs: README starts with plain placement language');
   includes(readme, 'Prompts can guide behavior, but they cannot enforce it', 'Product docs: README keeps the prompt-control contrast');
@@ -41,8 +41,8 @@ function testReadmeStartsWithAConcreteWorkflow(): void {
   includes(readme, 'The trail records what was proposed', 'Product docs: README explains the audit trail in plain language');
   excludes(readme, /## One Concrete Workflow/u, 'Product docs: README keeps the concrete workflow behind the first-run guide');
   includes(readme, 'Attestor translates AI intent into a structured consequence, then reduces it to', 'Product docs: README keeps the consequence translation shape');
-  includes(readme, 'a decision, gate/readiness status, and proof references.', 'Product docs: README avoids implying a live gate outcome before customer gate placement');
-  includes(readme, 'gate-placement/readiness plan', 'Product docs: README frames runtime signals as placement/readiness review');
+  includes(readme, 'a decision, gate status, and proof references.', 'Product docs: README avoids implying a live gate outcome before customer gate placement');
+  includes(readme, 'gate placement plan', 'Product docs: README frames runtime signals as placement review');
   includes(readme, 'docs/02-architecture/runtime-signal-handling.md#rs12-example-path', 'Product docs: README links the runtime signal example path directly');
   includes(readme, '## Why This Matters Now', 'Product docs: README keeps urgency context after the core workflow');
   includes(readme, '[EU AI Act](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)', 'Product docs: README keeps the EU AI Act as a bounded context anchor');
@@ -58,9 +58,9 @@ function testReadmeKeepsSingleEngineAndCustomerBoundary(): void {
   includes(readme, 'AI agent', 'Product docs: README keeps the actor side of the core flow');
   includes(readme, 'It checks policy, approval, evidence, allowed scope, freshness, replay, tenant', 'Product docs: README keeps the core check vocabulary in plain language');
   includes(readme, 'The real service should run only through the customer-owned gate.', 'Product docs: README keeps the customer enforcement boundary');
-  includes(readme, 'Without a customer-side gate, gateway, verifier, or adapter, the decision is', 'Product docs: README distinguishes advisory evidence from control point');
-  includes(readme, '### Run Attestor in shadow pilot mode - and map what your AI agents are trying to do in the shadow of your systems.', 'Product docs: README restores the shadow pilot path before the operation table');
-  includes(readme, 'Observe mode maps every action your agents would take', 'Product docs: README explains shadow mode as observe-first visibility');
+  includes(readme, 'Without a customer-side gate, the decision is evidence, not enforcement.', 'Product docs: README distinguishes advisory evidence from control point');
+  includes(readme, '### Run Attestor in shadow pilot mode', 'Product docs: README restores the shadow pilot path before the operation table');
+  includes(readme, 'Observe mode shows what actions agents would try', 'Product docs: README explains shadow mode as observe-first visibility');
   includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md)', 'Product docs: README links shadow pilot directly');
   includes(readme, 'The same gate can sit before these operation classes:', 'Product docs: README keeps cross-operation framing concise');
   includes(readme, '## Data Posture', 'Product docs: README keeps the data boundary visible');
@@ -117,7 +117,7 @@ function testReadmeLinksTheRightDeeperDocsWithoutBecomingALinkWall(): void {
   includes(shadowPilotDoc, '# Run Attestor In Shadow Pilot Mode', 'Product docs: shadow pilot link points to observe-mode setup');
   includes(customerGateDoc, '# Customer Admission Gate', 'Product docs: customer gate link points to the enforcement guide');
   includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md) - run the smallest local refund path and see the decision trail.', 'Product docs: README links the first-run guide');
-  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - observe one real action surface before enforcing anything.', 'Product docs: README links observe mode as a main onboarding path');
+  includes(readme, '[Run Attestor in shadow pilot mode](docs/01-overview/shadow-event-payload-examples.md) - observe one real action path before enforcing anything.', 'Product docs: README links observe mode as a main onboarding path');
   includes(readme, '[How to integrate Attestor](docs/01-overview/how-to-integrate-attestor.md) - find the real side effect and place the customer-owned gate.', 'Product docs: README links the integration guide');
   excludes(readme, /\[Action surface onboarding packet\]\(docs\/02-architecture\/action-surface-onboarding-packet\.md\)/u, 'Product docs: README keeps action-surface onboarding behind the integration guide');
   includes(integrateDoc, '[Action surface integration kit buildout](../02-architecture/action-surface-integration-kit-buildout.md)', 'Product docs: integration guide links the review-only integration kit path');

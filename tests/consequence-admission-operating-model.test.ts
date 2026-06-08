@@ -27,7 +27,8 @@ function testOperatingModelDefinesCanonicalDecisionVocabulary(): void {
   includes(operatingModel, '# Attestor Operating Model', 'Admission operating model: document exists');
   includes(operatingModel, 'proposed consequence', 'Admission operating model: proposed consequence is the starting point');
   includes(operatingModel, 'canonical admission decision', 'Admission operating model: canonical decision is named');
-  includes(operatingModel, 'Attestor does not auto-detect finance, crypto, or future packs from magic input.', 'Admission operating model: automatic pack routing is rejected');
+  includes(operatingModel, 'Do not rely', 'Admission operating model: automatic pack routing language starts plainly');
+  includes(operatingModel, 'on payload shape to select finance, crypto, or future domain paths for you.', 'Admission operating model: automatic pack routing is rejected');
 
   for (const decision of ['`admit`', '`narrow`', '`review`', '`block`']) {
     includes(operatingModel, decision, `Admission operating model: ${decision} is documented`);
@@ -43,8 +44,9 @@ function testOperatingModelDefinesCanonicalDecisionVocabulary(): void {
   includes(operatingModel, 'Consequence admission quickstart](consequence-admission-quickstart.md)', 'Admission operating model: quickstart is linked');
   includes(operatingModel, '`POST /api/v1/admissions`', 'Admission operating model: generic admission route is documented');
   includes(operatingModel, '`observe`, `warn`, `review`, or `enforce`', 'Admission operating model: generic mode ladder is documented');
-  includes(operatingModel, 'No public hosted crypto HTTP route is claimed', 'Admission operating model: hosted crypto route overclaim is blocked');
-  includes(operatingModel, 'No legacy `POST /api/v1/admit` route is claimed', 'Admission operating model: legacy admit route overclaim is blocked');
+  includes(operatingModel, 'A public hosted crypto HTTP route needs its own route contract', 'Admission operating model: hosted crypto route overclaim is blocked');
+  includes(operatingModel, 'The legacy `POST /api/v1/admit` name', 'Admission operating model: legacy admit route is named');
+  includes(operatingModel, 'is not the active route.', 'Admission operating model: legacy admit route overclaim is blocked');
 }
 
 function testTopLevelDocsLinkTheOperatingModel(): void {

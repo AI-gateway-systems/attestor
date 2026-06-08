@@ -101,7 +101,7 @@ function testDemoIsReachableFromDocsAndScripts(): void {
     'tsx tests/non-bypassable-gateway-demo.test.ts',
     'Non-bypassable demo: test script is exported',
   );
-  includes(readme, 'npm run example:non-bypassable-gateway', 'Non-bypassable demo: README includes command');
+  includes(readme, '[Try Attestor first](docs/01-overview/try-attestor-first.md)', 'Non-bypassable demo: README links first-run guide');
   includes(quickstart, 'non-bypassable gateway demo', 'Non-bypassable demo: quickstart links demo');
   includes(tryFirst, '[Non-bypassable gateway demo](non-bypassable-gateway-demo.md)', 'Non-bypassable demo: try-first links demo');
   includes(doc, 'npm run example:non-bypassable-gateway', 'Non-bypassable demo: doc includes command');

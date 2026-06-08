@@ -167,9 +167,9 @@ function testDocsAndScriptsStayAligned(): void {
   for (const expected of [
     'npm run demo:golden-refund',
     'proposed refund -> Attestor decision -> proof refs -> downstream gate shape',
-    'Engine Visibility',
-    'It does not execute a refund',
-    'Business contrast',
+    'Decision trail',
+    'Checks and reasons',
+    'This is a local safety example: no refund is executed and no external service',
   ]) {
     includes(tryFirst, expected, `G07 try-first doc: records ${expected}`);
   }
