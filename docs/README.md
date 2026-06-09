@@ -102,7 +102,6 @@ responsibilities:
 - [Policy Foundry onboarding](02-architecture/policy-foundry-onboarding.md)
 - [Attestor Review Surface contract](02-architecture/attestor-review-surface-contract.md)
 - [Action surface onboarding packet](02-architecture/action-surface-onboarding-packet.md)
-- [Glossary](02-architecture/glossary.md)
 
 ## Maintain The Repo
 

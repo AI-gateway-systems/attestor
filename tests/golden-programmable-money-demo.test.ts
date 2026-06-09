@@ -158,10 +158,10 @@ function testDocsAndScriptsStayAligned(): void {
     'Programmable Money Golden Path P04',
     'P04 ledger: records demo CLI and reviewer sandbox',
   );
-  includes(
+  excludes(
     readme,
-    '[Golden Path: Programmable Money](docs/02-architecture/golden-programmable-money-shadow-pilot.md)',
-    'P04 README: keeps programmable money golden path link',
+    /\[Golden Path: Programmable Money\]\(docs\/02-architecture\/golden-programmable-money-shadow-pilot\.md\)/u,
+    'P04 README: keeps the programmable money golden path out of the first-reader table',
   );
   equal(
     packageJson.scripts['demo:golden-programmable-money'],

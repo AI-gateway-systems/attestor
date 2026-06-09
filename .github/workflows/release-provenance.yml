@@ -15,6 +15,20 @@ jobs:
   release-provenance:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
+        env:
+          POSTGRES_USER: attestor
+          POSTGRES_PASSWORD: attestor
+          POSTGRES_DB: attestor_proof
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U attestor -d attestor_proof"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout
@@ -34,6 +48,9 @@ jobs:
 
       - name: Render proof showcase
         run: npm run showcase:proof
+        env:
+          ATTESTOR_PG_URL: postgres://attestor:attestor@localhost:5432/attestor_proof
+          ATTESTOR_PG_ALLOWED_SCHEMAS: attestor_demo
 
       - name: Generate CycloneDX SBOM
         run: |

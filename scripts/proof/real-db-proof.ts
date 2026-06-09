@@ -17,6 +17,11 @@ import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 
+interface PostgresRuntime {
+  label: string;
+  cleanup(logStop?: boolean): Promise<void>;
+}
+
 async function reservePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer();
@@ -35,14 +40,20 @@ async function reservePort(): Promise<number> {
   });
 }
 
-async function main() {
-  console.log('\n══════════════════════════════════════════════════════════════');
-  console.log('  ATTESTOR — First Real PostgreSQL-Backed Proof Run');
-  console.log('══════════════════════════════════════════════════════════════\n');
-
-  // ── Step 1: Start embedded PostgreSQL ──
-  console.log('  [1/7] Starting embedded PostgreSQL...');
+async function preparePostgresRuntime(): Promise<PostgresRuntime> {
   mkdirSync('.attestor', { recursive: true });
+  process.env.ATTESTOR_PG_ALLOWED_SCHEMAS ??= 'attestor_demo';
+
+  if (process.env.ATTESTOR_PG_URL?.trim()) {
+    console.log('  [1/7] Using configured PostgreSQL from ATTESTOR_PG_URL...');
+    console.log('  PostgreSQL connection supplied by environment');
+    return {
+      label: 'configured PostgreSQL',
+      cleanup: async () => {},
+    };
+  }
+
+  console.log('  [1/7] Starting embedded PostgreSQL...');
   const dataDir = mkdtempSync(join('.attestor', 'pg-data-'));
   const port = await reservePort();
 
@@ -79,17 +90,32 @@ async function main() {
     await pg.initialise();
     await pg.start();
     pgRunning = true;
-    console.log(`  ✓ Embedded PostgreSQL running on port ${port}`);
+    console.log(`  Embedded PostgreSQL running on port ${port}`);
 
-    // Create the database
     await pg.createDatabase('attestor_proof');
-    console.log('  ✓ Database "attestor_proof" created');
+    console.log('  Database "attestor_proof" created');
 
-    const pgUrl = `postgres://attestor:attestor@localhost:${port}/attestor_proof`;
+    process.env.ATTESTOR_PG_URL = `postgres://attestor:attestor@localhost:${port}/attestor_proof`;
+    return {
+      label: 'embedded PostgreSQL',
+      cleanup,
+    };
+  } catch (err) {
+    await cleanup();
+    throw err;
+  }
+}
 
-    // Set environment variables for child processes and current process
-    process.env.ATTESTOR_PG_URL = pgUrl;
-    process.env.ATTESTOR_PG_ALLOWED_SCHEMAS = 'attestor_demo';
+async function main() {
+  console.log('\n══════════════════════════════════════════════════════════════');
+  console.log('  ATTESTOR — First Real PostgreSQL-Backed Proof Run');
+  console.log('══════════════════════════════════════════════════════════════\n');
+
+  // ── Step 1: Prepare PostgreSQL proof runtime ──
+  let runtime: PostgresRuntime | null = null;
+
+  try {
+    runtime = await preparePostgresRuntime();
 
     // ── Step 2: Verify connectivity with doctor probe ──
     console.log('\n  [2/7] Running connectivity probe...');
@@ -100,7 +126,7 @@ async function main() {
     }
     if (!probe.success) {
       console.error('\n  ✗ Probe failed. Cannot proceed.');
-      await cleanup();
+      await runtime.cleanup();
       process.exit(1);
     }
     console.log(`  ✓ PostgreSQL verified: ${probe.serverVersion?.split(',')[0]}`);
@@ -120,7 +146,7 @@ async function main() {
     const bootstrap = await runDemoBootstrap();
     if (!bootstrap.success) {
       console.error(`\n  ✗ Bootstrap failed: ${bootstrap.message}`);
-      await cleanup();
+      await runtime.cleanup();
       process.exit(1);
     }
     console.log(`  ✓ ${bootstrap.message}`);
@@ -141,7 +167,7 @@ async function main() {
 
     if (!pgProveResult.execution?.success) {
       console.error(`\n  ✗ PostgreSQL execution failed: ${pgProveResult.execution?.error ?? pgProveResult.skipReason}`);
-      await cleanup();
+      await runtime.cleanup();
       process.exit(1);
     }
 
@@ -210,7 +236,7 @@ async function main() {
 
     if (!report.certificate) {
       console.error('  ✗ No certificate issued');
-      await cleanup();
+      await runtime.cleanup();
       process.exit(1);
     }
 
@@ -231,7 +257,7 @@ async function main() {
     );
     if (!kit) {
       console.error('  ✗ Kit build failed');
-      await cleanup();
+      await runtime.cleanup();
       process.exit(1);
     }
 
@@ -284,7 +310,7 @@ async function main() {
       console.log(`  REAL POSTGRESQL-BACKED PROOF RUN — ${report.decision.toUpperCase()} (${v.overall})`);
     }
     console.log('══════════════════════════════════════════════════════════════');
-    console.log(`  Database:    embedded PostgreSQL (${probe.serverVersion?.split(',')[0]})`);
+    console.log(`  Database:    ${runtime.label} (${probe.serverVersion?.split(',')[0]})`);
     console.log(`  Execution:   REAL — ${pgProveResult.execution.rowCount} rows, ${pgProveResult.execution.durationMs}ms`);
     console.log(`  Context:     ${pgProveResult.postgresEvidence.executionContextHash}`);
     console.log(`  Decision:    ${report.decision.toUpperCase()}`);
@@ -295,7 +321,7 @@ async function main() {
     console.log('══════════════════════════════════════════════════════════════\n');
 
     // ── Cleanup ──
-    await cleanup(true);
+    await runtime.cleanup(true);
 
     // Exit truthfully: non-zero if governance failed
     if (report.decision !== 'pass') {
@@ -305,7 +331,7 @@ async function main() {
 
   } catch (err) {
     console.error('\n  ✗ Fatal error:', err instanceof Error ? err.message : String(err));
-    await cleanup();
+    await runtime?.cleanup();
     process.exit(1);
   }
 }

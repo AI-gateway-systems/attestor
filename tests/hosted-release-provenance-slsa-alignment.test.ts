@@ -173,6 +173,9 @@ function testReleaseWorkflowAndAttestationPlanMatchContract(): void {
   includes(workflow, 'sbom-path: .attestor/release-provenance/sbom.cyclonedx.json', 'Hosted release provenance SLSA evidence: CycloneDX SBOM is bound to the attestation');
   includes(workflow, 'npm run proof:surface', 'Hosted release provenance SLSA evidence: proof surface is rendered');
   includes(workflow, 'npm run showcase:proof', 'Hosted release provenance SLSA evidence: proof showcase is rendered');
+  includes(workflow, 'image: postgres:16-alpine@sha256:', 'Hosted release provenance SLSA evidence: proof showcase uses a digest-pinned PostgreSQL service in CI');
+  includes(workflow, 'ATTESTOR_PG_URL: postgres://attestor:attestor@localhost:5432/attestor_proof', 'Hosted release provenance SLSA evidence: proof showcase uses configured PostgreSQL in CI');
+  includes(workflow, 'ATTESTOR_PG_ALLOWED_SCHEMAS: attestor_demo', 'Hosted release provenance SLSA evidence: proof showcase keeps demo schema allowlist explicit');
   includes(workflow, 'npm run sbom:cyclonedx', 'Hosted release provenance SLSA evidence: SBOM is generated');
   includes(workflow, 'npm run check:public-artifacts-redaction', 'Hosted release provenance SLSA evidence: generated release artifacts are redaction-scanned before upload');
   includes(workflow, '.attestor/release-provenance/sbom.cyclonedx.json', 'Hosted release provenance SLSA evidence: SBOM is packaged');

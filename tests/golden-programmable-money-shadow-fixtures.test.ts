@@ -241,10 +241,10 @@ function testDescriptorDocsAndScriptsStayAligned(): void {
     'Programmable Money Golden Path P01',
     'P01 ledger: records the programmable-money fixture contract',
   );
-  includes(
+  excludes(
     readme,
-    '[Golden Path: Programmable Money](docs/02-architecture/golden-programmable-money-shadow-pilot.md)',
-    'P01 README: includes the programmable-money golden path',
+    /\[Golden Path: Programmable Money\]\(docs\/02-architecture\/golden-programmable-money-shadow-pilot\.md\)/u,
+    'P01 README: keeps the programmable-money golden path out of the first-reader table',
   );
   equal(
     packageJson.scripts['test:golden-programmable-money-shadow-fixtures'],
