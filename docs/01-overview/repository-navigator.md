@@ -53,7 +53,6 @@ Use these when you need the main Attestor route, not every supporting page.
 | Reviewer or auditor | [Audit evidence system](../audit/README.md) | Current baseline, finding state, live-proof separation. |
 | Maintainer | [Developer entry path](developer-entry-path.md) | The shortest code-reading path before deeper architecture maps. |
 | Product or docs editor | [Attestor language contract](../02-architecture/attestor-language-contract.md) | Public wording, boundary language, and one-engine terminology. |
-| Term lookup | [Glossary](../02-architecture/glossary.md) | Short definitions for terms that otherwise sound too similar. |
 
 ## Maintainer Maps
 
@@ -70,6 +69,7 @@ code or review public package boundaries.
 | Large-file refactor plan | [Final Large File Refactor Plan](../02-architecture/final-large-file-refactor-plan.md) |
 | Script families and package commands | [Scripts inventory](../02-architecture/scripts-inventory.md) |
 | Test families and gate selection | [Test system map](../02-architecture/test-system-map.md) |
+| Term lookup | [Glossary](../02-architecture/glossary.md) |
 
 ## If You Are Lost
 

@@ -111,7 +111,7 @@ function testNavigationSurfacesLinkGlossary(): void {
   const readme = readProjectFile('README.md');
   const navigator = readProjectFile('docs', '01-overview', 'repository-navigator.md');
 
-  includes(readme, '[Glossary](docs/02-architecture/glossary.md)', 'Glossary: README maintainer reference links glossary');
+  excludes(readme, /docs\/02-architecture\/glossary\.md/u, 'Glossary: README keeps glossary out of the first-reader path');
   includes(navigator, '[Glossary](../02-architecture/glossary.md)', 'Glossary: repository navigator links glossary');
 }
 

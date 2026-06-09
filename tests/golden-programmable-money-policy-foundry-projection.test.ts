@@ -173,10 +173,10 @@ function testDescriptorDocsAndScriptsStayAligned(): void {
     'Programmable Money Golden Path P02',
     'P02 ledger: records the projection step',
   );
-  includes(
+  excludes(
     readme,
-    '[Golden Path: Programmable Money](docs/02-architecture/golden-programmable-money-shadow-pilot.md)',
-    'P02 README: links the programmable-money golden path',
+    /\[Golden Path: Programmable Money\]\(docs\/02-architecture\/golden-programmable-money-shadow-pilot\.md\)/u,
+    'P02 README: keeps the programmable-money golden path out of the first-reader table',
   );
   includes(
     demoGuide,

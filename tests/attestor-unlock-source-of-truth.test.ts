@@ -156,10 +156,10 @@ function testTrackerHasPrimaryAnchorsAndRepoLinks(): void {
     includes(tracker, expected, `Unlock tracker: primary anchor ${expected} is recorded`);
   }
 
-  includes(
+  excludes(
     readme,
-    'docs/02-architecture/attestor-unlock-source-of-truth.md',
-    'Unlock tracker: README links the tracker',
+    /docs\/02-architecture\/attestor-unlock-source-of-truth\.md/u,
+    'Unlock tracker: README keeps the maintainer tracker out of the first-reader path',
   );
   includes(
     systemOverview,

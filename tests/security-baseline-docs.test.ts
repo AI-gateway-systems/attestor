@@ -158,6 +158,8 @@ function testReleaseProvenanceWorkflowKeepsElevatedPermissionsScoped(): void {
   matches(workflow, /uses: actions\/attest@[0-9a-f]{40}/u, 'Security baseline: release provenance attest action is pinned by full SHA');
   includes(workflow, 'npm run proof:surface', 'Security baseline: release provenance renders proof surface');
   includes(workflow, 'npm run showcase:proof', 'Security baseline: release provenance renders the offline-capable proof showcase');
+  includes(workflow, 'image: postgres:16-alpine@sha256:', 'Security baseline: release provenance uses a digest-pinned PostgreSQL service for proof showcase');
+  includes(workflow, 'ATTESTOR_PG_URL: postgres://attestor:attestor@localhost:5432/attestor_proof', 'Security baseline: release provenance supplies a configured proof database');
   includes(workflow, 'npm run sbom:cyclonedx', 'Security baseline: release provenance generates a CycloneDX SBOM');
   includes(workflow, 'npm run check:public-artifacts-redaction', 'Security baseline: release provenance scans generated release artifacts before upload');
   excludes(workflow, /showcase:proof:hybrid/iu, 'Security baseline: release provenance must not depend on live-upstream hybrid proof');
