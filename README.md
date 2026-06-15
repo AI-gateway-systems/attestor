@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="docs/assets/attestor-readme-logo.png" alt="Attestor" width="100%">
+  <a href="https://www.youtube.com/watch?v=wq8BGolr2-I">
+    <img src="docs/assets/attestor-readme-logo.png" alt="Watch the Attestor proof demo" width="100%">
+  </a>
 </p>
 
 <p align="center">
