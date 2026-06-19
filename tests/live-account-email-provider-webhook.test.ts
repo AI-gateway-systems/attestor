@@ -243,7 +243,7 @@ async function main(): Promise<void> {
         contactEmail: 'ops@provider.example',
         tenantId: 'tenant-provider',
         tenantName: 'Provider Tenant',
-        planId: 'starter',
+        planId: 'trial',
       }),
     });
     ok(createAccountRes.status === 201, 'Provider Webhook: account create status 201');
