@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { load as parseYaml } from 'js-yaml';
+import { CORE_SCHEMA, load as parseYaml, mergeTag } from 'js-yaml';
 import {
   canonicalizeReleaseJson,
   type CanonicalReleaseJsonValue,
@@ -78,6 +78,7 @@ export interface ActionSurfaceManifestIntakeDescriptor {
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
 const DEFAULT_MAX_MANIFEST_BYTES = 512 * 1024;
+const YAML_MANIFEST_SCHEMA = CORE_SCHEMA.withTags(mergeTag);
 
 function canonicalObject(value: CanonicalReleaseJsonValue): {
   readonly canonical: string;
@@ -137,6 +138,7 @@ function parseManifestText(
   return parseYaml(text, {
     filename: 'action-surface-manifest',
     json: false,
+    schema: YAML_MANIFEST_SCHEMA,
   }) as unknown;
 }
 

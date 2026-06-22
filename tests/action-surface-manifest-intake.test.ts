@@ -99,6 +99,37 @@ function testJsonMcpManifestIntake(): void {
   ok(!text.includes('raw_tool_description_must_not_escape'), 'Manifest intake: MCP descriptions are not serialized');
 }
 
+function testYamlMergeTagCompatibility(): void {
+  const result = ingestActionSurfaceManifestText(`
+openapi: 3.1.0
+info:
+  title: Refund API
+  version: 1.0.0
+x-refund-operation: &refundOperation
+  operationId: issueRefund
+  summary: Issue a customer refund
+paths:
+  /refunds:
+    post:
+      <<: *refundOperation
+      tags:
+        - refunds
+`, {
+    sourceRef: 'openapi/refund-with-merge.yaml',
+  });
+
+  equal(
+    result.declarationCount,
+    1,
+    'Manifest intake: YAML merge tag preserves operation fields',
+  );
+  equal(
+    result.declarations[0]?.actionSurface,
+    'refund_api.issue_refund',
+    'Manifest intake: merged OpenAPI operation id is ingested',
+  );
+}
+
 function testWorkflowYamlManifestIntakeDetectsSecretRisk(): void {
   const result = ingestActionSurfaceManifestText(`
 name: Deploy production
@@ -184,8 +215,16 @@ function testDescriptorDocsPackageAndDependency(): void {
     readonly devDependencies: Record<string, string>;
     readonly scripts: Record<string, string>;
   };
-  equal(pkg.dependencies['js-yaml'], '^4.2.0', 'Manifest intake package: js-yaml is a direct dependency');
-  equal(pkg.devDependencies['@types/js-yaml'], '^4.0.9', 'Manifest intake package: js-yaml types are direct dev dependency');
+  equal(
+    pkg.dependencies['js-yaml'],
+    '^5.0.0',
+    'Manifest intake package: js-yaml v5 is a direct dependency',
+  );
+  equal(
+    pkg.devDependencies['@types/js-yaml'],
+    undefined,
+    'Manifest intake package: js-yaml v5 built-in types avoid stale external types',
+  );
   equal(
     pkg.scripts['test:action-surface-manifest-intake'],
     'tsx tests/action-surface-manifest-intake.test.ts',
@@ -196,6 +235,7 @@ function testDescriptorDocsPackageAndDependency(): void {
 try {
   testYamlOpenApiManifestIntake();
   testJsonMcpManifestIntake();
+  testYamlMergeTagCompatibility();
   testWorkflowYamlManifestIntakeDetectsSecretRisk();
   testLimitsAndExplicitKind();
   testDescriptorDocsPackageAndDependency();
