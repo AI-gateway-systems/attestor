@@ -48,6 +48,24 @@ type ShadowReviewSurfaceReadModels = ShadowDashboardReadModels & {
 export type SafeShadowReviewSurfaceResult =
   SafeShadowSummaryResult & ShadowReviewSurfaceReadModels;
 
+function tenantBoundShadowSimulations(
+  tenant: TenantContext,
+  deps: ShadowRouteDeps,
+): readonly ShadowPolicySimulationReport[] {
+  const simulationRecords = deps.listShadowPolicySimulationReports?.({
+    tenant,
+    proposedMode: null,
+  });
+  if (simulationRecords) {
+    return assertTenantBoundRecords(
+      tenant,
+      simulationRecords,
+      'shadow policy simulation report',
+    ).map((record) => record.report);
+  }
+  return deps.listShadowSimulations?.({ tenant }) ?? [];
+}
+
 export function safeShadowSummary(
   c: Context,
   deps: ShadowRouteDeps,
@@ -62,7 +80,7 @@ export function safeShadowSummary(
       deps.listShadowEvents({ tenant }),
       'shadow admission event',
     );
-    const simulations = deps.listShadowSimulations?.({ tenant }) ?? [];
+    const simulations = tenantBoundShadowSimulations(tenant, deps);
     const surface = createShadowSummarySurface({
       events,
       simulations,

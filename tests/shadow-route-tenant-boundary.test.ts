@@ -163,6 +163,17 @@ async function testSummaryRejectsForeignAdmissionEvents(): Promise<void> {
   );
 }
 
+async function testSummaryRejectsForeignSimulationRecords(): Promise<void> {
+  const app = createApp({
+    listShadowPolicySimulationReports: () => [foreignSimulationRecord()],
+  });
+
+  await expectTenantBoundaryFailure(
+    await app.request('/api/v1/shadow/summary'),
+    'Shadow tenant boundary route guard: summary rejects foreign simulation records',
+  );
+}
+
 async function testSimulationHistoryRejectsForeignRecords(): Promise<void> {
   const app = createApp({
     listShadowPolicySimulationReports: () => [foreignSimulationRecord()],
@@ -306,6 +317,7 @@ async function testSimulationCreateRejectsForeignPersistedRecord(): Promise<void
 }
 
 await testSummaryRejectsForeignAdmissionEvents();
+await testSummaryRejectsForeignSimulationRecords();
 await testSimulationCreateRejectsForeignPersistedRecord();
 await testSimulationHistoryRejectsForeignRecords();
 await testSimulationLookupRejectsForeignRecord();
